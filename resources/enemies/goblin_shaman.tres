@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/goblin_shaman.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_ray"]
+script = ExtResource("2_attack")
+title = "Болотный луч"
+shape = 1
+attack_range = 3
+damage = 3
+puddle = true
+
+[sub_resource type="Resource" id="atk_call"]
+script = ExtResource("2_attack")
+title = "Зов Раскола"
+shape = 3
+attack_range = 2
+damage = 0
+ally_block = 3
+ally_damage = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "goblin_shaman"
+title = "Гоблин-шаман"
+description = "Слышит гул Раскола и думает, что небо говорит с ним."
+max_hp = 9
+move_range = 2
+damage = 3
+attack = 1
+attack_range = 3
+color = Color(0.3, 0.42, 0.36, 1)
+size = 0.95
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_ray"), SubResource("atk_call")])
+keep_distance = 2
+max_per_battle = 1
+start_block = 2

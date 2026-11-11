@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "fireball"
+title = "Огненный шар"
+description = "Крест на расстоянии до 5: 4 урона и поджог. Огонь жжёт на 2 в конце раунда, испаряет лужи, поджигает деревья, бочки и камыш."
+cost = 2
+shape = 3
+cast_range = 5
+damage = 4
+element = 1
+card_set = "storm"

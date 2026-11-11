@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_whirl"
+title = "Вихрь стали"
+description = "5 урона по всем 8 клеткам вокруг. +1 ярость за каждого задетого врага."
+cost = 2
+shape = 10
+damage = 5
+is_rare = true
+card_set = "onslaught"
+special = "whirl_rage"

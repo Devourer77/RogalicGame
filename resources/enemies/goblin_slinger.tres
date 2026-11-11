@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/goblin_slinger.glb" id="9_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "goblin_slinger"
+title = "Гоблин-пращник"
+description = "Камни у него заканчиваются реже, чем терпение."
+max_hp = 8
+move_range = 2
+damage = 3
+attack = 1
+attack_range = 3
+color = Color(0.35, 0.49, 0.35, 1)
+attack_title = "Бросок камня"
+size = 0.9
+model = ExtResource("9_model")
+first_only = true
+keep_distance = 2

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_rift"
+title = "Разлом"
+description = "Линия до 5: 6 урона +3 за каждый заряд, сквозь блок. Тратит весь заряд."
+cost = 3
+shape = 2
+cast_range = 5
+damage = 6
+charge_bonus = 3
+element = 4
+is_rare = true
+card_set = "storm"
+pierce_block = true

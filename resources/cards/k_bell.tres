@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_bell"
+title = "Колокол Стражи"
+description = "Враги в 3 клетках отлетают на 1. Провокация и 6 блока."
+cost = 2
+shape = 0
+block = 6
+is_rare = true
+card_set = "warden"
+taunt = true
+special = "bell"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "meteor"
+title = "Метеор"
+description = "Квадрат 3×3 на расстоянии до 5: 8 урона и поджог."
+cost = 3
+shape = 4
+cast_range = 5
+damage = 8
+element = 1
+is_rare = true
+card_set = "storm"

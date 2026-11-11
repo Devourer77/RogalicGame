@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_overgrowth"
+title = "Поросль"
+description = "Крест на расстоянии до 3: на пустых клетках вырастает камыш — он закрывает удары по линии."
+cost = 1
+shape = 3
+cast_range = 3
+card_set = "elements"
+special = "grow_reeds"

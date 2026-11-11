@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_runup"
+title = "Разбег"
+description = "+2 шага и +2 натиска."
+cost = 0
+shape = 0
+bonus_moves = 2
+momentum_gain = 2
+card_set = "onslaught"

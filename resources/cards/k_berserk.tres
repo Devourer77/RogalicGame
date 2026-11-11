@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_berserk"
+title = "Берсерк"
+description = "Дуга: 5 урона, +2 за каждую ярость. Тратит всю ярость."
+cost = 2
+shape = 5
+cast_range = 1
+damage = 5
+rage_bonus = 2
+is_rare = true
+card_set = "onslaught"

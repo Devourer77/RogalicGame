@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_stakes"
+title = "Вбить колья"
+description = "Частокол на соседней пустой клетке. Преграда; врезавшийся в неё получает 4 урона."
+cost = 1
+shape = 1
+cast_range = 1
+card_set = "warden"
+special = "stakes"

@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/mossy_treant.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_sweep"]
+script = ExtResource("2_attack")
+title = "Размах сучьями"
+shape = 2
+damage = 5
+push = 1
+
+[sub_resource type="Resource" id="atk_roots"]
+script = ExtResource("2_attack")
+title = "Подземные корни"
+anim = "Attack2"
+shape = 1
+attack_range = 3
+damage = 4
+pierce = true
+entangle = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "mossy_treant"
+title = "Мшистый корягач"
+description = "Старый дуб пил из заражённой топи тридцать лет, пока не вырвал собственные корни."
+max_hp = 38
+move_range = 1
+damage = 5
+attack = 2
+color = Color(0.24, 0.15, 0.14, 1)
+size = 1.35
+model = ExtResource("9_model")
+is_elite = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_sweep"), SubResource("atk_roots")])
+start_block = 3
+turn_block = 3
+bog_damage = 6
+fire_weak = true

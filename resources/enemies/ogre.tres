@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/ogre.glb" id="2_model"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="3_attack"]
+
+[sub_resource type="Resource" id="atk_sweep"]
+script = ExtResource("3_attack")
+title = "Размах колонной"
+shape = 2
+damage = 6
+
+[sub_resource type="Resource" id="atk_chain"]
+script = ExtResource("3_attack")
+title = "Хлёст цепью"
+shape = 1
+attack_range = 3
+damage = 4
+pull = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "ogre"
+title = "Огр"
+max_hp = 60
+move_range = 2
+damage = 6
+attack = 2
+attack_range = 1
+color = Color(0.55, 0.38, 0.22, 1)
+size = 1.4
+is_boss = true
+model = ExtResource("2_model")
+cycle = Array[ExtResource("3_attack")]([SubResource("atk_sweep"), SubResource("atk_chain")])
+bog_damage = 8

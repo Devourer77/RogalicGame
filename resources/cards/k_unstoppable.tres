@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_unstoppable"
+title = "Неудержимый"
+description = "До конца хода каждое убийство возвращает 1 ману и 2 шага."
+cost = 1
+shape = 0
+is_rare = true
+card_set = "onslaught"
+special = "unstoppable"

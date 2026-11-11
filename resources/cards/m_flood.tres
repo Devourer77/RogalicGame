@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_flood"
+title = "Разлив"
+description = "Квадрат 3×3: лужи. Где лужа уже была — становится трясиной."
+cost = 1
+shape = 4
+cast_range = 4
+element = 2
+card_set = "elements"
+special = "flood"

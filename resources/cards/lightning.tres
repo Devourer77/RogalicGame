@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "lightning"
+title = "Молния"
+description = "Одна клетка до 6: 6 урона. Попав в лужу, бьёт всех, кто стоит в этой луже."
+cost = 2
+shape = 1
+cast_range = 6
+damage = 6
+element = 4
+is_rare = true
+card_set = "storm"

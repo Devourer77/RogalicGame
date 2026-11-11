@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_storm_spear"
+title = "Копьё бури"
+description = "Линия до 6 клеток сквозь камыш, деревья и бочки (не ломая их): 4 урона. +1 заряд."
+cost = 1
+shape = 2
+cast_range = 6
+damage = 4
+charge_gain = 1
+element = 4
+card_set = "storm"
+special = "pierce"

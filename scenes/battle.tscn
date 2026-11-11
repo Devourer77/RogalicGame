@@ -1,21 +1,29 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/board.gd" id="1_board"]
 [ext_resource type="Script" path="res://scripts/battle.gd" id="2_battle"]
-[ext_resource type="Script" path="res://scripts/unit.gd" id="3_unit"]
-[ext_resource type="PackedScene" path="res://assets/models/hero.glb" id="4_hero_model"]
-
-[sub_resource type="ProceduralSkyMaterial" id="SkyMat_1"]
-sky_horizon_color = Color(0.66, 0.67, 0.69, 1)
-ground_horizon_color = Color(0.66, 0.67, 0.69, 1)
-
-[sub_resource type="Sky" id="Sky_1"]
-sky_material = SubResource("SkyMat_1")
+[ext_resource type="Script" path="res://ui/battle_hud.gd" id="5_hud"]
 
 [sub_resource type="Environment" id="Env_1"]
-background_mode = 2
-sky = SubResource("Sky_1")
+background_mode = 1
+background_color = Color(0.075, 0.105, 0.1, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.5, 0.62, 0.6, 1)
+ambient_light_energy = 0.6
 tonemap_mode = 2
+tonemap_white = 1.4
+glow_enabled = true
+glow_intensity = 0.7
+glow_bloom = 0.06
+glow_hdr_threshold = 1.1
+fog_enabled = true
+fog_light_color = Color(0.2, 0.29, 0.26, 1)
+fog_light_energy = 0.9
+fog_density = 0.016
+fog_sky_affect = 1.0
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 1.08
 
 [node name="Battle" type="Node3D"]
 script = ExtResource("2_battle")
@@ -25,17 +33,17 @@ environment = SubResource("Env_1")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 10, 0)
+light_color = Color(0.74, 0.86, 0.92, 1)
+light_energy = 1.05
 shadow_enabled = true
+shadow_blur = 1.5
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 3.5, 7.5, 11)
+transform = Transform3D(1, 0, 0, 0, 0.573576, 0.819152, 0, -0.819152, 0.573576, 3.5, 9.8, 12.4)
 fov = 50.0
 
 [node name="Board" type="Node3D" parent="."]
 script = ExtResource("1_board")
 
-[node name="Hero" type="Node3D" parent="."]
-script = ExtResource("3_unit")
-cell = Vector2i(1, 6)
-
-[node name="Model" parent="Hero" instance=ExtResource("4_hero_model")]
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("5_hud")

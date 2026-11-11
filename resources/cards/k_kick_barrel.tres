@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_kick_barrel"
+title = "Пинок бочки"
+description = "Бочка катится от рыцаря до 4 клеток и взрывается, если во что-то врезалась."
+cost = 1
+shape = 1
+cast_range = 1
+card_set = "warden"
+special = "kick_barrel"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_shield_rush"
+title = "Рывок щитом"
+description = "Бежит по прямой до 5 клеток. Врезавшись во врага: 3 урона и толчок на 2. Блок 4."
+cost = 1
+shape = 6
+cast_range = 5
+damage = 3
+push = 2
+block = 4
+card_set = "warden"

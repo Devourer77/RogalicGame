@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_warcry"
+title = "Боевой клич"
+description = "+2 ярости, возьмите 1 карту."
+cost = 0
+shape = 0
+cast_range = 0
+rage_gain = 2
+draw = 1
+card_set = "onslaught"

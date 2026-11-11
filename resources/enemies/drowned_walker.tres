@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/drowned_walker.glb" id="9_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "drowned_walker"
+title = "Топляк"
+description = "Болото не отпустило его — просто разрешило встать."
+max_hp = 16
+move_range = 2
+damage = 4
+attack = 0
+attack_range = 1
+color = Color(0.33, 0.43, 0.48, 1)
+attack_title = "Удар бревном"
+size = 1.15
+model = ExtResource("9_model")
+push = 1
+bog_walker = true
+wet_trail = true

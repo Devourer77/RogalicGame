@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/goblin.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "goblin"
+title = "Гоблин"
+max_hp = 11
+move_range = 3
+damage = 4
+attack = 0
+attack_range = 1
+color = Color(0.35, 0.65, 0.25, 1)
+size = 1.15
+model = ExtResource("2_model")

@@ -1,0 +1,286 @@
+extends SceneTree
+# Проверка новых врагов акта 1: пращник, топляк, жаба, шаман, корягач и цикл огра.
+# Запуск: godot --headless --path . -s tests/enemies.gd
+
+var fails := 0
+var run
+const O := BattleLogic.Obj
+const T := BattleLogic.Tile
+const DOWN := Vector2i(0, 1)
+
+
+func check(name: String, ok: bool) -> void:
+	print(("OK   " if ok else "FAIL ") + name)
+	if not ok: fails += 1
+
+
+# Чистое поле: маг на (2,9), рыцарь на (8,9), враги в верхнем ряду
+func fresh(enemy_ids: Array) -> BattleLogic:
+	var list: Array[EnemyData] = []
+	for id in enemy_ids: list.append(load("res://resources/enemies/%s.tres" % id))
+	var l := BattleLogic.new()
+	l.setup(12, 12, run.rng, run.party, list)
+	l.rocks.clear(); l.tiles.clear(); l.objects.clear(); l.fire_timers.clear()
+	l.start()
+	l.heroes[0].cell = Vector2i(2, 9); l.heroes[1].cell = Vector2i(8, 9)
+	for i in l.enemies.size():
+		l.enemies[i].cell = Vector2i(i + 6, 0)
+	return l
+
+
+func _initialize() -> void:
+	await process_frame
+	run = root.get_node("Run")
+	run.start_new_run(7)
+	_bog_rule()
+	_slinger()
+	_drowned()
+	_toad()
+	_shaman()
+	_treant()
+	_ogre()
+	_run_changes()
+	print("FAILS: %d" % fails)
+	quit(1 if fails > 0 else 0)
+
+
+func _bog_rule() -> void:
+	print("--- Герой и трясина ---")
+	var l := fresh(["drowned_walker"]); var m: BattleUnit = l.heroes[0]; var e: BattleUnit = l.enemies[0]
+	e.cell = Vector2i(2, 8); l.objects[Vector2i(2, 10)] = O.BOG
+	l._enemies_act()
+	check("Героя толкнули в трясину: жив и остался на краю", m.is_alive() and m.cell == Vector2i(2, 9))
+	check("Героя толкнули в трясину: 4 от удара + 4 от трясины", m.hp == 30 - 4 - 4)
+
+
+func _slinger() -> void:
+	print("--- Гоблин-пращник ---")
+	var l := fresh(["goblin_slinger"]); var m: BattleUnit = l.heroes[0]; var e: BattleUnit = l.enemies[0]
+	e.cell = Vector2i(2, 5)
+	l._enemies_act()
+	check("Пращник: подошёл на дальность 3 и попал на 3", e.cell == Vector2i(2, 6) and m.hp == 27)
+	l = fresh(["goblin_slinger"]); m = l.heroes[0]; e = l.enemies[0]
+	e.cell = Vector2i(2, 8)
+	l._enemies_act()
+	check("Пращник: герой вплотную — отступил и бросил", e.cell == Vector2i(2, 7) and m.hp == 27)
+	l = fresh(["goblin_slinger", "goblin"]); e = l.enemies[0]
+	l.enemies[1].cell = Vector2i(2, 8)
+	var atk: EnemyAttackData = l.enemy_attack(e)
+	var cells: Array[Vector2i] = l._attack_cells(e, atk, Vector2i(2, 6), DOWN)
+	check("Пращник: камень останавливается на первом, в кого попал", cells == [Vector2i(2, 7), Vector2i(2, 8)])
+	l = fresh(["goblin_slinger"]); e = l.enemies[0]
+	l.objects[Vector2i(2, 8)] = O.REEDS
+	check("Пращник: камыш закрывает героя", not l._attack_cells(e, l.enemy_attack(e), Vector2i(2, 6), DOWN).has(Vector2i(2, 9)))
+	l = fresh(["goblin_slinger"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = Vector2i(2, 6); l.objects[Vector2i(2, 7)] = O.TREE
+	l._enemy_strike(e, l.enemy_attack(e), DOWN)
+	check("Пращник: камень в дерево — оно падает от него (4 урона на линии)", l.object_at(Vector2i(2, 7)) == O.NONE and m.hp == 26)
+	l = fresh(["goblin_slinger"]); e = l.enemies[0]
+	e.cell = Vector2i(2, 5); l.objects[Vector2i(2, 6)] = O.BARREL
+	l._enemy_strike(e, l.enemy_attack(e), DOWN)
+	check("Пращник: камень в бочку — взрыв", l.object_at(Vector2i(2, 6)) == O.NONE and l.tile_at(Vector2i(2, 6)) == T.FIRE)
+
+
+func _drowned() -> void:
+	print("--- Топляк ---")
+	var l := fresh(["drowned_walker", "goblin"]); var e: BattleUnit = l.enemies[0]; var g: BattleUnit = l.enemies[1]
+	for x in 12: l.objects[Vector2i(x, 5)] = O.BOG
+	e.cell = Vector2i(2, 3); g.cell = Vector2i(8, 3)
+	l._enemies_act()
+	check("Топляк: идёт напрямик через трясину и не тонет", e.cell == Vector2i(2, 5) and e.is_alive())
+	check("Топляк: клетка, с которой ушёл, стала лужей", l.tile_at(Vector2i(2, 3)) == T.WATER)
+	check("Гоблин через трясину не идёт", g.cell.y < 5)
+	l._enemies_act()
+	check("Топляк: с трясины лужи не остаётся", l.tile_at(Vector2i(2, 5)) == T.NONE and l.object_at(Vector2i(2, 5)) == O.BOG)
+	l = fresh(["drowned_walker"]); e = l.enemies[0]
+	e.cell = Vector2i(5, 5); l.objects[Vector2i(5, 6)] = O.BOG
+	l._push(e, DOWN, 1)
+	check("Топляк: толчок в трясину — просто встал в неё", e.is_alive() and e.cell == Vector2i(5, 6) and e.hp == 16)
+	l = fresh(["drowned_walker"]); e = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	e.cell = Vector2i(2, 8)
+	l._enemies_act()
+	check("Топляк: 4 урона и отталкивает на 1", m.hp == 26 and m.cell == Vector2i(2, 10))
+	l = fresh(["drowned_walker"]); e = l.enemies[0]; m = l.heroes[0]; var k: BattleUnit = l.heroes[1]
+	e.cell = Vector2i(2, 8); k.cell = Vector2i(2, 10)
+	l._enemies_act()
+	check("Топляк: толкнул героя в героя — обоим по 2", m.hp == 24 and k.hp == 43 and m.cell == Vector2i(2, 9))
+	l = fresh(["goblin", "drowned_walker"]); g = l.enemies[0]; e = l.enemies[1]
+	l.objects[Vector2i(5, 6)] = O.BOG; e.cell = Vector2i(5, 6); g.cell = Vector2i(5, 5)
+	l._push(g, DOWN, 1)
+	check("Гоблин врезался в топляка, стоящего в трясине: обычные 2 урона, не тонет", g.is_alive() and g.hp == 9 and e.hp == 14)
+
+
+func _toad() -> void:
+	print("--- Раздутая жаба ---")
+	var l := fresh(["bloated_toad"]); var e: BattleUnit = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	e.cell = Vector2i(2, 7)
+	l._enemies_act()
+	check("Жаба: язык — 2 урона и притягивает на 1", m.hp == 28 and m.cell == Vector2i(2, 8) and e.cell == Vector2i(2, 7))
+	l = fresh(["bloated_toad"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = Vector2i(2, 8); e.entangled = 1
+	l._enemies_act()
+	check("Жаба: вплотную кусает на 2 без притягивания", m.hp == 28 and m.cell == Vector2i(2, 9))
+	l = fresh(["bloated_toad"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = Vector2i(2, 7); l.objects[Vector2i(2, 8)] = O.BOG
+	l._enemies_act()
+	check("Жаба: тянет героя в трясину — 2 + 4 урона, герой на краю", m.hp == 24 and m.cell == Vector2i(2, 9))
+	# Из двух одинаково близких клеток выбирает ту, откуда затянет в огонь
+	l = fresh(["bloated_toad"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = Vector2i(3, 8); l._set_tile(Vector2i(2, 8), T.FIRE)
+	l._enemies_act()
+	check("Жаба: встаёт так, чтобы затянуть в огонь (сверху)", e.cell == Vector2i(2, 7) and m.cell == Vector2i(2, 8))
+	l = fresh(["bloated_toad"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = Vector2i(3, 8); l._set_tile(Vector2i(3, 9), T.FIRE)
+	l._enemies_act()
+	check("Жаба: встаёт так, чтобы затянуть в огонь (сбоку)", e.cell == Vector2i(4, 9) and m.cell == Vector2i(3, 9))
+	# Посмертный взрыв
+	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]; var g: BattleUnit = l.enemies[1]; m = l.heroes[0]
+	e.cell = Vector2i(5, 5); g.cell = Vector2i(5, 4); m.cell = Vector2i(5, 6)
+	l.objects[Vector2i(4, 5)] = O.TREE
+	l._damage(e, 99)
+	check("Жаба: хлопок — 3 урона соседям, и своим, и героям", g.hp == 8 and m.hp == 27)
+	check("Жаба: хлопок валит дерево и оставляет лужу", l.object_at(Vector2i(4, 5)) == O.NONE and l.tile_at(Vector2i(5, 5)) == T.WATER)
+	l = fresh(["bloated_toad", "bloated_toad"]); e = l.enemies[0]; var e2: BattleUnit = l.enemies[1]
+	e.cell = Vector2i(5, 5); e2.cell = Vector2i(6, 5); e2.hp = 3
+	l._damage(e, 99)
+	check("Жаба: хлопок убивает соседнюю жабу — цепочка без зависания", not e2.is_alive() and l.tile_at(Vector2i(6, 5)) == T.WATER)
+	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]; g = l.enemies[1]
+	e.cell = Vector2i(5, 5); g.cell = Vector2i(5, 4); l.objects[Vector2i(5, 6)] = O.BOG
+	l._push(e, DOWN, 1)
+	check("Жаба: утонула в трясине — взрыва нет", not e.is_alive() and g.hp == 11 and l.tile_at(Vector2i(5, 5)) == T.NONE)
+	l = fresh(["bloated_toad"]); e = l.enemies[0]
+	e.cell = Vector2i(5, 5); e.hp = 2; e.entangled = 1; l._set_tile(Vector2i(5, 5), T.FIRE)
+	l.end_turn()
+	check("Жаба: сгорела в конце раунда — хлопок, огонь под ней погас, игра не падает",
+			not e.is_alive() and l.tile_at(Vector2i(5, 5)) == T.NONE and l.is_over)
+	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]; g = l.enemies[1]
+	e.cell = Vector2i(5, 5); g.cell = Vector2i(7, 6); l.tiles[Vector2i(5, 6)] = T.WATER; l.tiles[Vector2i(6, 6)] = T.WATER
+	var hit: Array[Vector2i] = l._spread_through_water([Vector2i(6, 6)] as Array[Vector2i])
+	check("Жаба: молния по соседней луже бьёт и её, гоблина рядом — нет", hit.has(Vector2i(5, 5)) and not hit.has(Vector2i(7, 6)))
+
+
+func _shaman() -> void:
+	print("--- Гоблин-шаман ---")
+	var l := fresh(["goblin_shaman"]); var e: BattleUnit = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	check("Шаман: начинает бой с блоком 2", e.block == 2)
+	e.cell = Vector2i(2, 6)
+	check("Шаман: в нечётный раунд — луч", l.enemy_attack(e).title == "Болотный луч")
+	l._enemies_act()
+	check("Шаман: луч — 3 урона и лужа под целью", m.hp == 27 and l.tile_at(Vector2i(2, 9)) == T.WATER)
+	check("Шаман: стартовый блок сгорел в начале хода врагов", e.block == 0)
+	l = fresh(["goblin_shaman", "goblin", "goblin"]); e = l.enemies[0]
+	var g1: BattleUnit = l.enemies[1]; var g2: BattleUnit = l.enemies[2]
+	e.cell = Vector2i(0, 0); g1.cell = Vector2i(3, 0); g2.cell = Vector2i(4, 0)
+	g1.entangled = 2; g2.entangled = 2   # чтобы гоблины стояли на месте
+	l.turn = 2
+	check("Шаман: в чётный раунд — зов", l.enemy_attack(e).title == "Зов Раскола")
+	var plan: Dictionary = {}
+	for f in l.forecast_enemies():
+		if (f["enemy"] as BattleUnit) == e: plan = f
+	check("Шаман: прогноз показывает зов, а не удар", (plan["buff"] as Array).size() > 0 and (plan["attack"] as Array).is_empty())
+	check("Шаман: в раунд зова зоны угрозы нет", l.get_threat_cells(e).is_empty())
+	l._enemies_act()
+	check("Шаман: встал так, чтобы накрыть обоих гоблинов", e.cell == Vector2i(2, 0))
+	check("Шаман: зов даёт +3 блока своим и себе", g1.block == 3 and g2.block == 3 and e.block == 3)
+	check("Шаман: зов усиливает следующий удар на 1", g1.bonus_damage == 1 and l.snapshot(g1)["damage"] == 5)
+	l._enemies_act()
+	check("Шаман: блок не копится (второй зов подряд — снова 3)", g1.block == 3 and e.block == 3)
+	# Усиленный удар тратит усиление
+	l = fresh(["goblin"]); var g: BattleUnit = l.enemies[0]; m = l.heroes[0]
+	g.cell = Vector2i(2, 8); g.bonus_damage = 1
+	l._enemies_act()
+	check("Усиленный гоблин бьёт на 5, потом снова на 4", m.hp == 25 and g.bonus_damage == 0)
+
+
+func _treant() -> void:
+	print("--- Мшистый корягач ---")
+	var l := fresh(["mossy_treant"]); var e: BattleUnit = l.enemies[0]
+	var m: BattleUnit = l.heroes[0]; var k: BattleUnit = l.heroes[1]
+	e.cell = Vector2i(2, 8)
+	l._enemies_act()
+	check("Корягач: броня +3 в начале хода", e.block == 3)
+	check("Корягач: размах — 5 урона и отталкивает на 1", m.hp == 25 and m.cell == Vector2i(2, 10))
+	l._enemies_act()
+	check("Корягач: броня не копится", e.block == 3)
+	l = fresh(["mossy_treant"]); e = l.enemies[0]; m = l.heroes[0]; k = l.heroes[1]
+	e.cell = Vector2i(2, 8); k.cell = Vector2i(3, 9)
+	l._enemy_strike(e, l.enemy_attack(e), DOWN)
+	check("Корягач: размах задевает три клетки — обоих героев", m.hp == 25 and k.hp == 40
+			and m.cell == Vector2i(2, 10) and k.cell == Vector2i(3, 10))
+	l = fresh(["mossy_treant"]); e = l.enemies[0]; m = l.heroes[0]; k = l.heroes[1]
+	e.cell = Vector2i(2, 6); l.objects[Vector2i(2, 7)] = O.TREE; l.objects[Vector2i(2, 8)] = O.REEDS
+	l.turn = 2
+	check("Корягач: в чётный раунд — корни", l.enemy_attack(e).title == "Подземные корни")
+	l._enemies_act()
+	check("Корягач: корни — 4 урона сквозь дерево и камыш, преграды целы",
+			m.hp == 26 and l.object_at(Vector2i(2, 7)) == O.TREE and l.object_at(Vector2i(2, 8)) == O.REEDS)
+	check("Корягач: корни опутывают", m.entangled == 1)
+	l._start_heroes_turn()
+	check("Опутанный герой: шагов нет, мана и карты на месте", m.moves_left == 0 and m.mana == 3 and m.hand.size() >= 5)
+	check("Опутывание: второй герой ходит как обычно", k.moves_left == 3)
+	l._enemies_act(); l._start_heroes_turn()
+	check("Опутывание длится один ход", m.entangled == 0)
+	l = fresh(["mossy_treant"]); e = l.enemies[0]
+	check("Корягач: броня есть с первого хода (блок 3)", e.block == 3)
+	e.cell = Vector2i(5, 5); l.objects[Vector2i(5, 6)] = O.BOG
+	l._push(e, DOWN, 1)
+	check("Корягач: в трясине не тонет, 6 урона (3 в броню, 3 по здоровью)", e.is_alive() and e.cell == Vector2i(5, 5) and e.hp == 35 and e.block == 0)
+	l = fresh(["mossy_treant"]); e = l.enemies[0]
+	e.cell = Vector2i(5, 5); e.block = 3
+	l._set_tile(Vector2i(5, 5), T.FIRE)
+	check("Корягач: огонь под ногами сжигает броню", e.block == 0)
+	e.entangled = 1   # чтобы не ушёл с огня
+	l.end_turn()
+	check("Корягач: в огне брони нет и урон от огня двойной", e.block == 0 and e.hp == 34)
+	l = fresh(["mossy_treant"]); e = l.enemies[0]
+	e.cell = Vector2i(5, 5); e.block = 3; l.objects[Vector2i(5, 6)] = O.BARREL
+	l._explode_barrel(Vector2i(5, 6))
+	check("Корягач: взрыв бочки срывает броню — все 4 урона проходят", e.hp == 34 and e.block == 0)
+
+
+func _ogre() -> void:
+	print("--- Огр: цикл ударов ---")
+	var l := fresh(["ogre"]); var e: BattleUnit = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	e.cell = Vector2i(2, 8)
+	check("Огр: нечётный раунд — размах колонной", l.enemy_attack(e).title == "Размах колонной")
+	l._enemies_act()
+	check("Огр: размах — 6 урона", m.hp == 24)
+	l = fresh(["ogre"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = Vector2i(2, 6); e.entangled = 1; l.turn = 2
+	check("Огр: чётный раунд — хлёст цепью", l.enemy_attack(e).title == "Хлёст цепью")
+	l._enemies_act()
+	check("Огр: цепь — 4 урона с трёх клеток и притягивает на 1", m.hp == 26 and m.cell == Vector2i(2, 8))
+	l = fresh(["ogre"]); e = l.enemies[0]
+	e.cell = Vector2i(5, 5); l.objects[Vector2i(5, 6)] = O.BOG
+	l._push(e, DOWN, 1)
+	check("Огр: трясина по-прежнему как стена, 8 урона", e.is_alive() and e.hp == 52 and e.cell == Vector2i(5, 5))
+
+
+func _run_changes() -> void:
+	print("--- Модели ---")
+	var models_ok := true
+	for id in ["goblin_slinger", "bloated_toad", "drowned_walker", "goblin_shaman", "mossy_treant"]:
+		if (load("res://resources/enemies/%s.tres" % id) as EnemyData).model == null: models_ok = false
+	check("У всех пяти новых врагов подключена модель", models_ok)
+	print("--- Забег ---")
+	var shamans_ok := true; var treants_ok := true; var seen: Dictionary = {}
+	for s in range(1, 201):
+		run.start_new_run(s)
+		for row in 6:
+			var enc: Array[EnemyData] = run._make_encounter(row, false)
+			var sh := 0
+			for d in enc:
+				seen[d.id] = true
+				if d.id == "goblin_shaman": sh += 1
+				if d.is_elite: treants_ok = false
+			if sh > 1: shamans_ok = false
+			if enc.size() != 4 + row / 2: treants_ok = false
+		var elite: Array[EnemyData] = run._make_encounter(5, false, true)
+		if elite.size() != 4 or elite[0].id != "mossy_treant": treants_ok = false
+		for n in run.row_nodes(run.MAP_ROWS - 3):
+			if n.type != MapNode.Type.ELITE: treants_ok = false
+		for n in run.map:
+			if n.type == MapNode.Type.ELITE and n.row != run.MAP_ROWS - 3: treants_ok = false
+	check("В обычных боях встречаются все 7 видов врагов", seen.size() == 7)
+	check("Шаман — не больше одного на бой", shamans_ok)
+	check("Корягач — только в элитном бою (ряд перед привалом), с тремя спутниками", treants_ok)

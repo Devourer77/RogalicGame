@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_swap"
+title = "Обмен"
+description = "Маг и союзник в пределах 5 клеток меняются местами."
+cost = 0
+shape = 7
+cast_range = 5
+card_set = "elements"
+special = "swap"

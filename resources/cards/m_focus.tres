@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_focus"
+title = "Сосредоточение"
+description = "+2 заряда. Следующая карта в этот ход дешевле на 1 ману."
+cost = 1
+shape = 0
+charge_gain = 2
+card_set = "storm"
+special = "focus"

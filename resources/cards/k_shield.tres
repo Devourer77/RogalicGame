@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_shield"
+title = "Поднять щит"
+description = "Блок 7."
+cost = 1
+shape = 0
+cast_range = 0
+block = 7
+card_set = "warden"

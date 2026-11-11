@@ -1,0 +1,47 @@
+[gd_resource type="Resource" script_class="HeroData" load_steps=32 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="1_hero"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="PackedScene" path="res://assets/models/knight.glb" id="3_model"]
+[ext_resource type="Resource" path="res://resources/cards/k_bastion.tres" id="c_k_bastion"]
+[ext_resource type="Resource" path="res://resources/cards/k_berserk.tres" id="c_k_berserk"]
+[ext_resource type="Resource" path="res://resources/cards/k_blood.tres" id="c_k_blood"]
+[ext_resource type="Resource" path="res://resources/cards/k_charge.tres" id="c_k_charge"]
+[ext_resource type="Resource" path="res://resources/cards/k_cleave.tres" id="c_k_cleave"]
+[ext_resource type="Resource" path="res://resources/cards/k_cover.tres" id="c_k_cover"]
+[ext_resource type="Resource" path="res://resources/cards/k_crush.tres" id="c_k_crush"]
+[ext_resource type="Resource" path="res://resources/cards/k_lance.tres" id="c_k_lance"]
+[ext_resource type="Resource" path="res://resources/cards/k_shield.tres" id="c_k_shield"]
+[ext_resource type="Resource" path="res://resources/cards/k_shield_rush.tres" id="c_k_shield_rush"]
+[ext_resource type="Resource" path="res://resources/cards/k_slash.tres" id="c_k_slash"]
+[ext_resource type="Resource" path="res://resources/cards/k_taunt.tres" id="c_k_taunt"]
+[ext_resource type="Resource" path="res://resources/cards/k_wall.tres" id="c_k_wall"]
+[ext_resource type="Resource" path="res://resources/cards/k_warcry.tres" id="c_k_warcry"]
+[ext_resource type="Resource" path="res://resources/cards/k_runup.tres" id="c_k_runup"]
+[ext_resource type="Resource" path="res://resources/cards/k_spin.tres" id="c_k_spin"]
+[ext_resource type="Resource" path="res://resources/cards/k_execute.tres" id="c_k_execute"]
+[ext_resource type="Resource" path="res://resources/cards/k_pass_ram.tres" id="c_k_pass_ram"]
+[ext_resource type="Resource" path="res://resources/cards/k_leap.tres" id="c_k_leap"]
+[ext_resource type="Resource" path="res://resources/cards/k_whirl.tres" id="c_k_whirl"]
+[ext_resource type="Resource" path="res://resources/cards/k_unstoppable.tres" id="c_k_unstoppable"]
+[ext_resource type="Resource" path="res://resources/cards/k_stakes.tres" id="c_k_stakes"]
+[ext_resource type="Resource" path="res://resources/cards/k_bridge.tres" id="c_k_bridge"]
+[ext_resource type="Resource" path="res://resources/cards/k_fell.tres" id="c_k_fell"]
+[ext_resource type="Resource" path="res://resources/cards/k_kick_barrel.tres" id="c_k_kick_barrel"]
+[ext_resource type="Resource" path="res://resources/cards/k_hold.tres" id="c_k_hold"]
+[ext_resource type="Resource" path="res://resources/cards/k_outpost.tres" id="c_k_outpost"]
+[ext_resource type="Resource" path="res://resources/cards/k_bell.tres" id="c_k_bell"]
+
+[resource]
+script = ExtResource("1_hero")
+id = "knight"
+title = "Рыцарь"
+max_hp = 45
+moves_per_turn = 3
+mana_per_turn = 3
+gains_momentum = true
+gains_rage = true
+color = Color(0.9, 0.62, 0.25, 1)
+model = ExtResource("3_model")
+starter_deck = Array[ExtResource("2_card")]([ExtResource("c_k_slash"), ExtResource("c_k_slash"), ExtResource("c_k_slash"), ExtResource("c_k_slash"), ExtResource("c_k_shield"), ExtResource("c_k_shield"), ExtResource("c_k_shield"), ExtResource("c_k_cleave"), ExtResource("c_k_charge"), ExtResource("c_k_taunt")])
+card_pool = Array[ExtResource("2_card")]([ExtResource("c_k_slash"), ExtResource("c_k_shield"), ExtResource("c_k_cleave"), ExtResource("c_k_charge"), ExtResource("c_k_taunt"), ExtResource("c_k_cover"), ExtResource("c_k_wall"), ExtResource("c_k_bastion"), ExtResource("c_k_warcry"), ExtResource("c_k_blood"), ExtResource("c_k_berserk"), ExtResource("c_k_shield_rush"), ExtResource("c_k_crush"), ExtResource("c_k_lance"), ExtResource("c_k_runup"), ExtResource("c_k_spin"), ExtResource("c_k_execute"), ExtResource("c_k_pass_ram"), ExtResource("c_k_leap"), ExtResource("c_k_whirl"), ExtResource("c_k_unstoppable"), ExtResource("c_k_stakes"), ExtResource("c_k_bridge"), ExtResource("c_k_fell"), ExtResource("c_k_kick_barrel"), ExtResource("c_k_hold"), ExtResource("c_k_outpost"), ExtResource("c_k_bell")])

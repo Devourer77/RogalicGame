@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_drain"
+title = "Осушение"
+description = "Трясина, мостки или лужа становятся сухой землёй. Герой на этой клетке получает 4 блока."
+cost = 1
+shape = 1
+cast_range = 4
+card_set = "elements"
+special = "drain"

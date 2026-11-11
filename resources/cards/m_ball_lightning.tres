@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_ball_lightning"
+title = "Шаровая молния"
+description = "Крест на расстоянии до 5: 3 урона +1 за каждый заряд. Тратит весь заряд."
+cost = 2
+shape = 3
+cast_range = 5
+damage = 3
+charge_bonus = 1
+element = 4
+card_set = "storm"

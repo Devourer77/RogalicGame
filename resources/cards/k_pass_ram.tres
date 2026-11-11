@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_pass_ram"
+title = "Сквозной таран"
+description = "Бежит до 5 клеток насквозь: каждый враг на пути получает 3 урона и отлетает на клетку в сторону."
+cost = 2
+shape = 6
+cast_range = 5
+damage = 3
+card_set = "onslaught"
+special = "pass_through"

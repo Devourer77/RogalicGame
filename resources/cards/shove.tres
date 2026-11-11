@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "shove"
+title = "Толчок"
+description = "2 урона и толкает врага на 2 клетки. Врезался в камень, край или другого — ещё 2 урона обоим. В трясину — тонет."
+cost = 1
+shape = 1
+cast_range = 1
+damage = 2
+push = 2

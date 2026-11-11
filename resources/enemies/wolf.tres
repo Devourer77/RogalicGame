@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/wolf.glb" id="2_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "wolf"
+title = "Волк"
+max_hp = 7
+move_range = 4
+damage = 3
+attack = 0
+attack_range = 1
+color = Color(0.55, 0.55, 0.6, 1)
+size = 0.9
+model = ExtResource("2_model")

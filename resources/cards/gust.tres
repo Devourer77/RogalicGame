@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "gust"
+title = "Порыв ветра"
+description = "Линия на 5 клеток: толкает всех на 2 клетки. Хорош, чтобы сбросить врагов в трясину."
+cost = 1
+shape = 2
+cast_range = 5
+push = 2
+card_set = "elements"

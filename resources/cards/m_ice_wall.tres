@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_ice_wall"
+title = "Ледяная стена"
+description = "Стена из 3 ледяных глыб поперёк направления. Глыбы — преграда, тают от огня или через 3 раунда."
+cost = 1
+shape = 8
+cast_range = 4
+element = 3
+card_set = "elements"
+special = "ice_wall"
