@@ -19,3 +19,4 @@ size = 0.9
 model = ExtResource("9_model")
 first_only = true
 keep_distance = 2
+feeds_toad = true

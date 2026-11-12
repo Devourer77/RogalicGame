@@ -243,6 +243,7 @@ func _generate_field() -> void:
 			"camp": _arena_camp()
 			"ruins": _arena_ruins()
 			_: _arena_lair()
+		_sprinkle_swamp_gas()
 		if _field_is_open() and _free_enemy_cells() >= MIN_ENEMY_CELLS:
 			_paint_ground()
 			return
@@ -252,6 +253,17 @@ func _generate_field() -> void:
 	tiles.clear()
 	ground.clear()
 	_paint_ground()
+
+
+# Проходимая трясина и ядовитый газ: по пятну на каждой арене, кроме руин
+func _sprinkle_swamp_gas() -> void:
+	if arena_id == "ruins":
+		return
+	for pair: Array in [[Tile.SWAMP, 5], [Tile.GAS, 3]]:
+		var kind: int = pair[0]
+		for c in _grow_patch(pair[1], 3, 8):
+			if is_inside(c) and not rocks.has(c) and object_at(c) == Obj.NONE and tile_at(c) == Tile.NONE:
+				tiles[c] = kind
 
 
 func arena_title() -> String:
@@ -980,12 +992,14 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	var card: CardData = h.hand[index]
 	if card.shape != CardData.Shape.SELF and not get_card_targets(h, index).has(target):
 		return false
+	target = _intercept(card, target)
 	var area: Array[Vector2i] = get_card_area(h, index, target)
 	h.mana -= card_cost(h, index)
 	h.discount = 0   # скидка действует на одну карту
 	h.hand.remove_at(index)
 	_forget_kept(h, index)
-	h.discard_pile.append(card)
+	if card.special != "slime":
+		h.discard_pile.append(card)   # «Тина» сгорает навсегда, остальные идут в сброс
 	message.emit("%s: %s" % [h.title, card.title])
 	var as_spell: bool = is_spell_card(h, card)
 	var as_attack: bool = is_attack_card(h, card)
@@ -2165,6 +2179,73 @@ func _astral_beam(h: BattleUnit, card: CardData, dir: Vector2i) -> void:
 			bonus += 4
 
 
+
+# ---------- Враги: синергии ----------
+
+func _slime_count(h: BattleUnit) -> int:
+	var n: int = 0
+	for c in h.hand:
+		if c.special == "slime":
+			n += 1
+	return n
+
+
+# «Живой щит»: одиночная дальняя атака или заклинание по врагу рядом с корягачом бьёт корягача
+func _intercept(card: CardData, target: Vector2i) -> Vector2i:
+	if card.shape != CardData.Shape.SINGLE or card.cast_range <= 1 or card.damage <= 0 or card.special == "ricochet":
+		return target
+	var victim: BattleUnit = unit_at(target)
+	if victim == null or victim.is_hero or (victim.data != null and victim.data.living_shield):
+		return target
+	for e in living_enemies():
+		if e.data.living_shield and HexMath.distance(e.cell, target) == 1:
+			message.emit("%s перехватывает удар" % e.title)
+			return e.cell
+	return target
+
+
+# Топляк ударил: клетки вокруг становятся трясиной, а герою в руку падает «Болотная тина»
+func _make_swamp_around(e: BattleUnit, victims: Array[BattleUnit]) -> void:
+	for n in HexMath.neighbors(e.cell):
+		if is_inside(n) and not rocks.has(n) and object_at(n) == Obj.NONE and tile_at(n) == Tile.NONE:
+			_set_tile(n, Tile.SWAMP)
+	var slime: CardData = load("res://resources/cards/swamp_slime.tres")
+	for u in victims:
+		if u.is_hero and u.is_alive() and slime != null:
+			if u.hand.size() < MAX_HAND:
+				u.hand.append(slime)
+			else:
+				u.discard_pile.append(slime)
+			message.emit("%s: в руке «Болотная тина»" % u.title)
+			status_changed.emit(u, snapshot(u))
+			break
+
+
+# Пращник: если жаба далеко от героев — бьёт по ней камнем (+1 раздувание) и толкает к героям
+func _slinger_assist(e: BattleUnit) -> bool:
+	for t in living_enemies():
+		if not t.data.inflation or t == e or HexMath.distance(e.cell, t.cell) > e.data.attack_range:
+			continue
+		var near: BattleUnit = null
+		for h in living_heroes():
+			if near == null or HexMath.distance(h.cell, t.cell) < HexMath.distance(near.cell, t.cell):
+				near = h
+		if near == null or HexMath.distance(near.cell, t.cell) < 3:
+			continue
+		message.emit("%s швыряет камень в жабу" % e.title)
+		_damage(t, 1)
+		if t.is_alive():
+			t.inflation += 1
+			status_changed.emit(t, snapshot(t))
+			if t.inflation >= INFLATION_MAX:
+				_kill(t)
+				_inflation_burst(t)
+			else:
+				_push(t, HexMath.direction_to(t.cell, near.cell), 1)
+		return true
+	return false
+
+
 # ---------- Колода ----------
 
 func _draw_cards(h: BattleUnit, count: int) -> void:
@@ -2229,7 +2310,7 @@ func _start_heroes_turn() -> void:
 			status_changed.emit(h, snapshot(h))
 		h.mana = maxi(0, h.hero_data.mana_per_turn - int(_mana_penalty.get(h.id, 0)))
 		_mana_penalty[h.id] = 0
-		h.moves_left = h.hero_data.moves_per_turn
+		h.moves_left = maxi(0, h.hero_data.moves_per_turn - _slime_count(h))
 		h.discount = 0
 		_discards_left[h] = DISCARDS_PER_TURN
 		h.outpost = false
@@ -2382,6 +2463,8 @@ func _enemies_act() -> bool:
 		if atk.shape == EnemyData.Attack.AURA:
 			_enemy_aura(e, atk)
 			continue
+		if e.data.feeds_toad and _slinger_assist(e):
+			continue
 		if dir == Vector2i.ZERO:
 			continue
 		_enemy_strike(e, atk, dir)
@@ -2436,6 +2519,8 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 			u.entangled = maxi(u.entangled, atk.entangle)
 			message.emit("%s опутан" % u.title)
 			status_changed.emit(u, snapshot(u))
+	if e.data.swamp_on_hit:
+		_make_swamp_around(e, victims)
 	if atk.push > 0:
 		# Сначала дальних, чтобы они не мешали ближним
 		victims.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
@@ -2801,6 +2886,51 @@ func _random_free_cell(min_row: int, max_row: int) -> Vector2i:
 	if free.is_empty():
 		return NO_CELL
 	return free[rng.randi_range(0, free.size() - 1)]
+
+
+# «Призрак»: проигрывает карту на копии боя и говорит, что изменится.
+# Возвращает {"moves": [{"from": клетка, "to": клетка}], "deaths": [клетки], "damage": {клетка: урон}}.
+func ghost_preview(h: BattleUnit, index: int, target: Vector2i) -> Dictionary:
+	var result: Dictionary = {"moves": [] as Array[Dictionary], "deaths": [] as Array[Vector2i], "damage": {}}
+	if not can_play(h, index):
+		return result
+	var sim: BattleLogic = clone()
+	var sim_h: BattleUnit = null
+	for hero in sim.heroes:
+		if hero.id == h.id:
+			sim_h = hero
+	if sim_h == null:
+		return result
+	sim_h.hand = h.hand.duplicate()
+	sim_h.discount = h.discount
+	for key: String in ctx.hex_moved:
+		sim.ctx.hex_moved[key] = ctx.hex_moved[key]
+	for key: String in ctx.straight_moved:
+		sim.ctx.straight_moved[key] = ctx.straight_moved[key]
+	for key: String in ctx.attack_cards:
+		sim.ctx.attack_cards[key] = ctx.attack_cards[key]
+	sim.ctx.last_card_owner = ctx.last_card_owner
+	sim._aether = _aether
+	var units_before: Array[BattleUnit] = heroes + enemies
+	var cells_before: Dictionary = {}
+	var hp_before: Dictionary = {}
+	for u in units_before:
+		cells_before[u.id] = u.cell
+		hp_before[u.id] = u.hp
+	if not sim.play_card(sim_h, index, target):
+		return result
+	for u in sim.heroes + sim.enemies:
+		if not cells_before.has(u.id):
+			continue
+		var old_cell: Vector2i = cells_before[u.id]
+		var lost: int = hp_before[u.id] - u.hp
+		if not u.is_alive():
+			(result["deaths"] as Array[Vector2i]).append(old_cell)
+		elif u.cell != old_cell:
+			(result["moves"] as Array[Dictionary]).append({"from": old_cell, "to": u.cell})
+		if lost > 0 and not u.is_hero:
+			(result["damage"] as Dictionary)[old_cell] = lost
+	return result
 
 
 # Какие реакции стихий сработают, если сыграть карту в клетку target (для значков при наведении).

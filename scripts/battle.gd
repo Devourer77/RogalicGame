@@ -22,6 +22,8 @@ enum Mode {
 const COLOR_MOVE := Color(0.3, 0.6, 1.0, 0.35)
 const COLOR_TARGET := Color(1.0, 0.9, 0.3, 0.3)
 const COLOR_AREA := Color(1.0, 0.5, 0.1, 0.6)
+const COLOR_GHOST_MOVE := Color(0.4, 0.8, 1.0, 0.55)   # куда встанут юниты после карты
+const COLOR_GHOST_KILL := Color(0.96, 0.8, 0.36, 0.7)  # кто погибнет
 const COLOR_INTENT := Color(1.0, 0.1, 0.1, 0.45)
 const COLOR_HOVER_THREAT := Color(1.0, 0.0, 0.3, 0.6)
 const COLOR_FLASH := Color(1.0, 0.95, 0.6, 0.8)
@@ -563,6 +565,13 @@ func _on_hover(cell: Vector2i) -> void:
 	_show_hovered_enemy_threat(cell)
 	if _mode == Mode.AIMING and logic.get_card_targets(_active, _selected_card).has(cell):
 		board.show_cells("area", logic.get_card_area(_active, _selected_card, cell), COLOR_AREA)
+		# «Призрак»: куда встанут юниты и кто погибнет, если сыграть карту сюда
+		var ghost: Dictionary = logic.ghost_preview(_active, _selected_card, cell)
+		var landing: Array[Vector2i] = []
+		for mv: Dictionary in ghost["moves"]:
+			landing.append(mv["to"])
+		board.show_cells("ghost_move", landing, COLOR_GHOST_MOVE)
+		board.show_cells("ghost_kill", ghost["deaths"], COLOR_GHOST_KILL)
 		# Реакции стихий, которые сработают от этой карты, — подсвечены своим цветом
 		var by_kind: Dictionary = {}
 		for k: String in REACTION_KINDS:
@@ -575,6 +584,8 @@ func _on_hover(cell: Vector2i) -> void:
 			board.show_cells("reaction_" + k, by_kind[k], colors[k])
 	else:
 		board.clear_layer("area")
+		board.clear_layer("ghost_move")
+		board.clear_layer("ghost_kill")
 		for k: String in REACTION_KINDS:
 			board.clear_layer("reaction_" + k)
 

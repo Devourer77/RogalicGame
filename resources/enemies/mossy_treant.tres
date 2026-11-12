@@ -40,3 +40,4 @@ turn_block = 3
 bog_damage = 6
 fire_weak = true
 wood_armor = true
+living_shield = true

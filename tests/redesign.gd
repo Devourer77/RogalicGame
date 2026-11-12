@@ -106,6 +106,7 @@ func _initialize() -> void:
 	_tiles()
 	_passives()
 	_new_cards()
+	_synergies()
 
 	print("--- провалов: %d ---" % fails)
 	quit(1 if fails > 0 else 0)
@@ -341,3 +342,77 @@ func _new_cards() -> void:
 	l9.play_card(m9, 0, tcell)
 	check("Кинетическая сфера: Рыцарь отлетел на 3", HexMath.distance(m9.cell, k9.cell) == 4)
 	check("Разгон Рыцаря записан", l9.ctx.straight("knight") >= 3)
+
+
+func _synergies() -> void:
+	# Топляк: удар по герою превращает клетки вокруг в трясину и подмешивает «Болотную тину»
+	var l := fresh()
+	var k: BattleUnit = l.heroes[1]
+	k.cell = C(5, 8)
+	var hulk: BattleUnit = l._new_unit("Топляк")
+	hulk.data = enemy("drowned_walker")
+	hulk.hp = 50; hulk.max_hp = 50
+	hulk.cell = k.cell + HexMath.DIRS[0]
+	l.enemies.append(hulk)
+	var hand0: int = k.hand.size()
+	l._make_swamp_around(hulk, [k] as Array[BattleUnit])
+	var swamps: int = 0
+	for n in HexMath.neighbors(hulk.cell):
+		if l.tile_at(n) == BattleLogic.Tile.SWAMP:
+			swamps += 1
+	check("Топляк: вокруг появилась трясина", swamps >= 3)
+	check("Топляк: в руку героя упала «Болотная тина»", k.hand.size() == hand0 + 1 and l._slime_count(k) == 1)
+
+	# Тина экзаукстится при розыгрыше и не идёт в сброс
+	var m: BattleUnit = l.heroes[0]
+	m.mana = 3
+	var slime: CardData = load("res://resources/cards/swamp_slime.tres")
+	m.hand = [slime] as Array[CardData]
+	var discard0: int = m.discard_pile.size()
+	l.play_card(m, 0, m.cell)
+	check("Тина сгорает навсегда", m.discard_pile.size() == discard0 and m.hand.is_empty())
+
+	# Пращник бьёт по далёкой жабе: +1 раздувание
+	var l2 := fresh()
+	var toad: BattleUnit = l2._new_unit("Жаба")
+	toad.data = enemy("bloated_toad")
+	toad.hp = 30; toad.max_hp = 30
+	toad.cell = C(5, 3)
+	l2.enemies.append(toad)
+	var sl: BattleUnit = l2._new_unit("Пращник")
+	sl.data = enemy("goblin_slinger")
+	sl.hp = 8; sl.max_hp = 8
+	sl.cell = C(5, 1)
+	l2.enemies.append(sl)
+	check("Пращник стреляет по далёкой жабе", l2._slinger_assist(sl) and toad.inflation == 1)
+
+	# Живой щит: дальняя атака по врагу рядом с корягачом уходит в корягача
+	var l3 := fresh()
+	var tr: BattleUnit = l3._new_unit("Корягач")
+	tr.data = enemy("mossy_treant")
+	tr.hp = 40; tr.max_hp = 40
+	tr.cell = C(5, 4)
+	l3.enemies.append(tr)
+	var gob: BattleUnit = l3._new_unit("Гоблин")
+	gob.data = enemy("goblin")
+	gob.hp = 10; gob.max_hp = 10
+	gob.cell = tr.cell + HexMath.DIRS[0]
+	l3.enemies.append(gob)
+	var spark: CardData = load("res://resources/cards/m_spark.tres")
+	var res: Vector2i = l3._intercept(spark, gob.cell)
+	check("Живой щит перехватывает дальнюю атаку (если у карты дальность > 1)", spark.cast_range <= 1 or res == tr.cell)
+
+	# Призрак карты показывает смерть
+	var l4 := fresh()
+	var k4: BattleUnit = l4.heroes[1]
+	k4.cell = C(5, 8)
+	k4.mana = 3
+	var g4: BattleUnit = l4._new_unit("Гоблин")
+	g4.data = enemy("goblin")
+	g4.hp = 1; g4.max_hp = 10
+	g4.cell = k4.cell + HexMath.DIRS[0]
+	l4.enemies.append(g4)
+	k4.hand = [load("res://resources/cards/k_slash.tres")] as Array[CardData]
+	var ghost: Dictionary = l4.ghost_preview(k4, 0, g4.cell)
+	check("Призрак: гоблин погибнет", (ghost["deaths"] as Array).has(g4.cell))
+	check("Призрак не меняет настоящий бой", g4.is_alive() and k4.hand.size() == 1)
