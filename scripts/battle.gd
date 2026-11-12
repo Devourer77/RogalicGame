@@ -318,11 +318,12 @@ func _on_unit_died(unit: BattleUnit) -> void:
 
 # Враг появился посреди боя (ритуал, подкрепление): фигурка возникает в очереди анимаций
 func _on_unit_spawned(unit: BattleUnit) -> void:
-	var info: Dictionary = _plate_info(unit, logic.snapshot(unit))
-	_queue(func() -> void:
-		var view: Unit = _make_enemy_view(unit)
-		view.set_status(info)
-	)
+	# Фигурку создаём сразу (логика может тут же прислать для неё status_changed),
+	# а показываем в свою очередь анимаций
+	var view: Unit = _make_enemy_view(unit)
+	view.visible = false
+	view.set_status(_plate_info(unit, logic.snapshot(unit)))
+	_queue(func() -> void: view.visible = true)
 
 
 # Цель боя обновилась: подсветка верхнего ряда («Прорыв») или ряда, который зальёт вода
