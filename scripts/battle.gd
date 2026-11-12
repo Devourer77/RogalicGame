@@ -444,7 +444,7 @@ func _on_enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i])
 	)
 
 
-# «Зов»: враг не бьёт, а усиливает своих — бирюзовая вспышка по квадрату
+# «Зов»: враг не бьёт, а усиливает своих — бирюзовая вспышка по кругу вокруг зовущего
 func _on_enemy_buffed(unit: BattleUnit, cells: Array[Vector2i]) -> void:
 	var view: Unit = _views[unit]
 	_queue(func() -> void:

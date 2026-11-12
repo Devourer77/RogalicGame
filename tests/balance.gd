@@ -251,7 +251,7 @@ func _approach(b: BattleLogic, h: BattleUnit) -> bool:
 func _dist_to_enemy(b: BattleLogic, c: Vector2i) -> int:
 	var best: int = 9999
 	for e in b.living_enemies():
-		best = mini(best, absi(e.cell.x - c.x) + absi(e.cell.y - c.y))
+		best = mini(best, HexMath.distance(e.cell, c))   # шаги по сотам, а не |dx| + |dy|
 	return best
 
 

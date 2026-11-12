@@ -52,7 +52,7 @@ static func play(board: Board, card: CardData, from_cell: Vector2i, cells: Array
 	fx.queue_free()
 
 
-# ---------- 1. Огненный шар (fireball): полёт по дуге + взрыв крестом ----------
+# ---------- 1. Огненный шар (fireball): полёт по дуге + взрыв по клетке и 6 соседям ----------
 
 static func _play_fireball(fx: Node3D, board: Board, from_pos: Vector3, target_pos: Vector3, cells: Array[Vector2i]) -> void:
 	var start: Vector3 = from_pos + Vector3(0.0, 1.35, 0.0)
@@ -97,7 +97,7 @@ static func _play_fireball(fx: Node3D, board: Board, from_pos: Vector3, target_p
 	await burst.finished
 
 
-# ---------- 2. Метеор (meteor): падение пылающей глыбы с неба + ударная волна 3×3 ----------
+# ---------- 2. Метеор (meteor): падение пылающей глыбы с неба + ударная волна по клетке и 6 соседям ----------
 
 static func _play_meteor(fx: Node3D, board: Board, target_pos: Vector3, cells: Array[Vector2i]) -> void:
 	var sky_start: Vector3 = target_pos + Vector3(-2.2, 7.5, -2.2)
@@ -123,7 +123,7 @@ static func _play_meteor(fx: Node3D, board: Board, target_pos: Vector3, cells: A
 	await fall.finished
 	meteor.visible = false
 
-	# Ударное огненное кольцо и столбы пламени на всех клетках 3×3
+	# Ударное огненное кольцо и столбы пламени на всех клетках удара (центр и 6 соседей)
 	var shock: MeshInstance3D = _disc(0.35, 0.08, core_mat)
 	shock.position = target_pos + Vector3(0.0, 0.12, 0.0)
 	fx.add_child(shock)
@@ -228,7 +228,7 @@ static func _play_lightning(fx: Node3D, board: Board, target_pos: Vector3, cells
 	await board.get_tree().create_timer(0.10).timeout
 
 
-# ---------- 5. Волна (wave): накатывающий гребень воды 3×3 с брызгами ----------
+# ---------- 5. Волна (wave): накатывающий гребень воды по клетке и 6 соседям с брызгами ----------
 
 static func _play_wave(fx: Node3D, board: Board, from_pos: Vector3, center_pos: Vector3, cells: Array[Vector2i]) -> void:
 	var water_mat: StandardMaterial3D = _glow_mat(Color(0.18, 0.58, 0.98, 0.78), Color(0.15, 0.50, 0.95), 2.0)
