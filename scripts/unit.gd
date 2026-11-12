@@ -88,7 +88,8 @@ func follow_path(path: Array[Vector2i]) -> void:
 func face_dir(dir: Vector2i) -> void:
 	if dir == Vector2i.ZERO:
 		return
-	rotation.y = atan2(float(dir.x), float(dir.y))  # клетка y соответствует оси Z мира
+	var world: Vector3 = HexMath.axial_to_world(dir)   # направление на сетке -> вектор в мире
+	rotation.y = atan2(world.x, world.z)
 
 
 # Толчок: быстро «отлетает» по пути, а если врезался — трясётся
@@ -124,7 +125,7 @@ func play_attack(dir: Vector2i, anim_name: String = "Attack") -> void:
 		await _play_once(anim_name, 0.4)   # к 0.4 сек меч уже опустился — можно показывать урон
 		return
 	var base: Vector3 = position
-	var lunge: Vector3 = base + Vector3(dir.x, 0.0, dir.y) * 0.35
+	var lunge: Vector3 = base + HexMath.axial_to_world(dir).normalized() * 0.35
 	var tween: Tween = create_tween()
 	tween.tween_property(self, "position", lunge, 0.1)
 	tween.tween_property(self, "position", base, 0.15)

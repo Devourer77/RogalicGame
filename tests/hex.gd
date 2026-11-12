@@ -92,11 +92,11 @@ func _initialize() -> void:
 	ok(HexMath.axial_to_world(o).is_zero_approx(), "клетка (0,0) — начало координат")
 	for d: Vector2i in HexMath.DIRS:
 		var w: Vector3 = HexMath.axial_to_world(d)
-		ok(absf(w.length() - 1.0) < 0.0001, "соседи в 1 м друг от друга: %s" % d)
+		ok(absf(w.length() - HexMath.CELL_STEP) < 0.0001, "соседи на расстоянии CELL_STEP: %s" % d)
 	for i in 400:
 		var c := Vector2i(rng.randi_range(-15, 15), rng.randi_range(-15, 15))
 		ok(HexMath.world_to_axial(HexMath.axial_to_world(c)) == c, "туда-обратно: %s" % c)
-		# небольшой сдвиг внутри клетки не меняет клетку (радиус вписанной окружности = 0,5 м)
+		# небольшой сдвиг внутри клетки не меняет клетку (радиус вписанной окружности = CELL_STEP / 2)
 		var jitter := Vector3(rng.randf_range(-0.3, 0.3), 0.0, rng.randf_range(-0.3, 0.3))
 		ok(HexMath.world_to_axial(HexMath.axial_to_world(c) + jitter) == c, "точка внутри клетки: %s" % c)
 
@@ -108,7 +108,7 @@ func _initialize() -> void:
 		ok(HexMath.from_column(HexMath.column_of(c), c.y) == c, "колонка туда-обратно")
 		var x: float = HexMath.axial_to_world(c).x
 		# края поля в мире почти ровные: половина клетки допуска на сдвиг рядов
-		ok(x >= -0.01 and x <= 11.5 + 0.01, "клетка в пределах ширины поля: %s" % c)
+		ok(x >= -0.01 and x <= 11.5 * HexMath.CELL_STEP + 0.01, "клетка в пределах ширины поля: %s" % c)
 	ok(not HexMath.in_rect(Vector2i(-1, 0), 12, 12), "слева за краем")
 	ok(not HexMath.in_rect(Vector2i(12, 0), 12, 12), "справа за краем")
 	ok(not HexMath.in_rect(Vector2i(0, 12), 12, 12), "ниже поля")

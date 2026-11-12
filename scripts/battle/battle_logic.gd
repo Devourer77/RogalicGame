@@ -116,8 +116,12 @@ const ENEMY_ROWS: int = 4        # враги появляются в столь
 const ENEMY_ROW_OFFSET: int = 1  # …начиная с этого ряда сверху (ряд 0 пустой: бой начинается ближе)
 const HERO_ROWS: int = 3         # нижние ряды держим свободными для героев
 
-var width: int = 12
-var height: int = 12
+# «Нет клетки». Раньше для этого брали (-1, -1), но в сотах у настоящих клеток
+# бывают отрицательные координаты, поэтому нужен значок, которого на поле точно нет.
+const NO_CELL: Vector2i = Vector2i(-9999, -9999)
+
+var width: int = 12    # клеток в каждом ряду (ряды сдвинуты на пол-клетки, см. HexMath)
+var height: int = 12   # рядов
 var rng: RandomNumberGenerator   # общий генератор забега (из Run)
 
 var _discards_left: Dictionary = {}   # герой -> сколько сбросов осталось в этот ход
@@ -160,7 +164,7 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		h.hero_data = rh.data
 		h.max_hp = rh.data.max_hp
 		h.hp = rh.hp
-		h.cell = Vector2i(start_x + i, height - 2)
+		h.cell = _cell(start_x + i, height - 2)
 		h.draw_pile = rh.deck.duplicate()
 		_shuffle(h.draw_pile)
 		heroes.append(h)
@@ -170,7 +174,7 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 	# Враги — в верхних рядах, на свободных клетках
 	for enemy_data: EnemyData in enemy_list:
 		var c: Vector2i = _random_free_cell(ENEMY_ROW_OFFSET, _enemy_last_row())
-		if c.x < 0:
+		if c == NO_CELL:
 			continue
 		var e := _new_unit(enemy_data.title)
 		e.data = enemy_data
@@ -237,19 +241,19 @@ func _arena_gat() -> void:
 		if x > 0 and rng.randf() < 0.35:
 			row = clampi(row + (1 if rng.randf() < 0.5 else -1), 4, 6)   # берег извивается
 		for dy in 2:
-			var c := Vector2i(x, row + dy)
+			var c := _cell(x, row + dy)
 			if gaps.has(x):
 				continue
 			objects[c] = Obj.PLANKS if x == plank_x else Obj.BOG
 		if gaps.has(x):
 			for y in range(row - 2, row + 4):
-				ground[Vector2i(x, y)] = Ground.PLANKS   # бревенчатая дорога через топь
+				ground[_cell(x, y)] = Ground.PLANKS   # бревенчатая дорога через топь
 			# Бочка у входа на переправу со стороны врагов
 			if not gaps.has(x - 1) and rng.randf() < 0.8:
 				var side: int = 1 if x < width / 2 else -1
 				if gaps.has(x + side):
 					side = -side
-				_put(Vector2i(x + side, row - 1), Obj.BARREL)
+				_put(_cell(x + side, row - 1), Obj.BARREL)
 	for i in 3:
 		_place(1, 3, func(c: Vector2i) -> void: objects[c] = Obj.TREE)
 	_place(7, 8, func(c: Vector2i) -> void: objects[c] = Obj.TREE)
@@ -270,7 +274,7 @@ func _arena_grove() -> void:
 	for gy: int in [2, 4, 6, 8]:
 		for gx in 5:
 			if rng.randf() < 0.6:
-				_put(Vector2i(1 + gx * 2 + line % 2, gy), Obj.TREE)
+				_put(_cell(1 + gx * 2 + line % 2, gy), Obj.TREE)
 		line += 1
 	# Бочки — вплотную к деревьям: взрыв валит дерево
 	var trees: Array[Vector2i] = _cells_with(Obj.TREE)
@@ -278,10 +282,10 @@ func _arena_grove() -> void:
 		if trees.is_empty():
 			break
 		var t: Vector2i = trees[rng.randi_range(0, trees.size() - 1)]
-		_put(t + GridShapes.DIRS[rng.randi_range(0, 3)], Obj.BARREL)
-	for c in _grow_from(Vector2i(0, rng.randi_range(3, 6)), 4, 1, 8):
+		_put(t + HexMath.DIRS[rng.randi_range(0, 5)], Obj.BARREL)
+	for c in _grow_from(_cell(0, rng.randi_range(3, 6)), 4, 1, 8):
 		objects[c] = Obj.REEDS
-	for c in _grow_from(Vector2i(width - 1, rng.randi_range(3, 6)), 4, 1, 8):
+	for c in _grow_from(_cell(width - 1, rng.randi_range(3, 6)), 4, 1, 8):
 		objects[c] = Obj.REEDS
 	var bog: Array[Vector2i] = _grow_patch(3, 3, 7)
 	for c in bog:
@@ -295,7 +299,7 @@ func _arena_grove() -> void:
 # «Камышовая заводь»: в центре пруд с топким дном, по бокам — стены камыша.
 # Тактика: камыш прячет от ударов по линии, но горит весь сразу; молния бьёт по всему пруду.
 func _arena_reeds() -> void:
-	var center := Vector2i(rng.randi_range(4, 7), rng.randi_range(4, 5))
+	var center := _cell(rng.randi_range(4, 7), rng.randi_range(4, 5))
 	var pond: Array[Vector2i] = _grow_from(center, 11, 2, 7)
 	for c in pond:
 		tiles[c] = Tile.WATER
@@ -303,11 +307,11 @@ func _arena_reeds() -> void:
 	for i in mini(3, pond.size()):
 		tiles.erase(pond[i])
 		objects[pond[i]] = Obj.BOG
-	for c in _grow_from(Vector2i(rng.randi_range(0, 1), rng.randi_range(3, 6)), 8, 1, 8):
+	for c in _grow_from(_cell(rng.randi_range(0, 1), rng.randi_range(3, 6)), 8, 1, 8):
 		objects[c] = Obj.REEDS
-	for c in _grow_from(Vector2i(width - 1 - rng.randi_range(0, 1), rng.randi_range(3, 6)), 8, 1, 8):
+	for c in _grow_from(_cell(width - 1 - rng.randi_range(0, 1), rng.randi_range(3, 6)), 8, 1, 8):
 		objects[c] = Obj.REEDS
-	for c in _grow_from(Vector2i(rng.randi_range(3, 8), 8), 4, 7, 8):
+	for c in _grow_from(_cell(rng.randi_range(3, 8), 8), 4, 7, 8):
 		objects[c] = Obj.REEDS
 	# Бочки у самого камыша: один взрыв — и горит вся заросль
 	var reeds: Array[Vector2i] = _cells_with(Obj.REEDS)
@@ -315,7 +319,7 @@ func _arena_reeds() -> void:
 		if reeds.is_empty():
 			break
 		var r: Vector2i = reeds[rng.randi_range(0, reeds.size() - 1)]
-		_put(r + GridShapes.DIRS[rng.randi_range(0, 3)], Obj.BARREL)
+		_put(r + HexMath.DIRS[rng.randi_range(0, 5)], Obj.BARREL)
 	for i in 2:
 		_place(1, 8, func(c: Vector2i) -> void: objects[c] = Obj.TREE)
 	for i in 2:
@@ -329,28 +333,28 @@ func _arena_camp() -> void:
 	var gates: Array[int] = [rng.randi_range(3, 4), rng.randi_range(7, 8)]
 	for x in range(2, width - 2):
 		if not gates.has(x) and rng.randf() < 0.92:   # кое-где колья уже сгнили
-			objects[Vector2i(x, wall_row)] = Obj.STAKES
+			objects[_cell(x, wall_row)] = Obj.STAKES
 	for y in range(wall_row + 1, wall_row + 3):
 		if rng.randf() < 0.8:
-			objects[Vector2i(2, y)] = Obj.STAKES
+			objects[_cell(2, y)] = Obj.STAKES
 		if rng.randf() < 0.8:
-			objects[Vector2i(width - 3, y)] = Obj.STAKES
+			objects[_cell(width - 3, y)] = Obj.STAKES
 	for x in range(3, width - 3):
 		for y in range(wall_row + 1, height - HERO_ROWS):
-			ground[Vector2i(x, y)] = Ground.PLANKS   # помост внутри заставы
+			ground[_cell(x, y)] = Ground.PLANKS   # помост внутри заставы
 	for g in gates:
-		ground[Vector2i(g, wall_row)] = Ground.PLANKS
+		ground[_cell(g, wall_row)] = Ground.PLANKS
 	# Склад: бочки кучкой внутри, ящики у стен
-	var store := Vector2i(rng.randi_range(4, 7), rng.randi_range(6, 7))
+	var store := _cell(rng.randi_range(4, 7), rng.randi_range(6, 7))
 	_put(store, Obj.BARREL)
 	_put(store + Vector2i(1 if rng.randf() < 0.5 else -1, 0), Obj.BARREL)
 	_put(store + Vector2i(0, -1), Obj.BARREL)
-	_put_rock(Vector2i(3, wall_row + 1))
-	_put_rock(Vector2i(width - 4, wall_row + rng.randi_range(1, 2)))
+	_put_rock(_cell(3, wall_row + 1))
+	_put_rock(_cell(width - 4, wall_row + rng.randi_range(1, 2)))
 	# Снаружи: бочка у ворот, ров-трясина сбоку, пара деревьев
-	_put(Vector2i(gates[rng.randi_range(0, 1)] + 1, wall_row - 1), Obj.BARREL)
+	_put(_cell(gates[rng.randi_range(0, 1)] + 1, wall_row - 1), Obj.BARREL)
 	var side_x: int = 0 if rng.randf() < 0.5 else width - 1
-	for c in _grow_from(Vector2i(side_x, rng.randi_range(4, 6)), 4, 3, 8):
+	for c in _grow_from(_cell(side_x, rng.randi_range(4, 6)), 4, 3, 8):
 		objects[c] = Obj.BOG
 	for i in 2:
 		_place(1, 3, func(c: Vector2i) -> void: objects[c] = Obj.TREE)
@@ -364,18 +368,18 @@ func _arena_ruins() -> void:
 	for y: int in [2, 5, 8]:
 		for x: int in [2, width - 3]:
 			if rng.randf() < 0.8:
-				rocks[Vector2i(x, y)] = true
+				rocks[_cell(x, y)] = true
 	for y: int in [3, 6]:
 		for x: int in [4, width - 5]:
 			if rng.randf() < 0.6:
-				rocks[Vector2i(x, y)] = true
+				rocks[_cell(x, y)] = true
 	for i in 3:
 		var start: Vector2i = _random_free_cell(2, 7)
 		for c in _grow_from(start, rng.randi_range(5, 7), 1, 8):
 			tiles[c] = Tile.WATER
-	for c in _grow_from(Vector2i(0, rng.randi_range(4, 6)), 3, 3, 8):
+	for c in _grow_from(_cell(0, rng.randi_range(4, 6)), 3, 3, 8):
 		objects[c] = Obj.BOG
-	for c in _grow_from(Vector2i(width - 1, rng.randi_range(4, 6)), 3, 3, 8):
+	for c in _grow_from(_cell(width - 1, rng.randi_range(4, 6)), 3, 3, 8):
 		objects[c] = Obj.BOG
 	for i in 2:
 		_place(1, 8, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
@@ -388,12 +392,12 @@ func _arena_ruins() -> void:
 # Тактика: огр в трясине не тонет, но получает большой урон; деревья и бочки — по одному разу.
 func _arena_lair() -> void:
 	for side_x: int in [0, width - 1]:
-		for c in _grow_from(Vector2i(side_x, rng.randi_range(3, 6)), 4, 2, 8):
+		for c in _grow_from(_cell(side_x, rng.randi_range(3, 6)), 4, 2, 8):
 			objects[c] = Obj.BOG
-	for c: Vector2i in [Vector2i(3, 3), Vector2i(width - 4, 3), Vector2i(3, 7), Vector2i(width - 4, 7)]:
+	for c: Vector2i in [_cell(3, 3), _cell(width - 4, 3), _cell(3, 7), _cell(width - 4, 7)]:
 		_put(c + Vector2i(rng.randi_range(-1, 1), rng.randi_range(-1, 1)), Obj.TREE)
 	for i in 3:
-		_put(Vector2i(rng.randi_range(3, width - 4), rng.randi_range(4, 7)), Obj.BARREL)
+		_put(_cell(rng.randi_range(3, width - 4), rng.randi_range(4, 7)), Obj.BARREL)
 	for i in 3:
 		_place(1, 8, func(c: Vector2i) -> void: rocks[c] = true)
 	for i in 3:
@@ -429,7 +433,7 @@ func _free_enemy_cells() -> int:
 	var n: int = 0
 	for y in range(ENEMY_ROW_OFFSET, _enemy_last_row() + 1):
 		for x in width:
-			if _is_empty(Vector2i(x, y)):
+			if _is_empty(_cell(x, y)):
 				n += 1
 	return n
 
@@ -448,29 +452,27 @@ func _enemy_last_row() -> int:
 # Красит покрытие клеток: грязь у трясины, воды и камыша, мох под деревьями и местами
 func _paint_ground() -> void:
 	var moss_chance: float = 0.45 if arena_id == "grove" else (0.08 if arena_id == "ruins" else 0.22)
-	for x in width:
-		for y in height:
-			var c := Vector2i(x, y)
-			var kind: int = ground.get(c, Ground.STONE)
-			var roll: float = rng.randf()
-			if kind == Ground.STONE and roll < moss_chance:
-				kind = Ground.MOSS
-			var o: int = object_at(c)
-			if o == Obj.REEDS or tiles.has(c):
-				kind = Ground.MUD
-			elif o == Obj.TREE and kind != Ground.PLANKS:
-				kind = Ground.MOSS
-			elif kind != Ground.PLANKS:
-				for d: Vector2i in GridShapes.DIRS:
-					if object_at(c + d) == Obj.BOG or object_at(c + d) == Obj.PLANKS:
-						kind = Ground.MUD
-			ground[c] = kind
+	for c: Vector2i in HexMath.rect_cells(width, height):
+		var kind: int = ground.get(c, Ground.STONE)
+		var roll: float = rng.randf()
+		if kind == Ground.STONE and roll < moss_chance:
+			kind = Ground.MOSS
+		var o: int = object_at(c)
+		if o == Obj.REEDS or tiles.has(c):
+			kind = Ground.MUD
+		elif o == Obj.TREE and kind != Ground.PLANKS:
+			kind = Ground.MOSS
+		elif kind != Ground.PLANKS:
+			for d: Vector2i in HexMath.DIRS:
+				if object_at(c + d) == Obj.BOG or object_at(c + d) == Obj.PLANKS:
+					kind = Ground.MUD
+		ground[c] = kind
 
 
 # Ставит что-то на случайную пустую клетку
 func _place(min_row: int, max_row: int, put: Callable) -> void:
 	var c: Vector2i = _random_free_cell(min_row, max_row)
-	if c.x >= 0:
+	if c != NO_CELL:
 		put.call(c)
 
 
@@ -489,7 +491,7 @@ func _grow_from(start: Vector2i, size: int, min_row: int, max_row: int) -> Array
 		if patch.size() >= size:
 			break
 		var from: Vector2i = patch[rng.randi_range(0, patch.size() - 1)]
-		var c: Vector2i = from + GridShapes.DIRS[rng.randi_range(0, 3)]
+		var c: Vector2i = from + HexMath.DIRS[rng.randi_range(0, 5)]
 		if c.y >= min_row and c.y <= max_row and _is_empty(c) and not patch.has(c):
 			patch.append(c)
 	return patch
@@ -498,15 +500,14 @@ func _grow_from(start: Vector2i, size: int, min_row: int, max_row: int) -> Array
 # Поле «открыто», если от героев можно дойти почти до всех проходимых клеток
 func _field_is_open() -> bool:
 	var walkable: int = 0
-	for x in width:
-		for y in height:
-			if not _is_obstacle(Vector2i(x, y)):
-				walkable += 1
+	for c: Vector2i in HexMath.rect_cells(width, height):
+		if not _is_obstacle(c):
+			walkable += 1
 	var reached: Dictionary[Vector2i, bool] = {heroes[0].cell: true}
 	var frontier: Array[Vector2i] = [heroes[0].cell]
 	while not frontier.is_empty():
 		var cur: Vector2i = frontier.pop_front()
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			var n: Vector2i = cur + d
 			if is_inside(n) and not reached.has(n) and not _is_obstacle(n):
 				reached[n] = true
@@ -535,8 +536,14 @@ func snapshot(u: BattleUnit) -> Dictionary:
 
 # ---------- Вопросы к полю ----------
 
+# Клетка по номеру колонки (слева направо) и ряда (сверху вниз). Арены и расстановка
+# думают «колонками», а в логике клетка — осевая пара (q, r), см. HexMath.
+func _cell(column: int, row: int) -> Vector2i:
+	return HexMath.from_column(column, row)
+
+
 func is_inside(c: Vector2i) -> bool:
-	return c.x >= 0 and c.x < width and c.y >= 0 and c.y < height
+	return HexMath.in_rect(c, width, height)
 
 
 func unit_at(c: Vector2i) -> BattleUnit:
@@ -672,7 +679,7 @@ func reachable_cells(unit: BattleUnit, steps: int, ignore_heroes: bool = false) 
 		var path: Array[Vector2i] = result[current]
 		if path.size() - 1 >= steps:
 			continue
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			var next: Vector2i = current + d
 			if result.has(next):
 				continue
@@ -757,21 +764,16 @@ func get_card_targets(h: BattleUnit, index: int) -> Array[Vector2i]:
 		CardData.Shape.SELF, CardData.Shape.AROUND:
 			result.append(h.cell)
 		CardData.Shape.LINE:
-			# Линия: любая клетка в одной из 4 сторон, до первой преграды
-			for d: Vector2i in GridShapes.DIRS:
+			# Линия: любая клетка в одной из 6 сторон, до первой преграды
+			for d: Vector2i in HexMath.DIRS:
 				result.append_array(_line_cells(h.cell, d, card.cast_range, pierce))
 		CardData.Shape.ARC:
 			# Дуга: выбираем соседнюю клетку — в ту сторону и замах
-			for d: Vector2i in GridShapes.DIRS:
-				if is_inside(h.cell + d):
-					result.append(h.cell + d)
-		CardData.Shape.DIAG:
-			# Удар наискосок: одна из четырёх клеток по диагонали вплотную
-			for d: Vector2i in GridShapes.DIAG_DIRS:
+			for d: Vector2i in HexMath.DIRS:
 				if is_inside(h.cell + d):
 					result.append(h.cell + d)
 		CardData.Shape.CHARGE:
-			for d: Vector2i in GridShapes.DIRS:
+			for d: Vector2i in HexMath.DIRS:
 				if card.special == "pass_through":
 					result.append_array(_pass_lane(h, d, card.cast_range))
 					continue
@@ -781,36 +783,32 @@ func get_card_targets(h: BattleUnit, index: int) -> Array[Vector2i]:
 				for i in range(1, path.size()):
 					result.append(path[i])
 				var hit_cell: Vector2i = charge["hit_cell"]
-				if hit_cell.x >= 0:
+				if hit_cell != NO_CELL:
 					result.append(hit_cell)
 		CardData.Shape.ALLY:
 			for other in living_heroes():
 				if card.special == "swap" and other == h:
 					continue
-				if GridShapes.manhattan(h.cell, other.cell) <= card.cast_range:
+				if HexMath.distance(h.cell, other.cell) <= card.cast_range:
 					result.append(other.cell)
 		CardData.Shape.LEAP:
 			# Прыжок: любая свободная проходимая клетка в пределах дальности, сквозь преграды
-			for x in width:
-				for y in height:
-					var c := Vector2i(x, y)
-					var dist: int = GridShapes.manhattan(h.cell, c)
-					if dist >= 1 and dist <= card.cast_range and not is_blocked(c):
-						result.append(c)
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				var dist: int = HexMath.distance(h.cell, c)
+				if dist >= 1 and dist <= card.cast_range and not is_blocked(c):
+					result.append(c)
 		CardData.Shape.FELL:
 			# Клетки рядом с соседним деревом: в сторону выбранной клетки оно и упадёт
 			for t: Vector2i in _adjacent_trees(h):
-				for d: Vector2i in GridShapes.DIRS:
+				for d: Vector2i in HexMath.DIRS:
 					var c: Vector2i = t + d
 					if c != h.cell and is_inside(c) and not result.has(c):
 						result.append(c)
 		_:
-			for x in width:
-				for y in height:
-					var c := Vector2i(x, y)
-					var dist: int = GridShapes.manhattan(h.cell, c)
-					if dist >= 1 and dist <= card.cast_range:
-						result.append(c)
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				var dist: int = HexMath.distance(h.cell, c)
+				if dist >= 1 and dist <= card.cast_range:
+					result.append(c)
 	# Некоторым картам подходят только особые клетки (трясина, бочка, пустая земля…)
 	if card.special != "":
 		var filtered: Array[Vector2i] = []
@@ -846,7 +844,7 @@ func _can_build(c: Vector2i) -> bool:
 # Соседние с героем деревья
 func _adjacent_trees(h: BattleUnit) -> Array[Vector2i]:
 	var trees: Array[Vector2i] = []
-	for d: Vector2i in GridShapes.DIRS:
+	for d: Vector2i in HexMath.DIRS:
 		if object_at(h.cell + d) == Obj.TREE:
 			trees.append(h.cell + d)
 	return trees
@@ -855,7 +853,7 @@ func _adjacent_trees(h: BattleUnit) -> Array[Vector2i]:
 # Для «Свалить дерево»: какое дерево и в какую сторону упадёт, если выбрать клетку c
 func _fell_choice(h: BattleUnit, c: Vector2i) -> Dictionary:
 	for t: Vector2i in _adjacent_trees(h):
-		if GridShapes.manhattan(t, c) == 1 and c != h.cell:
+		if HexMath.distance(t, c) == 1 and c != h.cell:
 			return {"tree": t, "dir": c - t}
 	return {}
 
@@ -880,25 +878,20 @@ func get_card_area(h: BattleUnit, index: int, target: Vector2i) -> Array[Vector2
 	if index < 0 or index >= h.hand.size():
 		return cells
 	var card: CardData = h.hand[index]
-	var d: Vector2i = GridShapes.cardinal_dir(h.cell, target)
+	var d: Vector2i = HexMath.direction_to(h.cell, target)
 	match card.shape:
 		CardData.Shape.SELF:
 			cells.append(h.cell)
-		CardData.Shape.SINGLE, CardData.Shape.ALLY, CardData.Shape.DIAG:
+		CardData.Shape.SINGLE, CardData.Shape.ALLY:
 			cells.append(target)
-		CardData.Shape.XCROSS:
-			cells = GridShapes.xcross_cells(target)
 		CardData.Shape.LINE:
 			cells = _line_cells(h.cell, d, card.cast_range, card.special == "pierce")
 		CardData.Shape.CROSS:
-			cells = GridShapes.cross_cells(target)
+			cells = HexMath.cluster(target)
 		CardData.Shape.SQUARE:
-			cells = GridShapes.square_cells(target)
+			cells = HexMath.cluster(target)   # в сотах «квадрат 3×3» — это центр и 6 соседей
 		CardData.Shape.ARC:
-			var side: Vector2i = GridShapes.perpendicular(d)
-			cells.append(target)
-			cells.append(target + side)
-			cells.append(target - side)
+			cells = HexMath.arc(h.cell, target)
 		CardData.Shape.CHARGE:
 			if card.special == "pass_through":
 				cells = _pass_lane(h, d, card.cast_range)
@@ -909,20 +902,15 @@ func get_card_area(h: BattleUnit, index: int, target: Vector2i) -> Array[Vector2
 				for i in range(1, path.size()):
 					cells.append(path[i])
 				var hit_cell: Vector2i = charge["hit_cell"]
-				if hit_cell.x >= 0:
+				if hit_cell != NO_CELL:
 					cells.append(hit_cell)
 		CardData.Shape.WALL:
-			var side: Vector2i = GridShapes.perpendicular(d)
-			cells.append(target)
-			cells.append(target + side)
-			cells.append(target - side)
+			cells = HexMath.wall(target, d)
 		CardData.Shape.LEAP:
-			for n: Vector2i in GridShapes.DIRS:
+			for n: Vector2i in HexMath.DIRS:
 				cells.append(target + n)
 		CardData.Shape.AROUND:
-			for c in GridShapes.square_cells(h.cell):
-				if c != h.cell:
-					cells.append(c)
+			cells = HexMath.neighbors(h.cell)   # все 6 клеток вокруг героя
 		CardData.Shape.FELL:
 			var choice: Dictionary = _fell_choice(h, target)
 			if not choice.is_empty():
@@ -965,7 +953,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 			or (card.damage > 0 and h.rune == "storm" and h.rune_hits > 0)
 	if card.element == CardData.Element.LIGHTNING:
 		hit_cells = _spread_through_water(area)
-	var dir: Vector2i = GridShapes.cardinal_dir(h.cell, target)
+	var dir: Vector2i = HexMath.direction_to(h.cell, target)
 	var from: Vector2i = h.cell
 	var alive_before: Array[BattleUnit] = living_enemies()
 
@@ -1026,10 +1014,10 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 					if u != null and not u.is_hero:
 						targets.append(u)
 				targets.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
-					return GridShapes.manhattan(a.cell, from) > GridShapes.manhattan(b.cell, from))
+					return HexMath.distance(a.cell, from) > HexMath.distance(b.cell, from))
 				for u in targets:
 					if u.is_alive():
-						_push(u, GridShapes.cardinal_dir(from, u.cell), card.push)
+						_push(u, HexMath.direction_to(from, u.cell), card.push)
 			# Ветер раздувает огонь: горящие клетки линии поджигают следующую по ветру
 			if card.special == "gust":
 				_fan_fire(area, dir, from)
@@ -1127,12 +1115,12 @@ func _charge_attack(h: BattleUnit, card: CardData, dir: Vector2i, damage: int, h
 		_walked(h, path)
 	card_cast.emit(h, card, hit_cells)
 	var hit_cell: Vector2i = charge["hit_cell"]
-	var victim: BattleUnit = unit_at(hit_cell) if hit_cell.x >= 0 else null
+	var victim: BattleUnit = unit_at(hit_cell) if hit_cell != NO_CELL else null
 	if victim != null and not victim.is_hero:
 		_card_damage(victim, damage, card.pierce_block)
 		if card.push > 0 and victim.is_alive():
 			_push(victim, dir, card.push)
-	elif hit_cell.x >= 0 and _is_breakable(hit_cell):
+	elif hit_cell != NO_CELL and _is_breakable(hit_cell):
 		_hit_object(hit_cell, h.cell)
 	_add_momentum(h, path.size() - 1)
 
@@ -1142,13 +1130,15 @@ func _charge_attack(h: BattleUnit, card: CardData, dir: Vector2i, damage: int, h
 func _pass_through_charge(h: BattleUnit, card: CardData, dir: Vector2i, damage: int, hit_cells: Array[Vector2i]) -> void:
 	card_cast.emit(h, card, hit_cells)
 	var path: Array[Vector2i] = [h.cell]
-	var side: Vector2i = GridShapes.perpendicular(dir)
+	# «Вбок» в сотах — на 120° от бега: так враг отлетает подальше от следующей клетки пробега
+	var side: Vector2i = HexMath.rotate_dir(dir, 2)
+	var other_side: Vector2i = HexMath.rotate_dir(dir, -2)
 	for c in _pass_lane(h, dir, card.cast_range):
 		var u: BattleUnit = unit_at(c)
 		if u != null and not u.is_hero:
 			_card_damage(u, damage, card.pierce_block)
 			if u.is_alive():
-				var push_dir: Vector2i = side if not is_blocked(c + side) else -side
+				var push_dir: Vector2i = side if not is_blocked(c + side) else other_side
 				_push(u, push_dir, 1)
 			if u.is_alive() and u.cell == c:
 				break   # враг не отлетел — дальше не пробежать
@@ -1176,7 +1166,7 @@ func _chain_targets(cells: Array[Vector2i]) -> Array[BattleUnit]:
 		var best: BattleUnit = null
 		var best_dist: int = CHAIN_RADIUS + 1
 		for e in living_enemies():
-			var dist: int = GridShapes.manhattan(last.cell, e.cell)
+			var dist: int = HexMath.distance(last.cell, e.cell)
 			if not chain.has(e) and dist <= CHAIN_RADIUS and dist < best_dist:
 				best = e
 				best_dist = dist
@@ -1290,14 +1280,14 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 		"bell":
 			var near: Array[BattleUnit] = []
 			for e in living_enemies():
-				if GridShapes.manhattan(h.cell, e.cell) <= 3:
+				if HexMath.distance(h.cell, e.cell) <= 3:
 					near.append(e)
 			near.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
-				return GridShapes.manhattan(a.cell, h.cell) > GridShapes.manhattan(b.cell, h.cell))
+				return HexMath.distance(a.cell, h.cell) > HexMath.distance(b.cell, h.cell))
 			message.emit("Звон Колокола Стражи!")
 			for e in near:
 				if e.is_alive():
-					_push(e, GridShapes.cardinal_dir(h.cell, e.cell), 1)
+					_push(e, HexMath.direction_to(h.cell, e.cell), 1)
 
 
 # Перемещает объект с клетки на клетку (бочку откатили, перенесли)
@@ -1327,11 +1317,11 @@ func _roll_barrel(c: Vector2i, dir: Vector2i) -> void:
 
 # Куда добежит герой тараном в направлении dir и во что врежется
 # (врезаться можно и после последнего шага — в то, что стоит прямо перед ним).
-# Возвращает {"path": путь от его клетки, "hit_cell": клетка удара или (-1, -1)}.
+# Возвращает {"path": путь от его клетки, "hit_cell": клетка удара или NO_CELL}.
 # Врезаться можно в юнита, дерево или бочку; трясину и камни таран не бьёт.
 func _charge_plan(h: BattleUnit, dir: Vector2i, max_steps: int) -> Dictionary:
 	var path: Array[Vector2i] = [h.cell]
-	var hit_cell := Vector2i(-1, -1)
+	var hit_cell: Vector2i = NO_CELL
 	var pos: Vector2i = h.cell
 	for i in max_steps + 1:
 		var next: Vector2i = pos + dir
@@ -1363,7 +1353,7 @@ func _set_object(c: Vector2i, kind: int, dir: Vector2i) -> void:
 func _hit_object(c: Vector2i, from: Vector2i) -> void:
 	match object_at(c):
 		Obj.TREE:
-			_fell_tree(c, GridShapes.cardinal_dir(from, c))
+			_fell_tree(c, HexMath.direction_to(from, c))
 		Obj.BARREL:
 			_explode_barrel(c)
 
@@ -1405,7 +1395,7 @@ func _explode_barrel(c: Vector2i) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
 	message.emit("Бочка с газом взрывается!")
 	var cells: Array[Vector2i] = []
-	for t in GridShapes.cross_cells(c):
+	for t in HexMath.cluster(c):
 		if is_inside(t):
 			cells.append(t)
 	effect_cells.emit(cells, "explosion")
@@ -1435,7 +1425,7 @@ func _spread_through_water(area: Array[Vector2i]) -> Array[Vector2i]:
 		var c: Vector2i = queue.pop_front()
 		if not result.has(c):
 			result.append(c)
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			var n: Vector2i = c + d
 			if not seen.has(n) and tile_at(n) == Tile.WATER:
 				seen[n] = true
@@ -1444,7 +1434,7 @@ func _spread_through_water(area: Array[Vector2i]) -> Array[Vector2i]:
 	for e in living_enemies():
 		if not e.data.aquatic or result.has(e.cell):
 			continue
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			if seen.has(e.cell + d):
 				result.append(e.cell)
 				break
@@ -1581,7 +1571,7 @@ func _steam_burst(c: Vector2i, from: Vector2i, hero_card: bool) -> void:
 	message.emit("Паровой взрыв!")
 	_damage(u, STEAM_DAMAGE)
 	if u.is_alive():
-		_push(u, GridShapes.cardinal_dir(from, c), 1)
+		_push(u, HexMath.direction_to(from, c), 1)
 
 
 # Ледяные осколки: юнит на тающем льду получает урон; глыба (is_block) бьёт соседей крестом
@@ -1591,7 +1581,7 @@ func _ice_shatter(c: Vector2i, is_block: bool, hero_card: bool) -> void:
 		_reaction_hurt(unit_at(c), ICE_SHATTER_DAMAGE, hero_card)
 		return
 	message.emit("Глыба раскалывается!")
-	for t in GridShapes.cross_cells(c):
+	for t in HexMath.cluster(c):
 		if t != c and is_inside(t):
 			_reaction_hurt(unit_at(t), ICE_SHATTER_DAMAGE, hero_card)
 
@@ -1618,7 +1608,7 @@ func _burn_reeds(c: Vector2i) -> void:
 			continue
 		_set_object(cur, Obj.NONE, Vector2i.ZERO)
 		_set_tile(cur, Tile.FIRE)
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			if object_at(cur + d) == Obj.REEDS:
 				queue.append(cur + d)
 
@@ -1660,7 +1650,7 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 	var path: Array[Vector2i] = [unit.cell]
 	var bumped: bool = false
 	var drowned: bool = false
-	var bump_cell := Vector2i(-1, -1)
+	var bump_cell: Vector2i = NO_CELL
 	var steps_left: int = distance
 	while steps_left > 0 or tile_at(unit.cell) == Tile.ICE:
 		var next: Vector2i = unit.cell + dir
@@ -1738,7 +1728,7 @@ func _death_blast(unit: BattleUnit) -> void:
 		return
 	message.emit("%s лопается: газовый хлопок!" % unit.title)
 	var cells: Array[Vector2i] = []
-	for d: Vector2i in GridShapes.DIRS:
+	for d: Vector2i in HexMath.DIRS:
 		if is_inside(unit.cell + d):
 			cells.append(unit.cell + d)
 	effect_cells.emit(cells, "gas")
@@ -2013,16 +2003,16 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 	if atk.push > 0:
 		# Сначала дальних, чтобы они не мешали ближним
 		victims.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
-			return GridShapes.manhattan(a.cell, e.cell) > GridShapes.manhattan(b.cell, e.cell))
+			return HexMath.distance(a.cell, e.cell) > HexMath.distance(b.cell, e.cell))
 		for u in victims:
 			if u.is_alive() and e.is_alive():
 				_push(u, dir, atk.push)
 	elif atk.pull > 0:
 		# Притягивание — тот же толчок, только к себе. Сначала ближних.
 		victims.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
-			return GridShapes.manhattan(a.cell, e.cell) < GridShapes.manhattan(b.cell, e.cell))
+			return HexMath.distance(a.cell, e.cell) < HexMath.distance(b.cell, e.cell))
 		for u in victims:
-			var gap: int = GridShapes.manhattan(u.cell, e.cell) - 1   # свободных клеток между ними
+			var gap: int = HexMath.distance(u.cell, e.cell) - 1   # свободных клеток между ними
 			if u.is_alive() and e.is_alive() and gap > 0:
 				_push(u, -dir, mini(atk.pull, gap))
 
@@ -2039,14 +2029,12 @@ func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
 			status_changed.emit(ally, snapshot(ally))
 
 
-# Квадрат со стороной (2 × radius + 1) вокруг клетки
+# Круг из сот радиусом radius вокруг клетки (центр и все клетки не дальше radius шагов)
 func _aura_cells(center: Vector2i, radius: int) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
-	for dx in range(-radius, radius + 1):
-		for dy in range(-radius, radius + 1):
-			var c := center + Vector2i(dx, dy)
-			if is_inside(c):
-				cells.append(c)
+	for c in HexMath.in_range(center, radius):
+		if is_inside(c):
+			cells.append(c)
 	return cells
 
 
@@ -2059,7 +2047,7 @@ func _leave_puddle(c: Vector2i) -> void:
 # «Застава»: враг подошёл вплотную к рыцарю — получает удар. Возвращает true, если погиб.
 func _outpost_strike(e: BattleUnit) -> bool:
 	for h in living_heroes():
-		if h.outpost and GridShapes.manhattan(h.cell, e.cell) == 1:
+		if h.outpost and HexMath.distance(h.cell, e.cell) == 1:
 			message.emit("Застава: %s получает удар" % e.title)
 			_damage(e, OUTPOST_DAMAGE)
 			if not e.is_alive():
@@ -2171,7 +2159,7 @@ func get_threat_cells(e: BattleUnit) -> Array[Vector2i]:
 		return result   # в этом раунде враг не бьёт, а усиливает своих
 	var seen: Dictionary[Vector2i, bool] = {}
 	for pos: Vector2i in reachable_cells(e, e.data.move_range, true):
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			for c in _attack_cells(e, atk, pos, d):
 				if not seen.has(c) and c != e.cell:
 					seen[c] = true
@@ -2186,16 +2174,10 @@ func _attack_cells(e: BattleUnit, atk: EnemyAttackData, from: Vector2i, dir: Vec
 		EnemyData.Attack.MELEE:
 			cells.append(from + dir)
 		EnemyData.Attack.SWEEP:
-			var front: Vector2i = from + dir
-			var side: Vector2i = GridShapes.perpendicular(dir)
-			cells.append(front)
-			cells.append(front + side)
-			cells.append(front - side)
+			cells = HexMath.arc(from, from + dir)   # клетка перед врагом и две по бокам от неё
 		EnemyData.Attack.AROUND:
-			# Круговой удар: все 8 клеток вокруг, сторона удара не важна
-			for c in GridShapes.square_cells(from):
-				if c != from:
-					cells.append(c)
+			# Круговой удар: все 6 клеток вокруг, сторона удара не важна
+			cells = HexMath.neighbors(from)
 		EnemyData.Attack.LINE:
 			cells = _line_cells(from, dir, atk.attack_range, atk.pierce)
 			if atk.first_only:
@@ -2283,7 +2265,7 @@ func _distance_map(from_units: Array[BattleUnit], walker: BattleUnit = null) -> 
 		frontier.append(u.cell)
 	while not frontier.is_empty():
 		var cur: Vector2i = frontier.pop_front()
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			var n: Vector2i = cur + d
 			if not dist.has(n) and not _is_obstacle_for(walker, n):
 				dist[n] = dist[cur] + 1
@@ -2308,13 +2290,13 @@ func _best_attack_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[
 		if e.data.keep_distance > 0:
 			var near: int = 999
 			for h in living_heroes():
-				near = mini(near, GridShapes.manhattan(c, h.cell))
+				near = mini(near, HexMath.distance(c, h.cell))
 			if near < e.data.keep_distance:
 				base += 40
 			base -= mini(near, atk.attack_range)   # при прочих равных — подальше
 		if base - max_bonus >= best_score:
 			continue
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			var cells: Array[Vector2i] = _attack_cells(e, atk, c, d)
 			if not _hits_any(cells, targets):
 				continue
@@ -2330,20 +2312,20 @@ func _best_attack_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[
 	return result
 
 
-# В какую из четырёх сторон смотреть с клетки from, чтобы стоять лицом к ближайшей цели
+# В какую из шести сторон смотреть с клетки from, чтобы стоять лицом к ближайшей цели
 func _face_dir(from: Vector2i, targets: Array[BattleUnit]) -> Vector2i:
 	var nearest: BattleUnit = targets[0]
 	for t in targets:
-		if GridShapes.manhattan(from, t.cell) < GridShapes.manhattan(from, nearest.cell):
+		if HexMath.distance(from, t.cell) < HexMath.distance(from, nearest.cell):
 			nearest = t
-	return GridShapes.cardinal_dir(from, nearest.cell)
+	return HexMath.direction_to(from, nearest.cell)
 
 
 # Затянет ли притягивание героя в беду: между врагом (на клетке from) и героем
 # трясина, гнилые мостки или огонь
 func _pull_into_hazard(from: Vector2i, dir: Vector2i, cells: Array[Vector2i], targets: Array[BattleUnit]) -> bool:
 	for t in targets:
-		if not cells.has(t.cell) or GridShapes.manhattan(from, t.cell) < 2:
+		if not cells.has(t.cell) or HexMath.distance(from, t.cell) < 2:
 			continue
 		var mid: Vector2i = t.cell - dir
 		var o: int = object_at(mid)
@@ -2352,7 +2334,7 @@ func _pull_into_hazard(from: Vector2i, dir: Vector2i, cells: Array[Vector2i], ta
 	return false
 
 
-# Клетка для «зова»: откуда квадрат накроет больше всего других врагов.
+# Клетка для «зова»: откуда круг накроет больше всего других врагов.
 # При равенстве — та, до которой ближе идти; огня избегает.
 func _best_aura_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[Vector2i, Array]) -> Vector2i:
 	var best_cell: Vector2i = e.cell
@@ -2360,8 +2342,7 @@ func _best_aura_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[Ve
 	for c: Vector2i in options:
 		var allies: int = 0
 		for other in living_enemies():
-			if other != e and absi(other.cell.x - c.x) <= atk.attack_range \
-					and absi(other.cell.y - c.y) <= atk.attack_range:
+			if other != e and HexMath.distance(other.cell, c) <= atk.attack_range:
 				allies += 1
 		var score: int = allies * 100 - (options[c].size() - 1)
 		if tile_at(c) == Tile.FIRE:
@@ -2377,11 +2358,11 @@ func _random_free_cell(min_row: int, max_row: int) -> Vector2i:
 	var free: Array[Vector2i] = []
 	for y in range(min_row, max_row + 1):
 		for x in width:
-			var c := Vector2i(x, y)
+			var c: Vector2i = _cell(x, y)
 			if _is_empty(c):
 				free.append(c)
 	if free.is_empty():
-		return Vector2i(-1, -1)
+		return NO_CELL
 	return free[rng.randi_range(0, free.size() - 1)]
 
 
@@ -2534,7 +2515,7 @@ func _trigger_rune(c: Vector2i, walker: BattleUnit = null) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
 	message.emit("Сторожевая руна срабатывает!")
 	var cells: Array[Vector2i] = []
-	for t in GridShapes.cross_cells(c):
+	for t in HexMath.cluster(c):
 		if is_inside(t):
 			cells.append(t)
 	effect_cells.emit(cells, "rune")

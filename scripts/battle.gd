@@ -68,7 +68,7 @@ var _active: BattleUnit                         # выбранный герой
 var _ring: MeshInstance3D                       # светящееся кольцо под выбранным героем
 var _mode: Mode = Mode.BUSY
 var _selected_card: int = -1
-var _hover_cell := Vector2i(-1, -1)
+var _hover_cell: Vector2i = BattleLogic.NO_CELL
 var _anim_queue: Array[Callable] = []
 var _cam_yaw_deg: float = 0.0     # поворот камеры вокруг поля
 var _cam_dist: float = 15.0       # расстояние от центра поля
@@ -117,7 +117,7 @@ func _create_views() -> void:
 			view.setup_animations()   # если в модели есть анимации — включаем Idle
 		else:
 			view.add_child(_make_capsule_model(h.hero_data.color, 1.1, true))
-		view.face_dir(Vector2i(0, -1))   # лицом к врагам
+		view.face_dir(HexMath.FACE_UP)   # лицом к врагам
 		view.setup_label(2.0)
 		view.visible = h.is_alive()
 		_views[h] = view
@@ -129,7 +129,7 @@ func _create_views() -> void:
 			view.setup_animations()   # Idle, Walk, Attack, Hit, Death из модели
 		else:
 			view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
-		view.face_dir(GridShapes.cardinal_dir(e.cell, logic.heroes[0].cell))
+		view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
 		view.setup_label(1.4 * e.data.size + 0.55)
 		_views[e] = view
 
@@ -407,7 +407,7 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 	var from_cell: Vector2i = caster.cell
 	var dir: Vector2i = Vector2i.ZERO
 	if not cells.is_empty():
-		dir = GridShapes.cardinal_dir(from_cell, cells[0])
+		dir = HexMath.direction_to(from_cell, cells[0])
 	var is_mage: bool = caster.is_hero and caster.hero_data != null and caster.hero_data.id == "mage"
 	_queue(func() -> void:
 		view.face_dir(dir)
@@ -725,14 +725,14 @@ func _show_forecast() -> void:
 	board.show_cells("buff", buffs, COLOR_BUFF)   # бирюзовое — кого шаман усилит «зовом»
 
 
-# Центр взрыва-креста: клетка, у которой в этом наборе четыре соседа
+# Центр взрыва: клетка, у которой в этом наборе все шесть соседей
 func _blast_center(cells: Array[Vector2i]) -> Vector2i:
 	for c in cells:
 		var neighbours: int = 0
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			if cells.has(c + d):
 				neighbours += 1
-		if neighbours == 4:
+		if neighbours == 6:
 			return c
 	return cells[0]
 
@@ -791,7 +791,7 @@ func _screen_to_cell(screen_pos: Vector2) -> Vector2i:
 	var floor_plane := Plane(Vector3.UP, 0.0)
 	var hit: Variant = floor_plane.intersects_ray(ray_from, ray_dir)
 	if hit == null:
-		return Vector2i(-1, -1)  # луч ушёл в небо — клетки нет
+		return BattleLogic.NO_CELL  # луч ушёл в небо — клетки нет
 	return board.world_to_grid(hit)
 
 
@@ -803,7 +803,7 @@ func _update_camera() -> void:
 	# Точка взгляда чуть ближе к камере, чем центр поля: так поле встаёт выше и рука карт его не закрывает.
 	# Число подобрано так, чтобы сверху влезали плашки дальних врагов, а снизу поле не уходило под карты.
 	var look_shift := Vector3(0.0, 0.0, CAM_LOOK_SHIFT).rotated(Vector3.UP, deg_to_rad(_cam_yaw_deg))
-	var center := Vector3((board.width - 1) / 2.0, 0.0, (board.height - 1) / 2.0) + look_shift
+	var center: Vector3 = board.field_center() + look_shift
 	var pitch: float = deg_to_rad(CAM_PITCH_DEG)
 	var offset := Vector3(0.0, sin(pitch), cos(pitch)) * _cam_dist
 	offset = offset.rotated(Vector3.UP, deg_to_rad(_cam_yaw_deg))

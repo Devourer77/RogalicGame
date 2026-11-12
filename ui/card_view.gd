@@ -35,15 +35,13 @@ const SHAPE_ICONS: Dictionary[int, String] = {
 	CardData.Shape.LEAP: "shape_leap",
 	CardData.Shape.AROUND: "shape_around",
 	CardData.Shape.FELL: "shape_fell",
-	CardData.Shape.DIAG: "shape_diag",
-	CardData.Shape.XCROSS: "shape_xcross",
 }
 const SHAPE_NAMES: Dictionary[int, String] = {
 	CardData.Shape.SELF: "на себя",
 	CardData.Shape.SINGLE: "одна клетка",
 	CardData.Shape.LINE: "линия от героя",
-	CardData.Shape.CROSS: "крест: клетка и 4 соседние",
-	CardData.Shape.SQUARE: "квадрат 3×3",
+	CardData.Shape.CROSS: "клетка и 6 соседних",
+	CardData.Shape.SQUARE: "клетка и 6 соседних",
 	CardData.Shape.ARC: "дуга: три клетки перед героем",
 	CardData.Shape.CHARGE: "таран по прямой",
 	CardData.Shape.ALLY: "на союзника",
@@ -51,8 +49,6 @@ const SHAPE_NAMES: Dictionary[int, String] = {
 	CardData.Shape.LEAP: "прыжок и удар вокруг",
 	CardData.Shape.AROUND: "все клетки вокруг героя",
 	CardData.Shape.FELL: "дерево падает на 3 клетки",
-	CardData.Shape.DIAG: "клетка наискосок от героя",
-	CardData.Shape.XCROSS: "косой крест: клетка и 4 наискосок",
 }
 
 
