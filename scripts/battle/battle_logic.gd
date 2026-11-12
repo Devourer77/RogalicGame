@@ -31,7 +31,7 @@ enum Obj {
 	NONE,
 	BOG,     # трясина: не пройти; столкнул врага — он тонет; лёд её замораживает
 	TREE,    # мёртвое дерево: преграда; удар или огонь — падает и бьёт линию из 3 клеток
-	BARREL,  # бочка с болотным газом: преграда; удар или огонь — взрыв крестом и поджог
+	BARREL,  # бочка с болотным газом: преграда; удар или огонь — взрыв по клетке и 6 соседям и поджог
 	PLANKS,  # гнилые мостки: проходимы, но ломаются в трясину, когда с них уходят
 	REEDS,   # камыш: проходим, закрывает удары по линии, горит и поджигает соседний камыш
 	ICE_BLOCK,  # ледяная глыба мага: преграда, тает от огня или сама через несколько ходов
@@ -1390,7 +1390,7 @@ func _can_be_knocked_down(u: BattleUnit) -> bool:
 	return u.is_hero or (not u.data.is_boss and u.data.bog_damage <= 0)
 
 
-# Бочка взрывается: урон крестом и поджог
+# Бочка взрывается: урон по клетке и 6 соседям, поджог
 func _explode_barrel(c: Vector2i) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
 	message.emit("Бочка с газом взрывается!")
@@ -1574,7 +1574,7 @@ func _steam_burst(c: Vector2i, from: Vector2i, hero_card: bool) -> void:
 		_push(u, HexMath.direction_to(from, c), 1)
 
 
-# Ледяные осколки: юнит на тающем льду получает урон; глыба (is_block) бьёт соседей крестом
+# Ледяные осколки: юнит на тающем льду получает урон; глыба (is_block) бьёт 6 соседей
 func _ice_shatter(c: Vector2i, is_block: bool, hero_card: bool) -> void:
 	reaction.emit(c, "shatter")
 	if not is_block:
@@ -2017,7 +2017,7 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 				_push(u, -dir, mini(atk.pull, gap))
 
 
-# «Зов»: враги в квадрате вокруг (и сам зовущий) получают блок, их следующий удар сильнее
+# «Зов»: враги в круге радиусом 2 вокруг (и сам зовущий) получают блок, их следующий удар сильнее
 func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
 	var cells: Array[Vector2i] = _aura_cells(e.cell, atk.attack_range)
 	enemy_buffed.emit(e, cells)
@@ -2283,6 +2283,7 @@ func _best_attack_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[
 		return result
 	var max_bonus: int = PULL_HAZARD_BONUS if atk.pull > 0 else 0
 	var best_score: int = 1000000
+	var best_front: bool = false   # стоит ли цель прямо перед врагом в лучшем варианте
 	for c: Vector2i in options:
 		var base: int = (options[c].size() - 1) * 4
 		if tile_at(c) == Tile.FIRE:
@@ -2303,8 +2304,15 @@ func _best_attack_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[
 			var score: int = base
 			if max_bonus > 0 and _pull_into_hazard(c, d, cells, targets):
 				score -= max_bonus
-			if score < best_score:
+			# Дуга: при равных вариантах замахиваемся так, чтобы цель была прямо перед
+			# врагом, а не на краю дуги — иначе героя отбрасывает вбок, а не от врага
+			var front: bool = false
+			if atk.shape == EnemyData.Attack.SWEEP:
+				for t in targets:
+					front = front or t.cell == c + d
+			if score < best_score or (score == best_score and front and not best_front):
 				best_score = score
+				best_front = front
 				result = {"cell": c, "dir": d}
 	# Круговой удар бьёт во все стороны сразу — просто поворачиваем врага лицом к ближайшей цели
 	if atk.shape == EnemyData.Attack.AROUND and result["dir"] != Vector2i.ZERO:
