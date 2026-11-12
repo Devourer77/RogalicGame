@@ -556,8 +556,10 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 
 # Мана «камнями»: яркие — есть, тёмные — потрачены. Если маны много — просто числом.
 func _mana_row(h: BattleUnit) -> HBoxContainer:
-	var total: int = maxi(h.mana, h.hero_data.mana_per_turn)
-	var hint: String = "Мана: %d из %d. Тратится на карты, восполняется каждый ход." % [h.mana, h.hero_data.mana_per_turn]
+	var total: int = maxi(h.mana, BattleLogic.PARTY_MANA)
+	var hint: String = "Общая мана отряда: %d из %d. Можно уйти в минус до −%d (перегрев): в конце хода Маг получит по %d урона за каждую единицу." % [h.mana, BattleLogic.PARTY_MANA, BattleLogic.MAX_OVERHEAT, BattleLogic.OVERHEAT_DAMAGE]
+	if h.mana < 0:
+		return UiKit.chip("mana", "%d (перегрев)" % h.mana, UiKit.GOLD, hint)
 	if total > 6:
 		return UiKit.chip("mana", str(h.mana), UiKit.MANA, hint)
 	var row := HBoxContainer.new()

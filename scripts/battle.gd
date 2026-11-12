@@ -517,6 +517,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_on_cell_clicked(_screen_to_cell(click.position))
 		elif click.button_index == MOUSE_BUTTON_RIGHT:
 			_cancel_card()
+	elif event is InputEventKey and event.pressed and not event.is_echo() and (event as InputEventKey).keycode == KEY_X:
+		# X, затем карта — сбросить её «в ноги»: бесплатно, шаг или блок вместо эффекта
+		_scrapping = not _scrapping
+		_discarding = false
+		_selected_card = -1
+		_enter_idle()
 	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_TAB:
 		_select_hero(_next_hero())
 		_enter_idle()
@@ -586,6 +592,7 @@ func _show_hovered_enemy_threat(cell: Vector2i) -> void:
 
 # Режим сброса: следующая нажатая карта уходит в сброс (одна за ход)
 var _discarding: bool = false
+var _scrapping: bool = false   # включён режим «в ноги» (клавиша X): следующая карта сбрасывается бесплатно
 
 
 func _on_discard_toggled() -> void:
@@ -601,6 +608,11 @@ func _on_discard_toggled() -> void:
 
 func _on_card_pressed(index: int) -> void:
 	if _mode == Mode.BUSY:
+		return
+	if _scrapping:
+		var sh: BattleUnit = _active
+		_scrapping = false
+		_do(func() -> void: logic.scrap_card(sh, index))
 		return
 	if _discarding:
 		var h: BattleUnit = _active

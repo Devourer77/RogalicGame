@@ -63,3 +63,11 @@ enum Element {
 @export var pierce_block: bool = false # урон проходит сквозь блок
 # Особое действие, которое не описать числами выше. Список — в BattleLogic._resolve_special().
 @export var special: String = ""
+
+# --- Редизайн боя: владелец, теги, сброс «в ноги» ---
+@export var owner_hero: String = ""     # "mage", "knight" или пусто (нейтральная); пока не задано — владелец тот, у кого карта в руке
+@export var is_attack: bool = false     # тег «Атака» (считается в TurnContext и в пассивках врагов)
+@export var is_spell: bool = false      # тег «Заклинание»
+@export var scrap_moves: int = 1        # сброс «в ноги»: сколько шагов даёт (0 — не даёт)
+@export var scrap_block: int = 0        # сброс «в ноги»: сколько блока даёт
+@export var scrap_mana: int = 0         # сброс «в ноги»: сколько маны возвращает (манипуляция маной мага)

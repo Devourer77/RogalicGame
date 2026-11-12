@@ -22,6 +22,8 @@ signal enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i])
 signal enemy_buffed(unit: BattleUnit, cells: Array[Vector2i])   # «зов»: враг усилил своих вокруг
 signal reaction(cell: Vector2i, kind: String)   # реакция стихий: "steam", "freeze", "shatter", "lava", "crust"
 signal message(text: String)
+signal card_played(caster: BattleUnit, card: CardData, is_scrap: bool)   # для пассивок врагов и условий карт
+signal overheated(stacks: int, damage: int)   # в конце хода мана была в минусе
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
 enum Tile { NONE, FIRE, WATER, ICE }
@@ -48,6 +50,11 @@ const CRUST_TURNS: int = 2       # сколько раундов держитс�
 
 const HAND_SIZE: int = 5        # сколько карт каждый герой берёт в начале боя
 const MAX_HAND: int = 7
+const PARTY_MANA: int = 4          # общая мана отряда на ход (на двоих)
+const MAX_OVERHEAT: int = 3        # на сколько можно уйти в минус по мане (перегрев)
+const OVERHEAT_DAMAGE: int = 4     # урон Магу за каждую единицу перегрева в конце хода (мимо блока)
+const OVERHEAT_MANA_PENALTY: int = 1   # при перегреве от 2: так меньше маны в следующий ход
+const OVERHEAT_PENALTY_FROM: int = 2
 
 # Как рука меняется между ходами:
 #  DISCARD_ALL — старый режим: рука сбрасывается целиком, в начале хода берём 5
@@ -136,6 +143,9 @@ var obj_timers: Dictionary[Vector2i, int] = {}   # сколько раундов
 var ground: Dictionary[Vector2i, int] = {}     # клетка -> Ground (вид плиты)
 var arena_id: String = ""                      # какая арена (ключ из ARENAS)
 
+var mana_pool := ManaPool.new()    # общая мана отряда
+var ctx := TurnContext.new()       # что отряд сделал в этот ход
+var _mana_penalty: int = 0         # штраф к мане на следующий ход (после сильного перегрева)
 var turn: int = 0
 var is_over: bool = false
 var won: bool = false
@@ -165,6 +175,7 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		h.max_hp = rh.data.max_hp
 		h.hp = rh.hp
 		h.cell = _cell(start_x + i, height - 2)
+		h.pool = mana_pool
 		h.draw_pile = rh.deck.duplicate()
 		_shuffle(h.draw_pile)
 		heroes.append(h)
@@ -724,6 +735,7 @@ func move_hero(h: BattleUnit, cell: Vector2i) -> bool:
 	if object_at(cell) == Obj.CRUST:
 		h.moves_left = 0   # корка: шаги кончились
 	h.cell = cell
+	ctx.note_move(h.hero_data.id, path)
 	unit_moved.emit(h, path)
 	_break_planks_behind(path)
 	_walked(h, path)
@@ -745,7 +757,7 @@ func _add_momentum(h: BattleUnit, steps: int) -> void:
 
 func can_play(h: BattleUnit, index: int) -> bool:
 	return not is_over and h.is_alive() and index >= 0 and index < h.hand.size() \
-			and card_cost(h, index) <= h.mana
+			and card_cost(h, index) <= h.mana + MAX_OVERHEAT
 
 
 # Сколько маны реально стоит карта (с учётом скидки «Сосредоточения»)
@@ -936,8 +948,30 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_forget_kept(h, index)
 	h.discard_pile.append(card)
 	message.emit("%s: %s" % [h.title, card.title])
+	ctx.note_card(h.hero_data.id, card.is_attack, card.is_spell)
+	card_played.emit(h, card, false)
 	_resolve_card(h, card, area, target)
 	_check_end()
+	return true
+
+
+# Сброс карты «в ноги»: бесплатно, даёт шаги/блок/ману, но не считается Атакой или Заклинанием,
+# поэтому пассивки врагов на розыгрыш карт его не видят.
+func scrap_card(h: BattleUnit, index: int) -> bool:
+	if is_over or not h.is_alive() or index < 0 or index >= h.hand.size():
+		return false
+	var card: CardData = h.hand[index]
+	h.hand.remove_at(index)
+	_forget_kept(h, index)
+	h.discard_pile.append(card)
+	h.moves_left += card.scrap_moves
+	if card.scrap_block > 0:
+		h.block += card.scrap_block
+	h.mana += card.scrap_mana
+	message.emit("%s: «%s» в ноги" % [h.title, card.title])
+	ctx.note_scrap(h.hero_data.id)
+	card_played.emit(h, card, true)
+	status_changed.emit(h, snapshot(h))
 	return true
 
 
@@ -1806,12 +1840,14 @@ func _shuffle(cards: Array[CardData]) -> void:
 
 func _start_heroes_turn() -> void:
 	turn += 1
+	ctx.reset()
+	mana_pool.current = maxi(0, PARTY_MANA - _mana_penalty)
+	_mana_penalty = 0
 	for h in living_heroes():
 		if h.block > 0 or h.taunt:
 			h.block = 0
 			h.taunt = false
 			status_changed.emit(h, snapshot(h))
-		h.mana = h.hero_data.mana_per_turn
 		h.moves_left = h.hero_data.moves_per_turn
 		h.discount = 0
 		_discards_left[h] = DISCARDS_PER_TURN
@@ -1831,6 +1867,33 @@ func _start_heroes_turn() -> void:
 		if e.data.cycle.size() > 1:
 			status_changed.emit(e, snapshot(e))
 	message.emit("— Ход %d —" % turn)
+
+
+# Мана ушла в минус: Маг платит 4 урона за каждую единицу (мимо блока), а при 2+ в минусе
+# в следующий ход маны на единицу меньше.
+func _apply_overheat() -> void:
+	var stacks: int = overheat_stacks()
+	if stacks <= 0:
+		return
+	var damage: int = stacks * OVERHEAT_DAMAGE
+	var payer: BattleUnit = null
+	for h in living_heroes():
+		if h.hero_data.id == "mage":
+			payer = h
+	if payer == null and not living_heroes().is_empty():
+		payer = living_heroes()[0]   # мага нет — платит выживший
+	message.emit("Перегрев %d: %d урона" % [stacks, damage])
+	overheated.emit(stacks, damage)
+	if payer != null:
+		_damage(payer, damage, true)
+		status_changed.emit(payer, snapshot(payer))
+	if stacks >= OVERHEAT_PENALTY_FROM:
+		_mana_penalty = OVERHEAT_MANA_PENALTY
+	mana_pool.current = 0
+
+
+func overheat_stacks() -> int:
+	return maxi(0, -mana_pool.current)
 
 
 # Герои закончили ход: враги подходят и бьют, потом жжёт огонь, потом новый ход
@@ -1853,6 +1916,7 @@ func end_turn() -> void:
 			_damage(h, overload)
 			status_changed.emit(h, snapshot(h))
 		h.overloaded = false
+	_apply_overheat()
 	if _check_end():
 		return
 	# Добор сразу после «Конец хода», ещё до хода врагов
@@ -2081,8 +2145,12 @@ func clone() -> BattleLogic:
 	c.rng = RandomNumberGenerator.new()
 	c.rng.seed = rng.seed
 	c.rng.state = rng.state
+	c.mana_pool.current = mana_pool.current
+	c._mana_penalty = _mana_penalty
 	for h in heroes:
-		c.heroes.append(h.copy())
+		var hc: BattleUnit = h.copy()
+		hc.pool = c.mana_pool
+		c.heroes.append(hc)
 	for e in enemies:
 		c.enemies.append(e.copy())
 	c.rocks = rocks.duplicate()
