@@ -51,6 +51,7 @@ enum Element {
 
 @export_group("Рыцарь")
 @export var taunt: bool = false        # провокация: враги, которые дотягиваются до героя, бьют только его
+@export var hold_line: bool = false    # «Стойка стража»: враги, начавшие ход рядом с рыцарем, делают не больше 1 шага
 @export var rage_gain: int = 0         # сколько ярости даёт карта
 @export var rage_bonus: int = 0        # +урон за каждое очко ярости (ярость при этом тратится вся)
 @export var momentum_gain: int = 0     # сколько натиска даёт карта

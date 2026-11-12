@@ -21,6 +21,7 @@ var mana: int = 0           # мана героя; может уходить в 
 var moves_left: int = 0
 var rage: int = 0             # ярость рыцаря: +1 за каждый полученный удар
 var taunt: bool = false       # провокация до начала следующего хода
+var holding_line: bool = false  # «Стойка стража» до начала следующего хода: соседние враги делают максимум 1 шаг
 var charge: int = 0           # заряд мага: копится между ходами, тратится «разрядками»
 var momentum: int = 0         # натиск рыцаря: +1 за каждую пройденную клетку, сгорает после удара
 var discount: int = 0         # следующая карта дешевле на столько маны
@@ -65,6 +66,7 @@ func copy() -> BattleUnit:
 	u.moves_left = moves_left
 	u.rage = rage
 	u.taunt = taunt
+	u.holding_line = holding_line
 	u.charge = charge
 	u.momentum = momentum
 	u.discount = discount

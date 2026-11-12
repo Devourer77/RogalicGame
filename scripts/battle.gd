@@ -220,6 +220,8 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		info["color"] = u.hero_data.color
 		if state["taunt"]:
 			marks.append("taunt")
+		if state.get("holding_line", false):
+			marks.append("hold_line")
 	else:
 		# Намерение врага: значок по форме удара и урон в этом раунде
 		var shape: int = logic.enemy_attack(u).shape

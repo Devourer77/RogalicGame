@@ -66,6 +66,7 @@ func _initialize() -> void:
 	_runes()
 	_trap()
 	_pincer()
+	_hold_line()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 
@@ -346,7 +347,7 @@ func _pools() -> void:
 	var mage: HeroData = load("res://resources/heroes/mage.tres")
 	var knight: HeroData = load("res://resources/heroes/knight.tres")
 	check("У мага в пуле 34 карты (24 + 10 редизайна)", mage.card_pool.size() == 34)
-	check("У рыцаря в пуле 42 карты (32 + 10 редизайна)", knight.card_pool.size() == 42)
+	check("У рыцаря в пуле 43 карты (32 + 10 редизайна + «Стойка стража»)", knight.card_pool.size() == 43)
 	var rh: RunHero = run.party[0]
 	for i in 4: rh.deck.append(card("m_spark"))
 	var storm := 0; var total := 0
@@ -676,3 +677,33 @@ func _pincer() -> void:
 	hp = e.hp
 	l._damage(e, 4)
 	check("Урон не от карты в клещах не растёт", e.hp == hp - 4)
+
+
+# «Стойка стража»: враг, начавший ход рядом с рыцарем, делает не больше 1 шага
+func _hold_line() -> void:
+	print("--- Стойка стража ---")
+	var l := fresh(["wolf", "ogre"]); var m: BattleUnit = l.heroes[0]; var k: BattleUnit = l.heroes[1]
+	var w: BattleUnit = l.enemies[0]; var o: BattleUnit = l.enemies[1]
+	m.cell = C(2, 11); k.cell = C(8, 5)
+	w.cell = k.cell + UL; o.cell = k.cell + UR
+	give(k, ["k_hold_line"])
+	var block: int = k.block
+	l.play_card(k, 0, k.cell)
+	check("Стойка стража: рыцарь держит строй и получил 3 блока", k.holding_line and k.block == block + 3)
+	check("Волк рядом с рыцарем: шагов не больше 1", l.enemy_move_range(w) == 1)
+	check("Огра (босса) строй не держит", l.enemy_move_range(o) == o.data.move_range)
+	var w_start: Vector2i = w.cell
+	l._enemies_act()
+	check("Волк сделал не больше 1 шага", HexMath.distance(w_start, w.cell) <= 1)
+	# Далёкий враг ходит как обычно
+	var l2 := fresh(["wolf"]); var k2: BattleUnit = l2.heroes[1]
+	k2.holding_line = true
+	check("Волк далеко от рыцаря — ходит на все 4", l2.enemy_move_range(l2.enemies[0]) == 4)
+	# Толчок выбрасывает из строя без ограничений
+	var l3 := fresh(["wolf"]); var k3: BattleUnit = l3.heroes[1]; var w3: BattleUnit = l3.enemies[0]
+	k3.holding_line = true; w3.cell = k3.cell + UL
+	l3._push(w3, UL, 3)
+	check("Толчок не ограничен стойкой", w3.cell == k3.cell + UL * 4)
+	# С новым ходом героев стойка спадает
+	l._start_heroes_turn()
+	check("Стойка спала в новый ход", not k.holding_line)

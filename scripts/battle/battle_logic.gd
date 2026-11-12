@@ -86,6 +86,7 @@ const INFLATION_MAX: int = 3        # стаков «Раздувания» до
 const INFLATION_DAMAGE: int = 12    # урон взрыва жабы
 const INFLATION_POISON: int = 3     # яд от взрыва жабы
 const PINCER_BONUS_PCT: int = 50   # «Клещи»: враг между героями на одной прямой получает от карт на столько % больше
+const HOLD_LINE_STEPS: int = 1    # «Стойка стража»: столько шагов у врага, начавшего ход рядом с рыцарем
 const TOAD_FUSE_HP: int = 4         # жаба с таким HP или меньше «тлеет»: прыгает к героям и взрывается
 const TOAD_FUSE_STACKS: int = 2     # …или с таким числом стаков «Раздувания»
 const TOAD_LEAP_BONUS: int = 1      # тлеющая жаба прыгает на столько клеток дальше обычного шага
@@ -571,6 +572,7 @@ func start() -> void:
 # чтобы надпись над головой показала цифры именно на этот момент
 func snapshot(u: BattleUnit) -> Dictionary:
 	var state: Dictionary = {"hp": u.hp, "block": u.block, "rage": u.rage, "taunt": u.taunt,
+			"holding_line": u.holding_line,
 			"charge": u.charge, "momentum": u.momentum, "entangled": u.entangled,
 			"wet": wet_turns(u), "poison": u.poison, "rune": u.rune, "rune_hits": u.rune_hits}
 	if u.data != null:
@@ -1182,6 +1184,9 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 			block += 3 * h.moves_left   # «Держать строй»: каждый неиспользованный шаг — ещё блок
 		receiver.block += block
 		status_changed.emit(receiver, snapshot(receiver))
+	if card.hold_line:
+		h.holding_line = true
+		message.emit("%s держит строй" % h.title)
 	if card.taunt:
 		h.taunt = true
 		message.emit("%s вызывает врагов на себя" % h.title)
@@ -2452,6 +2457,7 @@ func _start_heroes_turn() -> void:
 			h.taunt = false
 			status_changed.emit(h, snapshot(h))
 		h.guarding = false
+		h.holding_line = false
 		h.prism = false
 		h.mana = maxi(0, h.hero_data.mana_per_turn - int(_mana_penalty.get(h.id, 0)))
 		_mana_penalty[h.id] = 0
@@ -2833,7 +2839,7 @@ func get_threat_cells(e: BattleUnit) -> Array[Vector2i]:
 	if atk.shape == EnemyData.Attack.AURA:
 		return result   # в этом раунде враг не бьёт, а усиливает своих
 	var seen: Dictionary[Vector2i, bool] = {}
-	for pos: Vector2i in reachable_cells(e, e.data.move_range, true):
+	for pos: Vector2i in reachable_cells(e, enemy_move_range(e), true):
 		for d: Vector2i in HexMath.DIRS:
 			for c in _attack_cells(e, atk, pos, d):
 				if not seen.has(c) and c != e.cell:
@@ -2883,9 +2889,21 @@ func _hits_any(cells: Array[Vector2i], targets: Array[BattleUnit]) -> bool:
 # трясины и деревьев). Огня избегает. Стрелки держат дистанцию (keep_distance).
 # В раунд «зова» враг встаёт так, чтобы накрыть побольше своих.
 # Возвращает направление удара (ZERO — ударить не получится).
-# Сколько клеток враг может пройти в свой ход (без учёта опутывания)
+# Сколько клеток враг может пройти в свой ход (без учёта опутывания).
+# Рядом рыцарь в «Стойке стража» — не больше HOLD_LINE_STEPS (босса это не держит).
 func enemy_move_range(e: BattleUnit) -> int:
-	return e.data.move_range
+	var steps: int = e.data.move_range
+	if not e.data.is_boss and is_held(e):
+		steps = mini(steps, HOLD_LINE_STEPS)
+	return steps
+
+
+# Стоит ли враг рядом с героем, который держит строй
+func is_held(e: BattleUnit) -> bool:
+	for h in living_heroes():
+		if h.holding_line and HexMath.distance(h.cell, e.cell) == 1:
+			return true
+	return false
 
 
 func _enemy_move(e: BattleUnit, atk: EnemyAttackData) -> Vector2i:
