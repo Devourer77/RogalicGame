@@ -77,7 +77,7 @@ func _buy(item: Dictionary) -> void:
 	if Run.gold < price:
 		return
 	Run.gold -= price
-	(item["hero"] as RunHero).deck.append(card)
+	Run.add_card(item["hero"] as RunHero, card)   # заодно запишет карту в Запас Караульни
 	Run.shop_stock.erase(item)
 	_rebuild()
 

@@ -30,7 +30,7 @@ func _ready() -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 14)
 	head.add_child(UiKit.make_title("Гнилые топи", 30, UiKit.BRASS.lightened(0.2)))
-	var seed_label: Label = UiKit.make_label("акт I  ·  сид %d" % Run.seed_value, 14, UiKit.TEXT_DIM)
+	var seed_label: Label = UiKit.make_label("акт I  ·  Звон %d  ·  сид %d" % [Run.bell, Run.seed_value], 14, UiKit.TEXT_DIM)
 	seed_label.size_flags_vertical = Control.SIZE_SHRINK_END
 	seed_label.tooltip_text = "Сид забега: введи его в главном меню, чтобы повторить этот же забег."
 	seed_label.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -57,6 +57,11 @@ func _ready() -> void:
 		var title: String = (look[2] as String).get_slice(":", 0)
 		legend.add_child(UiKit.chip(look[0], title, (look[1] as Color).lightened(0.55), look[2], 14, 18))
 	column.add_child(legend)
+	# «Знакомая тропа» (улучшение из хаба): один раз перебросить карту до первого шага
+	if Run.can_reroll_map():
+		var reroll: Button = UiKit.make_button("Перебросить путь (один раз)", Run.reroll_map, "star")
+		reroll.tooltip_text = "Карта пути создастся заново. Больше в этом забеге так сделать нельзя."
+		column.add_child(reroll)
 
 
 # Круглая кнопка точки с иконкой. Куда можно пойти — латунная рамка и лёгкое «дыхание».

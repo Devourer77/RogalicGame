@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "charm_bell"
+title = "Медный бубенец"
+desc = "В 1-м раунде каждого боя у обоих героев +1 шаг."
+icon = "bell"
+hero_id = ""
+kind = 1
+start_open = false
+buyable = true
+unlock_cost = 20

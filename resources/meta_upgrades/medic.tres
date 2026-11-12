@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MetaUpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/meta_upgrade_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "medic"
+title = "Лекарские сумки"
+desc = "Привал лечит на 5% больше за ступень."
+icon = "heart"
+board = 0
+hero_id = ""
+costs = Array[int]([20, 35])
+effect = "rest_heal"
+value = 5

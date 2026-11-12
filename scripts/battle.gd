@@ -84,7 +84,7 @@ var _enemy_phase_running: bool = false   # идёт ход врагов (на н
 func _ready() -> void:
 	Run.ensure_run()
 	var layout_seed: int = Run.rng.randi()
-	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena)
+	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena, Run.relics)
 	board.build(layout_seed, logic.arena_id, logic.ground)
 	_update_camera()
 	_create_views()

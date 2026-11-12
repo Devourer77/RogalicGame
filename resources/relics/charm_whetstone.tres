@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "charm_whetstone"
+title = "Точильный камень"
+desc = "Рыцарь: первая карта с уроном в каждом бою наносит +3."
+icon = "battle"
+hero_id = "knight"
+kind = 1
+start_open = false
+buyable = true
+unlock_cost = 25

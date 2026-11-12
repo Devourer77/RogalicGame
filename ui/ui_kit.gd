@@ -25,6 +25,7 @@ const THREAT := Color(1.0, 0.36, 0.33)               # красный — тол
 const RAGE := Color(1.0, 0.58, 0.3)
 const MOMENTUM := Color(1.0, 0.74, 0.3)
 const CHARGE := Color(0.72, 0.62, 1.0)
+const ECHO := Color(1.0, 0.93, 0.74)                  # Отзвуки: свечной белый (валюта хаба)
 
 const ICON_DIR: String = "res://assets/icons/"
 const FONT_TITLE_PATH: String = "res://assets/fonts/AlegreyaSC-Bold.ttf"

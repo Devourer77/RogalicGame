@@ -10,10 +10,11 @@ func _ready() -> void:
 	column.add_child(UiKit.make_title("Привал", 40, UiKit.BRASS.lightened(0.25)))
 	column.add_child(UiKit.make_text("Сухая кочка, огонь и час тишины. Топь подождёт.", 18, UiKit.TEXT_DIM))
 	column.add_child(UiKit.party_bar())
-	var percent: int = roundi(Run.REST_HEAL_PERCENT * 100.0)
+	var heal_share: float = Run.rest_percent()
+	var percent: int = roundi(heal_share * 100.0)
 	var gains: PackedStringArray = []
 	for rh in Run.party:
-		var amount: int = mini(ceili(rh.data.max_hp * Run.REST_HEAL_PERCENT), rh.data.max_hp - rh.hp)
+		var amount: int = mini(ceili(rh.data.max_hp * heal_share), rh.data.max_hp - rh.hp)
 		gains.append("%s +%d" % [rh.data.title, amount])
 	var rest: Button = UiKit.make_button("Отдохнуть  ·  +%d%% здоровья" % percent, _rest, "heart", true)
 	rest.custom_minimum_size.x = 340
@@ -25,6 +26,8 @@ func _ready() -> void:
 
 
 func _rest() -> void:
+	var heal_share: float = Run.rest_percent()
+	Run.rest_used = true   # «Чистый бинт» действует только на первый привал
 	for rh in Run.party:
-		rh.heal(ceili(rh.data.max_hp * Run.REST_HEAL_PERCENT))
+		rh.heal(ceili(rh.data.max_hp * heal_share))
 	Run.goto(Run.MAP_SCENE)

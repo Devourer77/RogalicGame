@@ -119,6 +119,9 @@ const HERO_ROWS: int = 3         # нижние ряды держим свобо
 var width: int = 12
 var height: int = 12
 var rng: RandomNumberGenerator   # общий генератор забега (из Run)
+var charms: Array[String] = []   # id оберегов забега (бой про хаб не знает — получает только список)
+var _whetstone_spent: bool = false                  # «Точильный камень» уже сработал в этом бою
+var _flint_spent: Dictionary = {}                   # герой -> уже сыграл первую карту («Огниво ордена»)
 
 var _discards_left: Dictionary = {}   # герой -> сколько сбросов осталось в этот ход
 
@@ -145,7 +148,9 @@ var _shock_cells: Dictionary[Vector2i, bool] = {}   # клетки, где мо�
 
 # Создаёт героев, врагов и всё поле. Ничего не показывает — только данные.
 func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
-		party: Array[RunHero], enemy_list: Array[EnemyData], arena: String = "") -> void:
+		party: Array[RunHero], enemy_list: Array[EnemyData], arena: String = "",
+		charm_ids: Array[String] = []) -> void:
+	charms = charm_ids.duplicate()
 	arena_id = arena   # пусто — арена выберется случайно
 	width = board_width
 	height = board_height
@@ -162,6 +167,8 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		h.hp = rh.hp
 		h.cell = Vector2i(start_x + i, height - 2)
 		h.draw_pile = rh.deck.duplicate()
+		if rh.data.id == "mage" and charms.has("charm_amulet"):
+			h.charge = 1   # «Ладанка ученика»: бой начинается с 1 зарядом
 		_shuffle(h.draw_pile)
 		heroes.append(h)
 
@@ -944,6 +951,7 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	var area: Array[Vector2i] = get_card_area(h, index, target)
 	h.mana -= card_cost(h, index)
 	h.discount = 0   # скидка действует на одну карту
+	_flint_spent[h] = true   # «Огниво ордена» — только на первую карту в бою
 	h.hand.remove_at(index)
 	_forget_kept(h, index)
 	h.discard_pile.append(card)
@@ -973,6 +981,9 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 	var damage: int = card.damage
 	if damage > 0:
 		damage += _spend_bonuses(h, card)
+		if h.hero_data.id == "knight" and charms.has("charm_whetstone") and not _whetstone_spent:
+			damage += 3   # «Точильный камень»: первая карта рыцаря с уроном
+			_whetstone_spent = true
 
 	# Цепная молния: заранее находим, куда она перескочит (чтобы показать вспышку)
 	var chain: Array[BattleUnit] = []
@@ -1824,6 +1835,13 @@ func _start_heroes_turn() -> void:
 		h.mana = h.hero_data.mana_per_turn
 		h.moves_left = h.hero_data.moves_per_turn
 		h.discount = 0
+		if charms.has("charm_flint") and h.hero_data.id == "mage" and not _flint_spent.has(h):
+			h.discount = 1   # «Огниво ордена»: первая карта мага в бою дешевле на 1 ману
+		if turn == 1:
+			if charms.has("charm_bell"):
+				h.moves_left += 1   # «Медный бубенец»: +1 шаг в 1-м раунде
+			if charms.has("charm_horn") and h.hero_data.id == "knight":
+				h.block += 4        # «Рог дозорного»: рыцарь начинает бой с 4 блока
 		_discards_left[h] = DISCARDS_PER_TURN
 		h.outpost = false
 		h.momentum = 0
@@ -1835,7 +1853,8 @@ func _start_heroes_turn() -> void:
 		# Рука целиком сбрасывается — берём новую; в остальных режимах
 		# карты добираются в end_turn(), а в бою рука стартует с 5 карт
 		if DRAW_MODE == DrawMode.DISCARD_ALL or turn == 1:
-			_draw_cards(h, HAND_SIZE)
+			var extra: int = 1 if turn == 1 and charms.has("charm_shard") and h.hero_data.id == "mage" else 0
+			_draw_cards(h, HAND_SIZE + extra)   # «Осколок ученика»: на 1 карту больше в 1-м раунде
 	# У врагов с циклом ударов в новом раунде другой удар — обновляем надписи
 	for e in living_enemies():
 		if e.data.cycle.size() > 1:

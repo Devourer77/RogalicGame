@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MetaUpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/meta_upgrade_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "mage_hardening"
+title = "Закалка"
+desc = "+4 к максимальному здоровью Мага за ступень."
+icon = "heart"
+board = 1
+hero_id = "mage"
+costs = Array[int]([15, 25])
+effect = "hero_hp"
+value = 4

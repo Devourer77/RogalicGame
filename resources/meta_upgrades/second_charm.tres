@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MetaUpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/meta_upgrade_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "second_charm"
+title = "Второй оберег"
+desc = "Второе место для оберега на Полке трофеев."
+icon = "bell"
+board = 0
+hero_id = ""
+costs = Array[int]([60])
+effect = "charm_slots"
+value = 1

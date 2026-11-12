@@ -4,6 +4,7 @@ extends Control
 
 var _next_button: Button
 var _done: Dictionary[RunHero, bool] = {}   # герой -> уже выбрал (карту или пропуск)
+var _notes: Dictionary[RunHero, Label] = {}  # подпись «Записано в Караульню» под картами героя
 
 
 func _ready() -> void:
@@ -47,13 +48,27 @@ func _ready() -> void:
 		box.add_child(margin)
 		var buttons: Array[Button] = []
 		var skip: Array[Button] = []   # сюда ляжет кнопка «Пропустить» (нужна обработчикам)
-		for card in Run.roll_cards(rh, 3):
+		var count: int = Run.reward_card_count()
+		for card in Run.roll_cards(rh, count):
 			var b: Button = CardView.make_button(card, rh.data.color)
-			CardView.add_hover_grow(b)
 			b.pressed.connect(_take_card.bind(rh, card, b, buttons, skip))
-			cards.add_child(b)
+			if count > 3:
+				# «Указ коменданта»: 4 карты не влезают в экран — делаем их мельче (80%)
+				var holder := Control.new()
+				holder.custom_minimum_size = CardView.CARD_SIZE * 0.8
+				b.pivot_offset = Vector2.ZERO
+				b.scale = Vector2(0.8, 0.8)
+				holder.add_child(b)
+				cards.add_child(holder)
+			else:
+				CardView.add_hover_grow(b)
+				cards.add_child(b)
 			buttons.append(b)
 		# своя кнопка «Пропустить» под картами этого героя
+		var note: Label = UiKit.make_label(" ", 13, UiKit.BRASS.lightened(0.2))
+		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_notes[rh] = note
+		box.add_child(note)
 		skip.append(UiKit.make_button("Пропустить", _skip.bind(rh, buttons, skip)))
 		box.add_child(skip[0])
 		row.add_child(panel)
@@ -67,7 +82,8 @@ func _ready() -> void:
 func _take_card(rh: RunHero, card: CardData, chosen: Button, buttons: Array[Button], skip: Array[Button]) -> void:
 	if _done.has(rh):
 		return
-	rh.deck.append(card)
+	if Run.add_card(rh, card):
+		_notes[rh].text = "Записано в Караульню"
 	for b in buttons:
 		if b == chosen:
 			var frame: StyleBox = b.get_theme_stylebox("normal").duplicate()

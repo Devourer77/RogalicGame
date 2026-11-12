@@ -12,6 +12,12 @@ const SHOP_SCENE: String = "res://ui/shop_screen.tscn"
 const REST_SCENE: String = "res://ui/rest_screen.tscn"
 const EVENT_SCENE: String = "res://ui/event_screen.tscn"
 const GAME_OVER_SCENE: String = "res://ui/game_over.tscn"
+const HUB_SCENE: String = "res://scenes/hub.tscn"
+const START_PICK_SCENE: String = "res://ui/start_pick.tscn"
+const TROPHY_SCENE: String = "res://ui/trophy_screen.tscn"
+
+# Сколько актов в забеге. Звон открывается, только если пройден последний (пока акт один).
+const FINAL_ACT: int = 1
 
 const MAP_ROWS: int = 8        # последний ряд — босс, предпоследний — привал
 const MAP_COLS: int = 3
@@ -56,6 +62,22 @@ var last_gold_reward: int = 0
 var shop_stock: Array[Dictionary] = []   # {"hero": RunHero, "card": CardData}
 var shop_removal_used: bool = false
 var last_run_won: bool = false
+var bell: int = 0                 # Звон (сложность) текущего забега
+var act: int = 1
+var rows_passed: int = 0         # сколько рядов карты пройдено (для Отзвуков)
+var elite_kills: int = 0
+var boss_kills: int = 0
+var event_echoes: int = 0        # Отзвуки, полученные в событиях
+var run_complete: bool = false   # забег пройден до конца (убит финальный босс)
+var relics: Array[String] = []   # id оберегов этого забега (из хаба и из тайников)
+var trophy_echoes: int = 0       # Отзвуки вместо трофея (когда все обереги открыты)
+var trophy_choices: Array[RelicData] = []   # из чего выбирать трофей за босса
+var cache_seen: bool = false     # «Тайник павшего дозорного» уже выпадал в этом забеге
+var rest_used: bool = false      # первый привал уже был (для «Чистого бинта»)
+var candle_used: bool = false    # «Свеча у колокола» уже сработала
+var rerolled: bool = false       # «Знакомая тропа» уже использована
+var last_battle_big: bool = false   # последний бой — элита или босс (для «Указа коменданта»)
+var start_picks: Array[RunHero] = []   # кому предстоит выбор карты перед первой точкой («Заготовка»)
 var fast_enemies: bool = false   # «Скорость ×2» во время хода врагов (выбор живёт весь забег)
 
 
@@ -65,7 +87,8 @@ func _ready() -> void:
 
 
 # Новый забег. Сид 0 — выбрать случайный.
-func start_new_run(new_seed: int = 0) -> void:
+# bell_level -1 — взять Звон, выбранный в хабе.
+func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	if new_seed == 0:
 		var temp := RandomNumberGenerator.new()
 		temp.randomize()
@@ -73,9 +96,34 @@ func start_new_run(new_seed: int = 0) -> void:
 	seed_value = new_seed
 	rng.seed = seed_value
 	party.clear()
+	start_picks.clear()
 	for hero_data in HEROES:
-		party.append(RunHero.new(hero_data))
-	gold = START_GOLD
+		# Копия описания героя: «Закалка» меняет здоровье только в этом забеге
+		var data: HeroData = hero_data.duplicate() as HeroData
+		data.max_hp += Meta.effect_total("hero_hp", hero_data.id)
+		var rh := RunHero.new(data)
+		rh.deck = Meta.start_deck(hero_data)   # своя выкладка из Караульни (или базовая)
+		party.append(rh)
+		if Meta.effect_total("start_pick", hero_data.id) > 0:
+			start_picks.append(rh)
+	relics = Meta.valid_chosen()
+	gold = START_GOLD + Meta.effect_total("start_gold")
+	if relics.has("charm_purse"):
+		gold += 40
+	trophy_echoes = 0
+	trophy_choices.clear()
+	cache_seen = false
+	rest_used = false
+	candle_used = false
+	rerolled = false
+	last_battle_big = false
+	bell = Meta.bell_chosen if bell_level < 0 else bell_level
+	act = 1
+	rows_passed = 0
+	elite_kills = 0
+	boss_kills = 0
+	event_echoes = 0
+	run_complete = false
 	fast_enemies = false
 	current = null
 	pending_enemies.clear()
@@ -90,6 +138,63 @@ func ensure_run() -> void:
 		start_new_run()
 	if pending_enemies.is_empty():
 		pending_enemies = _make_encounter(0, false)
+
+
+# Куда идти после старта забега: выбор «Заготовки» (если куплена) или сразу карта пути
+func begin() -> void:
+	if start_picks.is_empty():
+		goto(MAP_SCENE)
+	else:
+		goto(START_PICK_SCENE)
+
+
+func has_relic(id: String) -> bool:
+	return relics.has(id)
+
+
+# Положить карту в колоду героя и записать её в Запас Караульни.
+# Возвращает true, если карта записана впервые (экран награды тогда пишет «Записано в Караульню»).
+func add_card(rh: RunHero, card: CardData) -> bool:
+	rh.deck.append(card)
+	if card.is_rare or card.card_set == "":
+		return false   # редкие в колоду не записываются, базовые есть в Запасе всегда
+	return Meta.record_card(rh.data.id, card.id)
+
+
+# Привал: доля лечения. Звон 3 урезает, «Лекарские сумки» добавляют, «Чистый бинт» удваивает первый привал.
+func rest_percent() -> float:
+	var percent: float = REST_HEAL_PERCENT
+	if bell >= 3:
+		percent -= 0.1
+	percent += Meta.effect_total("rest_heal") / 100.0
+	if relics.has("charm_bandage") and not rest_used:
+		percent *= 2.0
+	return percent
+
+
+# «Знакомая тропа»: один раз за забег перебросить карту до первого шага
+func can_reroll_map() -> bool:
+	return Meta.effect_total("map_reroll") > 0 and not rerolled and current == null
+
+
+func reroll_map() -> void:
+	rerolled = true
+	seed_value += 1
+	rng.seed = seed_value
+	_generate_map()
+	goto(MAP_SCENE)
+
+
+# Сколько карт в награде каждому герою
+func reward_card_count() -> int:
+	return 4 if relics.has("charm_decree") and last_battle_big else 3
+
+
+# Копия врага с другим здоровьем (Звон 5: элита и босс крепче)
+func _tougher(enemy: EnemyData, factor: float) -> EnemyData:
+	var copy: EnemyData = enemy.duplicate() as EnemyData
+	copy.max_hp = ceili(enemy.max_hp * factor)
+	return copy
 
 
 func goto(scene_path: String) -> void:
@@ -129,6 +234,7 @@ func available_nodes() -> Array[MapNode]:
 func enter_node(n: MapNode) -> void:
 	current = n
 	n.visited = true
+	rows_passed = maxi(rows_passed, n.row + 1)
 	match n.type:
 		MapNode.Type.BATTLE:
 			pending_enemies = _make_encounter(n.row, false)
@@ -210,15 +316,17 @@ func _roll_node_type(row: int) -> MapNode.Type:
 func _make_encounter(row: int, boss: bool, elite: bool = false) -> Array[EnemyData]:
 	var result: Array[EnemyData] = []
 	if boss:
-		result.append(BOSS_ENEMY)
+		result.append(_tougher(BOSS_ENEMY, 1.25) if bell >= 5 else BOSS_ENEMY)
 		result.append(BOSS_GUARD)
 		result.append(BOSS_GUARD)
 		result.append(NORMAL_ENEMIES[2])   # и культист
 		result.append(NORMAL_ENEMIES[1])   # и волк
 		return result
 	var count: int = 4 + floori(row / 2.0)
+	if bell >= 1 and not elite:
+		count += 1   # Звон 1: в обычном бою на врага больше
 	if elite:
-		result.append(ELITE_ENEMY)
+		result.append(_tougher(ELITE_ENEMY, 1.25) if bell >= 5 else ELITE_ENEMY)
 		count = ELITE_GUARDS
 	for i in count:
 		result.append(_roll_enemy(result))
@@ -244,18 +352,50 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 		game_over(false)
 		return
 	for i in party.size():
-		party[i].hp = maxi(1, hp_left[i])   # павший в бою встаёт с 1 HP
+		var wake_hp: int = 1   # павший в бою встаёт с 1 HP
+		if hp_left[i] <= 0 and relics.has("charm_candle") and not candle_used:
+			wake_hp = 5        # «Свеча у колокола»: в первый раз — с 5 HP
+			candle_used = true
+		party[i].hp = maxi(wake_hp, hp_left[i])
+	last_battle_big = false
+	if current != null and current.type == MapNode.Type.ELITE:
+		elite_kills += 1
+		last_battle_big = true
 	if current != null and current.type == MapNode.Type.BOSS:
-		game_over(true)
+		boss_kills += 1
+		last_battle_big = true
+		run_complete = act >= FINAL_ACT
+		_offer_trophy()
 	else:
 		last_gold_reward = rng.randi_range(12, 20)
 		gold += last_gold_reward
 		goto(REWARD_SCENE)
 
 
+# Трофей за босса: выбор 1 из 3 закрытых оберегов. Закрытых нет — +15 Отзвуков вместо него.
+func _offer_trophy() -> void:
+	var closed: Array[RelicData] = Meta.closed_charms()
+	if closed.is_empty():
+		trophy_echoes = Meta.TROPHY_FALLBACK_ECHOES
+		game_over(true)
+		return
+	trophy_choices.clear()
+	while trophy_choices.size() < 3 and not closed.is_empty():
+		var i: int = rng.randi_range(0, closed.size() - 1)
+		trophy_choices.append(closed[i])
+		closed.remove_at(i)
+	goto(TROPHY_SCENE)
+
+
 func game_over(victory: bool) -> void:
 	last_run_won = victory
 	is_active = false
+	# Отзвуки дают за любой забег, даже проигранный: чем дальше дошли, тем больше
+	Meta.add_run_result({
+		"rows": rows_passed, "elites": elite_kills, "bosses": boss_kills,
+		"event_echoes": event_echoes, "trophy_echoes": trophy_echoes, "bell": bell, "complete": run_complete,
+		"victory": victory, "seed": seed_value,
+	})
 	goto(GAME_OVER_SCENE)
 
 
@@ -266,11 +406,14 @@ const SET_WEIGHT_STEP: float = 0.5
 const SET_WEIGHT_MAX: float = 3.0
 
 
-func roll_cards(rh: RunHero, count: int) -> Array[CardData]:
+func roll_cards(rh: RunHero, count: int, no_rare: bool = false) -> Array[CardData]:
 	var weights: Dictionary[String, float] = set_weights(rh)
 	var pool: Array[CardData] = []
+	var locked: Dictionary = Meta.locked_card_ids()   # редкие, ещё не открытые в хабе
 	for c in rh.data.card_pool:
-		if c.is_rare and rng.randf() > 0.4:
+		if locked.has(c.id):
+			continue
+		if c.is_rare and (no_rare or rng.randf() > 0.4):
 			continue
 		pool.append(c)
 	var result: Array[CardData] = []
@@ -307,9 +450,14 @@ func set_weights(rh: RunHero) -> Dictionary[String, float]:
 
 func random_rare_card(hero_data: HeroData) -> CardData:
 	var rares: Array[CardData] = []
+	var locked: Dictionary = Meta.locked_card_ids()
 	for c in hero_data.card_pool:
-		if c.is_rare:
+		if c.is_rare and not locked.has(c.id):
 			rares.append(c)
+	if rares.is_empty():   # на всякий случай: все редкие закрыты
+		for c in hero_data.card_pool:
+			if c.is_rare:
+				rares.append(c)
 	return rares[rng.randi_range(0, rares.size() - 1)]
 
 
