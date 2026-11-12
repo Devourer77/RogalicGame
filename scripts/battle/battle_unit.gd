@@ -35,6 +35,8 @@ var rune_hits: int = 0        # на сколько ударов её ещё х�
 var kept: Array[int] = []     # номера карт в руке, отмеченных «удержать» (режим KEEP_2)
 
 # --- Только для врагов ---
+var inflation: int = 0        # стаки «Раздувания» (жаба)
+var armor_burnt: bool = false # «Древесная броня» сожжена огнём
 var bonus_damage: int = 0     # «Зов Раскола»: следующий удар сильнее на столько
 
 
@@ -69,5 +71,7 @@ func copy() -> BattleUnit:
 	u.poison = poison
 	u.rune = rune
 	u.rune_hits = rune_hits
+	u.inflation = inflation
+	u.armor_burnt = armor_burnt
 	u.bonus_damage = bonus_damage
 	return u

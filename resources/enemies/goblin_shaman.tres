@@ -27,6 +27,7 @@ id = "goblin_shaman"
 title = "Гоблин-шаман"
 description = "Слышит гул Раскола и думает, что небо говорит с ним."
 max_hp = 9
+absorbs_magic = true
 move_range = 2
 damage = 3
 attack = 1

@@ -104,6 +104,7 @@ func _initialize() -> void:
 	check("клон не трогает оригинал", l3.heroes[0].mana == mana0)
 
 	_tiles()
+	_passives()
 
 	print("--- провалов: %d ---" % fails)
 	quit(1 if fails > 0 else 0)
@@ -145,3 +146,72 @@ func _tiles() -> void:
 	l4.tiles[C(5, 5)] = BattleLogic.Tile.GAS
 	l4._set_tile(C(5, 5), BattleLogic.Tile.FIRE)
 	check("Огонь по газу: газ исчез, огня на клетке нет", l4.tile_at(C(5, 5)) == BattleLogic.Tile.NONE)
+
+
+func enemy(id: String) -> EnemyData:
+	return load("res://resources/enemies/%s.tres" % id)
+
+
+func _passives() -> void:
+	# Жаба: 3 удара Атакой — взрыв
+	var l := fresh()
+	var k: BattleUnit = l.heroes[1]
+	k.cell = C(5, 9)
+	var list: Array[EnemyData] = [enemy("bloated_toad")]
+	var toad: BattleUnit = l._new_unit("Жаба")
+	toad.data = list[0]
+	toad.hp = 100; toad.max_hp = 100
+	toad.cell = k.cell + HexMath.DIRS[4]
+	l.enemies.append(toad)
+	l._cur_card = load("res://resources/cards/k_slash.tres")
+	l._cur_attack = true
+	l._damage(toad, 1)
+	l._damage(toad, 1)
+	check("Жаба: 2 удара — 2 стака", toad.inflation == 2)
+	var hp0: int = k.hp
+	k.block = 0
+	l._damage(toad, 1)
+	check("Жаба: на 3 стаках взорвалась", not toad.is_alive())
+	check("Жаба: взрыв ранил соседнего героя на 12 + яд", k.hp <= hp0 - BattleLogic.INFLATION_DAMAGE and k.poison > 0)
+
+	# Шаман: Заклинание Мага лечит врагов
+	var l2 := fresh()
+	var sh: BattleUnit = l2._new_unit("Шаман")
+	sh.data = enemy("goblin_shaman")
+	sh.hp = 3; sh.max_hp = 20
+	sh.cell = C(5, 2)
+	l2.enemies.append(sh)
+	var m2: BattleUnit = l2.heroes[0]
+	m2.mana = 10
+	m2.hand = [load("res://resources/cards/m_spark.tres")] as Array[CardData]
+	var cards: Array[Vector2i] = l2.get_card_targets(m2, 0)
+	var ok: bool = cards.size() > 0 and l2.play_card(m2, 0, cards[0])
+	check("Шаман: Заклинание Мага вылечило шамана на %d" % BattleLogic.SHAMAN_HEAL, ok and sh.hp >= 3 + BattleLogic.SHAMAN_HEAL)
+
+	# Сброс «в ноги» шамана не лечит
+	var l3 := fresh()
+	var sh3: BattleUnit = l3._new_unit("Шаман")
+	sh3.data = enemy("goblin_shaman")
+	sh3.hp = 3; sh3.max_hp = 20
+	sh3.cell = C(5, 2)
+	l3.enemies.append(sh3)
+	l3.scrap_card(l3.heroes[0], 0)
+	check("Шаман: сброс в ноги не лечит", sh3.hp == 3)
+
+	# Корягач: одиночная атака вдвое слабее, огонь сжигает броню
+	var l4 := fresh()
+	var tr: BattleUnit = l4._new_unit("Корягач")
+	tr.data = enemy("mossy_treant")
+	tr.hp = 40; tr.max_hp = 40
+	tr.cell = C(5, 2)
+	l4.enemies.append(tr)
+	l4._cur_card = load("res://resources/cards/k_slash.tres")
+	l4._cur_attack = true
+	l4._damage(tr, 10)
+	check("Корягач: одиночная атака 10 → 5", tr.hp == 35)
+	l4._cur_card = load("res://resources/cards/fireball.tres")
+	l4._damage(tr, 4)
+	check("Корягач: огонь сжёг броню", tr.armor_burnt)
+	l4._cur_card = load("res://resources/cards/k_slash.tres")
+	l4._damage(tr, 10)
+	check("Корягач: после огня удары идут полностью", tr.hp == 35 - 4 - 10)

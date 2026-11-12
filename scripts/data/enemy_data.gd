@@ -47,6 +47,9 @@ enum Attack {
 @export var start_block: int = 0      # блок в начале боя
 @export var turn_block: int = 0       # блок в начале каждого хода врагов
 @export var bog_damage: int = 0       # не тонет: трясина для него как стена с таким уроном
+@export var inflation: bool = false   # «Раздувание» (жаба): каждый удар картой-Атакой +1 стак; на 3 стаках или при смерти взрыв
+@export var absorbs_magic: bool = false  # «Поглощение магии» (шаман): за каждое Заклинание лечит всех врагов и даёт себе блок
+@export var wood_armor: bool = false  # «Древесная броня» (корягач): −50% от одиночной физической атаки; огонь сжигает её навсегда
 @export var fire_weak: bool = false   # в огне теряет блок и получает двойной урон от огня
 
 var _basic: EnemyAttackData   # удар простого врага, собранный из полей выше

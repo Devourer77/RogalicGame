@@ -82,6 +82,12 @@ const HERO_BOG_DAMAGE: int = 4  # герой не тонет: трясина д�
 const STAKES_BUMP_DAMAGE: int = 6  # урон, если толкнули в частокол
 const WET_SHOCK_BONUS: int = 3      # молния по мокрому юниту бьёт сильнее на столько
 const WET_TURNS: int = 2            # сколько раундов юнит остаётся мокрым, выйдя из лужи
+const INFLATION_MAX: int = 3        # стаков «Раздувания» до взрыва жабы
+const INFLATION_DAMAGE: int = 12    # урон взрыва жабы
+const INFLATION_POISON: int = 3     # яд от взрыва жабы
+const SHAMAN_HEAL: int = 3          # «Поглощение магии»: лечение всех врагов за каждое Заклинание
+const SHAMAN_BLOCK: int = 3         # …и блок самому шаману
+const WOOD_ARMOR_DIVISOR: int = 2   # «Древесная броня» режет одиночную физическую атаку вдвое
 const GAS_DAMAGE: int = 3           # урон ядовитого газа тому, кто вошёл в него, протащен через него или стоит в нём в конце раунда
 const GAS_POISON: int = 2           # сколько раундов яда даёт газ
 const SWAMP_STEP_COST: int = 1      # вход в трясину (Swamp) отнимает столько шагов («Увяз»)
@@ -146,6 +152,8 @@ var obj_timers: Dictionary[Vector2i, int] = {}   # сколько раундов
 var ground: Dictionary[Vector2i, int] = {}     # клетка -> Ground (вид плиты)
 var arena_id: String = ""                      # какая арена (ключ из ARENAS)
 
+var _cur_card: CardData = null     # карта, эффекты которой считаются сейчас (для пассивок врагов)
+var _cur_attack: bool = false      # она считается «Атакой»
 var ctx := TurnContext.new()       # что отряд сделал в этот ход
 var _mana_penalty: Dictionary = {}  # номер героя -> штраф к мане на следующий ход (после сильного перегрева)
 var turn: int = 0
@@ -949,11 +957,41 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_forget_kept(h, index)
 	h.discard_pile.append(card)
 	message.emit("%s: %s" % [h.title, card.title])
-	ctx.note_card(h.hero_data.id, card.is_attack, card.is_spell)
+	var as_spell: bool = is_spell_card(h, card)
+	var as_attack: bool = is_attack_card(h, card)
+	ctx.note_card(h.hero_data.id, as_attack, as_spell)
 	card_played.emit(h, card, false)
+	if as_spell:
+		_absorb_magic()
+	_cur_card = card
+	_cur_attack = as_attack
 	_resolve_card(h, card, area, target)
+	_cur_card = null
+	_cur_attack = false
 	_check_end()
 	return true
+
+
+# Теги карты. Пока не размечены в .tres: карты Мага — заклинания, карты Рыцаря с уроном — атаки.
+func is_spell_card(h: BattleUnit, card: CardData) -> bool:
+	return card.is_spell or h.hero_data.id == "mage"
+
+
+func is_attack_card(h: BattleUnit, card: CardData) -> bool:
+	return card.is_attack or (card.damage > 0 and h.hero_data.id == "knight")
+
+
+# «Поглощение магии»: каждое сыгранное Заклинание лечит врагов и даёт шаману блок
+func _absorb_magic() -> void:
+	for e in living_enemies():
+		if e.data.absorbs_magic:
+			for o in living_enemies():
+				o.hp = mini(o.max_hp, o.hp + SHAMAN_HEAL)
+				status_changed.emit(o, snapshot(o))
+			e.block += SHAMAN_BLOCK
+			message.emit("%s поглощает магию: враги лечатся" % e.title)
+			status_changed.emit(e, snapshot(e))
+			return
 
 
 # Сброс карты «в ноги»: бесплатно, даёт шаги/блок/ману, но не считается Атакой или Заклинанием,
@@ -1765,6 +1803,13 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if amount <= 0 or not unit.is_alive():
 		return
+	# Древесная броня корягача: огонь сжигает её, одиночная физическая атака режется вдвое
+	if unit.data != null and unit.data.wood_armor and _cur_card != null and not unit.armor_burnt:
+		if _cur_card.element == CardData.Element.FIRE:
+			unit.armor_burnt = true
+			message.emit("%s: древесная броня сгорела" % unit.title)
+		elif _cur_attack and _cur_card.shape == CardData.Shape.SINGLE:
+			amount = maxi(1, amount / WOOD_ARMOR_DIVISOR)
 	# Рыцарь злится от каждого удара, даже если блок его поглотил
 	if unit.is_hero and unit.hero_data.gains_rage:
 		unit.rage += 1
@@ -1781,12 +1826,22 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		unit_died.emit(unit)
 		message.emit("%s падает" % unit.title)
 		_death_blast(unit)
+	elif unit.data != null and unit.data.inflation and _cur_attack and _cur_card != null \
+			and _cur_card.special != "no_inflation":
+		unit.inflation += 1
+		status_changed.emit(unit, snapshot(unit))
+		if unit.inflation >= INFLATION_MAX:
+			_kill(unit)
+			_inflation_burst(unit)
 
 
 # Жаба, погибая, лопается: урон четырём соседям (и своим, и чужим), удар по
 # деревьям и бочкам рядом, на её клетке остаётся лужа. Утонула — взрыва нет
 # (тогда вызывается _kill, а не _damage).
 func _death_blast(unit: BattleUnit) -> void:
+	if unit.data != null and unit.data.inflation:
+		_inflation_burst(unit)
+		return
 	if unit.data == null or unit.data.death_blast <= 0:
 		return
 	message.emit("%s лопается: газовый хлопок!" % unit.title)
@@ -1804,6 +1859,31 @@ func _death_blast(unit: BattleUnit) -> void:
 			_hit_object(t, unit.cell)
 	if object_at(unit.cell) == Obj.NONE:
 		_apply_element(unit.cell, CardData.Element.WATER, unit.cell)
+
+
+# Взрыв раздутой жабы: 12 урона и яд всем вокруг; при 2+ стаках — в два кольца (18 клеток)
+func _inflation_burst(unit: BattleUnit) -> void:
+	message.emit("%s лопается: ядовитый взрыв!" % unit.title)
+	var cells: Array[Vector2i] = HexMath.ring(unit.cell, 1)
+	if unit.inflation >= 2:
+		cells.append_array(HexMath.ring(unit.cell, 2))
+	var inside: Array[Vector2i] = []
+	for c in cells:
+		if is_inside(c):
+			inside.append(c)
+	effect_cells.emit(inside, "gas")
+	var saved_card: CardData = _cur_card
+	_cur_card = null   # взрыв — не карта игрока
+	for c in inside:
+		var u: BattleUnit = unit_at(c)
+		if u != null and u != unit:
+			_damage(u, INFLATION_DAMAGE)
+			if u.is_alive():
+				_set_poison(u, INFLATION_POISON)
+	_cur_card = saved_card
+	for c in inside:
+		if _is_breakable(c):
+			_hit_object(c, unit.cell)
 
 
 # Мгновенная смерть (утонул)
