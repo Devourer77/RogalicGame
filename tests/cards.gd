@@ -359,7 +359,7 @@ func _hand_draw() -> void:
 	var before: int = m.hand.size()
 	l.end_turn()
 	if mode == BattleLogic.DrawMode.KEEP_2:
-		check("KEEP_2: без отметок — новая рука из 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
+		check("KEEP_2: без отметок — новая рука из %d карт" % BattleLogic.TURN_DRAW, m.hand.size() == BattleLogic.TURN_DRAW)
 	elif mode == BattleLogic.DrawMode.DISCARD_ALL:
 		check("DISCARD_ALL: новая рука из 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
 	else:

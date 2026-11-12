@@ -59,13 +59,14 @@ const OVERHEAT_PENALTY_FROM: int = 2
 #  REFILL_5    — рука остаётся, после «Конец хода» добираем до 5 (минимум 1 карта)
 #  PLUS_3      — рука остаётся, после «Конец хода» берём ещё 3
 #  PLUS_2      — рука остаётся, после «Конец хода» берём ещё 2
-#  KEEP_2      — рука сбрасывается, кроме отмеченных «удержать» (до KEEP_LIMIT карт), потом берём 5
+#  KEEP_2      — рука сбрасывается, кроме отмеченных «удержать» (до KEEP_LIMIT карт), потом добираем TURN_DRAW (3)
 # Чтобы сменить режим, поменяй значение DRAW_MODE ниже.
 const DISCARDS_PER_TURN: int = 1   # сколько карт за ход герой может сбросить из руки
 
 enum DrawMode { DISCARD_ALL, REFILL_5, PLUS_3, PLUS_2, KEEP_2 }
 const DRAW_MODE: DrawMode = DrawMode.KEEP_2
-const KEEP_LIMIT: int = 2          # сколько карт герой может удержать на следующий ход (режим KEEP_2)
+const KEEP_LIMIT: int = 3          # сколько карт герой может удержать на следующий ход (режим KEEP_2)
+const TURN_DRAW: int = 3           # сколько карт герой добирает в конце хода (режим KEEP_2); рука не больше MAX_HAND
 const BUMP_DAMAGE: int = 3      # урон, если толкнутый врезался в препятствие
 const STEAM_DAMAGE: int = 3        # урон от парового взрыва (огонь на луже)
 const ICE_SHATTER_DAMAGE: int = 4  # урон от ледяных осколков (огонь на льду)
@@ -172,7 +173,7 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		h.max_hp = rh.data.max_hp
 		h.hp = rh.hp
 		h.cell = _cell(start_x + i, height - 2)
-			h.draw_pile = rh.deck.duplicate()
+		h.draw_pile = rh.deck.duplicate()
 		_shuffle(h.draw_pile)
 		heroes.append(h)
 
@@ -1952,7 +1953,7 @@ func _end_turn_draw_count(h: BattleUnit) -> int:
 		DrawMode.PLUS_2:
 			return 2
 		DrawMode.KEEP_2:
-			return HAND_SIZE
+			return TURN_DRAW
 	return 0
 
 
