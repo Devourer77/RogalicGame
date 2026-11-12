@@ -12,8 +12,9 @@ extends SceneTree
 # Как играет бот (простая жадная тактика, он не гений, зато одинаков до и после правок):
 # - пробует каждую карту в руке на копии боя и выбирает ту, что даст больше всего:
 #   урон врагам, убийства, блок (если по герою будет удар) минус потери своих;
-# - если ничего полезного сыграть нельзя, подходит ближе к врагам
-#   (маг останавливается в 4 клетках, рыцарь идёт вплотную);
+# - если ничего полезного сыграть нельзя и герой стоит в зоне взрыва жабы — отходит
+#   из неё (иначе бот вечно стоит рядом с жабой на 1 HP и не решается её добить);
+# - иначе подходит ближе к врагам (маг останавливается в 4 клетках, рыцарь идёт вплотную);
 # - потом «Конец хода».
 
 const FIRST_ROWS: int = 5          # обычные бои на рядах карты 0–4
@@ -97,6 +98,10 @@ func _play_battle(run: Node, seed_value: int, cfg: Dictionary) -> Dictionary:
 		if b.turn >= MAX_TURNS:
 			stuck = true
 			break
+		# Сначала все, кто стоит у жабы, отходят — иначе первый герой не решится
+		# добить её, пока рядом второй, а второй отойдёт, когда уже поздно
+		for h in b.living_heroes():
+			_leave_blast_zone(b, h)
 		for h in b.living_heroes():
 			_play_hero(b, h)
 			if b.is_over:
@@ -143,8 +148,42 @@ func _play_hero(b: BattleLogic, h: BattleUnit) -> void:
 		if best_idx >= 0:
 			b.play_card(h, best_idx, best_target)
 			continue
+		if _leave_blast_zone(b, h):
+			continue
 		if not _approach(b, h):
 			return
+
+
+# Радиус взрыва жабы: 1, а с 2+ стаками «Раздувания» — 2
+func _blast_radius(e: BattleUnit) -> int:
+	return 2 if e.inflation >= 2 else 1
+
+
+func _in_blast_zone(b: BattleLogic, c: Vector2i) -> bool:
+	for e in b.living_enemies():
+		if e.data.inflation and HexMath.distance(e.cell, c) <= _blast_radius(e):
+			return true
+	return false
+
+
+# Герой в зоне будущего взрыва жабы — шаг на ближайшую к врагам клетку вне всех зон.
+# true — сдвинулся (можно снова пробовать карты, например добить жабу издалека).
+func _leave_blast_zone(b: BattleLogic, h: BattleUnit) -> bool:
+	if not _in_blast_zone(b, h.cell):
+		return false
+	var moves: Dictionary = b.get_move_targets(h)
+	var best_cell: Vector2i = h.cell
+	var best_dist: int = 9999
+	for c: Vector2i in moves.keys():
+		if _in_blast_zone(b, c):
+			continue
+		var d: int = _dist_to_enemy(b, c)
+		if d < best_dist:
+			best_dist = d
+			best_cell = c
+	if best_cell == h.cell:
+		return false
+	return b.move_hero(h, best_cell)
 
 
 # Копия боя вместе с рукой и колодой героя (clone() их не копирует)
@@ -239,6 +278,8 @@ func _approach(b: BattleLogic, h: BattleUnit) -> bool:
 	var best_cell: Vector2i = h.cell
 	var best_dist: int = now
 	for c: Vector2i in moves.keys():
+		if _in_blast_zone(b, c) and not _in_blast_zone(b, h.cell):
+			continue   # в зону взрыва жабы не заходим
 		var d: int = _dist_to_enemy(b, c)
 		if d < best_dist:
 			best_dist = d
