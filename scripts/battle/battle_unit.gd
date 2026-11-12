@@ -17,16 +17,7 @@ var hero_data: HeroData = null
 var draw_pile: Array[CardData] = []
 var hand: Array[CardData] = []
 var discard_pile: Array[CardData] = []
-var pool: ManaPool = null     # общий запас маны отряда (один на обоих героев), создаётся в BattleLogic
-var _own_mana: int = 0        # запасной вариант, пока общего пула нет (одиночные юниты в тестах)
-var mana: int:                # мана героя = мана отряда; может уходить в минус (перегрев)
-	get:
-		return pool.current if pool != null else _own_mana
-	set(value):
-		if pool != null:
-			pool.current = value
-		else:
-			_own_mana = value
+var mana: int = 0           # мана героя; может уходить в минус (перегрев)
 var moves_left: int = 0
 var rage: int = 0             # ярость рыцаря: +1 за каждый полученный удар
 var taunt: bool = false       # провокация до начала следующего хода
@@ -63,8 +54,7 @@ func copy() -> BattleUnit:
 	u.block = block
 	u.cell = cell
 	u.hero_data = hero_data
-	u.pool = pool   # clone() у боя подменит на новый общий пул
-	u._own_mana = _own_mana
+	u.mana = mana
 	u.moves_left = moves_left
 	u.rage = rage
 	u.taunt = taunt

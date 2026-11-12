@@ -35,12 +35,13 @@ func _initialize() -> void:
 	var mage: BattleUnit = l.heroes[0]
 	var knight: BattleUnit = l.heroes[1]
 
-	# Общая мана
-	check("мана общая: 4 в начале хода", mage.mana == BattleLogic.PARTY_MANA and knight.mana == BattleLogic.PARTY_MANA)
+	# Мана у каждого героя своя
+	var per_turn: int = mage.hero_data.mana_per_turn
+	check("мана своя: каждый начинает с mana_per_turn", mage.mana == per_turn and knight.mana == knight.hero_data.mana_per_turn)
 	mage.mana -= 1
-	check("трата Мага уменьшает ману Рыцаря", knight.mana == BattleLogic.PARTY_MANA - 1)
+	check("трата Мага не трогает ману Рыцаря", knight.mana == knight.hero_data.mana_per_turn)
 
-	# Перегрев: можно уйти до −3, глубже нельзя
+	# Перегрев: можно уйти до −2, глубже нельзя
 	mage.mana = 0
 	var cheap: int = -1
 	for i in mage.hand.size():
@@ -53,22 +54,22 @@ func _initialize() -> void:
 	for i in mage.hand.size():
 		if l.can_play(mage, i) and l.card_cost(mage, i) > 0:
 			any_playable = true
-	check("на −3 платные карты не играются", not any_playable)
+	check("на предельном минусе платные карты не играются", not any_playable)
 
-	# Расплата в конце хода
+	# Конец хода: урона нет, штраф к мане только у перегретого
 	var hp_before: int = mage.hp
-	mage.block = 99
+	mage.block = 0
 	mage.mana = -2
+	knight.mana = 1
 	l.end_turn()
-	check("перегрев 2: Маг получил 8 урона мимо блока", mage.hp == hp_before - 8)
-	check("после 2 стаков маны на ход меньше (3)", l.mana_pool.current == BattleLogic.PARTY_MANA - 1)
+	check("перегрев не наносит урона", mage.hp == hp_before)
+	check("после 2 минусов у Мага маны на ход меньше", mage.mana == per_turn - 1)
+	check("у Рыцаря без перегрева мана полная", knight.mana == knight.hero_data.mana_per_turn)
 
-	# Без перегрева — без урона
-	hp_before = mage.hp
-	l.mana_pool.current = 1
+	# Перегрев 1 — без штрафа
+	mage.mana = -1
 	l.end_turn()
-	check("без перегрева урона нет", mage.hp == hp_before)
-	check("мана вернулась к 4", l.mana_pool.current == BattleLogic.PARTY_MANA)
+	check("перегрев 1 штрафа не даёт", mage.mana == per_turn)
 
 	# Контекст хода
 	var l2 := fresh()
@@ -97,10 +98,9 @@ func _initialize() -> void:
 	check("сигнал card_played с is_scrap=true", played == [true])
 	check("scrap не считается розыгрышем", l3.ctx.played("mage") == 0)
 
-	# Клон делит пул между своими героями
+	# Клон не трогает оригинал
 	var cl: BattleLogic = l3.clone()
 	cl.heroes[0].mana -= 2
-	check("в клоне мана общая", cl.heroes[1].mana == l3.heroes[1].mana - 2)
 	check("клон не трогает оригинал", l3.heroes[0].mana == mana0)
 
 	print("--- провалов: %d ---" % fails)

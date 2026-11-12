@@ -23,7 +23,7 @@ signal enemy_buffed(unit: BattleUnit, cells: Array[Vector2i])   # «зов»: в
 signal reaction(cell: Vector2i, kind: String)   # реакция стихий: "steam", "freeze", "shatter", "lava", "crust"
 signal message(text: String)
 signal card_played(caster: BattleUnit, card: CardData, is_scrap: bool)   # для пассивок врагов и условий карт
-signal overheated(stacks: int, damage: int)   # в конце хода мана была в минусе
+signal overheated(hero: BattleUnit, stacks: int)   # в конце хода мана героя была в минусе
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
 enum Tile { NONE, FIRE, WATER, ICE }
@@ -50,9 +50,7 @@ const CRUST_TURNS: int = 2       # сколько раундов держитс�
 
 const HAND_SIZE: int = 5        # сколько карт каждый герой берёт в начале боя
 const MAX_HAND: int = 7
-const PARTY_MANA: int = 4          # общая мана отряда на ход (на двоих)
-const MAX_OVERHEAT: int = 3        # на сколько можно уйти в минус по мане (перегрев)
-const OVERHEAT_DAMAGE: int = 4     # урон Магу за каждую единицу перегрева в конце хода (мимо блока)
+const MAX_OVERHEAT: int = 2        # на сколько каждый герой может уйти в минус по мане (перегрев)
 const OVERHEAT_MANA_PENALTY: int = 1   # при перегреве от 2: так меньше маны в следующий ход
 const OVERHEAT_PENALTY_FROM: int = 2
 
@@ -143,9 +141,8 @@ var obj_timers: Dictionary[Vector2i, int] = {}   # сколько раундов
 var ground: Dictionary[Vector2i, int] = {}     # клетка -> Ground (вид плиты)
 var arena_id: String = ""                      # какая арена (ключ из ARENAS)
 
-var mana_pool := ManaPool.new()    # общая мана отряда
 var ctx := TurnContext.new()       # что отряд сделал в этот ход
-var _mana_penalty: int = 0         # штраф к мане на следующий ход (после сильного перегрева)
+var _mana_penalty: Dictionary = {}  # номер героя -> штраф к мане на следующий ход (после сильного перегрева)
 var turn: int = 0
 var is_over: bool = false
 var won: bool = false
@@ -175,8 +172,7 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		h.max_hp = rh.data.max_hp
 		h.hp = rh.hp
 		h.cell = _cell(start_x + i, height - 2)
-		h.pool = mana_pool
-		h.draw_pile = rh.deck.duplicate()
+			h.draw_pile = rh.deck.duplicate()
 		_shuffle(h.draw_pile)
 		heroes.append(h)
 
@@ -1841,13 +1837,13 @@ func _shuffle(cards: Array[CardData]) -> void:
 func _start_heroes_turn() -> void:
 	turn += 1
 	ctx.reset()
-	mana_pool.current = maxi(0, PARTY_MANA - _mana_penalty)
-	_mana_penalty = 0
 	for h in living_heroes():
 		if h.block > 0 or h.taunt:
 			h.block = 0
 			h.taunt = false
 			status_changed.emit(h, snapshot(h))
+		h.mana = maxi(0, h.hero_data.mana_per_turn - int(_mana_penalty.get(h.id, 0)))
+		_mana_penalty[h.id] = 0
 		h.moves_left = h.hero_data.moves_per_turn
 		h.discount = 0
 		_discards_left[h] = DISCARDS_PER_TURN
@@ -1869,31 +1865,22 @@ func _start_heroes_turn() -> void:
 	message.emit("— Ход %d —" % turn)
 
 
-# Мана ушла в минус: Маг платит 4 урона за каждую единицу (мимо блока), а при 2+ в минусе
-# в следующий ход маны на единицу меньше.
+# Мана героя ушла в минус: урона нет, но если в минусе 2 или больше —
+# в следующий ход у этого героя маны на единицу меньше.
 func _apply_overheat() -> void:
-	var stacks: int = overheat_stacks()
-	if stacks <= 0:
-		return
-	var damage: int = stacks * OVERHEAT_DAMAGE
-	var payer: BattleUnit = null
 	for h in living_heroes():
-		if h.hero_data.id == "mage":
-			payer = h
-	if payer == null and not living_heroes().is_empty():
-		payer = living_heroes()[0]   # мага нет — платит выживший
-	message.emit("Перегрев %d: %d урона" % [stacks, damage])
-	overheated.emit(stacks, damage)
-	if payer != null:
-		_damage(payer, damage, true)
-		status_changed.emit(payer, snapshot(payer))
-	if stacks >= OVERHEAT_PENALTY_FROM:
-		_mana_penalty = OVERHEAT_MANA_PENALTY
-	mana_pool.current = 0
+		var stacks: int = overheat_stacks(h)
+		if stacks <= 0:
+			continue
+		message.emit("%s: перегрев %d" % [h.title, stacks])
+		overheated.emit(h, stacks)
+		if stacks >= OVERHEAT_PENALTY_FROM:
+			_mana_penalty[h.id] = OVERHEAT_MANA_PENALTY
+		h.mana = 0
 
 
-func overheat_stacks() -> int:
-	return maxi(0, -mana_pool.current)
+func overheat_stacks(h: BattleUnit) -> int:
+	return maxi(0, -h.mana)
 
 
 # Герои закончили ход: враги подходят и бьют, потом жжёт огонь, потом новый ход
@@ -2145,12 +2132,9 @@ func clone() -> BattleLogic:
 	c.rng = RandomNumberGenerator.new()
 	c.rng.seed = rng.seed
 	c.rng.state = rng.state
-	c.mana_pool.current = mana_pool.current
-	c._mana_penalty = _mana_penalty
+	c._mana_penalty = _mana_penalty.duplicate()
 	for h in heroes:
-		var hc: BattleUnit = h.copy()
-		hc.pool = c.mana_pool
-		c.heroes.append(hc)
+		c.heroes.append(h.copy())
 	for e in enemies:
 		c.enemies.append(e.copy())
 	c.rocks = rocks.duplicate()
