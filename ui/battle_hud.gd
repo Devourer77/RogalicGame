@@ -303,6 +303,7 @@ func _build_help() -> void:
 		["zoom", "", "Колесо мыши — приблизить или отдалить"],
 		["hourglass", "", "«Конец хода» — враги делают то, что показано на поле"],
 		["", "F", "Ход врагов в два раза быстрее (кнопка «×1 / ×2» слева от «Конец хода»)"],
+		["target", "", "Враги бьют туда, где выгоднее; причина — в их карточке, строка «Цель»"],
 	]
 	for item: Array in rows:
 		var row := HBoxContainer.new()
@@ -767,6 +768,12 @@ func show_enemy(e: BattleUnit, logic: BattleLogic) -> void:
 
 	var now: EnemyAttackData = logic.enemy_attack(e)
 	_enemy_box.add_child(_attack_row("Сейчас", now, e.bonus_damage, true, width))
+	if e.ai_reason != "":
+		# Почему враг так ходит — из прогноза «если нажать Конец хода сейчас»
+		var reason_label: Label = UiKit.make_label("Цель: " + e.ai_reason, 13, UiKit.TEXT)
+		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		reason_label.custom_minimum_size.x = width
+		_enemy_box.add_child(reason_label)
 	if d.cycle.size() > 1:
 		_enemy_box.add_child(_attack_row("Потом", d.attack_on_turn(logic.turn + 1), 0, false, width))
 	for t: String in d.traits():

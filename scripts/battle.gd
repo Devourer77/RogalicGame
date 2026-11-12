@@ -225,6 +225,10 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		info["intent_icon"] = INTENT_ICONS[shape] if shape < INTENT_ICONS.size() else "sword"
 		info["intent_value"] = state["damage"]
 		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.THREAT
+		if u.data.ai_style == EnemyData.AiStyle.HUNTER:
+			marks.append("ai_hunter")
+		elif u.data.ai_style == EnemyData.AiStyle.GUARD:
+			marks.append("ai_guard")
 	if state["entangled"] > 0:
 		marks.append("entangled")
 	if state.get("wet", 0) > 0:
@@ -718,6 +722,7 @@ func _show_forecast() -> void:
 	var hits: Array[Vector2i] = []
 	var buffs: Array[Vector2i] = []
 	for plan: Dictionary in logic.forecast_enemies():
+		(plan["enemy"] as BattleUnit).ai_reason = plan["reason"]   # карточка врага покажет, почему он так ходит
 		paths.append(plan["path"])
 		for c: Vector2i in plan["buff"]:
 			if not buffs.has(c):

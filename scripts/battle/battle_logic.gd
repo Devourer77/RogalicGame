@@ -108,7 +108,6 @@ const OUTPOST_DAMAGE: int = 4      # урон «Заставы» врагу на
 const EXECUTE_DAMAGE: int = 12     # урон «Добивания» по раненой цели
 const CHAIN_JUMPS: int = 2         # сколько раз перескакивает цепная молния
 const CHAIN_RADIUS: int = 2        # на какое расстояние она перескакивает
-const PULL_HAZARD_BONUS: int = 6    # насколько врагу с притягиванием милее клетка, откуда он затянет героя в беду
 
 # Покрытие клетки — только для вида (какую плиту рисовать), на правила не влияет
 enum Ground {
@@ -2487,7 +2486,7 @@ func _tick_objects() -> void:
 # Возвращает true, если бой закончился.
 func _enemies_act() -> bool:
 	_start_enemy_phase()
-	for e in enemies:
+	for e in EnemyAI.turn_order(self):
 		if not e.is_alive():
 			continue
 		var atk: EnemyAttackData = enemy_attack(e)
@@ -2666,7 +2665,7 @@ func clone() -> BattleLogic:
 
 # Что сделает каждый живой враг, если нажать «Конец хода» прямо сейчас.
 # Возвращает массив {"enemy": BattleUnit, "path": путь, "attack": клетки удара,
-# "buff": клетки «зова» (кого враг усилит)}.
+# "buff": клетки «зова» (кого враг усилит), "reason": почему враг так ходит}.
 func forecast_enemies() -> Array[Dictionary]:
 	var sim: BattleLogic = clone()
 	var by_id: Dictionary[int, Dictionary] = {}
@@ -2674,7 +2673,7 @@ func forecast_enemies() -> Array[Dictionary]:
 		var start_path: Array[Vector2i] = [e.cell]
 		var empty: Array[Vector2i] = []
 		var no_buff: Array[Vector2i] = []
-		by_id[e.id] = {"enemy": e, "path": start_path, "attack": empty, "buff": no_buff}
+		by_id[e.id] = {"enemy": e, "path": start_path, "attack": empty, "buff": no_buff, "reason": ""}
 	sim.unit_moved.connect(func(u: BattleUnit, path: Array[Vector2i]) -> void:
 		if by_id.has(u.id):
 			by_id[u.id]["path"] = path)
@@ -2685,6 +2684,9 @@ func forecast_enemies() -> Array[Dictionary]:
 		if by_id.has(u.id):
 			by_id[u.id]["buff"] = cells)
 	sim._enemies_act()
+	for u in sim.enemies:
+		if by_id.has(u.id):
+			by_id[u.id]["reason"] = u.ai_reason   # почему враг так ходит — для карточки врага
 	var result: Array[Dictionary] = []
 	result.assign(by_id.values())
 	return result
@@ -2763,57 +2765,19 @@ func _attack_cells(e: BattleUnit, atk: EnemyAttackData, from: Vector2i, dir: Vec
 	return inside
 
 
-# Попадает ли удар хотя бы по одному из героев-целей
-func _hits_any(cells: Array[Vector2i], targets: Array[BattleUnit]) -> bool:
-	for t in targets:
-		if cells.has(t.cell):
-			return true
-	return false
-
-
-# ИИ врага: найти ближайшую клетку, откуда удар заденет героя, и встать туда.
-# Провокация: если враг может достать героя с провокацией — бьёт только его.
-# Если ударить некого — подходит к ближайшему герою (по реальному пути, в обход
-# трясины и деревьев). Огня избегает. Стрелки держат дистанцию (keep_distance).
-# В раунд «зова» враг встаёт так, чтобы накрыть побольше своих.
+# ИИ врага (scripts/battle/enemy_ai.gd): враг оценивает удары по тому, что они сделают,
+# выбирает цель и встаёт на лучшую клетку. Здесь — только само перемещение.
 # Возвращает направление удара (ZERO — ударить не получится).
 func _enemy_move(e: BattleUnit, atk: EnemyAttackData) -> Vector2i:
-	# Опутанный враг стоит на месте, но ударить может
-	var options: Dictionary[Vector2i, Array] = reachable_cells(e, 0 if e.entangled > 0 else e.data.move_range)
-	var targets: Array[BattleUnit] = living_heroes()
-	var best_cell: Vector2i = e.cell
-	var best_dir: Vector2i = Vector2i.ZERO
-
-	if atk.shape == EnemyData.Attack.AURA:
-		best_cell = _best_aura_spot(e, atk, options)
-	else:
-		var taunters: Array[BattleUnit] = []
-		for h in targets:
-			if h.taunt:
-				taunters.append(h)
-		var best: Dictionary = _best_attack_spot(e, atk, options, taunters)
-		if best["dir"] == Vector2i.ZERO:
-			best = _best_attack_spot(e, atk, options, targets)
-		best_cell = best["cell"]
-		best_dir = best["dir"]
-
-		if best_dir == Vector2i.ZERO:
-			var chase: Array[BattleUnit] = taunters if not taunters.is_empty() else targets
-			var dist_map: Dictionary[Vector2i, int] = _distance_map(chase, e)
-			var best_score: int = 1000000
-			for c: Vector2i in options:
-				var dist: int = dist_map.get(c, 999)
-				var score: int = dist * 10 + options[c].size()
-				if tile_at(c) == Tile.FIRE:
-					score += 100
-				if dist < e.data.keep_distance:
-					score += 50   # стрелок вплотную не лезет
-				if score < best_score:
-					best_score = score
-					best_cell = c
-
+	var plan: Dictionary = EnemyAI.choose(self, e, atk)
+	var best_cell: Vector2i = plan["cell"]
+	var best_dir: Vector2i = plan["dir"]
+	e.ai_reason = plan["reason"]
+	if plan["notable"]:
+		var text: String = plan["reason"]
+		message.emit("%s: %s" % [e.title, text.left(1).to_lower() + text.substr(1)])
 	if best_cell != e.cell:
-		var path: Array[Vector2i] = options[best_cell]
+		var path: Array[Vector2i] = plan["path"]
 		e.cell = best_cell
 		unit_moved.emit(e, path)
 		_break_planks_behind(path)
@@ -2840,94 +2804,6 @@ func _distance_map(from_units: Array[BattleUnit], walker: BattleUnit = null) -> 
 				dist[n] = dist[cur] + 1
 				frontier.append(n)
 	return dist
-
-
-# Лучшая клетка, откуда враг заденет кого-то из targets. Чем меньше очков, тем лучше:
-# 4 очка за шаг, огонь под ногами — 80, стрелку вплотную к герою — 40.
-# Тому, кто притягивает, милее клетка, откуда герой влетит в трясину, на мостки или в огонь.
-func _best_attack_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[Vector2i, Array],
-		targets: Array[BattleUnit]) -> Dictionary:
-	var result: Dictionary = {"cell": e.cell, "dir": Vector2i.ZERO}
-	if targets.is_empty():
-		return result
-	var max_bonus: int = PULL_HAZARD_BONUS if atk.pull > 0 else 0
-	var best_score: int = 1000000
-	var best_front: bool = false   # стоит ли цель прямо перед врагом в лучшем варианте
-	for c: Vector2i in options:
-		var base: int = (options[c].size() - 1) * 4
-		if tile_at(c) == Tile.FIRE:
-			base += 80
-		if e.data.keep_distance > 0:
-			var near: int = 999
-			for h in living_heroes():
-				near = mini(near, HexMath.distance(c, h.cell))
-			if near < e.data.keep_distance:
-				base += 40
-			base -= mini(near, atk.attack_range)   # при прочих равных — подальше
-		if base - max_bonus >= best_score:
-			continue
-		for d: Vector2i in HexMath.DIRS:
-			var cells: Array[Vector2i] = _attack_cells(e, atk, c, d)
-			if not _hits_any(cells, targets):
-				continue
-			var score: int = base
-			if max_bonus > 0 and _pull_into_hazard(c, d, cells, targets):
-				score -= max_bonus
-			# Дуга: при равных вариантах замахиваемся так, чтобы цель была прямо перед
-			# врагом, а не на краю дуги — иначе героя отбрасывает вбок, а не от врага
-			var front: bool = false
-			if atk.shape == EnemyData.Attack.SWEEP:
-				for t in targets:
-					front = front or t.cell == c + d
-			if score < best_score or (score == best_score and front and not best_front):
-				best_score = score
-				best_front = front
-				result = {"cell": c, "dir": d}
-	# Круговой удар бьёт во все стороны сразу — просто поворачиваем врага лицом к ближайшей цели
-	if atk.shape == EnemyData.Attack.AROUND and result["dir"] != Vector2i.ZERO:
-		result["dir"] = _face_dir(result["cell"], targets)
-	return result
-
-
-# В какую из шести сторон смотреть с клетки from, чтобы стоять лицом к ближайшей цели
-func _face_dir(from: Vector2i, targets: Array[BattleUnit]) -> Vector2i:
-	var nearest: BattleUnit = targets[0]
-	for t in targets:
-		if HexMath.distance(from, t.cell) < HexMath.distance(from, nearest.cell):
-			nearest = t
-	return HexMath.direction_to(from, nearest.cell)
-
-
-# Затянет ли притягивание героя в беду: между врагом (на клетке from) и героем
-# трясина, гнилые мостки или огонь
-func _pull_into_hazard(from: Vector2i, dir: Vector2i, cells: Array[Vector2i], targets: Array[BattleUnit]) -> bool:
-	for t in targets:
-		if not cells.has(t.cell) or HexMath.distance(from, t.cell) < 2:
-			continue
-		var mid: Vector2i = t.cell - dir
-		var o: int = object_at(mid)
-		if o == Obj.BOG or o == Obj.PLANKS or o == Obj.LAVA or tile_at(mid) == Tile.FIRE:
-			return true
-	return false
-
-
-# Клетка для «зова»: откуда круг накроет больше всего других врагов.
-# При равенстве — та, до которой ближе идти; огня избегает.
-func _best_aura_spot(e: BattleUnit, atk: EnemyAttackData, options: Dictionary[Vector2i, Array]) -> Vector2i:
-	var best_cell: Vector2i = e.cell
-	var best_score: int = -1000000
-	for c: Vector2i in options:
-		var allies: int = 0
-		for other in living_enemies():
-			if other != e and HexMath.distance(other.cell, c) <= atk.attack_range:
-				allies += 1
-		var score: int = allies * 100 - (options[c].size() - 1)
-		if tile_at(c) == Tile.FIRE:
-			score -= 50
-		if score > best_score:
-			best_score = score
-			best_cell = c
-	return best_cell
 
 
 # Случайная пустая клетка в рядах от min_row до max_row

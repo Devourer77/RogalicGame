@@ -41,3 +41,4 @@ bog_damage = 6
 fire_weak = true
 wood_armor = true
 living_shield = true
+ai_style = 2
