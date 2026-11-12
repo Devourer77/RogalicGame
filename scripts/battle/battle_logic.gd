@@ -150,6 +150,13 @@ const BREAKTHROUGH_EVERY: int = 2   # «Прорыв»: раз в столько
 const RISING_WATER_FROM: int = 3    # «Вода прибывает»: с этого раунда в конце каждого раунда
 const SUMMON_ENEMY: String = "res://resources/enemies/goblin.tres"
 
+# Порченые реликвии (см. resources/relics/)
+const DROWNED_HEART_MANA: int = 1    # «Сердце утопленника»: +мана магу каждый ход
+const WARDEN_BRAND_RAGE: int = 2     # «Клеймо стража»: ярость рыцарю за стак перегрева
+const ASH_LANTERN_TURNS: int = 1     # «Пепельный фонарь»: огонь от героев горит дольше
+const OGRE_TOOTH_BUMP: int = 6       # «Зуб огра»: урон столкновения (вместо BUMP_DAMAGE)
+const POLLEN_EXTRA_GAS: int = 2      # «Болотная пыльца»: лишние клетки газа в начале боя
+
 # Арены Гнилых топей: у каждой свой рисунок поля и своя тактика
 const ARENAS: Dictionary[String, String] = {
 	"gat": "Старая гать",           # полоса трясины поперёк поля и узкие переправы
@@ -187,6 +194,7 @@ var obj_timers: Dictionary[Vector2i, int] = {}   # сколько раундов
 var ground: Dictionary[Vector2i, int] = {}     # клетка -> Ground (вид плиты)
 var arena_id: String = ""                      # какая арена (ключ из ARENAS)
 var objective: int = Objective.KILL_ALL        # цель боя (Objective)
+var relics: Array[RelicData] = []              # порченые реликвии забега (их эффекты — has_relic())
 var ritual_caster_id: int = -1                 # «Ритуал»: id ритуалиста
 var ritual_timer: int = 0                      # «Ритуал»: сколько раундов осталось
 var ritual_power: int = 0                      # «Ритуал»: +урон всех врагов от завершённых ритуалов
@@ -218,9 +226,10 @@ var _shock_cells: Dictionary[Vector2i, bool] = {}   # клетки, где мо�
 # Создаёт героев, врагов и всё поле. Ничего не показывает — только данные.
 func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		party: Array[RunHero], enemy_list: Array[EnemyData], arena: String = "",
-		battle_objective: int = Objective.KILL_ALL) -> void:
+		battle_objective: int = Objective.KILL_ALL, relic_list: Array[RelicData] = []) -> void:
 	arena_id = arena   # пусто — арена выберется случайно
 	objective = battle_objective
+	relics.assign(relic_list)
 	width = board_width
 	height = board_height
 	rng = random
@@ -240,6 +249,10 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		heroes.append(h)
 
 	_generate_field()
+	if has_relic("bog_pollen"):
+		# «Болотная пыльца»: на поле больше газа (зато героев он не травит)
+		for i in POLLEN_EXTRA_GAS:
+			_place(2, height - 4, func(c: Vector2i) -> void: tiles[c] = Tile.GAS)
 
 	# Враги — в верхних рядах, на свободных клетках
 	for enemy_data: EnemyData in enemy_list:
@@ -1061,7 +1074,7 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	h.retain_turns.erase(card)
 	ctx.note_card(h.hero_data.id, as_attack, as_spell)
 	card_played.emit(h, card, false)
-	if as_spell:
+	if as_spell and not (h.hero_data.id == "mage" and has_relic("vow_of_silence")):
 		_absorb_magic()
 	_cur_card = card
 	_cur_hero = h
@@ -1942,6 +1955,8 @@ func _set_tile(c: Vector2i, tile: int) -> void:
 		tiles[c] = tile
 	if tile == Tile.FIRE:
 		fire_timers[c] = FIRE_DURATION
+		if _cur_hero != null and has_relic("ash_lantern"):
+			fire_timers[c] += ASH_LANTERN_TURNS
 		_burn_off_block(unit_at(c))
 		_set_wet(unit_at(c), 0)          # огонь сушит
 	else:
@@ -1966,7 +1981,7 @@ func _explode_gas(c: Vector2i) -> void:
 func _gas_hit(u: BattleUnit) -> void:
 	message.emit("%s дышит ядом" % u.title)
 	_damage(u, GAS_DAMAGE)
-	if u.is_alive():
+	if u.is_alive() and not (u.is_hero and has_relic("bog_pollen")):
 		_set_poison(u, GAS_POISON)
 
 
@@ -2019,7 +2034,7 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 		return
 	if bumped:
 		message.emit("%s врезается!" % unit.title)
-		var bump_damage: int = BUMP_DAMAGE
+		var bump_damage: int = _bump_damage(unit)
 		var other: BattleUnit = unit_at(bump_cell)
 		if other == null and object_at(bump_cell) == Obj.LAVA:
 			bump_damage = LAVA_DAMAGE
@@ -2032,7 +2047,7 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 			message.emit("%s насаживается на колья!" % unit.title)
 		_damage(unit, bump_damage)
 		if other != null:
-			_damage(other, BUMP_DAMAGE)
+			_damage(other, _bump_damage(other))
 		elif _is_breakable(bump_cell):
 			_hit_object(bump_cell, unit.cell)
 
@@ -2134,6 +2149,30 @@ func _inflation_burst(unit: BattleUnit) -> void:
 	for c in inside:
 		if _is_breakable(c):
 			_hit_object(c, unit.cell)
+
+
+# ---------- Порченые реликвии ----------
+
+func has_relic(id: String) -> bool:
+	for r in relics:
+		if r.id == id:
+			return true
+	return false
+
+
+# Урон огня в конце раунда: корягачу вдвое, героям вдвое с «Пепельным фонарём»
+func fire_damage_for(u: BattleUnit) -> int:
+	var weak: bool = u.data != null and u.data.fire_weak
+	if u.is_hero and has_relic("ash_lantern"):
+		weak = true
+	return FIRE_DAMAGE * 2 if weak else FIRE_DAMAGE
+
+
+# Урон обычного столкновения. «Зуб огра»: 6 — врагам, отброшенным героями, и самим героям
+func _bump_damage(u: BattleUnit) -> int:
+	if has_relic("ogre_tooth") and (u.is_hero or _cur_hero != null):
+		return OGRE_TOOTH_BUMP
+	return BUMP_DAMAGE
 
 
 # ---------- Цели боя ----------
@@ -2636,7 +2675,10 @@ func _start_heroes_turn() -> void:
 		h.guarding = false
 		h.holding_line = false
 		h.prism = false
-		h.mana = maxi(0, h.hero_data.mana_per_turn - int(_mana_penalty.get(h.id, 0)))
+		var per_turn: int = h.hero_data.mana_per_turn
+		if h.hero_data.id == "mage" and has_relic("drowned_heart"):
+			per_turn += DROWNED_HEART_MANA
+		h.mana = maxi(0, per_turn - int(_mana_penalty.get(h.id, 0)))
 		_mana_penalty[h.id] = 0
 		h.moves_left = maxi(0, h.hero_data.moves_per_turn - _slime_count(h))
 		h.discount = 0
@@ -2668,6 +2710,9 @@ func _apply_overheat() -> void:
 			continue
 		message.emit("%s: перегрев %d" % [h.title, stacks])
 		overheated.emit(h, stacks)
+		if h.hero_data.gains_rage and has_relic("warden_brand"):
+			h.rage += WARDEN_BRAND_RAGE * stacks
+			status_changed.emit(h, snapshot(h))
 		if stacks >= OVERHEAT_PENALTY_FROM:
 			_mana_penalty[h.id] = OVERHEAT_MANA_PENALTY
 		h.mana = 0
@@ -2714,8 +2759,7 @@ func end_turn() -> void:
 		var u: BattleUnit = unit_at(c)
 		if u != null:
 			message.emit("%s горит" % u.title)
-			var weak: bool = u.data != null and u.data.fire_weak
-			_damage(u, FIRE_DAMAGE * 2 if weak else FIRE_DAMAGE)
+			_damage(u, fire_damage_for(u))
 		if not fire_timers.has(c):
 			continue
 		fire_timers[c] -= 1
@@ -2958,6 +3002,7 @@ func clone() -> BattleLogic:
 	c.turn = turn
 	c.is_over = is_over
 	c.objective = objective
+	c.relics = relics
 	c.ritual_caster_id = ritual_caster_id
 	c.ritual_timer = ritual_timer
 	c.ritual_power = ritual_power
@@ -3008,8 +3053,7 @@ func forecast_hazards() -> Dictionary:
 		for c: Vector2i in sim.fire_timers.keys():
 			var u: BattleUnit = sim.unit_at(c)
 			if u != null and u.is_alive():
-				var weak: bool = u.data != null and u.data.fire_weak
-				fire[u.id] = FIRE_DAMAGE * 2 if weak else FIRE_DAMAGE
+				fire[u.id] = fire_damage_for(u)
 		# Яд ранит отравленных в конце раунда (после огня)
 		for u in sim.living_enemies() + sim.living_heroes():
 			if u.poison > 0:
@@ -3502,6 +3546,13 @@ func is_kept(h: BattleUnit, index: int) -> bool:
 	return h.kept.has(index)
 
 
+# Сколько карт герой может удержать («Обет тишины» не даёт магу держать карты)
+func keep_limit(h: BattleUnit) -> int:
+	if h.hero_data != null and h.hero_data.id == "mage" and has_relic("vow_of_silence"):
+		return 0
+	return KEEP_LIMIT
+
+
 func can_keep(h: BattleUnit, index: int) -> bool:
 	return DRAW_MODE == DrawMode.KEEP_2 and not is_over and h.is_alive() \
 			and index >= 0 and index < h.hand.size()
@@ -3514,7 +3565,7 @@ func toggle_keep(h: BattleUnit, index: int) -> bool:
 		return false
 	if h.kept.has(index):
 		h.kept.erase(index)
-	elif h.kept.size() >= KEEP_LIMIT:
+	elif h.kept.size() >= keep_limit(h):
 		return false
 	else:
 		h.kept.append(index)

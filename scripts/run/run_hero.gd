@@ -13,6 +13,7 @@ func _init(hero_data: HeroData) -> void:
 	deck = hero_data.starter_deck.duplicate()
 
 
+# Лечение в обход реликвий. Экраны забега лечат через Run.heal_hero() — там учитывается «Клеймо стража».
 func heal(amount: int) -> void:
 	hp = mini(data.max_hp, hp + amount)
 

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+id = "warden_brand"
+title = "Клеймо стража"
+plus_text = "Перегрев даёт рыцарю +2 ярости за каждый стак."
+minus_text = "Лечение рыцаря на привалах и в событиях вдвое слабее."
+hero_id = "knight"

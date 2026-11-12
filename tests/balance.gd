@@ -6,6 +6,7 @@ extends SceneTree
 # Запуск (из папки проекта):
 #   godot --headless --path . -s tests/balance.gd            — 200 боёв на каждую строку
 #   godot --headless --path . -s tests/balance.gd -- 50      — быстрый прогон, 50 боёв
+#   godot --headless --path . -s tests/balance.gd -- 100 relics — ряд 3 без реликвий и с каждой по очереди
 # Результат печатается в окно Output / консоль и пишется в user://balance.txt
 # (в Godot: Проект → Открыть папку данных проекта).
 #
@@ -49,6 +50,11 @@ func _initialize() -> void:
 	configs.append({"name": "ритуал", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RITUAL})
 	configs.append({"name": "прорыв", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.BREAKTHROUGH})
 	configs.append({"name": "вода", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RISING_WATER})
+	if args.has("relics"):
+		configs.clear()
+		configs.append({"name": "без", "row": 3, "boss": false, "elite": false})
+		for r: RelicData in run.all_relics():
+			configs.append({"name": r.id.left(7), "row": 3, "boss": false, "elite": false, "relics": [r]})
 
 	var started: int = Time.get_ticks_msec()
 	var lines: PackedStringArray = []
@@ -104,8 +110,10 @@ func _play_battle(run: Node, seed_value: int, cfg: Dictionary) -> Dictionary:
 			enemies.append(load("res://resources/enemies/goblin_shaman.tres"))
 	if objective == BattleLogic.Objective.BREAKTHROUGH and arena == "gat":
 		arena = "grove"   # на гати прорыва не бывает
+	var relic_list: Array[RelicData] = []
+	relic_list.assign(cfg.get("relics", []))
 	var b := BattleLogic.new()
-	b.setup(12, 12, run.rng, run.party, enemies, arena, objective)
+	b.setup(12, 12, run.rng, run.party, enemies, arena, objective, relic_list)
 	b.start()
 	var stuck: bool = false
 	while not b.is_over:

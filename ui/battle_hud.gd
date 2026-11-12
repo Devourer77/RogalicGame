@@ -39,6 +39,7 @@ var _discard_button: Button
 var _end_tween: Tween
 var _round_label: Label
 var _objective_row: HBoxContainer   # цель боя под шапкой журнала (скрыта в обычном бою)
+var _relic_row: HBoxContainer       # значки реликвий забега (подсказка при наведении)
 var _arena_label: Label
 var _log_box: VBoxContainer
 var _enemy_card: PanelContainer
@@ -116,6 +117,11 @@ func _build_side_column() -> void:
 	_objective_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_objective_row.visible = false
 	log_column.add_child(_objective_row)
+	_relic_row = HBoxContainer.new()
+	_relic_row.add_theme_constant_override("separation", 6)
+	_relic_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_relic_row.visible = false
+	log_column.add_child(_relic_row)
 	var line := ColorRect.new()
 	line.color = Color(UiKit.LINE, 0.8)
 	line.custom_minimum_size.y = 1
@@ -389,6 +395,16 @@ func toggle_help() -> void:
 
 # ---------- Обновление ----------
 
+# Реликвии: латунные значки, при наведении — плюс и минус
+func _refresh_relics(logic: BattleLogic) -> void:
+	if _relic_row.get_child_count() == logic.relics.size():
+		return   # не пересобираем каждый кадр — набор реликвий в бою не меняется
+	UiKit.clear(_relic_row)
+	_relic_row.visible = not logic.relics.is_empty()
+	for r in logic.relics:
+		_relic_row.add_child(UiKit.chip(r.icon, "", UiKit.BRASS, r.full_text(), 14, 18))
+
+
 # Цель боя: значок, название и что осталось («Ритуал: 3 р. до призыва»)
 func _refresh_objective(logic: BattleLogic) -> void:
 	UiKit.clear(_objective_row)
@@ -410,6 +426,7 @@ func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) 
 	_round_label.text = "Раунд %d" % maxi(logic.turn, 1)
 	_arena_label.text = ("·  " + logic.arena_title()) if logic.arena_title() != "" else ""
 	_refresh_objective(logic)
+	_refresh_relics(logic)
 
 	UiKit.clear(_hero_box)
 	for i in logic.heroes.size():

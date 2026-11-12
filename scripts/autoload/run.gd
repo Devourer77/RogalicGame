@@ -18,6 +18,10 @@ const MAP_COLS: int = 3
 const OBJECTIVE_FROM_ROW: int = 2     # с какого ряда карты бывают бои с особой целью
 const OBJECTIVE_CHANCE: float = 0.3   # шанс особой цели у обычного боя
 const OBJECTIVE_GOLD: int = 15        # доплата золотом за бой с особой целью
+const MAX_RELICS: int = 4             # больше реликвий за забег не взять
+const RELIC_CHOICES: int = 3          # из скольких выбирать после элиты
+const RELIC_DIR: String = "res://resources/relics/"
+const SLIME_CARD: String = "res://resources/cards/swamp_slime.tres"
 const START_GOLD: int = 30
 const REST_HEAL_PERCENT: float = 0.3
 const REMOVE_CARD_PRICE: int = 60
@@ -61,6 +65,7 @@ var shop_stock: Array[Dictionary] = []   # {"hero": RunHero, "card": CardData}
 var shop_removal_used: bool = false
 var last_run_won: bool = false
 var fast_enemies: bool = false   # «Скорость ×2» во время хода врагов (выбор живёт весь забег)
+var relics: Array[RelicData] = []   # порченые реликвии забега
 
 
 func _ready() -> void:
@@ -81,6 +86,7 @@ func start_new_run(new_seed: int = 0) -> void:
 		party.append(RunHero.new(hero_data))
 	gold = START_GOLD
 	fast_enemies = false
+	relics.clear()
 	current = null
 	pending_enemies.clear()
 	_generate_map()
@@ -277,6 +283,64 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 		pending_objective = BattleLogic.Objective.KILL_ALL
 		gold += last_gold_reward
 		goto(REWARD_SCENE)
+
+
+# ---------- Порченые реликвии ----------
+
+func has_relic(id: String) -> bool:
+	for r in relics:
+		if r.id == id:
+			return true
+	return false
+
+
+# Лечение героя между боями (привал, события). «Клеймо стража»: рыцарь лечится вдвое слабее.
+func heal_hero(rh: RunHero, amount: int) -> void:
+	if rh.data.id == "knight" and has_relic("warden_brand"):
+		amount = amount / 2
+	rh.heal(amount)
+
+
+func can_take_relic() -> bool:
+	return relics.size() < MAX_RELICS
+
+
+# Все реликвии из папки resources/relics/ (новую достаточно положить туда .tres)
+func all_relics() -> Array[RelicData]:
+	var result: Array[RelicData] = []
+	var dir := DirAccess.open(RELIC_DIR)
+	if dir == null:
+		return result
+	var names: PackedStringArray = dir.get_files()
+	names.sort()   # порядок файлов на разных ПК разный — сортируем, чтобы сид давал то же самое
+	for file_name: String in names:
+		var clean: String = file_name.trim_suffix(".remap")   # в собранной игре файлы лежат как *.tres.remap
+		if clean.ends_with(".tres"):
+			var r: RelicData = load(RELIC_DIR + clean)
+			if r != null:
+				result.append(r)
+	return result
+
+
+# Случайные реликвии, которых ещё нет в забеге
+func roll_relics(count: int) -> Array[RelicData]:
+	var pool: Array[RelicData] = []
+	for r in all_relics():
+		if not has_relic(r.id):
+			pool.append(r)
+	shuffle(pool)
+	return pool.slice(0, count)
+
+
+# Взять реликвию. Минус «Сердца утопленника» — тина в колоду мага навсегда.
+func take_relic(r: RelicData) -> void:
+	if r == null or has_relic(r.id) or not can_take_relic():
+		return
+	relics.append(r)
+	if r.id == "drowned_heart":
+		for rh in party:
+			if rh.data.id == "mage":
+				rh.deck.append(load(SLIME_CARD))
 
 
 func game_over(victory: bool) -> void:

@@ -1,9 +1,11 @@
 extends Control
 # Награда после боя: золото и по одной карте каждому герою —
 # у каждого свои три варианта; можно взять карту или пропустить. «Дальше» — когда оба решили.
+# После элиты — ещё выбор порченой реликвии (одна из трёх или отказ).
 
 var _next_button: Button
 var _done: Dictionary[RunHero, bool] = {}   # герой -> уже выбрал (карту или пропуск)
+var _relic_done: bool = true                # реликвия выбрана или отказались (true — выбора нет)
 
 
 func _ready() -> void:
@@ -58,6 +60,12 @@ func _ready() -> void:
 		box.add_child(skip[0])
 		row.add_child(panel)
 
+	if Run.current != null and Run.current.type == MapNode.Type.ELITE and Run.can_take_relic():
+		var offer: Array[RelicData] = Run.roll_relics(Run.RELIC_CHOICES)
+		if not offer.is_empty():
+			_relic_done = false
+			column.add_child(_build_relic_choice(offer))
+
 	_next_button = UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE), "", true)
 	_next_button.disabled = true
 	column.add_child(_next_button)
@@ -96,4 +104,65 @@ func _skip(rh: RunHero, buttons: Array[Button], skip: Array[Button]) -> void:
 func _finish_hero(rh: RunHero, skip: Array[Button]) -> void:
 	_done[rh] = true
 	skip[0].disabled = true
-	_next_button.disabled = _done.size() < Run.party.size()
+	_update_next()
+
+
+func _update_next() -> void:
+	_next_button.disabled = _done.size() < Run.party.size() or not _relic_done
+
+
+# ---------- Реликвия после элиты ----------
+
+func _build_relic_choice(offer: Array[RelicData]) -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	var head: Label = UiKit.make_label("Порченая реликвия: сила с ценой. Можно не брать.", 16, UiKit.BRASS, true)
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(head)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	box.add_child(row)
+	var buttons: Array[Button] = []
+	var refuse: Array[Button] = []
+	for r in offer:
+		var panel: PanelContainer = UiKit.make_panel(Color(UiKit.PANEL, 0.8), UiKit.BRASS_DARK)
+		panel.custom_minimum_size.x = 250
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 6)
+		panel.add_child(col)
+		var title_row := HBoxContainer.new()
+		title_row.add_theme_constant_override("separation", 6)
+		title_row.add_child(UiKit.icon_rect(r.icon, 22, UiKit.BRASS))
+		title_row.add_child(UiKit.make_label(r.title, 16, UiKit.BRASS.lightened(0.2), true))
+		col.add_child(title_row)
+		if r.hero_id != "":
+			col.add_child(UiKit.make_label("Для: " + ("мага" if r.hero_id == "mage" else "рыцаря"), 13, UiKit.TEXT_DIM))
+		# Плюс — светлым, минус — приглушённым (красный в интерфейсе только про врагов)
+		col.add_child(UiKit.make_text("+ " + r.plus_text, 14, UiKit.TEXT, 230))
+		col.add_child(UiKit.make_text("− " + r.minus_text, 14, UiKit.TEXT_DIM, 230))
+		var take: Button = UiKit.make_button("Взять", func() -> void: pass)
+		take.custom_minimum_size.x = 200
+		take.pressed.connect(_take_relic.bind(r, take, buttons, refuse))
+		col.add_child(take)
+		buttons.append(take)
+		row.add_child(panel)
+	var no: Button = UiKit.make_button("Без реликвии", func() -> void: pass)
+	no.pressed.connect(_take_relic.bind(null, no, buttons, refuse))
+	no.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	refuse.append(no)
+	box.add_child(no)
+	return box
+
+
+# Взяли реликвию (или отказались — r == null): остальные кнопки гаснут
+func _take_relic(r: RelicData, pressed: Button, buttons: Array[Button], refuse: Array[Button]) -> void:
+	if _relic_done:
+		return
+	if r != null:
+		Run.take_relic(r)
+	for b in buttons + refuse:
+		b.disabled = true
+	pressed.text = "Взята" if r != null else "Отказались"
+	_relic_done = true
+	_update_next()

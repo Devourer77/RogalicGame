@@ -21,6 +21,14 @@ const EVENTS: Array[Dictionary] = [
 		],
 	},
 	{
+		"title": "Утопленный идол",
+		"text": "Из чёрной воды торчит голова каменного идола. На его шее — амулет, тёплый, как живой.",
+		"options": [
+			{"text": "Снять амулет (случайная порченая реликвия)", "action": "idol"},
+			{"text": "Не трогать", "action": "leave"},
+		],
+	},
+	{
 		"title": "Сундук на дороге",
 		"text": "Посреди дороги стоит окованный сундук. Подозрительно удобно.",
 		"options": [
@@ -48,6 +56,9 @@ func _ready() -> void:
 		var action: String = option["action"]
 		var b: Button = UiKit.make_button(option["text"], _choose.bind(action))
 		b.custom_minimum_size.x = 560
+		if action == "idol" and not Run.can_take_relic():
+			b.disabled = true
+			b.tooltip_text = "Больше реликвий не унести"
 		if action == "coin" and Run.gold < 15:
 			b.disabled = true
 			b.tooltip_text = "Не хватает золота"
@@ -73,7 +84,7 @@ func _choose(action: String) -> void:
 			result = "Руны гаснут. %s теряет 6 HP, но узнаёт новый приём: %s." % [rh.data.title, card.title]
 		"drink":
 			for rh in Run.party:
-				rh.heal(10)
+				Run.heal_hero(rh, 10)
 			result = "Вода прохладная и придаёт сил. +10 HP каждому."
 		"coin":
 			Run.gold -= 15
@@ -81,6 +92,13 @@ func _choose(action: String) -> void:
 			var card: CardData = Run.roll_cards(rh, 1)[0]
 			rh.deck.append(card)
 			result = "Монета тонет, а %s вдруг вспоминает приём: %s." % [rh.data.title, card.title]
+		"idol":
+			var offer: Array[RelicData] = Run.roll_relics(1)
+			if offer.is_empty() or not Run.can_take_relic():
+				result = "Амулет рассыпается в руках. Видно, больше идолу дать нечего."
+			else:
+				Run.take_relic(offer[0])
+				result = "Ты надеваешь амулет: «%s».\n+ %s\n− %s" % [offer[0].title, offer[0].plus_text, offer[0].minus_text]
 		"chest":
 			if Run.rng.randf() < 0.5:
 				Run.gold += 40

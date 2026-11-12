@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+id = "vow_of_silence"
+title = "Обет тишины"
+plus_text = "Заклинания мага не лечат врагов через шамана («Поглощение магии» молчит)."
+minus_text = "Маг не может удерживать карты на следующий ход."
+hero_id = "mage"

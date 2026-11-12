@@ -26,5 +26,5 @@ func _ready() -> void:
 
 func _rest() -> void:
 	for rh in Run.party:
-		rh.heal(ceili(rh.data.max_hp * Run.REST_HEAL_PERCENT))
+		Run.heal_hero(rh, ceili(rh.data.max_hp * Run.REST_HEAL_PERCENT))
 	Run.goto(Run.MAP_SCENE)
