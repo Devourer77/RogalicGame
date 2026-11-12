@@ -36,6 +36,7 @@ var kept: Array[int] = []     # номера карт в руке, отмече�
 
 # --- Только для врагов ---
 var inflation: int = 0        # стаки «Раздувания» (жаба)
+var fuse: int = 0             # фитиль тлеющей жабы: > 0 — взорвётся в начале следующего хода врагов
 var armor_burnt: bool = false # «Древесная броня» сожжена огнём
 var guarding: bool = false    # «Живой бастион»: до следующего хода принимает половину урона за соседнего напарника
 var prism: bool = false       # «Магическая призма»: следующее Заклинание Мага разойдётся тремя лучами от этого героя
@@ -76,6 +77,7 @@ func copy() -> BattleUnit:
 	u.rune = rune
 	u.rune_hits = rune_hits
 	u.inflation = inflation
+	u.fuse = fuse
 	u.armor_burnt = armor_burnt
 	u.guarding = guarding
 	u.prism = prism

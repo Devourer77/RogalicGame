@@ -48,6 +48,7 @@ func _initialize() -> void:
 	_slinger()
 	_drowned()
 	_toad()
+	_toad_fuse()
 	_shaman()
 	_treant()
 	_ogre()
@@ -177,6 +178,57 @@ func _toad() -> void:
 	e.cell = C(5, 5); g.cell = C(7, 6); l.tiles[C(5, 6)] = T.WATER; l.tiles[C(6, 6)] = T.WATER
 	var hit: Array[Vector2i] = l._spread_through_water([C(6, 6)] as Array[Vector2i])
 	check("Жаба: молния по соседней луже бьёт и её, гоблина рядом — нет", hit.has(C(5, 5)) and not hit.has(C(7, 6)))
+
+
+# Жаба с фитилём: раненая (HP ≤ 4) или раздутая (2+ стака) жаба не бьёт, а прыгает
+# к героям и поджигает фитиль; в начале следующего хода врагов взрывается.
+func _toad_fuse() -> void:
+	print("--- Жаба с фитилём ---")
+	var l := fresh(["bloated_toad"]); var e: BattleUnit = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	check("Целая жаба не тлеет", not l.is_smoldering(e))
+	e.inflation = BattleLogic.TOAD_FUSE_STACKS
+	check("Жаба с 2 стаками «Раздувания» тлеет", l.is_smoldering(e))
+	e.inflation = 0; e.hp = BattleLogic.TOAD_FUSE_HP
+	check("Жаба с 4 HP тлеет", l.is_smoldering(e))
+
+	# Прыжок: с L(5) до мага на L(9) — 3 шага (обычные 2 + 1 прыжка), вплотную, без укуса
+	e.cell = L(5)
+	l._enemies_act()
+	check("Тлеющая жаба прыгнула вплотную к магу и не укусила",
+			HexMath.distance(e.cell, m.cell) == 1 and m.hp == 30 and e.fuse == 1)
+	check("Намерение тлеющей жабы — взрыв", l.snapshot(e)["intent"] == "Взрыв!" and l.snapshot(e)["damage"] == BattleLogic.INFLATION_DAMAGE)
+	l._enemies_act()
+	check("Фитиль догорел: взрыв — 12 урона и яд магу",
+			not e.is_alive() and m.hp == 30 - BattleLogic.INFLATION_DAMAGE and m.poison == BattleLogic.INFLATION_POISON)
+
+	# Оттолкнули тлеющую жабу — взорвалась далеко от героев
+	l = fresh(["bloated_toad"]); e = l.enemies[0]; m = l.heroes[0]
+	e.hp = 3; e.cell = L(5)
+	l._enemies_act()
+	l._push(e, Vector2i(0, -1), 3)
+	l._enemies_act()
+	check("Оттолкнули тлеющую жабу — взрыв никого не задел", not e.is_alive() and m.hp == 30)
+
+	# Ледяное копьё гасит фитиль: в этот ход взрыва нет, жаба снова прыгает и зажигает его
+	l = fresh(["bloated_toad"]); e = l.enemies[0]; m = l.heroes[0]
+	e.hp = 3; e.cell = L(5)
+	l._enemies_act()
+	var lance: Array[CardData] = [load("res://resources/cards/ice_lance.tres")]
+	m.hand = lance
+	var hp_before: int = e.hp
+	e.hp = 99   # копьё не должно её убить — проверяем только лёд
+	l.play_card(m, 0, e.cell)
+	e.hp = hp_before
+	check("Ледяное копьё погасило фитиль", e.fuse == 0)
+	l._enemies_act()
+	check("После льда взрыва нет: жаба жива, фитиль горит снова", e.is_alive() and e.fuse == 1 and m.hp == 30)
+
+	# Утонула с горящим фитилём — взрыва нет
+	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]; var g: BattleUnit = l.enemies[1]
+	e.hp = 3; e.fuse = 1; e.cell = C(5, 5); g.cell = C(5, 4); l.objects[C(5, 5) + DOWN] = O.BOG
+	l._push(e, DOWN, 1)
+	l._enemies_act()
+	check("Утонула с горящим фитилём — взрыва нет", not e.is_alive() and g.hp == g.max_hp)
 
 
 func _shaman() -> void:

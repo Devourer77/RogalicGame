@@ -225,6 +225,10 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		info["intent_icon"] = INTENT_ICONS[shape] if shape < INTENT_ICONS.size() else "sword"
 		info["intent_value"] = state["damage"]
 		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.THREAT
+		# Тлеющая жаба: вместо обычного удара — фитиль (с уроном взрыва, если уже горит)
+		if state.get("fuse", 0) > 0 or state.get("smoldering", false):
+			info["intent_icon"] = "fuse"
+			info["intent_color"] = UiKit.THREAT
 	if state["entangled"] > 0:
 		marks.append("entangled")
 	if state.get("wet", 0) > 0:

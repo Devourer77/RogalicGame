@@ -85,6 +85,9 @@ const WET_TURNS: int = 2            # сколько раундов юнит о�
 const INFLATION_MAX: int = 3        # стаков «Раздувания» до взрыва жабы
 const INFLATION_DAMAGE: int = 12    # урон взрыва жабы
 const INFLATION_POISON: int = 3     # яд от взрыва жабы
+const TOAD_FUSE_HP: int = 4         # жаба с таким HP или меньше «тлеет»: прыгает к героям и взрывается
+const TOAD_FUSE_STACKS: int = 2     # …или с таким числом стаков «Раздувания»
+const TOAD_LEAP_BONUS: int = 1      # тлеющая жаба прыгает на столько клеток дальше обычного шага
 const SHAMAN_HEAL: int = 3          # «Поглощение магии»: лечение всех врагов за каждое Заклинание
 const SHAMAN_BLOCK: int = 3         # …и блок самому шаману
 const WOOD_ARMOR_DIVISOR: int = 2   # «Древесная броня» режет одиночную физическую атаку вдвое
@@ -573,6 +576,14 @@ func snapshot(u: BattleUnit) -> Dictionary:
 		var atk: EnemyAttackData = enemy_attack(u)
 		state["intent"] = atk.title
 		state["damage"] = atk.damage + u.bonus_damage if atk.shape != EnemyData.Attack.AURA else 0
+		state["fuse"] = u.fuse
+		state["smoldering"] = is_smoldering(u)
+		if u.fuse > 0:
+			state["intent"] = "Взрыв!"
+			state["damage"] = INFLATION_DAMAGE
+		elif state["smoldering"]:
+			state["intent"] = "Прыжок и фитиль"
+			state["damage"] = 0
 	return state
 
 
@@ -1709,6 +1720,8 @@ func _spread_through_water(area: Array[Vector2i]) -> Array[Vector2i]:
 func _apply_element(c: Vector2i, element: CardData.Element, from: Vector2i, hero_card: bool = true) -> void:
 	if not is_inside(c) or rocks.has(c):
 		return
+	if element == CardData.Element.ICE:
+		_douse_fuse(c)
 	var obj: int = object_at(c)
 	if obj == Obj.LAVA:
 		if element == CardData.Element.WATER or element == CardData.Element.ICE:
@@ -2077,6 +2090,69 @@ func _inflation_burst(unit: BattleUnit) -> void:
 	for c in inside:
 		if _is_breakable(c):
 			_hit_object(c, unit.cell)
+
+
+# ---------- Жаба с фитилём ----------
+
+# Раненая или сильно раздутая жаба «тлеет»: в свой ход прыгает к героям
+# и поджигает фитиль, а в начале следующего хода врагов взрывается.
+func is_smoldering(e: BattleUnit) -> bool:
+	if e == null or e.is_hero or not e.is_alive() or e.data == null or not e.data.inflation:
+		return false
+	return e.hp <= TOAD_FUSE_HP or e.inflation >= TOAD_FUSE_STACKS
+
+
+# Прыжок к ближайшему герою на обычный шаг + TOAD_LEAP_BONUS (опутанная — на месте)
+func _toad_leap(e: BattleUnit) -> void:
+	var steps: int = 0 if e.entangled > 0 else enemy_move_range(e) + TOAD_LEAP_BONUS
+	var options: Dictionary[Vector2i, Array] = reachable_cells(e, steps)
+	var dist_map: Dictionary[Vector2i, int] = _distance_map(living_heroes(), e)
+	var best_cell: Vector2i = e.cell
+	var best_score: int = 1000000
+	for c: Vector2i in options:
+		var score: int = dist_map.get(c, 999) * 10 + options[c].size()
+		if tile_at(c) == Tile.FIRE:
+			score += 100
+		if score < best_score:
+			best_score = score
+			best_cell = c
+	if best_cell != e.cell:
+		var path: Array[Vector2i] = options[best_cell]
+		e.cell = best_cell
+		unit_moved.emit(e, path)
+		_break_planks_behind(path)
+		var walked: Array[Vector2i] = []
+		walked.assign(path)
+		_walked(e, walked)
+	if e.entangled > 0:
+		e.entangled -= 1
+	if not e.is_alive():
+		return   # прыгнула на руну или в трясину
+	e.fuse = 1
+	message.emit("%s тлеет: взорвётся в начале следующего хода врагов!" % e.title)
+	status_changed.emit(e, snapshot(e))
+
+
+# Лёд по тлеющей жабе гасит фитиль: взрыв откладывается на раунд
+# (жаба всё ещё тлеет и в свой ход снова его подожжёт)
+func _douse_fuse(c: Vector2i) -> void:
+	var u: BattleUnit = unit_at(c)
+	if u == null or u.is_hero or u.fuse <= 0:
+		return
+	u.fuse = 0
+	message.emit("Лёд погасил фитиль: %s" % u.title)
+	status_changed.emit(u, snapshot(u))
+
+
+# Взрыв всех жаб с догоревшим фитилём. true — бой окончен.
+func _detonate_fuses() -> bool:
+	for e in enemies:
+		if e.is_alive() and e.fuse > 0:
+			e.fuse = 0
+			message.emit("Фитиль %s догорел!" % e.title)
+			_kill(e)
+			_inflation_burst(e)
+	return _check_end()
 
 
 # Мгновенная смерть (утонул)
@@ -2487,8 +2563,16 @@ func _tick_objects() -> void:
 # Возвращает true, если бой закончился.
 func _enemies_act() -> bool:
 	_start_enemy_phase()
+	# Фитили, зажжённые в прошлом ходу врагов, догорели — жабы взрываются раньше всех
+	if _detonate_fuses():
+		return true
 	for e in enemies:
 		if not e.is_alive():
+			continue
+		if is_smoldering(e):
+			_toad_leap(e)   # тлеющая жаба не бьёт, а прыгает к героям и поджигает фитиль
+			if _check_end():
+				return true
 			continue
 		var atk: EnemyAttackData = enemy_attack(e)
 		var start: Vector2i = e.cell
@@ -2777,9 +2861,14 @@ func _hits_any(cells: Array[Vector2i], targets: Array[BattleUnit]) -> bool:
 # трясины и деревьев). Огня избегает. Стрелки держат дистанцию (keep_distance).
 # В раунд «зова» враг встаёт так, чтобы накрыть побольше своих.
 # Возвращает направление удара (ZERO — ударить не получится).
+# Сколько клеток враг может пройти в свой ход (без учёта опутывания)
+func enemy_move_range(e: BattleUnit) -> int:
+	return e.data.move_range
+
+
 func _enemy_move(e: BattleUnit, atk: EnemyAttackData) -> Vector2i:
 	# Опутанный враг стоит на месте, но ударить может
-	var options: Dictionary[Vector2i, Array] = reachable_cells(e, 0 if e.entangled > 0 else e.data.move_range)
+	var options: Dictionary[Vector2i, Array] = reachable_cells(e, 0 if e.entangled > 0 else enemy_move_range(e))
 	var targets: Array[BattleUnit] = living_heroes()
 	var best_cell: Vector2i = e.cell
 	var best_dir: Vector2i = Vector2i.ZERO
