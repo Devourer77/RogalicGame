@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+id = "ogre_tooth"
+title = "Зуб огра"
+plus_text = "Враги, отброшенные героями в препятствие, получают 6 урона вместо 4."
+minus_text = "Герои, врезавшиеся во что-то, тоже получают 6."
+hero_id = ""
+icon = "relic"
+kind = 0
+desc = "+ Враги, отброшенные героями в препятствие, получают 6 урона вместо 4. − Герои, врезавшиеся во что-то, тоже получают 6."

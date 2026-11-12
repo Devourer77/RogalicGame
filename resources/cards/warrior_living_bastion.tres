@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_living_bastion"
+title = "Живой бастион"
+description = "8 блока. Если Маг рядом (до 2 клеток), он получает половину блока."
+cost = 1
+shape = 0
+cast_range = 0
+block = 8
+card_set = "redesign"
+special = "bastion"
+owner_hero = "knight"
+scrap_moves = 0
+scrap_block = 3

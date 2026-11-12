@@ -3,18 +3,26 @@ extends Node3D
 # Игровое поле: плиты, объекты топей, декор вокруг арены, подсветка клеток,
 # огонь/вода/лёд. Правил не знает — только рисует то, что ему скажут.
 
-const CELL_SIZE: float = 1.0       # размер одной клетки в метрах
+# Поле из сот: размеры клетки задаёт HexMath (расстояние между центрами соседей, радиус гекса).
+const CELL_STEP: float = HexMath.CELL_STEP                 # расстояние между центрами соседних клеток, м
+const ROW_STEP: float = HexMath.HEX_SIZE * 1.5             # расстояние между рядами, м
 const TILE_GAP: float = 0.97       # доля клетки, которую занимает плита (остальное — щель)
 const TILE_THICKNESS: float = 0.2  # толщина плиты
+
+# Цвета плит-заглушек (те же, что в assets/models/src/build_topi.py).
+# Пока нет шестиугольных моделей из Blender, плиты рисуются простыми шестигранными призмами.
+const TILE_COLORS: Dictionary[int, Color] = {
+	BattleLogic.Ground.STONE: Color(0.30, 0.33, 0.33),
+	BattleLogic.Ground.MOSS: Color(0.25, 0.33, 0.18),
+	BattleLogic.Ground.MUD: Color(0.24, 0.20, 0.15),
+	BattleLogic.Ground.PLANKS: Color(0.34, 0.26, 0.17),
+}
+const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй оттенок камня для разнообразия
 
 # Все модели топей собраны скриптом assets/models/src/build_topi.py
 const DIR: String = "res://assets/models/topi/"
 
-# Плиты по виду покрытия (ключ — BattleLogic.Ground). У камня два варианта.
-const TILE_STONE: Array[PackedScene] = [preload(DIR + "tile_stone_a.glb"), preload(DIR + "tile_stone_b.glb")]
-const TILE_MOSS: PackedScene = preload(DIR + "tile_moss.glb")
-const TILE_MUD: PackedScene = preload(DIR + "tile_mud.glb")
-const TILE_PLANKS: PackedScene = preload(DIR + "tile_planks.glb")
+# (квадратные плиты tile_*.glb остались в проекте, но в бою не используются: нужны новые, шестиугольные)
 
 # Объекты на клетках (ключ — BattleLogic.Obj)
 const OBJ_BOG: PackedScene = preload(DIR + "obj_bog.glb")
@@ -70,12 +78,15 @@ const ARENA_SCATTER: Dictionary[String, Array] = {
 
 # На какой высоте рисовать каждый слой подсветки (чтобы они не «мерцали», налезая друг на друга)
 const LAYER_HEIGHT: Dictionary = {
+	"objective": 0.125,  # цель боя: верхний ряд «Прорыва», ряд, который зальёт вода
 	"move": 0.13,     # куда можно пойти
 	"target": 0.14,   # куда можно применить карту
 	"buff": 0.145,    # кого враг усилит «зовом»
 	"intent": 0.15,   # куда могут ударить враги
 	"hover_threat": 0.155,  # зона врага под курсором
 	"area": 0.16,     # что заденет карта под курсором
+	"ghost_move": 0.165,  # куда «призрак» карты переставит юнитов
+	"ghost_kill": 0.166,  # кто погибнет от карты
 	"flash": 0.17,    # вспышка удара
 	"routes": 0.2,    # линии маршрутов врагов
 }
@@ -94,7 +105,9 @@ const COLOR_WISP := Color(0.6, 1.0, 0.75)            # болотные огон
 var _layers: Dictionary[String, Node3D] = {}
 var _effects: Dictionary[Vector2i, Node3D] = {}
 var _flat_materials: Dictionary[Color, StandardMaterial3D] = {}
-var _highlight_mesh: PlaneMesh
+var _solid_materials: Dictionary[Color, StandardMaterial3D] = {}
+var _highlight_mesh: CylinderMesh
+var _tile_mesh: CylinderMesh
 var _object_nodes: Dictionary[Vector2i, Node3D] = {}
 var _object_kinds: Dictionary[Vector2i, int] = {}
 var _arena: String = ""
@@ -108,24 +121,17 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 	_arena = arena
 	_build_shore()
 
-	for x in width:
-		for y in height:
-			var cell := Vector2i(x, y)
-			var kind: int = ground.get(cell, BattleLogic.Ground.STONE)
-			var scene: PackedScene = TILE_STONE[0 if rng.randf() < 0.6 else 1]
-			var quarter_turns: int = rng.randi_range(0, 3)   # поворот на 0/90/180/270° для разнообразия
-			match kind:
-				BattleLogic.Ground.MOSS:
-					scene = TILE_MOSS
-				BattleLogic.Ground.MUD:
-					scene = TILE_MUD
-				BattleLogic.Ground.PLANKS:
-					scene = TILE_PLANKS
-					quarter_turns = 0 if arena == "gat" else (x + y) % 2   # гать — брёвна в ряд, помост — «ёлочкой»
-			var tile: Node3D = scene.instantiate()
-			tile.position = grid_to_world(cell) + Vector3(0.0, -rng.randf() * 0.02, 0.0)   # плиты чуть неровные
-			tile.rotation.y = quarter_turns * PI / 2.0
-			add_child(tile)
+	for cell: Vector2i in HexMath.rect_cells(width, height):
+		var kind: int = ground.get(cell, BattleLogic.Ground.STONE)
+		var color: Color = TILE_COLORS.get(kind, TILE_COLORS[BattleLogic.Ground.STONE])
+		if kind == BattleLogic.Ground.STONE and rng.randf() > 0.6:
+			color = TILE_STONE_ALT
+		var tile := MeshInstance3D.new()
+		tile.mesh = _get_tile_mesh()
+		tile.material_override = _get_solid_material(color)
+		# плиты чуть неровные по высоте
+		tile.position = grid_to_world(cell) + Vector3(0.0, -TILE_THICKNESS / 2.0 - rng.randf() * 0.02, 0.0)
+		add_child(tile)
 
 	_build_decorations(rng)
 	_build_wisps()
@@ -133,7 +139,7 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 
 # Вода топей до горизонта и тёмный берег-островок под плитами
 func _build_shore() -> void:
-	var center := Vector3((width - 1) / 2.0, 0.0, (height - 1) / 2.0)
+	var center: Vector3 = field_center()
 	var water := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(220.0, 220.0)
@@ -148,7 +154,7 @@ func _build_shore() -> void:
 
 	var bank := MeshInstance3D.new()
 	var box := BoxMesh.new()
-	box.size = Vector3(width + 0.5, 0.3, height + 0.5)
+	box.size = Vector3((width + 0.5) * CELL_STEP, 0.3, (height - 1) * ROW_STEP + HexMath.HEX_SIZE * 2.0 + 0.4)
 	bank.mesh = box
 	var bank_mat := StandardMaterial3D.new()
 	bank_mat.albedo_color = COLOR_BANK
@@ -164,8 +170,8 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 	var decor := Node3D.new()
 	decor.name = "Decorations"
 	add_child(decor)
-	var w: float = float(width)
-	var h: float = float(height)
+	var w: float = width * CELL_STEP     # ширина поля в метрах
+	var h: float = height * ROW_STEP     # глубина поля в метрах
 
 	# Шпиль далеко на севере: цель всего пути. Трещина в небе над ним светится.
 	var spire: Node3D = _spawn_prop(decor, D_SPIRE, Vector3(w * 0.5 + rng.randf_range(-6.0, 6.0), -1.0, -62.0), 0.0)
@@ -227,10 +233,12 @@ func _scatter_spot(rng: RandomNumberGenerator, tall: bool, taken: Array[Vector3]
 	for attempt in 12:
 		var near: float = 3.0 if tall else 1.1
 		var far: float = 8.0 if tall else 5.0
-		var x: float = rng.randf_range(-far, width - 1.0 + far)
-		var z: float = rng.randf_range(-far, (height - 4.0) if tall else (height - 1.0 + 2.5))
-		var dx: float = maxf(maxf(-0.5 - x, x - (width - 0.5)), 0.0)
-		var dz: float = maxf(maxf(-0.5 - z, z - (height - 0.5)), 0.0)
+		var field_w: float = width * CELL_STEP
+		var field_d: float = (height - 1) * ROW_STEP + HexMath.HEX_SIZE
+		var x: float = rng.randf_range(-far, field_w + far)
+		var z: float = rng.randf_range(-far, (field_d - 3.0) if tall else (field_d + 2.5))
+		var dx: float = maxf(maxf(-CELL_STEP * 0.5 - x, x - field_w), 0.0)
+		var dz: float = maxf(maxf(-HexMath.HEX_SIZE - z, z - field_d), 0.0)
 		var dist: float = maxf(dx, dz)
 		if dist < near or dist > far:
 			continue
@@ -273,7 +281,7 @@ func _build_wisps() -> void:
 	wisps.lifetime = 7.0
 	wisps.preprocess = 7.0
 	wisps.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	wisps.emission_box_extents = Vector3(width * 0.5 + 4.0, 0.5, height * 0.5 + 4.0)
+	wisps.emission_box_extents = Vector3(width * CELL_STEP * 0.5 + 4.0, 0.5, height * ROW_STEP * 0.5 + 4.0)
 	wisps.direction = Vector3(0.3, 1.0, 0.1)
 	wisps.spread = 60.0
 	wisps.gravity = Vector3.ZERO
@@ -293,7 +301,7 @@ func _build_wisps() -> void:
 	dot.rings = 3
 	dot.material = _glow_material(COLOR_WISP, 3.0)
 	wisps.mesh = dot
-	wisps.position = Vector3((width - 1) / 2.0, 0.9, (height - 1) / 2.0)
+	wisps.position = field_center() + Vector3(0.0, 0.9, 0.0)
 	add_child(wisps)
 
 
@@ -310,17 +318,22 @@ func _glow_material(color: Color, energy: float) -> StandardMaterial3D:
 
 # Переводит координаты клетки (x, y) в позицию в 3D-мире
 func grid_to_world(cell: Vector2i) -> Vector3:
-	return Vector3(cell.x * CELL_SIZE, 0.0, cell.y * CELL_SIZE)
+	return HexMath.axial_to_world(cell)
 
 
 # Обратное действие: из точки в 3D-мире получает клетку, в которую она попадает
 func world_to_grid(point: Vector3) -> Vector2i:
-	return Vector2i(roundi(point.x / CELL_SIZE), roundi(point.z / CELL_SIZE))
+	return HexMath.world_to_axial(point)
 
 
 # Проверяет, что клетка лежит внутри поля
 func is_inside(cell: Vector2i) -> bool:
-	return cell.x >= 0 and cell.x < width and cell.y >= 0 and cell.y < height
+	return HexMath.in_rect(cell, width, height)
+
+
+# Центр поля в мире (середина между крайними клетками)
+func field_center() -> Vector3:
+	return Vector3((width - 0.5) * CELL_STEP / 2.0, 0.0, (height - 1) * ROW_STEP / 2.0)
 
 
 # ---------- Подсветка клеток ----------
@@ -384,20 +397,24 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 	match tile:
 		BattleLogic.Tile.WATER:
 			# Лужа: тёмное зеркало с голубым отсветом (стихия слегка светится)
-			var puddle := _flat_disc(0.41, Color(0.1, 0.26, 0.38, 0.92), 0.02)
+			var puddle := _flat_disc(0.41 * CELL_STEP, Color(0.1, 0.26, 0.38, 0.92), 0.02)
 			var mat: StandardMaterial3D = puddle.material_override
 			mat.roughness = 0.05
 			mat.metallic = 0.4
 			mat.emission_enabled = true
 			mat.emission = Color(0.1, 0.35, 0.55)
 			mat.emission_energy_multiplier = 0.25
-			puddle.scale = Vector3(1.0, 1.0, 0.8 + 0.2 * float((cell.x * 5 + cell.y * 3) % 3) / 2.0)
-			puddle.rotation.y = float((cell.x * 37 + cell.y * 91) % 360)
+			puddle.scale = Vector3(1.0, 1.0, 0.8 + 0.2 * float(posmod(cell.x * 5 + cell.y * 3, 3)) / 2.0)
+			puddle.rotation.y = float(posmod(cell.x * 37 + cell.y * 91, 360))
 			root.add_child(puddle)
 		BattleLogic.Tile.ICE:
 			var ice := MeshInstance3D.new()
-			var slab := BoxMesh.new()
-			slab.size = Vector3(0.94, 0.05, 0.94)
+			var slab := CylinderMesh.new()   # шестигранная льдина по форме клетки
+			slab.top_radius = HexMath.HEX_SIZE * 0.97
+			slab.bottom_radius = HexMath.HEX_SIZE * 0.97
+			slab.height = 0.05
+			slab.radial_segments = 6
+			slab.rings = 1
 			ice.mesh = slab
 			ice.position.y = 0.025
 			var ice_mat := StandardMaterial3D.new()
@@ -410,9 +427,26 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			ice.material_override = ice_mat
 			ice.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(ice)
+		BattleLogic.Tile.SWAMP:
+			# Трясина: тёмная болотная жижа с зеленоватым отсветом
+			var mud := _flat_disc(0.42 * CELL_STEP, Color(0.17, 0.22, 0.12, 0.95), 0.02)
+			var mud_mat: StandardMaterial3D = mud.material_override
+			mud_mat.roughness = 0.2
+			mud_mat.emission_enabled = true
+			mud_mat.emission = Color(0.2, 0.32, 0.1)
+			mud_mat.emission_energy_multiplier = 0.2
+			root.add_child(mud)
+		BattleLogic.Tile.GAS:
+			# Ядовитый газ: полупрозрачное ядовито-зелёное облако над клеткой
+			var cloud := _flat_disc(0.44 * CELL_STEP, Color(0.45, 0.85, 0.25, 0.45), 0.12)
+			var cloud_mat: StandardMaterial3D = cloud.material_override
+			cloud_mat.emission_enabled = true
+			cloud_mat.emission = Color(0.4, 0.9, 0.2)
+			cloud_mat.emission_energy_multiplier = 0.6
+			root.add_child(cloud)
 		BattleLogic.Tile.FIRE:
 			# Тлеющая земля, языки пламени из частиц и оранжевый свет
-			var embers := _flat_disc(0.42, Color(1.0, 0.4, 0.08, 0.75), 0.03)
+			var embers := _flat_disc(0.42 * CELL_STEP, Color(1.0, 0.4, 0.08, 0.75), 0.03)
 			var e_mat: StandardMaterial3D = embers.material_override
 			e_mat.emission_enabled = true
 			e_mat.emission = Color(1.0, 0.35, 0.05)
@@ -510,11 +544,39 @@ func add_rock(cell: Vector2i) -> void:
 
 # ---------- Вспомогательное ----------
 
-func _get_highlight_mesh() -> PlaneMesh:
+# Шестиугольник подсветки: плоская шестигранная призма чуть меньше клетки.
+# У CylinderMesh с 6 сегментами острый угол смотрит вдоль оси Z — как у наших сот.
+func _get_highlight_mesh() -> CylinderMesh:
 	if _highlight_mesh == null:
-		_highlight_mesh = PlaneMesh.new()
-		_highlight_mesh.size = Vector2(0.86, 0.86)
+		_highlight_mesh = _hex_prism(HexMath.HEX_SIZE * 0.88, 0.01)
 	return _highlight_mesh
+
+
+# Шестигранная плита (общая для всех клеток поля)
+func _get_tile_mesh() -> CylinderMesh:
+	if _tile_mesh == null:
+		_tile_mesh = _hex_prism(HexMath.HEX_SIZE * TILE_GAP, TILE_THICKNESS)
+	return _tile_mesh
+
+
+func _hex_prism(radius: float, thickness: float) -> CylinderMesh:
+	var m := CylinderMesh.new()
+	m.top_radius = radius
+	m.bottom_radius = radius
+	m.height = thickness
+	m.radial_segments = 6
+	m.rings = 1
+	return m
+
+
+# Матовый материал одного цвета (с кешем)
+func _get_solid_material(color: Color) -> StandardMaterial3D:
+	if not _solid_materials.has(color):
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = color
+		mat.roughness = 0.95
+		_solid_materials[color] = mat
+	return _solid_materials[color]
 
 
 # Полупрозрачный материал без освещения. Кешируем: один цвет — один материал.
@@ -542,18 +604,24 @@ func add_object(cell: Vector2i, kind: int) -> void:
 	_object_kinds[cell] = kind
 	if kind == BattleLogic.Obj.STAKES:
 		_orient_stakes(cell)
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			_orient_stakes(cell + d)
 
 
-# Частокол встаёт вдоль стены: если соседние колья сверху/снизу — поворачиваем на 90°
+# Частокол встаёт вдоль стены: поворачиваем модель вдоль той из трёх осей сот,
+# по которой рядом стоят другие колья (ряд слева-направо — в первую очередь)
 func _orient_stakes(cell: Vector2i) -> void:
 	if _object_kinds.get(cell, BattleLogic.Obj.NONE) != BattleLogic.Obj.STAKES:
 		return
-	var s: int = BattleLogic.Obj.STAKES
-	var along_x: bool = _object_kinds.get(cell + Vector2i(1, 0), -1) == s or _object_kinds.get(cell + Vector2i(-1, 0), -1) == s
-	var along_y: bool = _object_kinds.get(cell + Vector2i(0, 1), -1) == s or _object_kinds.get(cell + Vector2i(0, -1), -1) == s
-	_object_nodes[cell].rotation.y = PI / 2.0 if (along_y and not along_x) else 0.0
+	var stakes: int = BattleLogic.Obj.STAKES
+	var angle: float = 0.0
+	for axis in 3:
+		var d: Vector2i = HexMath.DIRS[axis]
+		if _object_kinds.get(cell + d, -1) == stakes or _object_kinds.get(cell - d, -1) == stakes:
+			var v: Vector3 = HexMath.axial_to_world(d)
+			angle = atan2(-v.z, v.x)   # модель лежит вдоль оси X; поворот вокруг Y кладёт её вдоль v
+			break
+	_object_nodes[cell].rotation.y = angle
 
 
 # Объект поменялся. Показываем красиво: дерево падает, бочка лопается,
@@ -591,7 +659,7 @@ func move_object(from: Vector2i, to: Vector2i) -> void:
 	_object_kinds[to] = _object_kinds.get(from, BattleLogic.Obj.NONE)
 	_object_kinds.erase(from)
 	var tween: Tween = create_tween()
-	var steps: int = absi(to.x - from.x) + absi(to.y - from.y)
+	var steps: int = HexMath.distance(from, to)
 	tween.tween_property(node, "position", grid_to_world(to), 0.12 * steps)
 	await tween.finished
 
@@ -696,7 +764,8 @@ func _fall_tree(node: Node3D, dir: Vector2i) -> void:
 	pivot.position = node.position
 	add_child(pivot)
 	node.reparent(pivot)
-	var axis := Vector3(dir.y, 0.0, -dir.x).normalized()   # ось, перпендикулярная падению
+	var fall: Vector3 = HexMath.axial_to_world(dir)   # куда падает: вектор в мире
+	var axis := Vector3(fall.z, 0.0, -fall.x).normalized()   # ось, перпендикулярная падению
 	if axis == Vector3.ZERO:
 		axis = Vector3.RIGHT
 	var tween: Tween = create_tween()
@@ -765,7 +834,8 @@ func show_routes(paths: Array) -> void:
 		arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		arrow.position = grid_to_world(prev).lerp(grid_to_world(last), 0.62) + Vector3(0, y, 0)
 		# Сначала кладём треугольник на пол (остриё смотрит в -Z), потом поворачиваем к цели
-		arrow.rotation = Vector3(-PI / 2.0, atan2(-float(last.x - prev.x), -float(last.y - prev.y)), 0.0)
+		var heading: Vector3 = grid_to_world(last) - grid_to_world(prev)
+		arrow.rotation = Vector3(-PI / 2.0, atan2(-heading.x, -heading.z), 0.0)
 		holder.add_child(arrow)
 
 

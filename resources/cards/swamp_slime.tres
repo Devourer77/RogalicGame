@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "swamp_slime"
+title = "Болотная тина"
+description = "Пустышка. Пока лежит в руке, у героя на 1 шаг меньше. Сжигается за 1 ману (это Заклинание)."
+cost = 1
+shape = 0
+special = "slime"
+owner_hero = ""
+is_spell = true
+scrap_moves = 0

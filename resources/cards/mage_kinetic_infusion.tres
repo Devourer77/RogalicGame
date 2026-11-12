@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_kinetic_infusion"
+title = "Кинетическая сфера"
+description = "Толкает Рыцаря на 3 клетки по прямой от Мага. Врагу на пути — 6 урона. Разгон засчитывается Рыцарю."
+cost = 1
+shape = 7
+cast_range = 6
+card_set = "redesign"
+special = "kinetic"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 1

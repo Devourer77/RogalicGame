@@ -13,3 +13,13 @@ enum Kind { CORRUPTED, CHARM }
 @export var start_open: bool = false  # открыт с начала игры
 @export var buyable: bool = false     # можно купить за Отзвуки на Полке трофеев
 @export var unlock_cost: int = 0      # цена в Отзвуках, если buyable
+# Только у порченых реликвий (Kind.CORRUPTED): сила и цена отдельными строками
+@export_multiline var plus_text: String = ""
+@export_multiline var minus_text: String = ""
+
+
+# Текст подсказки: название и описание (у реликвий — плюс и минус)
+func full_text() -> String:
+	if kind == Kind.CORRUPTED and plus_text != "":
+		return "%s\n+ %s\n− %s" % [title, plus_text, minus_text]
+	return "%s\n%s" % [title, desc]

@@ -21,6 +21,13 @@ const FINAL_ACT: int = 1
 
 const MAP_ROWS: int = 8        # последний ряд — босс, предпоследний — привал
 const MAP_COLS: int = 3
+const OBJECTIVE_FROM_ROW: int = 2     # с какого ряда карты бывают бои с особой целью
+const OBJECTIVE_CHANCE: float = 0.3   # шанс особой цели у обычного боя
+const OBJECTIVE_GOLD: int = 15        # доплата золотом за бой с особой целью
+const MAX_RELICS: int = 4             # больше порченых реликвий за забег не взять (обереги не в счёт)
+const RELIC_CHOICES: int = 3          # из скольких выбирать после элиты
+const RELIC_DIR: String = "res://resources/relics/"
+const SLIME_CARD: String = "res://resources/cards/swamp_slime.tres"
 const START_GOLD: int = 30
 const REST_HEAL_PERCENT: float = 0.3
 const REMOVE_CARD_PRICE: int = 60
@@ -57,6 +64,7 @@ var map: Array[MapNode] = []
 var current: MapNode = null              # где герой сейчас (null — ещё не вышел)
 var pending_enemies: Array[EnemyData] = []  # враги для ближайшего боя
 var pending_arena: String = ""               # арена ближайшего боя (ключ из BattleLogic.ARENAS)
+var pending_objective: int = 0               # цель ближайшего боя (BattleLogic.Objective)
 var _last_arena: String = ""                 # прошлая арена — чтобы не повторялась подряд
 var last_gold_reward: int = 0
 var shop_stock: Array[Dictionary] = []   # {"hero": RunHero, "card": CardData}
@@ -239,14 +247,17 @@ func enter_node(n: MapNode) -> void:
 		MapNode.Type.BATTLE:
 			pending_enemies = _make_encounter(n.row, false)
 			pending_arena = pick_arena(false)
+			pending_objective = pick_objective(n.row, pending_enemies, pending_arena)
 			goto(BATTLE_SCENE)
 		MapNode.Type.ELITE:
 			pending_enemies = _make_encounter(n.row, false, true)
 			pending_arena = pick_arena(false)
+			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
 		MapNode.Type.BOSS:
 			pending_enemies = _make_encounter(n.row, true)
 			pending_arena = pick_arena(true)
+			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
 		MapNode.Type.SHOP:
 			shop_stock.clear()
@@ -259,6 +270,22 @@ func enter_node(n: MapNode) -> void:
 			goto(REST_SCENE)
 		MapNode.Type.EVENT:
 			goto(EVENT_SCENE)
+
+
+# Особая цель обычного боя: с OBJECTIVE_FROM_ROW ряда карты, с шансом OBJECTIVE_CHANCE.
+# «Ритуал» — только если среди врагов есть шаман или культист; «Прорыв» — не на «Старой гати»
+# (через узкие переправы до верха почти не дойти).
+func pick_objective(row: int, enemies: Array[EnemyData], arena: String) -> int:
+	if row < OBJECTIVE_FROM_ROW or rng.randf() >= OBJECTIVE_CHANCE:
+		return BattleLogic.Objective.KILL_ALL
+	var options: Array[int] = [BattleLogic.Objective.RISING_WATER]
+	if arena != "gat":
+		options.append(BattleLogic.Objective.BREAKTHROUGH)
+	for e in enemies:
+		if BattleLogic.RITUAL_CASTERS.has(e.id):
+			options.append(BattleLogic.Objective.RITUAL)
+			break
+	return options[rng.randi_range(0, options.size() - 1)]
 
 
 # Выбирает арену для боя: у босса своя, обычные не повторяются два раза подряд
@@ -368,6 +395,9 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 		_offer_trophy()
 	else:
 		last_gold_reward = rng.randi_range(12, 20)
+		if pending_objective != BattleLogic.Objective.KILL_ALL:
+			last_gold_reward += OBJECTIVE_GOLD   # за бой с особой целью
+		pending_objective = BattleLogic.Objective.KILL_ALL
 		gold += last_gold_reward
 		goto(REWARD_SCENE)
 
@@ -385,6 +415,83 @@ func _offer_trophy() -> void:
 		trophy_choices.append(closed[i])
 		closed.remove_at(i)
 	goto(TROPHY_SCENE)
+
+
+# ---------- Порченые реликвии ----------
+# Лежат в resources/relics/ рядом с оберегами (RelicData.Kind.CORRUPTED), в забеге —
+# тем же списком id `relics`, что и обереги; эффекты проверяют has_relic("id").
+
+# Лечение героя между боями (привал, события). «Клеймо стража»: рыцарь лечится вдвое слабее.
+func heal_hero(rh: RunHero, amount: int) -> void:
+	if rh.data.id == "knight" and has_relic("warden_brand"):
+		amount = amount / 2
+	rh.heal(amount)
+
+
+# Описание оберега или реликвии по id (для значков и подсказок). null — нет такого.
+func relic_data(id: String) -> RelicData:
+	var path: String = RELIC_DIR + id + ".tres"
+	return load(path) as RelicData if ResourceLoader.exists(path) else null
+
+
+# Описания всех оберегов и реликвий этого забега
+func relic_list() -> Array[RelicData]:
+	var result: Array[RelicData] = []
+	for id in relics:
+		var r: RelicData = relic_data(id)
+		if r != null:
+			result.append(r)
+	return result
+
+
+func corrupted_count() -> int:
+	var n: int = 0
+	for r in relic_list():
+		if r.kind == RelicData.Kind.CORRUPTED:
+			n += 1
+	return n
+
+
+func can_take_relic() -> bool:
+	return corrupted_count() < MAX_RELICS
+
+
+# Все порченые реликвии из resources/relics/ (новую достаточно положить туда .tres с kind = 0)
+func all_relics() -> Array[RelicData]:
+	var result: Array[RelicData] = []
+	var dir := DirAccess.open(RELIC_DIR)
+	if dir == null:
+		return result
+	var names: PackedStringArray = dir.get_files()
+	names.sort()   # порядок файлов на разных ПК разный — сортируем, чтобы сид давал то же самое
+	for file_name: String in names:
+		var clean: String = file_name.trim_suffix(".remap")   # в собранной игре файлы лежат как *.tres.remap
+		if clean.ends_with(".tres"):
+			var r: RelicData = load(RELIC_DIR + clean) as RelicData
+			if r != null and r.kind == RelicData.Kind.CORRUPTED:
+				result.append(r)
+	return result
+
+
+# Случайные реликвии, которых ещё нет в забеге
+func roll_relics(count: int) -> Array[RelicData]:
+	var pool: Array[RelicData] = []
+	for r in all_relics():
+		if not has_relic(r.id):
+			pool.append(r)
+	shuffle(pool)
+	return pool.slice(0, count)
+
+
+# Взять реликвию. Минус «Сердца утопленника» — тина в колоду мага навсегда.
+func take_relic(r: RelicData) -> void:
+	if r == null or has_relic(r.id) or not can_take_relic():
+		return
+	relics.append(r.id)
+	if r.id == "drowned_heart":
+		for rh in party:
+			if rh.data.id == "mage":
+				rh.deck.append(load(SLIME_CARD))
 
 
 func game_over(victory: bool) -> void:

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_ground_slam"
+title = "Сотрясение почвы"
+description = "5 урона на выбранной клетке и всех соседних. Враги на втором кольце подтягиваются на 1 к центру."
+cost = 2
+shape = 3
+cast_range = 2
+damage = 5
+card_set = "redesign"
+special = "slam"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 0
+scrap_block = 5

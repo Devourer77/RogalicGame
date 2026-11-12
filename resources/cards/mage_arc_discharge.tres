@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_arc_discharge"
+title = "Дуговой разряд"
+description = "8 молнии и прыжок на соседнего врага (4). В перегреве бьёт цепочку соседних врагов и стоящих в трясине по 9."
+cost = 2
+shape = 1
+cast_range = 3
+damage = 8
+element = 4
+card_set = "redesign"
+special = "arc"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 0
+scrap_mana = 1

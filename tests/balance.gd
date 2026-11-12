@@ -6,14 +6,16 @@ extends SceneTree
 # Запуск (из папки проекта):
 #   godot --headless --path . -s tests/balance.gd            — 200 боёв на каждую строку
 #   godot --headless --path . -s tests/balance.gd -- 50      — быстрый прогон, 50 боёв
+#   godot --headless --path . -s tests/balance.gd -- 100 relics — ряд 3 без реликвий и с каждой по очереди
 # Результат печатается в окно Output / консоль и пишется в user://balance.txt
 # (в Godot: Проект → Открыть папку данных проекта).
 #
 # Как играет бот (простая жадная тактика, он не гений, зато одинаков до и после правок):
 # - пробует каждую карту в руке на копии боя и выбирает ту, что даст больше всего:
 #   урон врагам, убийства, блок (если по герою будет удар) минус потери своих;
-# - если ничего полезного сыграть нельзя, подходит ближе к врагам
-#   (маг останавливается в 4 клетках, рыцарь идёт вплотную);
+# - если ничего полезного сыграть нельзя и герой стоит в зоне взрыва жабы — отходит
+#   из неё (иначе бот вечно стоит рядом с жабой на 1 HP и не решается её добить);
+# - иначе подходит ближе к врагам (маг останавливается в 4 клетках, рыцарь идёт вплотную);
 # - потом «Конец хода».
 
 const FIRST_ROWS: int = 5          # обычные бои на рядах карты 0–4
@@ -43,6 +45,16 @@ func _initialize() -> void:
 		configs.append({"name": "ряд %d" % r, "row": r, "boss": false, "elite": false})
 	configs.append({"name": "элита", "row": ELITE_ROW, "boss": false, "elite": true})
 	configs.append({"name": "босс", "row": BOSS_ROW, "boss": true, "elite": false})
+	# Бои с особой целью (ряд 3). Бот целей не понимает и просто дерётся — строка показывает,
+	# насколько цель усложняет обычную драку (ритуал призывает, вода замедляет и т. д.)
+	configs.append({"name": "ритуал", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RITUAL})
+	configs.append({"name": "прорыв", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.BREAKTHROUGH})
+	configs.append({"name": "вода", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RISING_WATER})
+	if args.has("relics"):
+		configs.clear()
+		configs.append({"name": "без", "row": 3, "boss": false, "elite": false})
+		for r: RelicData in run.all_relics():
+			configs.append({"name": r.id.left(7), "row": 3, "boss": false, "elite": false, "relics": [r]})
 
 	var started: int = Time.get_ticks_msec()
 	var lines: PackedStringArray = []
@@ -89,14 +101,30 @@ func _play_battle(run: Node, seed_value: int, cfg: Dictionary) -> Dictionary:
 	bot_rng.seed = seed_value
 	var enemies: Array[EnemyData] = run._make_encounter(cfg["row"], cfg["boss"], cfg["elite"])
 	var arena: String = run.pick_arena(cfg["boss"])
+	var objective: int = cfg.get("objective", BattleLogic.Objective.KILL_ALL)
+	if objective == BattleLogic.Objective.RITUAL:
+		var has_caster: bool = false
+		for e in enemies:
+			has_caster = has_caster or BattleLogic.RITUAL_CASTERS.has(e.id)
+		if not has_caster:
+			enemies.append(load("res://resources/enemies/goblin_shaman.tres"))
+	if objective == BattleLogic.Objective.BREAKTHROUGH and arena == "gat":
+		arena = "grove"   # на гати прорыва не бывает
+	var relic_list: Array[String] = []
+	for r: RelicData in cfg.get("relics", []):
+		relic_list.append(r.id)
 	var b := BattleLogic.new()
-	b.setup(12, 12, run.rng, run.party, enemies, arena)
+	b.setup(12, 12, run.rng, run.party, enemies, arena, objective, relic_list)
 	b.start()
 	var stuck: bool = false
 	while not b.is_over:
 		if b.turn >= MAX_TURNS:
 			stuck = true
 			break
+		# Сначала все, кто стоит у жабы, отходят — иначе первый герой не решится
+		# добить её, пока рядом второй, а второй отойдёт, когда уже поздно
+		for h in b.living_heroes():
+			_leave_blast_zone(b, h)
 		for h in b.living_heroes():
 			_play_hero(b, h)
 			if b.is_over:
@@ -143,8 +171,42 @@ func _play_hero(b: BattleLogic, h: BattleUnit) -> void:
 		if best_idx >= 0:
 			b.play_card(h, best_idx, best_target)
 			continue
+		if _leave_blast_zone(b, h):
+			continue
 		if not _approach(b, h):
 			return
+
+
+# Радиус взрыва жабы: 1, а с 2+ стаками «Раздувания» — 2
+func _blast_radius(e: BattleUnit) -> int:
+	return 2 if e.inflation >= 2 else 1
+
+
+func _in_blast_zone(b: BattleLogic, c: Vector2i) -> bool:
+	for e in b.living_enemies():
+		if e.data.inflation and HexMath.distance(e.cell, c) <= _blast_radius(e):
+			return true
+	return false
+
+
+# Герой в зоне будущего взрыва жабы — шаг на ближайшую к врагам клетку вне всех зон.
+# true — сдвинулся (можно снова пробовать карты, например добить жабу издалека).
+func _leave_blast_zone(b: BattleLogic, h: BattleUnit) -> bool:
+	if not _in_blast_zone(b, h.cell):
+		return false
+	var moves: Dictionary = b.get_move_targets(h)
+	var best_cell: Vector2i = h.cell
+	var best_dist: int = 9999
+	for c: Vector2i in moves.keys():
+		if _in_blast_zone(b, c):
+			continue
+		var d: int = _dist_to_enemy(b, c)
+		if d < best_dist:
+			best_dist = d
+			best_cell = c
+	if best_cell == h.cell:
+		return false
+	return b.move_hero(h, best_cell)
 
 
 # Копия боя вместе с рукой и колодой героя (clone() их не копирует)
@@ -239,6 +301,8 @@ func _approach(b: BattleLogic, h: BattleUnit) -> bool:
 	var best_cell: Vector2i = h.cell
 	var best_dist: int = now
 	for c: Vector2i in moves.keys():
+		if _in_blast_zone(b, c) and not _in_blast_zone(b, h.cell):
+			continue   # в зону взрыва жабы не заходим
 		var d: int = _dist_to_enemy(b, c)
 		if d < best_dist:
 			best_dist = d
@@ -251,7 +315,7 @@ func _approach(b: BattleLogic, h: BattleUnit) -> bool:
 func _dist_to_enemy(b: BattleLogic, c: Vector2i) -> int:
 	var best: int = 9999
 	for e in b.living_enemies():
-		best = mini(best, absi(e.cell.x - c.x) + absi(e.cell.y - c.y))
+		best = mini(best, HexMath.distance(e.cell, c))   # шаги по сотам, а не |dx| + |dy|
 	return best
 
 

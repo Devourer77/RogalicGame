@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_battering_ram"
+title = "Таранный натиск"
+description = "5 урона. +3 урона и толчок на +1 клетку за каждую клетку, пройденную перед ударом строго по прямой."
+cost = 1
+shape = 1
+cast_range = 1
+damage = 5
+card_set = "redesign"
+special = "axis_ram"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 2

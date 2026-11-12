@@ -1,4 +1,9 @@
 extends SceneTree
+
+# Клетка по колонке и ряду (как раньше x, y): поле из сот хранит клетки осевой парой, см. HexMath
+func C(col: int, row: int) -> Vector2i:
+	return HexMath.from_column(col, row)
+
 # Проверка арен: каждая строится, проходима, врагам есть место. Печатает схемы.
 func _initialize() -> void:
 	await process_frame
@@ -26,7 +31,7 @@ func _initialize() -> void:
 				for y in 12:
 					var line := ""
 					for x in 12:
-						var c := Vector2i(x, y)
+						var c := C(x, y)
 						var ch := "."
 						if b.ground.get(c, 0) == BattleLogic.Ground.PLANKS: ch = "_"
 						if b.tiles.has(c): ch = "o"

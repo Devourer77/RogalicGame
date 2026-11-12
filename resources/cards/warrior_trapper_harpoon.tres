@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_trapper_harpoon"
+title = "Гарпун зверолова"
+description = "3 урона по линии до 4 клеток и притягивает первого врага вплотную. Болото и газ на пути срабатывают. Не раздувает жабу."
+cost = 1
+shape = 2
+cast_range = 4
+damage = 3
+card_set = "redesign"
+special = "harpoon"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 2

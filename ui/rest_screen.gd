@@ -29,5 +29,5 @@ func _rest() -> void:
 	var heal_share: float = Run.rest_percent()
 	Run.rest_used = true   # «Чистый бинт» действует только на первый привал
 	for rh in Run.party:
-		rh.heal(ceili(rh.data.max_hp * heal_share))
+		Run.heal_hero(rh, ceili(rh.data.max_hp * heal_share))
 	Run.goto(Run.MAP_SCENE)

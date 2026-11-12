@@ -38,6 +38,9 @@ var _speed_button: Button
 var _discard_button: Button
 var _end_tween: Tween
 var _round_label: Label
+var _objective_row: HBoxContainer   # цель боя под шапкой журнала (скрыта в обычном бою)
+var _relic_row: HBoxContainer       # значки реликвий забега (подсказка при наведении)
+var relic_list: Array[RelicData] = []   # обереги и реликвии забега — задаёт сцена боя (логика знает только id)
 var _arena_label: Label
 var _log_box: VBoxContainer
 var _enemy_card: PanelContainer
@@ -110,6 +113,16 @@ func _build_side_column() -> void:
 	head.add_child(_round_label)
 	_arena_label = UiKit.make_label("", 14, UiKit.TEXT_DIM)
 	head.add_child(_arena_label)
+	_objective_row = HBoxContainer.new()
+	_objective_row.add_theme_constant_override("separation", 6)
+	_objective_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_objective_row.visible = false
+	log_column.add_child(_objective_row)
+	_relic_row = HBoxContainer.new()
+	_relic_row.add_theme_constant_override("separation", 6)
+	_relic_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_relic_row.visible = false
+	log_column.add_child(_relic_row)
 	var line := ColorRect.new()
 	line.color = Color(UiKit.LINE, 0.8)
 	line.custom_minimum_size.y = 1
@@ -383,11 +396,38 @@ func toggle_help() -> void:
 
 # ---------- Обновление ----------
 
+# Обереги и реликвии: латунные значки, при наведении — описание (у реликвий плюс и минус)
+func _refresh_relics() -> void:
+	if _relic_row.get_child_count() == relic_list.size():
+		return   # не пересобираем каждый кадр — набор реликвий в бою не меняется
+	UiKit.clear(_relic_row)
+	_relic_row.visible = not relic_list.is_empty()
+	for r in relic_list:
+		_relic_row.add_child(UiKit.chip(r.icon if r.icon != "" else "relic", "", UiKit.BRASS, r.full_text(), 14, 18))
+
+
+# Цель боя: значок, название и что осталось («Ритуал: 3 р. до призыва»)
+func _refresh_objective(logic: BattleLogic) -> void:
+	UiKit.clear(_objective_row)
+	_objective_row.visible = logic.objective != BattleLogic.Objective.KILL_ALL
+	if not _objective_row.visible:
+		return
+	_objective_row.add_child(UiKit.icon_rect(logic.objective_icon(), 16, UiKit.BRASS))
+	_objective_row.add_child(UiKit.make_label(logic.objective_title() + ":", 14, UiKit.BRASS, true))
+	var text: Label = UiKit.make_label(logic.objective_text(), 14, UiKit.TEXT)
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.custom_minimum_size.x = 200
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_objective_row.add_child(text)
+
+
 # Перерисовывает панели героев и руку активного героя.
 # selected — номер выбранной карты (-1 — нет), busy — идут анимации.
 func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) -> void:
 	_round_label.text = "Раунд %d" % maxi(logic.turn, 1)
 	_arena_label.text = ("·  " + logic.arena_title()) if logic.arena_title() != "" else ""
+	_refresh_objective(logic)
+	_refresh_relics()
 
 	UiKit.clear(_hero_box)
 	for i in logic.heroes.size():
@@ -557,7 +597,9 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 # Мана «камнями»: яркие — есть, тёмные — потрачены. Если маны много — просто числом.
 func _mana_row(h: BattleUnit) -> HBoxContainer:
 	var total: int = maxi(h.mana, h.hero_data.mana_per_turn)
-	var hint: String = "Мана: %d из %d. Тратится на карты, восполняется каждый ход." % [h.mana, h.hero_data.mana_per_turn]
+	var hint: String = "Мана: %d из %d. Можно уйти в минус до −%d (перегрев): если в минусе 2 или больше, в следующий ход маны на 1 меньше." % [h.mana, h.hero_data.mana_per_turn, BattleLogic.MAX_OVERHEAT]
+	if h.mana < 0:
+		return UiKit.chip("mana", "%d (перегрев)" % h.mana, UiKit.GOLD, hint)
 	if total > 6:
 		return UiKit.chip("mana", str(h.mana), UiKit.MANA, hint)
 	var row := HBoxContainer.new()

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_hold_line"
+icon = "hold_line"
+title = "Стойка стража"
+description = "До твоего следующего хода враги, начавшие ход рядом с рыцарем, делают не больше 1 шага. Босса не держит. Блок 3."
+cost = 1
+shape = 0
+cast_range = 0
+block = 3
+hold_line = true
+card_set = "warden"
+scrap_moves = 0
+scrap_block = 3

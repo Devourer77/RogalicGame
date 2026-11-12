@@ -22,6 +22,8 @@ enum Mode {
 const COLOR_MOVE := Color(0.3, 0.6, 1.0, 0.35)
 const COLOR_TARGET := Color(1.0, 0.9, 0.3, 0.3)
 const COLOR_AREA := Color(1.0, 0.5, 0.1, 0.6)
+const COLOR_GHOST_MOVE := Color(0.4, 0.8, 1.0, 0.55)   # куда встанут юниты после карты
+const COLOR_GHOST_KILL := Color(0.96, 0.8, 0.36, 0.7)  # кто погибнет
 const COLOR_INTENT := Color(1.0, 0.1, 0.1, 0.45)
 const COLOR_HOVER_THREAT := Color(1.0, 0.0, 0.3, 0.6)
 const COLOR_FLASH := Color(1.0, 0.95, 0.6, 0.8)
@@ -35,7 +37,10 @@ const COLOR_LAVA := Color(1.0, 0.65, 0.1, 0.75)      # лава (оранжев�
 const COLOR_CRUST := Color(0.6, 0.6, 0.62, 0.75)     # корка
 const COLOR_SHOCK := Color(1.0, 0.95, 0.55, 0.8)     # молния по мокрому
 const COLOR_RUNE := Color(0.9, 0.93, 1.0, 0.8)       # взрыв сторожевой руны (серебристо-белый)
-const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust", "shock"]
+const COLOR_OBJECTIVE := Color(0.84, 0.67, 0.34, 0.28)        # цель «Прорыв» — латунь
+const COLOR_OBJECTIVE_WATER := Color(0.3, 0.55, 0.75, 0.35)   # ряд, который зальёт вода
+const COLOR_PINCER := Color(0.84, 0.67, 0.34, 0.8)   # «Клещи» — латунь (UiKit.BRASS)
+const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust", "shock", "pincer"]
 const COLOR_BUFF := Color(0.37, 0.92, 0.83, 0.4)     # «зов» шамана: бирюза Раскола
 
 # Ощущение удара от окружения (взрыв бочки, падение дерева). Всё можно подкрутить:
@@ -68,7 +73,7 @@ var _active: BattleUnit                         # выбранный герой
 var _ring: MeshInstance3D                       # светящееся кольцо под выбранным героем
 var _mode: Mode = Mode.BUSY
 var _selected_card: int = -1
-var _hover_cell := Vector2i(-1, -1)
+var _hover_cell: Vector2i = BattleLogic.NO_CELL
 var _anim_queue: Array[Callable] = []
 var _cam_yaw_deg: float = 0.0     # поворот камеры вокруг поля
 var _cam_dist: float = 15.0       # расстояние от центра поля
@@ -84,7 +89,9 @@ var _enemy_phase_running: bool = false   # идёт ход врагов (на н
 func _ready() -> void:
 	Run.ensure_run()
 	var layout_seed: int = Run.rng.randi()
-	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena, Run.relics)
+	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena,
+			Run.pending_objective, Run.relics)
+	hud.relic_list = Run.relic_list()
 	board.build(layout_seed, logic.arena_id, logic.ground)
 	_update_camera()
 	_create_views()
@@ -109,6 +116,20 @@ func _ready() -> void:
 
 # ---------- Создание фигурок ----------
 
+# Фигурка врага: модель (или капсула-заглушка), лицом к героям, с плашкой над головой
+func _make_enemy_view(e: BattleUnit) -> Unit:
+	var view: Unit = _spawn_view(e.data.id.capitalize(), e.cell)
+	if e.data.model != null:
+		view.add_child(e.data.model.instantiate())
+		view.setup_animations()   # Idle, Walk, Attack, Hit, Death из модели
+	else:
+		view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
+	view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
+	view.setup_label(1.4 * e.data.size + 0.55)
+	_views[e] = view
+	return view
+
+
 func _create_views() -> void:
 	for h in logic.heroes:
 		var view: Unit = _spawn_view(h.hero_data.id.capitalize(), h.cell)
@@ -117,21 +138,13 @@ func _create_views() -> void:
 			view.setup_animations()   # если в модели есть анимации — включаем Idle
 		else:
 			view.add_child(_make_capsule_model(h.hero_data.color, 1.1, true))
-		view.face_dir(Vector2i(0, -1))   # лицом к врагам
+		view.face_dir(HexMath.FACE_UP)   # лицом к врагам
 		view.setup_label(2.0)
 		view.visible = h.is_alive()
 		_views[h] = view
 
 	for e in logic.enemies:
-		var view: Unit = _spawn_view(e.data.id.capitalize(), e.cell)
-		if e.data.model != null:
-			view.add_child(e.data.model.instantiate())
-			view.setup_animations()   # Idle, Walk, Attack, Hit, Death из модели
-		else:
-			view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
-		view.face_dir(GridShapes.cardinal_dir(e.cell, logic.heroes[0].cell))
-		view.setup_label(1.4 * e.data.size + 0.55)
-		_views[e] = view
+		_make_enemy_view(e)
 
 	for c: Vector2i in logic.rocks:
 		board.add_rock(c)
@@ -217,18 +230,28 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		info["color"] = u.hero_data.color
 		if state["taunt"]:
 			marks.append("taunt")
+		if state.get("holding_line", false):
+			marks.append("hold_line")
 	else:
 		# Намерение врага: значок по форме удара и урон в этом раунде
 		var shape: int = logic.enemy_attack(u).shape
 		info["intent_icon"] = INTENT_ICONS[shape] if shape < INTENT_ICONS.size() else "sword"
 		info["intent_value"] = state["damage"]
 		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.THREAT
+		# Тлеющая жаба: вместо обычного удара — фитиль (с уроном взрыва, если уже горит)
+		if state.get("fuse", 0) > 0 or state.get("smoldering", false):
+			info["intent_icon"] = "fuse"
+			info["intent_color"] = UiKit.THREAT
 	if state["entangled"] > 0:
 		marks.append("entangled")
 	if state.get("wet", 0) > 0:
 		marks.append("wet")
 	if state.get("poison", 0) > 0:
 		marks.append("poison")
+	# «Ритуал»: над ритуалистом — сколько раундов до призыва
+	if logic.objective == BattleLogic.Objective.RITUAL and u.id == logic.ritual_caster_id and u.is_alive():
+		marks.append("ritual")
+		info["ritual_turns"] = logic.ritual_timer
 	info["marks"] = marks
 	if _fire_forecast.has(u.id):
 		info["fire"] = _fire_forecast[u.id]
@@ -252,6 +275,8 @@ func _connect_logic() -> void:
 	logic.enemy_attacked.connect(_on_enemy_attacked)
 	logic.enemy_buffed.connect(_on_enemy_buffed)
 	logic.message.connect(_on_message)
+	logic.unit_spawned.connect(_on_unit_spawned)
+	logic.objective_changed.connect(_on_objective_changed)
 
 
 func _queue(step: Callable) -> void:
@@ -292,6 +317,23 @@ func _on_unit_died(unit: BattleUnit) -> void:
 		_queue(func() -> void: await view.play_death())
 
 
+# Враг появился посреди боя (ритуал, подкрепление): фигурка возникает в очереди анимаций
+func _on_unit_spawned(unit: BattleUnit) -> void:
+	# Фигурку создаём сразу (логика может тут же прислать для неё status_changed),
+	# а показываем в свою очередь анимаций
+	var view: Unit = _make_enemy_view(unit)
+	view.visible = false
+	view.set_status(_plate_info(unit, logic.snapshot(unit)))
+	_queue(func() -> void: view.visible = true)
+
+
+# Цель боя обновилась: подсветка верхнего ряда («Прорыв») или ряда, который зальёт вода
+func _on_objective_changed() -> void:
+	var cells: Array[Vector2i] = logic.objective_cells()
+	var color: Color = COLOR_OBJECTIVE_WATER if logic.objective == BattleLogic.Objective.RISING_WATER else COLOR_OBJECTIVE
+	_queue(func() -> void: board.show_cells("objective", cells, color))
+
+
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
 	var view: Unit = _views[unit]
 	var info: Dictionary = _plate_info(unit, state)
@@ -323,6 +365,8 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 		color = COLOR_CRUST
 	elif kind == "shock":
 		color = COLOR_SHOCK
+	elif kind == "pincer":
+		color = COLOR_PINCER
 	var cells: Array[Vector2i] = [cell]
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
@@ -407,7 +451,7 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 	var from_cell: Vector2i = caster.cell
 	var dir: Vector2i = Vector2i.ZERO
 	if not cells.is_empty():
-		dir = GridShapes.cardinal_dir(from_cell, cells[0])
+		dir = HexMath.direction_to(from_cell, cells[0])
 	var is_mage: bool = caster.is_hero and caster.hero_data != null and caster.hero_data.id == "mage"
 	_queue(func() -> void:
 		view.face_dir(dir)
@@ -442,7 +486,7 @@ func _on_enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i])
 	)
 
 
-# «Зов»: враг не бьёт, а усиливает своих — бирюзовая вспышка по квадрату
+# «Зов»: враг не бьёт, а усиливает своих — бирюзовая вспышка по кругу вокруг зовущего
 func _on_enemy_buffed(unit: BattleUnit, cells: Array[Vector2i]) -> void:
 	var view: Unit = _views[unit]
 	_queue(func() -> void:
@@ -517,6 +561,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			_on_cell_clicked(_screen_to_cell(click.position))
 		elif click.button_index == MOUSE_BUTTON_RIGHT:
 			_cancel_card()
+	elif event is InputEventKey and event.pressed and not event.is_echo() and (event as InputEventKey).keycode == KEY_X:
+		# X, затем карта — сбросить её «в ноги»: бесплатно, шаг или блок вместо эффекта
+		_scrapping = not _scrapping
+		_discarding = false
+		_selected_card = -1
+		_enter_idle()
 	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_TAB:
 		_select_hero(_next_hero())
 		_enter_idle()
@@ -557,6 +607,13 @@ func _on_hover(cell: Vector2i) -> void:
 	_show_hovered_enemy_threat(cell)
 	if _mode == Mode.AIMING and logic.get_card_targets(_active, _selected_card).has(cell):
 		board.show_cells("area", logic.get_card_area(_active, _selected_card, cell), COLOR_AREA)
+		# «Призрак»: куда встанут юниты и кто погибнет, если сыграть карту сюда
+		var ghost: Dictionary = logic.ghost_preview(_active, _selected_card, cell)
+		var landing: Array[Vector2i] = []
+		for mv: Dictionary in ghost["moves"]:
+			landing.append(mv["to"])
+		board.show_cells("ghost_move", landing, COLOR_GHOST_MOVE)
+		board.show_cells("ghost_kill", ghost["deaths"], COLOR_GHOST_KILL)
 		# Реакции стихий, которые сработают от этой карты, — подсвечены своим цветом
 		var by_kind: Dictionary = {}
 		for k: String in REACTION_KINDS:
@@ -564,11 +621,13 @@ func _on_hover(cell: Vector2i) -> void:
 		for r: Dictionary in logic.predict_reactions(_active, _selected_card, cell):
 			by_kind[r["kind"]].append(r["cell"])
 		var colors: Dictionary = {"steam": COLOR_STEAM, "freeze": COLOR_FREEZE, "shatter": COLOR_SHATTER,
-				"lava": COLOR_LAVA, "crust": COLOR_CRUST, "shock": COLOR_SHOCK}
+				"lava": COLOR_LAVA, "crust": COLOR_CRUST, "shock": COLOR_SHOCK, "pincer": COLOR_PINCER}
 		for k: String in REACTION_KINDS:
 			board.show_cells("reaction_" + k, by_kind[k], colors[k])
 	else:
 		board.clear_layer("area")
+		board.clear_layer("ghost_move")
+		board.clear_layer("ghost_kill")
 		for k: String in REACTION_KINDS:
 			board.clear_layer("reaction_" + k)
 
@@ -586,6 +645,7 @@ func _show_hovered_enemy_threat(cell: Vector2i) -> void:
 
 # Режим сброса: следующая нажатая карта уходит в сброс (одна за ход)
 var _discarding: bool = false
+var _scrapping: bool = false   # включён режим «в ноги» (клавиша X): следующая карта сбрасывается бесплатно
 
 
 func _on_discard_toggled() -> void:
@@ -601,6 +661,11 @@ func _on_discard_toggled() -> void:
 
 func _on_card_pressed(index: int) -> void:
 	if _mode == Mode.BUSY:
+		return
+	if _scrapping:
+		var sh: BattleUnit = _active
+		_scrapping = false
+		_do(func() -> void: logic.scrap_card(sh, index))
 		return
 	if _discarding:
 		var h: BattleUnit = _active
@@ -725,14 +790,14 @@ func _show_forecast() -> void:
 	board.show_cells("buff", buffs, COLOR_BUFF)   # бирюзовое — кого шаман усилит «зовом»
 
 
-# Центр взрыва-креста: клетка, у которой в этом наборе четыре соседа
+# Центр взрыва: клетка, у которой в этом наборе все шесть соседей
 func _blast_center(cells: Array[Vector2i]) -> Vector2i:
 	for c in cells:
 		var neighbours: int = 0
-		for d: Vector2i in GridShapes.DIRS:
+		for d: Vector2i in HexMath.DIRS:
 			if cells.has(c + d):
 				neighbours += 1
-		if neighbours == 4:
+		if neighbours == 6:
 			return c
 	return cells[0]
 
@@ -791,7 +856,7 @@ func _screen_to_cell(screen_pos: Vector2) -> Vector2i:
 	var floor_plane := Plane(Vector3.UP, 0.0)
 	var hit: Variant = floor_plane.intersects_ray(ray_from, ray_dir)
 	if hit == null:
-		return Vector2i(-1, -1)  # луч ушёл в небо — клетки нет
+		return BattleLogic.NO_CELL  # луч ушёл в небо — клетки нет
 	return board.world_to_grid(hit)
 
 
@@ -803,7 +868,7 @@ func _update_camera() -> void:
 	# Точка взгляда чуть ближе к камере, чем центр поля: так поле встаёт выше и рука карт его не закрывает.
 	# Число подобрано так, чтобы сверху влезали плашки дальних врагов, а снизу поле не уходило под карты.
 	var look_shift := Vector3(0.0, 0.0, CAM_LOOK_SHIFT).rotated(Vector3.UP, deg_to_rad(_cam_yaw_deg))
-	var center := Vector3((board.width - 1) / 2.0, 0.0, (board.height - 1) / 2.0) + look_shift
+	var center: Vector3 = board.field_center() + look_shift
 	var pitch: float = deg_to_rad(CAM_PITCH_DEG)
 	var offset := Vector3(0.0, sin(pitch), cos(pitch)) * _cam_dist
 	offset = offset.rotated(Vector3.UP, deg_to_rad(_cam_yaw_deg))

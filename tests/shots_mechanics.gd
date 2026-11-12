@@ -33,7 +33,7 @@ func _initialize() -> void:
 	var logic: BattleLogic = b.logic
 	var knight: BattleUnit = logic.heroes[1]
 	var hand: Array[CardData] = [_card("k_rune_trap"), _card("k_rune_fire"), _card("k_rune_storm"),
-			_card("k_rune_rot"), _card("k_diag"), _card("k_slash")]
+			_card("k_rune_rot"), _card("k_cleave"), _card("k_slash")]
 	knight.hand = hand
 	knight.mana = 5
 	b._select_hero(knight)
@@ -59,7 +59,7 @@ func _initialize() -> void:
 	b.hud.show_enemy(foes[1], logic)
 	await _shot("m2_enemy_card")
 	var mage: BattleUnit = logic.heroes[0]
-	var mhand: Array[CardData] = [_card("m_cross_bolt"), _card("m_spark"), _card("wave")]
+	var mhand: Array[CardData] = [_card("m_ball_lightning"), _card("m_spark"), _card("wave")]
 	mage.hand = mhand
 	b._select_hero(mage)
 	b._enter_idle()

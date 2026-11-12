@@ -17,10 +17,11 @@ var hero_data: HeroData = null
 var draw_pile: Array[CardData] = []
 var hand: Array[CardData] = []
 var discard_pile: Array[CardData] = []
-var mana: int = 0
+var mana: int = 0           # мана героя; может уходить в минус (перегрев)
 var moves_left: int = 0
 var rage: int = 0             # ярость рыцаря: +1 за каждый полученный удар
 var taunt: bool = false       # провокация до начала следующего хода
+var holding_line: bool = false  # «Стойка стража» до начала следующего хода: соседние враги делают максимум 1 шаг
 var charge: int = 0           # заряд мага: копится между ходами, тратится «разрядками»
 var momentum: int = 0         # натиск рыцаря: +1 за каждую пройденную клетку, сгорает после удара
 var discount: int = 0         # следующая карта дешевле на столько маны
@@ -35,6 +36,13 @@ var rune_hits: int = 0        # на сколько ударов её ещё х�
 var kept: Array[int] = []     # номера карт в руке, отмеченных «удержать» (режим KEEP_2)
 
 # --- Только для врагов ---
+var inflation: int = 0        # стаки «Раздувания» (жаба)
+var fuse: int = 0             # фитиль тлеющей жабы: > 0 — взорвётся в начале следующего хода врагов
+var armor_burnt: bool = false # «Древесная броня» сожжена огнём
+var guarding: bool = false    # «Живой бастион»: до следующего хода принимает половину урона за соседнего напарника
+var prism: bool = false       # «Магическая призма»: следующее Заклинание Мага разойдётся тремя лучами от этого героя
+var vulnerable: int = 0       # «Уязвимость к магии»: следующее Заклинание бьёт сильнее на столько
+var retain_turns: Dictionary = {}  # карта -> сколько ходов пролежала в руке (OnRetain), у героев
 var bonus_damage: int = 0     # «Зов Раскола»: следующий удар сильнее на столько
 
 
@@ -58,6 +66,7 @@ func copy() -> BattleUnit:
 	u.moves_left = moves_left
 	u.rage = rage
 	u.taunt = taunt
+	u.holding_line = holding_line
 	u.charge = charge
 	u.momentum = momentum
 	u.discount = discount
@@ -69,5 +78,11 @@ func copy() -> BattleUnit:
 	u.poison = poison
 	u.rune = rune
 	u.rune_hits = rune_hits
+	u.inflation = inflation
+	u.fuse = fuse
+	u.armor_burnt = armor_burnt
+	u.guarding = guarding
+	u.prism = prism
+	u.vulnerable = vulnerable
 	u.bonus_damage = bonus_damage
 	return u

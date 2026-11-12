@@ -71,6 +71,9 @@ func _draw() -> void:
 		elif mark == "poison":
 			# Яд: столько урона юнит получит в конце раунда
 			parts.append(["poison", COLOR_POISON, "-%d" % BattleLogic.POISON_DAMAGE])
+		elif mark == "ritual":
+			# Ритуал: через сколько раундов ритуалист призовёт подмогу (это угроза — красный)
+			parts.append(["ritual", UiKit.THREAT, str(_info.get("ritual_turns", 0))])
 		else:
 			parts.append([mark, UiKit.TEXT, ""])
 	var width: float = 0.0

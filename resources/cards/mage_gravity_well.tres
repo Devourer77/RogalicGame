@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_gravity_well"
+title = "Гравитационная сингулярность"
+description = "Все на 6 клетках вокруг выбранной притягиваются к ней на 1. Врезавшиеся друг в друга получают удар."
+cost = 1
+shape = 1
+cast_range = 3
+card_set = "redesign"
+special = "gravity"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 2

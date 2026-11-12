@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_aether_overload"
+title = "Перегрузка эфира"
+description = "Бесплатно. Уводит ману на −2, берёт 2 карты. До конца хода все карты бьют на +2 за каждый перегрев."
+cost = 0
+shape = 0
+cast_range = 0
+card_set = "redesign"
+special = "aether"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 1

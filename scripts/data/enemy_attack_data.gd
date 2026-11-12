@@ -34,7 +34,7 @@ func describe() -> String:
 		3:
 			parts.append("врагам в %d клетках: +%d блока, следующий удар +%d" % [attack_range, ally_block, ally_damage])
 		4:
-			parts.append("%d урона по 8 клеткам вокруг себя" % damage)
+			parts.append("%d урона по 6 клеткам вокруг себя" % damage)
 	if first_only:
 		parts.append("до первой цели")
 	if pierce:

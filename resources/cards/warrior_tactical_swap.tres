@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_tactical_swap"
+title = "Рокировка строя"
+description = "Меняет Рыцаря и Мага местами (до 3 клеток). Оба получают 5 блока, следующая карта Мага дешевле на 1."
+cost = 1
+shape = 7
+cast_range = 3
+block = 5
+card_set = "redesign"
+special = "swap"
+owner_hero = "knight"
+scrap_moves = 1

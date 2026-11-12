@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+id = "bog_pollen"
+title = "Болотная пыльца"
+plus_text = "Ядовитый газ не отравляет героев."
+minus_text = "В начале каждого боя на поле на 2 клетки газа больше."
+hero_id = ""
+icon = "relic"
+kind = 0
+desc = "+ Ядовитый газ не отравляет героев. − В начале каждого боя на поле на 2 клетки газа больше."

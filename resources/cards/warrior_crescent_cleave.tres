@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_crescent_cleave"
+title = "Серповидный размах"
+description = "6 урона по дуге. Если Рыцарь не двигался — вдвое меньше. Прошёл 2+ клеток — враги уязвимы к магии (+3 от Заклинания)."
+cost = 1
+shape = 5
+cast_range = 1
+damage = 6
+card_set = "redesign"
+special = "crescent"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 1
+scrap_block = 4

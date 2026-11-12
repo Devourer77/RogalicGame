@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/relic_data.gd" id="1_relic"]
+
+[resource]
+script = ExtResource("1_relic")
+id = "drowned_heart"
+title = "Сердце утопленника"
+plus_text = "Маг получает +1 ману каждый ход."
+minus_text = "В колоде мага навсегда лежит «Болотная тина»."
+hero_id = "mage"
+icon = "relic"
+kind = 0
+desc = "+ Маг получает +1 ману каждый ход. − В колоде мага навсегда лежит «Болотная тина»."

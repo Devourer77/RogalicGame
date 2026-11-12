@@ -1,4 +1,9 @@
 extends SceneTree
+
+# Клетка по колонке и ряду (как раньше x, y): поле из сот хранит клетки осевой парой, см. HexMath
+func C(col: int, row: int) -> Vector2i:
+	return HexMath.from_column(col, row)
+
 # Снимки всех экранов интерфейса — чтобы глазами проверить, что ничего не разъехалось.
 # Запуск (нужно окно):  godot --path . --resolution 1280x720 -s tests/shots_ui.gd
 # Картинки складываются в папку из переменной SHOTS_DIR (по умолчанию user://shots).
@@ -53,7 +58,7 @@ func _initialize() -> void:
 	# Наведение на врага: карточка справа
 	b._on_hover(b.logic.enemies[0].cell)
 	await _shot("05_battle_enemy")
-	b._on_hover(Vector2i(-1, -1))
+	b._on_hover(BattleLogic.NO_CELL)
 	# Справка
 	hud.toggle_help()
 	await _shot("06_battle_help")
