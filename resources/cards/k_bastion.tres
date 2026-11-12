@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_bastion"
+icon = "tower"
 title = "Бастион"
 description = "Провокация, блок 10, +1 ярость."
 cost = 2

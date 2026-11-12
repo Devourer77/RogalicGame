@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_kick_barrel"
+icon = "barrel"
 title = "Пинок бочки"
 description = "Бочка катится от рыцаря до 4 клеток и взрывается, если во что-то врезалась."
 cost = 1

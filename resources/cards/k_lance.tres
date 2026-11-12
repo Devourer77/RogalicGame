@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_lance"
+icon = "spear"
 title = "Выпад копьём"
 description = "Линия на 2 клетки: 6 урона."
 cost = 1

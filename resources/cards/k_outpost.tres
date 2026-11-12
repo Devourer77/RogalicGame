@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_outpost"
+icon = "outpost"
 title = "Застава"
 description = "До следующего хода: враг, подошедший вплотную к рыцарю, получает 4 урона (и не бьёт, если погиб)."
 cost = 2

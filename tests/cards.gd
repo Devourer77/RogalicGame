@@ -48,6 +48,8 @@ func _initialize() -> void:
 	_onslaught()
 	_warden()
 	_pools()
+	_hand_draw()
+	_discard()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 
@@ -60,6 +62,20 @@ func _storm() -> void:
 	var hp: int = e.hp
 	l.play_card(m, 0, e.cell)
 	check("Искра: 2 урона и +1 заряд", e.hp == hp - 2 and m.charge == 1)
+	# Молния в луже: каждый, кто в луже, получает урон карты + WATER_SHOCK_BONUS; на суше — обычный
+	l = fresh(["goblin", "goblin"]); m = l.heroes[0]
+	l.enemies[0].cell = Vector2i(2, 6); l.enemies[1].cell = Vector2i(3, 6)
+	l.tiles[Vector2i(2, 6)] = T.WATER; l.tiles[Vector2i(3, 6)] = T.WATER
+	give(m, ["m_spark"]); hp = l.enemies[0].hp
+	l.play_card(m, 0, Vector2i(2, 6))
+	check("Искра по луже: каждому в луже 2 + бонус воды", l.enemies[0].hp == hp - 2 - BattleLogic.WATER_SHOCK_BONUS
+			and l.enemies[1].hp == hp - 2 - BattleLogic.WATER_SHOCK_BONUS)
+	l = fresh(["goblin", "goblin"]); m = l.heroes[0]
+	l.enemies[0].cell = Vector2i(2, 6); l.enemies[1].cell = Vector2i(6, 6)
+	l.tiles[Vector2i(6, 6)] = T.WATER
+	give(m, ["m_spark"])
+	l.play_card(m, 0, Vector2i(2, 6))
+	check("Искра по суше: обычные 2, лужа в стороне не задета", l.enemies[0].hp == hp - 2 and l.enemies[1].hp == hp)
 	# Копьё бури сквозь дерево, дерево цело
 	l = fresh(["ogre"]); m = l.heroes[0]; e = l.enemies[0]
 	e.cell = Vector2i(2, 4); l.objects[Vector2i(2, 7)] = O.TREE; l.objects[Vector2i(2, 6)] = O.REEDS
@@ -239,7 +255,7 @@ func _warden() -> void:
 	g.cell = Vector2i(8, 6); m.cell = Vector2i(8, 4)
 	var hp: int = g.hp
 	l._push(g, Vector2i(0, 1), 3)
-	check("Колья: врезался — 4 урона", g.hp == hp - 4 and g.cell == Vector2i(8, 7))
+	check("Колья: врезался — урон кольев", g.hp == hp - BattleLogic.STAKES_BUMP_DAMAGE and g.cell == Vector2i(8, 7))
 	l._apply_element(Vector2i(8, 8), CardData.Element.FIRE, k.cell)
 	check("Колья горят", l.object_at(Vector2i(8, 8)) == O.NONE and l.tile_at(Vector2i(8, 8)) == T.FIRE)
 	# Настил
@@ -260,13 +276,19 @@ func _warden() -> void:
 	check("Свалить дерево: свою клетку выбрать нельзя", not targets.has(k.cell) and targets.has(Vector2i(9, 8)))
 	l.play_card(k, 0, Vector2i(9, 8))
 	check("Свалить дерево: упало вправо, оба ранены", l.object_at(Vector2i(8, 8)) == O.NONE
-		and l.enemies[0].hp == hp - 4 and l.enemies[1].hp == hp - 4)
+		and l.enemies[0].hp == hp - BattleLogic.TREE_DAMAGE and l.enemies[1].hp == hp - BattleLogic.TREE_DAMAGE)
+	check("Свалить дерево: выжившие сбиты с ног на 1 ход", l.enemies[0].entangled == 1 and l.enemies[1].entangled == 1)
+	l = fresh(["ogre", "mossy_treant"]); k = l.heroes[1]
+	l.objects[Vector2i(8, 8)] = O.TREE
+	l.enemies[0].cell = Vector2i(9, 8); l.enemies[1].cell = Vector2i(10, 8)
+	l._fell_tree(Vector2i(8, 8), Vector2i(1, 0))
+	check("Дерево не сбивает с ног босса и корягача", l.enemies[0].entangled == 0 and l.enemies[1].entangled == 0)
 	# Пинок бочки
 	l = fresh(["goblin"]); k = l.heroes[1]; g = l.enemies[0]
 	l.objects[Vector2i(8, 8)] = O.BARREL; g.cell = Vector2i(8, 5); hp = g.hp
 	give(k, ["k_kick_barrel", "k_kick_barrel"])
 	l.play_card(k, 0, Vector2i(8, 8))
-	check("Пинок бочки: докатилась до врага и взорвалась", l.object_at(Vector2i(8, 6)) == O.NONE and g.hp == hp - 4)
+	check("Пинок бочки: докатилась до врага и взорвалась", l.object_at(Vector2i(8, 6)) == O.NONE and g.hp == hp - BattleLogic.BARREL_DAMAGE)
 	l.objects[Vector2i(7, 9)] = O.BARREL; g.cell = Vector2i(0, 0)
 	l.play_card(k, 0, Vector2i(7, 9))
 	check("Пинок бочки: в пустоту — катится 4 и стоит", l.object_at(Vector2i(3, 9)) == O.BARREL)
@@ -315,3 +337,63 @@ func _pools() -> void:
 			total += 1
 			if c.card_set == "storm": storm += 1
 	check("Собираешь «Бурю» — она выпадает чаще (%d из %d)" % [storm, total], float(storm) / total > 0.4)
+
+
+func _hand_draw() -> void:
+	print("--- Рука и добор ---")
+	var l := fresh(["ogre"]); var m: BattleUnit = l.heroes[0]
+	l.enemies[0].cell = Vector2i(11, 0)
+	check("Лимит руки: %d" % BattleLogic.MAX_HAND, BattleLogic.MAX_HAND == 7)
+	check("В начале боя рука — 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
+	var mode: int = BattleLogic.DRAW_MODE
+	var kept: Array[CardData] = m.hand.duplicate()
+	var before: int = m.hand.size()
+	l.end_turn()
+	if mode == BattleLogic.DrawMode.DISCARD_ALL:
+		check("DISCARD_ALL: новая рука из 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
+	else:
+		var want: int = 0
+		match mode:
+			BattleLogic.DrawMode.REFILL_5: want = maxi(1, BattleLogic.HAND_SIZE - before)
+			BattleLogic.DrawMode.PLUS_3: want = 3
+			BattleLogic.DrawMode.PLUS_2: want = 2
+		want = mini(before + want, BattleLogic.MAX_HAND)
+		check("Рука после конца хода: %d (ждали %d)" % [m.hand.size(), want], m.hand.size() == want)
+		var same := true
+		for c in kept: same = same and m.hand.has(c)
+		check("Карты прошлого хода остались в руке", same)
+	# Пустая рука в REFILL_5 пополняется до 5
+	if mode == BattleLogic.DrawMode.REFILL_5:
+		m.hand.clear()
+		l.end_turn()
+		check("REFILL_5: пустая рука → 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
+		m.hand.clear()
+		for i in 5: m.hand.append(card("strike"))
+		l.end_turn()
+		check("REFILL_5: полная рука → +1 карта", m.hand.size() == 6)
+	# Лимит и павший герой
+	for i in 6:
+		l.end_turn()
+	check("Рука не больше лимита", m.hand.size() <= BattleLogic.MAX_HAND)
+	var k: BattleUnit = l.heroes[1]
+	k.hp = 0
+	var kn: int = k.hand.size()
+	l.end_turn()
+	check("Павший герой карт не берёт", k.hand.size() == kn)
+
+
+func _discard() -> void:
+	print("--- Сброс карты ---")
+	var l := fresh(["ogre"]); var m: BattleUnit = l.heroes[0]
+	l.enemies[0].cell = Vector2i(11, 0)
+	if BattleLogic.DRAW_MODE == BattleLogic.DrawMode.DISCARD_ALL:
+		check("DISCARD_ALL: сброс не нужен", not l.can_discard(m, 0))
+		return
+	var n: int = m.hand.size(); var pile: int = m.discard_pile.size()
+	check("Сбросов за ход: %d" % BattleLogic.DISCARDS_PER_TURN, l.discards_left(m) == BattleLogic.DISCARDS_PER_TURN)
+	check("Сброс карты удался", l.discard_card(m, 0))
+	check("Карта ушла из руки в сброс", m.hand.size() == n - 1 and m.discard_pile.size() == pile + 1)
+	check("Второй сброс в этот ход нельзя", not l.discard_card(m, 0) and m.hand.size() == n - 1)
+	check("Неверный номер карты — отказ", not l.can_discard(l.heroes[1], 99))
+	l.end_turn()
+	check("В новый ход сброс снова доступен", l.discards_left(m) == BattleLogic.DISCARDS_PER_TURN)

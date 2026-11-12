@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_swap"
+icon = "swap"
 title = "Обмен"
 description = "Маг и союзник в пределах 5 клеток меняются местами."
 cost = 0

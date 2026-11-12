@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_wall"
+icon = "shield_wall"
 title = "Стена щитов"
 description = "Блок 13."
 cost = 2

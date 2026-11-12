@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_focus"
+icon = "focus"
 title = "Сосредоточение"
 description = "+2 заряда. Следующая карта в этот ход дешевле на 1 ману."
 cost = 1

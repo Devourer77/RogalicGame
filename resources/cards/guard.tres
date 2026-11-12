@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "guard"
+icon = "shield"
 title = "Магический щит"
 description = "Блок 6: поглощает урон до начала следующего хода."
 cost = 1

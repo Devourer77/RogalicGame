@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "meteor"
+icon = "meteor"
 title = "Метеор"
 description = "Квадрат 3×3 на расстоянии до 5: 8 урона и поджог."
 cost = 3

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_berserk"
+icon = "axes"
 title = "Берсерк"
 description = "Дуга: 5 урона, +2 за каждую ярость. Тратит всю ярость."
 cost = 2

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_slash"
+icon = "sword"
 title = "Удар мечом"
 description = "6 урона врагу на соседней клетке."
 cost = 1

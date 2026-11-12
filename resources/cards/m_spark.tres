@@ -5,8 +5,9 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_spark"
+icon = "spark"
 title = "Искра"
-description = "2 урона на расстоянии до 4. +1 заряд."
+description = "2 урона на расстоянии до 4. +1 заряд. В луже бьёт на 2 сильнее."
 cost = 0
 shape = 1
 cast_range = 4

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_unstoppable"
+icon = "unstoppable"
 title = "Неудержимый"
 description = "До конца хода каждое убийство возвращает 1 ману и 2 шага."
 cost = 1

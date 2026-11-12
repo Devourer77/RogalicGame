@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_taunt"
+icon = "taunt"
 title = "Вызов"
 description = "Провокация: враги, которые могут достать рыцаря, бьют только его. Блок 5."
 cost = 1

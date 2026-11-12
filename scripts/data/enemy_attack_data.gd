@@ -7,8 +7,8 @@ extends Resource
 
 @export var title: String = "Удар"
 @export var anim: String = "Attack"   # какую анимацию модели играть (если такой нет — играется Attack)
-# Форма удара: число из EnemyData.Attack (0 — вплотную, 1 — линия, 2 — три клетки, 3 — зов)
-@export_enum("MELEE", "LINE", "SWEEP", "AURA") var shape: int = 0
+# Форма удара: число из EnemyData.Attack (0 — вплотную, 1 — линия, 2 — три клетки, 3 — зов, 4 — вокруг себя)
+@export_enum("MELEE", "LINE", "SWEEP", "AURA", "AROUND") var shape: int = 0
 @export var attack_range: int = 1   # длина линии или радиус зова
 @export var damage: int = 3
 @export var push: int = 0           # отталкивает цель на столько клеток
@@ -33,6 +33,8 @@ func describe() -> String:
 			parts.append("%d урона по трём клеткам перед собой" % damage)
 		3:
 			parts.append("врагам в %d клетках: +%d блока, следующий удар +%d" % [attack_range, ally_block, ally_damage])
+		4:
+			parts.append("%d урона по 8 клеткам вокруг себя" % damage)
 	if first_only:
 		parts.append("до первой цели")
 	if pierce:

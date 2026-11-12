@@ -1,93 +1,141 @@
 extends Control
 # Карта забега: ряды точек снизу вверх, наверху босс.
-# Можно пойти только в точки, куда ведёт дорожка из текущей.
+# Можно пойти только в точки, куда ведёт дорожка из текущей (они в латунной рамке и «дышат»).
 
-const COL_SPACING: float = 170.0
-const ROW_SPACING: float = 70.0
-const NODE_SIZE := Vector2(120, 40)
+const COL_SPACING: float = 190.0
+const ROW_SPACING: float = 62.0
+const NODE_SIZE: float = 52.0
+const BOSS_SIZE: float = 66.0
+
+# Для каждого типа точки: иконка, цвет кружка и подсказка
+const NODE_LOOK: Dictionary[int, Array] = {
+	MapNode.Type.BATTLE: ["battle", Color(0.27, 0.33, 0.37), "Бой: враги и награда — золото и карта на выбор."],
+	MapNode.Type.ELITE: ["elite", Color(0.52, 0.33, 0.12), "Элита: бой с сильным врагом и его свитой."],
+	MapNode.Type.EVENT: ["event", Color(0.28, 0.28, 0.55), "Событие: выбор с риском."],
+	MapNode.Type.SHOP: ["shop", Color(0.47, 0.4, 0.14), "Лавка: купить карту или убрать лишнюю из колоды."],
+	MapNode.Type.REST: ["rest", Color(0.2, 0.43, 0.27), "Привал: оба героя лечатся."],
+	MapNode.Type.BOSS: ["boss", Color(0.5, 0.15, 0.17), "Босс: последний бой акта."],
+}
 
 var _area: Control                          # область, где рисуются точки и дорожки
-var _buttons: Dictionary[MapNode, Button] = {}
+var _available: Array[MapNode] = []
 
 
 func _ready() -> void:
 	var column: VBoxContainer = UiKit.make_screen(self)
-	column.add_child(UiKit.make_label("Карта забега", 32))
+	column.add_theme_constant_override("separation", 10)
+	column.add_child(UiKit.party_bar(_show_deck))
 
-	var status: Label = UiKit.make_label(UiKit.run_status() + "     Сид: %d" % Run.seed_value, 18)
-	var decks: PackedStringArray = []
-	for rh in Run.party:
-		decks.append("%s:\n%s" % [rh.data.title, Run.deck_summary(rh)])
-	status.tooltip_text = "\n\n".join(decks)   # наведи на строку — увидишь колоды
-	status.mouse_filter = Control.MOUSE_FILTER_PASS
-	column.add_child(status)
+	var head := HBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", 14)
+	head.add_child(UiKit.make_title("Гнилые топи", 30, UiKit.BRASS.lightened(0.2)))
+	var seed_label: Label = UiKit.make_label("акт I  ·  сид %d" % Run.seed_value, 14, UiKit.TEXT_DIM)
+	seed_label.size_flags_vertical = Control.SIZE_SHRINK_END
+	seed_label.tooltip_text = "Сид забега: введи его в главном меню, чтобы повторить этот же забег."
+	seed_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	head.add_child(seed_label)
+	column.add_child(head)
 
 	_area = Control.new()
-	_area.custom_minimum_size = Vector2(COL_SPACING * (Run.MAP_COLS - 1) + NODE_SIZE.x,
-			ROW_SPACING * (Run.MAP_ROWS - 1) + NODE_SIZE.y)
+	_area.custom_minimum_size = Vector2(COL_SPACING * (Run.MAP_COLS - 1) + BOSS_SIZE,
+			ROW_SPACING * (Run.MAP_ROWS - 1) + BOSS_SIZE)
+	_area.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_area.draw.connect(_draw_links)   # дорожки рисуем сами в сигнале draw
 	column.add_child(_area)
 
-	var available: Array[MapNode] = Run.available_nodes()
+	_available = Run.available_nodes()
 	for n in Run.map:
-		var b := Button.new()
-		b.text = n.type_name()
-		b.size = NODE_SIZE
-		b.position = _node_position(n)
-		b.disabled = not available.has(n)
-		b.focus_mode = Control.FOCUS_NONE
-		_style_button(b, n, available.has(n))
-		b.pressed.connect(Run.enter_node.bind(n))
-		_area.add_child(b)
-		_buttons[n] = b
+		_area.add_child(_make_node_button(n))
 
-	column.add_child(UiKit.make_label("Бой — враги и награда картой. Элита — бой с сильным врагом. Событие — выбор с риском.\nЛавка — купить или убрать карту. Привал — лечение.", 16))
+	# Памятка: что значит каждая иконка
+	var legend := HBoxContainer.new()
+	legend.alignment = BoxContainer.ALIGNMENT_CENTER
+	legend.add_theme_constant_override("separation", 20)
+	for type: int in [MapNode.Type.BATTLE, MapNode.Type.ELITE, MapNode.Type.EVENT, MapNode.Type.SHOP, MapNode.Type.REST, MapNode.Type.BOSS]:
+		var look: Array = NODE_LOOK[type]
+		var title: String = (look[2] as String).get_slice(":", 0)
+		legend.add_child(UiKit.chip(look[0], title, (look[1] as Color).lightened(0.55), look[2], 14, 18))
+	column.add_child(legend)
 
 
-# Цвет кнопки по типу точки; куда можно пойти — яркая рамка, остальное приглушено
-func _style_button(b: Button, n: MapNode, is_available: bool) -> void:
-	var colors: Dictionary = {
-		MapNode.Type.BATTLE: Color(0.45, 0.2, 0.2),
-		MapNode.Type.EVENT: Color(0.25, 0.25, 0.5),
-		MapNode.Type.SHOP: Color(0.45, 0.38, 0.15),
-		MapNode.Type.REST: Color(0.2, 0.42, 0.25),
-		MapNode.Type.BOSS: Color(0.6, 0.1, 0.1),
-		MapNode.Type.ELITE: Color(0.5, 0.27, 0.12),
-	}
-	var box := StyleBoxFlat.new()
-	box.bg_color = colors[n.type]
-	box.set_corner_radius_all(6)
+# Круглая кнопка точки с иконкой. Куда можно пойти — латунная рамка и лёгкое «дыхание».
+func _make_node_button(n: MapNode) -> Button:
+	var look: Array = NODE_LOOK[n.type]
+	var size: float = BOSS_SIZE if n.type == MapNode.Type.BOSS else NODE_SIZE
+	var is_available: bool = _available.has(n)
+	var is_current: bool = n == Run.current
+	var b := Button.new()
+	b.size = Vector2(size, size)
+	b.position = _node_center(n) - b.size / 2.0
+	b.pivot_offset = b.size / 2.0
+	b.disabled = not is_available
+	b.focus_mode = Control.FOCUS_NONE
+	b.tooltip_text = look[2]
+	if is_current:
+		b.tooltip_text += "\nВы здесь."
+	elif n.visited:
+		b.tooltip_text += "\nУже пройдено."
+
+	var base: Color = look[1]
+	var border := Color(0, 0, 0, 0.6)
+	var border_width: int = 2
 	if is_available:
-		box.set_border_width_all(3)
-		box.border_color = Color(1.0, 0.9, 0.4)
-	elif n == Run.current:
-		box.set_border_width_all(3)
-		box.border_color = Color(0.5, 1.0, 0.5)
-	for state: String in ["normal", "hover", "pressed", "disabled"]:
-		b.add_theme_stylebox_override(state, box)
-	b.add_theme_color_override("font_disabled_color", Color(0.85, 0.85, 0.85))
-	if not is_available and not n.visited and n != Run.current:
-		b.modulate = Color(1, 1, 1, 0.55)
+		border = UiKit.BRASS.lightened(0.25)
+		border_width = 3
+	elif is_current:
+		border = UiKit.RIFT
+		border_width = 3
+	var radius: int = int(size / 2.0)
+	b.add_theme_stylebox_override("normal", UiKit.box(base, border, border_width, radius, 0, 0))
+	b.add_theme_stylebox_override("hover", UiKit.box(base.lightened(0.18), Color.WHITE, 3, radius, 0, 0))
+	b.add_theme_stylebox_override("pressed", UiKit.box(base.darkened(0.15), UiKit.BRASS, 3, radius, 0, 0))
+	b.add_theme_stylebox_override("disabled", UiKit.box(base, border, border_width, radius, 0, 0))
+
+	var icon_size: float = size * 0.58
+	var picture: TextureRect = UiKit.icon_rect(look[0], icon_size, Color(1, 1, 1, 0.95))
+	picture.position = Vector2.ONE * (size - icon_size) / 2.0
+	b.add_child(picture)
+
+	if is_available:
+		var tween: Tween = b.create_tween().set_loops()
+		tween.tween_property(b, "scale", Vector2.ONE * 1.1, 0.7).set_trans(Tween.TRANS_SINE)
+		tween.tween_property(b, "scale", Vector2.ONE, 0.7).set_trans(Tween.TRANS_SINE)
+	elif n.visited and not is_current:
+		b.modulate = Color(1, 1, 1, 0.4)    # пройденное — бледное
+	elif not is_current:
+		b.modulate = Color(1, 1, 1, 0.78)   # ещё впереди — видно, но не отвлекает
+	b.pressed.connect(Run.enter_node.bind(n))
+	return b
 
 
-# Левый верхний угол кнопки точки. Ряд 0 — внизу.
-func _node_position(n: MapNode) -> Vector2:
+# Центр точки. Ряд 0 — внизу.
+func _node_center(n: MapNode) -> Vector2:
 	var cols: int = Run.row_nodes(n.row).size()
 	var x_offset: float = (Run.MAP_COLS - cols) * COL_SPACING / 2.0   # одиночного босса — по центру
-	var x: float = x_offset + n.col * COL_SPACING
-	var y: float = (Run.MAP_ROWS - 1 - n.row) * ROW_SPACING
+	var x: float = x_offset + n.col * COL_SPACING + BOSS_SIZE / 2.0
+	var y: float = (Run.MAP_ROWS - 1 - n.row) * ROW_SPACING + BOSS_SIZE / 2.0
 	return Vector2(x, y)
 
 
+# Дорожки между точками: пройденный путь — латунный, ближайшие шаги — светлые, остальное — тусклое
 func _draw_links() -> void:
 	for n in Run.map:
 		for c in n.next:
 			var target: MapNode = Run.find_map_node(n.row + 1, c)
 			if target == null:
 				continue
-			var from: Vector2 = _node_position(n) + NODE_SIZE / 2.0
-			var to: Vector2 = _node_position(target) + NODE_SIZE / 2.0
-			var color := Color(0.5, 0.5, 0.55)
+			var color := Color(UiKit.LINE, 0.9)
+			var width: float = 2.0
 			if n.visited and target.visited:
-				color = Color(0.5, 1.0, 0.5)
-			_area.draw_line(from, to, color, 3.0)
+				color = UiKit.BRASS
+				width = 4.0
+			elif n == Run.current and _available.has(target):
+				color = UiKit.BRASS.lightened(0.35)
+				width = 3.0
+			_area.draw_line(_node_center(n), _node_center(target), color, width, true)
+
+
+func _show_deck(rh: RunHero) -> void:
+	var sections: Array[Dictionary] = [{"title": rh.data.title, "color": rh.data.color, "cards": rh.deck}]
+	DeckOverlay.open(self, "Колода: %s" % rh.data.title, sections)

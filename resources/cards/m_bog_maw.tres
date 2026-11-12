@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_bog_maw"
+icon = "maw"
 title = "Пасть топей"
 description = "Квадрат 3×3: пустые клетки на 2 раунда становятся трясиной. Враги внутри опутаны и не ходят в свой ход."
 cost = 2

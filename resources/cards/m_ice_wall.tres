@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_ice_wall"
+icon = "ice_wall"
 title = "Ледяная стена"
 description = "Стена из 3 ледяных глыб поперёк направления. Глыбы — преграда, тают от огня или через 3 раунда."
 cost = 1

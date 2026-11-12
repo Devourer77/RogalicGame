@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_transfer"
+icon = "transfer"
 title = "Перенос"
 description = "Сдвигает бочку, огонь или лужу на клетку дальше от мага."
 cost = 1

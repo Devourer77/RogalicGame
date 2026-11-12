@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_drain"
+icon = "drain"
 title = "Осушение"
 description = "Трясина, мостки или лужа становятся сухой землёй. Герой на этой клетке получает 4 блока."
 cost = 1

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_blood"
+icon = "blood"
 title = "Кровавый удар"
 description = "5 урона по соседней клетке, +3 за каждую ярость. Тратит всю ярость."
 cost = 1

@@ -56,6 +56,12 @@ var last_gold_reward: int = 0
 var shop_stock: Array[Dictionary] = []   # {"hero": RunHero, "card": CardData}
 var shop_removal_used: bool = false
 var last_run_won: bool = false
+var fast_enemies: bool = false   # «Скорость ×2» во время хода врагов (выбор живёт весь забег)
+
+
+func _ready() -> void:
+	# Общий вид кнопок, подсказок и шрифтов — один на всю игру (см. ui/ui_kit.gd)
+	UiKit.apply_theme(get_tree())
 
 
 # Новый забег. Сид 0 — выбрать случайный.
@@ -70,6 +76,7 @@ func start_new_run(new_seed: int = 0) -> void:
 	for hero_data in HEROES:
 		party.append(RunHero.new(hero_data))
 	gold = START_GOLD
+	fast_enemies = false
 	current = null
 	pending_enemies.clear()
 	_generate_map()

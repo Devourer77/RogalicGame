@@ -30,6 +30,9 @@ enum Element {
 }
 
 @export var id: String = ""
+# Рисунок карты: имя файла из assets/icons без «.svg» (например "fire", "shield").
+# Пусто — игра подберёт рисунок сама по стихии и действию карты (см. CardView.icon_name).
+@export var icon: String = ""
 @export var title: String = ""
 @export_multiline var description: String = ""
 @export var cost: int = 1              # сколько маны стоит

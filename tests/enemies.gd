@@ -39,6 +39,7 @@ func _initialize() -> void:
 	_shaman()
 	_treant()
 	_ogre()
+	_forecast_hazards()
 	_run_changes()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
@@ -74,7 +75,7 @@ func _slinger() -> void:
 	l = fresh(["goblin_slinger"]); e = l.enemies[0]; m = l.heroes[0]
 	e.cell = Vector2i(2, 6); l.objects[Vector2i(2, 7)] = O.TREE
 	l._enemy_strike(e, l.enemy_attack(e), DOWN)
-	check("Пращник: камень в дерево — оно падает от него (4 урона на линии)", l.object_at(Vector2i(2, 7)) == O.NONE and m.hp == 26)
+	check("Пращник: камень в дерево — оно падает от него (урон дерева на линии)", l.object_at(Vector2i(2, 7)) == O.NONE and m.hp == 30 - BattleLogic.TREE_DAMAGE)
 	l = fresh(["goblin_slinger"]); e = l.enemies[0]
 	e.cell = Vector2i(2, 5); l.objects[Vector2i(2, 6)] = O.BARREL
 	l._enemy_strike(e, l.enemy_attack(e), DOWN)
@@ -103,11 +104,11 @@ func _drowned() -> void:
 	l = fresh(["drowned_walker"]); e = l.enemies[0]; m = l.heroes[0]; var k: BattleUnit = l.heroes[1]
 	e.cell = Vector2i(2, 8); k.cell = Vector2i(2, 10)
 	l._enemies_act()
-	check("Топляк: толкнул героя в героя — обоим по 2", m.hp == 24 and k.hp == 43 and m.cell == Vector2i(2, 9))
+	check("Топляк: толкнул героя в героя — обоим урон удара о препятствие", m.hp == 30 - 4 - BattleLogic.BUMP_DAMAGE and k.hp == 45 - BattleLogic.BUMP_DAMAGE and m.cell == Vector2i(2, 9))
 	l = fresh(["goblin", "drowned_walker"]); g = l.enemies[0]; e = l.enemies[1]
 	l.objects[Vector2i(5, 6)] = O.BOG; e.cell = Vector2i(5, 6); g.cell = Vector2i(5, 5)
 	l._push(g, DOWN, 1)
-	check("Гоблин врезался в топляка, стоящего в трясине: обычные 2 урона, не тонет", g.is_alive() and g.hp == 9 and e.hp == 14)
+	check("Гоблин врезался в топляка, стоящего в трясине: обычный урон удара, не тонет", g.is_alive() and g.hp == 11 - BattleLogic.BUMP_DAMAGE and e.hp == 16 - BattleLogic.BUMP_DAMAGE)
 
 
 func _toad() -> void:
@@ -231,11 +232,11 @@ func _treant() -> void:
 	check("Корягач: огонь под ногами сжигает броню", e.block == 0)
 	e.entangled = 1   # чтобы не ушёл с огня
 	l.end_turn()
-	check("Корягач: в огне брони нет и урон от огня двойной", e.block == 0 and e.hp == 34)
+	check("Корягач: в огне брони нет и урон от огня двойной", e.block == 0 and e.hp == 38 - 2 * BattleLogic.FIRE_DAMAGE)
 	l = fresh(["mossy_treant"]); e = l.enemies[0]
 	e.cell = Vector2i(5, 5); e.block = 3; l.objects[Vector2i(5, 6)] = O.BARREL
 	l._explode_barrel(Vector2i(5, 6))
-	check("Корягач: взрыв бочки срывает броню — все 4 урона проходят", e.hp == 34 and e.block == 0)
+	check("Корягач: взрыв бочки срывает броню — весь урон проходит", e.hp == 38 - BattleLogic.BARREL_DAMAGE and e.block == 0)
 
 
 func _ogre() -> void:
@@ -250,10 +251,47 @@ func _ogre() -> void:
 	check("Огр: чётный раунд — хлёст цепью", l.enemy_attack(e).title == "Хлёст цепью")
 	l._enemies_act()
 	check("Огр: цепь — 4 урона с трёх клеток и притягивает на 1", m.hp == 26 and m.cell == Vector2i(2, 8))
+	# Третий раунд — круговой удар. Огр стоит наискосок от мага, рядом свой гоблин.
+	l = fresh(["ogre", "goblin"]); e = l.enemies[0]; m = l.heroes[0]
+	var g: BattleUnit = l.enemies[1]
+	e.cell = Vector2i(3, 8); e.entangled = 1; g.cell = Vector2i(4, 8); g.entangled = 1; l.turn = 3
+	check("Огр: третий раунд — круговой удар", l.enemy_attack(e).title == "Круговой удар")
+	var spin_cells: Array[Vector2i] = []
+	for f in l.forecast_enemies():
+		if f["enemy"] == e: spin_cells = f["attack"]
+	check("Огр: прогноз кругового удара — 8 клеток вокруг, клетка мага среди них",
+		spin_cells.size() == 8 and spin_cells.has(m.cell) and not spin_cells.has(e.cell))
+	l._enemies_act()
+	check("Огр: круговой удар достаёт наискосок — 5 урона", m.hp == 25 and m.cell == Vector2i(2, 9))
+	check("Огр: круговой удар задевает и своих", g.hp == 11 - 5)
+	check("Огр: рыцарь вдали не задет", l.heroes[1].hp == 45)
+	l = fresh(["ogre"]); e = l.enemies[0]; l.turn = 4
+	check("Огр: четвёртый раунд — цикл пошёл заново, размах колонной", l.enemy_attack(e).title == "Размах колонной")
+	l = fresh(["ogre"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = Vector2i(2, 6); l.turn = 3
+	l._enemies_act()
+	check("Огр: в раунд кругового удара сам подходит и бьёт", m.hp == 25)
 	l = fresh(["ogre"]); e = l.enemies[0]
 	e.cell = Vector2i(5, 5); l.objects[Vector2i(5, 6)] = O.BOG
 	l._push(e, DOWN, 1)
 	check("Огр: трясина по-прежнему как стена, 8 урона", e.is_alive() and e.hp == 52 and e.cell == Vector2i(5, 5))
+
+
+# Прогноз окружения: взрыв бочки от удара врага и огонь в конце раунда
+func _forecast_hazards() -> void:
+	print("--- Прогноз окружения ---")
+	var l := fresh(["ogre"]); var e: BattleUnit = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	e.cell = Vector2i(3, 8); e.entangled = 1; l.turn = 3   # круговой удар, огр стоит на месте
+	l.objects[Vector2i(4, 7)] = O.BARREL
+	l.tiles[Vector2i(2, 9)] = T.FIRE; l.fire_timers[Vector2i(2, 9)] = 3   # маг стоит в огне
+	var hp_before: int = m.hp
+	var hz: Dictionary = l.forecast_hazards()
+	var blast_found := false
+	for fx: Dictionary in hz["effects"]:
+		if fx["kind"] == "explosion" and (fx["cells"] as Array).has(Vector2i(4, 7)): blast_found = true
+	check("Прогноз: удар огра по бочке рядом — крест взрыва есть в прогнозе", blast_found)
+	check("Прогноз: маг в огне — в конце раунда минус урон огня", hz["fire"].get(m.id, 0) == BattleLogic.FIRE_DAMAGE)
+	check("Прогноз ничего не менял в настоящем бою", m.hp == hp_before and l.object_at(Vector2i(4, 7)) == O.BARREL)
 
 
 func _run_changes() -> void:

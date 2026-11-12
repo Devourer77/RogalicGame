@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_chain"
+icon = "chain"
 title = "Цепная молния"
 description = "5 урона врагу. Перескакивает на ближайшего врага в 2 клетках, до 2 раз; каждый прыжок слабее на 1."
 cost = 2

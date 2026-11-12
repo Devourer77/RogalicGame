@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_bridge"
+icon = "planks"
 title = "Настил"
 description = "Крепкие мостки на соседнюю трясину. По ним можно ходить, они не ломаются."
 cost = 1

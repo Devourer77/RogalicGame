@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_leap"
+icon = "leap"
 title = "Прыжок с ударом"
 description = "Прыжок на свободную клетку до 3 (через преграды и трясину), затем 4 урона + натиск по 4 соседям."
 cost = 2

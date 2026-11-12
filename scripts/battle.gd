@@ -28,13 +28,33 @@ const COLOR_FLASH := Color(1.0, 0.95, 0.6, 0.8)
 const COLOR_EXPLOSION := Color(1.0, 0.6, 0.15, 0.8)
 const COLOR_TREE_FALL := Color(0.8, 0.75, 0.6, 0.7)
 const COLOR_GAS := Color(0.6, 0.95, 0.4, 0.8)        # газовый хлопок жабы
+const COLOR_STEAM := Color(0.9, 0.95, 1.0, 0.75)     # паровой взрыв
+const COLOR_FREEZE := Color(0.5, 0.85, 1.0, 0.7)     # заморозка
+const COLOR_SHATTER := Color(0.7, 0.95, 1.0, 0.8)    # ледяные осколки
+const COLOR_LAVA := Color(1.0, 0.65, 0.1, 0.75)      # лава (оранжево-жёлтая, без красного)
+const COLOR_CRUST := Color(0.6, 0.6, 0.62, 0.75)     # корка
+const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust"]
 const COLOR_BUFF := Color(0.37, 0.92, 0.83, 0.4)     # «зов» шамана: бирюза Раскола
+
+# Ощущение удара от окружения (взрыв бочки, падение дерева). Всё можно подкрутить:
+const SHAKE_TIME: float = 0.2             # сколько секунд трясётся камера
+const SHAKE_POWER_EXPLOSION: float = 0.35  # сила тряски у взрыва (в метрах смещения)
+const SHAKE_POWER_TREE: float = 0.2        # сила тряски у падения дерева
+const HITSTOP_TIME: float = 0.08           # стоп-кадр: на столько секунд игра почти замирает
+const HITSTOP_SCALE: float = 0.05          # …и идёт с такой скоростью (1.0 — без стоп-кадра)
+const ENV_NUMBER_SIZE: int = 110           # размер цифры урона от окружения (Label3D font_size)
+const COLOR_ENV_NUMBER := Color(1.0, 0.85, 0.4)
 
 # Камера: смотрит на центр поля под наклоном, Q/E — поворот на 90°, колесо — зум
 const CAM_PITCH_DEG: float = 60.0
 const CAM_DIST_MIN: float = 8.0
 const CAM_DIST_MAX: float = 24.0
 const CAM_TURN_TIME: float = 0.3
+const CAM_LOOK_SHIFT: float = 1.1   # на сколько клеток точка взгляда сдвинута от центра поля к камере
+
+# Значок намерения врага на плашке — по форме его удара (EnemyData.Attack):
+# вплотную, линия, размах по трём клеткам, «зов» (усиление своих)
+const INTENT_ICONS: Array[String] = ["sword", "arrow", "slash", "buff"]
 
 @onready var board: Board = $Board
 @onready var camera: Camera3D = $Camera3D
@@ -51,6 +71,12 @@ var _anim_queue: Array[Callable] = []
 var _cam_yaw_deg: float = 0.0     # поворот камеры вокруг поля
 var _cam_dist: float = 15.0       # расстояние от центра поля
 var _cam_tween: Tween
+# Замер длины боя (пишется в Output в конце боя, см. _finish_battle)
+var _battle_start_ms: int = 0     # когда начался бой
+var _enemy_phase_ms: int = 0      # сколько всего длились ходы врагов (от «Конец хода» до конца анимаций)
+var _start_hp: Array[int] = []    # здоровье героев в начале боя
+var _fire_forecast: Dictionary = {}   # прогноз огня: id юнита → урон в конце хода врагов
+var _enemy_phase_running: bool = false   # идёт ход врагов (на нём работает «Скорость ×2»)
 
 
 func _ready() -> void:
@@ -64,8 +90,13 @@ func _ready() -> void:
 	hud.card_pressed.connect(_on_card_pressed)
 	hud.hero_pressed.connect(_on_hero_pressed)
 	hud.end_turn_pressed.connect(_on_end_turn_pressed)
+	hud.speed_toggled.connect(_apply_speed)
+	hud.discard_toggled.connect(_on_discard_toggled)
 
 	hud.show_arena(logic.arena_title())
+	_battle_start_ms = Time.get_ticks_msec()
+	for h in logic.heroes:
+		_start_hp.append(h.hp)
 	_mode = Mode.BUSY
 	logic.start()
 	await _play_queue()
@@ -106,7 +137,7 @@ func _create_views() -> void:
 	for c: Vector2i in logic.tiles:
 		board.set_tile_effect(c, logic.tiles[c])
 	for u: BattleUnit in _views:
-		_views[u].set_status(_status_text(u, logic.snapshot(u)))
+		_views[u].set_status(_plate_info(u, logic.snapshot(u)))
 
 	# Кольцо выбора: плоский цилиндр, который «приклеиваем» к выбранному герою
 	_ring = MeshInstance3D.new()
@@ -170,27 +201,31 @@ func _make_capsule_model(color: Color, size: float, with_shield: bool) -> Node3D
 	return root
 
 
-# Надпись над головой. state — снимок из логики (HP, блок, ярость, провокация).
-func _status_text(u: BattleUnit, state: Dictionary) -> String:
-	var text: String = "%s  %d/%d" % [u.title, state["hp"], u.max_hp]
-	if state["block"] > 0:
-		text += "  Блок %d" % state["block"]
+# Что показать на плашке над головой. state — снимок из логики (HP, блок, намерение…).
+# Собираем сразу, в момент события: к тому времени, как дойдёт очередь анимации,
+# числа в логике уже могут быть другими.
+func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
+	var info: Dictionary = {
+		"hp": state["hp"], "max_hp": u.max_hp, "block": state["block"],
+		"is_hero": u.is_hero, "color": Color.WHITE, "marks": [],
+	}
+	var marks: Array[String] = []
 	if u.is_hero:
-		if u.hero_data.gains_rage and state["rage"] > 0:
-			text += "\nЯрость %d" % state["rage"]
-		if u.hero_data.uses_charge and state["charge"] > 0:
-			text += "\nЗаряд %d" % state["charge"]
-		if u.hero_data.gains_momentum and state["momentum"] > 0:
-			text += "\nНатиск %d" % state["momentum"]
+		info["color"] = u.hero_data.color
 		if state["taunt"]:
-			text += "\nПровокация"
-	elif state["damage"] > 0:
-		text += "\n%s: %d" % [state["intent"], state["damage"]]
+			marks.append("taunt")
 	else:
-		text += "\n%s" % state["intent"]   # «зов» — удара в этом раунде нет
+		# Намерение врага: значок по форме удара и урон в этом раунде
+		var shape: int = logic.enemy_attack(u).shape
+		info["intent_icon"] = INTENT_ICONS[shape] if shape < INTENT_ICONS.size() else "sword"
+		info["intent_value"] = state["damage"]
+		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.THREAT
 	if state["entangled"] > 0:
-		text += "\nОпутан"
-	return text
+		marks.append("entangled")
+	info["marks"] = marks
+	if _fire_forecast.has(u.id):
+		info["fire"] = _fire_forecast[u.id]
+	return info
 
 
 # ---------- События логики → очередь анимаций ----------
@@ -205,6 +240,7 @@ func _connect_logic() -> void:
 	logic.object_changed.connect(_on_object_changed)
 	logic.object_moved.connect(_on_object_moved)
 	logic.effect_cells.connect(_on_effect_cells)
+	logic.reaction.connect(_on_reaction)
 	logic.card_cast.connect(_on_card_cast)
 	logic.enemy_attacked.connect(_on_enemy_attacked)
 	logic.enemy_buffed.connect(_on_enemy_buffed)
@@ -234,9 +270,9 @@ func _on_unit_pushed(unit: BattleUnit, path: Array[Vector2i], bumped: bool) -> v
 
 func _on_unit_damaged(unit: BattleUnit, _amount: int, state: Dictionary) -> void:
 	var view: Unit = _views[unit]
-	var text: String = _status_text(unit, state)
+	var info: Dictionary = _plate_info(unit, state)
 	_queue(func() -> void:
-		view.set_status(text)
+		view.set_status(info)
 		await view.play_hit()
 	)
 
@@ -251,8 +287,8 @@ func _on_unit_died(unit: BattleUnit) -> void:
 
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
 	var view: Unit = _views[unit]
-	var text: String = _status_text(unit, state)
-	_queue(func() -> void: view.set_status(text))
+	var info: Dictionary = _plate_info(unit, state)
+	_queue(func() -> void: view.set_status(info))
 
 
 func _on_tile_changed(cell: Vector2i, tile: int) -> void:
@@ -267,17 +303,89 @@ func _on_object_moved(from: Vector2i, to: Vector2i) -> void:
 	_queue(func() -> void: await board.move_object(from, to))
 
 
-func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
-	var color: Color = COLOR_TREE_FALL
-	if kind == "explosion":
-		color = COLOR_EXPLOSION
-	elif kind == "gas":
-		color = COLOR_GAS
+# Реакция стихий: короткая цветная вспышка на клетке
+func _on_reaction(cell: Vector2i, kind: String) -> void:
+	var color: Color = COLOR_STEAM
+	if kind == "freeze":
+		color = COLOR_FREEZE
+	elif kind == "shatter":
+		color = COLOR_SHATTER
+	elif kind == "lava":
+		color = COLOR_LAVA
+	elif kind == "crust":
+		color = COLOR_CRUST
+	var cells: Array[Vector2i] = [cell]
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
+		await get_tree().create_timer(0.2).timeout
+		board.clear_layer("flash")
+	)
+
+
+func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
+	var color: Color = COLOR_TREE_FALL
+	var damage: int = BattleLogic.TREE_DAMAGE
+	if kind == "explosion":
+		color = COLOR_EXPLOSION
+		damage = BattleLogic.BARREL_DAMAGE
+	elif kind == "gas":
+		color = COLOR_GAS
+		damage = 0
+	# Кто стоит в зоне удара — запоминаем сейчас: к моменту анимации юниты уже сдвинуться могут
+	var victims: Array[Vector2i] = []
+	if damage > 0:
+		for c in cells:
+			if logic.unit_at(c) != null:
+				victims.append(c)
+	_queue(func() -> void:
+		board.show_cells("flash", cells, color)
+		if kind != "gas":
+			_shake(SHAKE_POWER_EXPLOSION if kind == "explosion" else SHAKE_POWER_TREE)
+			for c in victims:
+				_floating_number(c, "-%d" % damage)
+			await _hit_stop()
 		await get_tree().create_timer(0.25).timeout
 		board.clear_layer("flash")
 	)
+
+
+# Тряска камеры: смещаем «объектив» (h_offset / v_offset), поворот и зум камеры не трогаем
+func _shake(power: float) -> void:
+	var tween: Tween = create_tween()
+	tween.tween_method(func(t: float) -> void:
+		var k: float = (1.0 - t) * power
+		camera.h_offset = randf_range(-k, k)
+		camera.v_offset = randf_range(-k, k), 0.0, 1.0, SHAKE_TIME)
+	tween.tween_callback(func() -> void:
+		camera.h_offset = 0.0
+		camera.v_offset = 0.0)
+
+
+# Стоп-кадр: игра на миг почти замирает. Таймер считает реальное время (не зависит от скорости игры),
+# после него возвращаем ту скорость, что была (обычную или «×2» во время хода врагов).
+func _hit_stop() -> void:
+	Engine.time_scale = HITSTOP_SCALE
+	await get_tree().create_timer(HITSTOP_TIME, true, false, true).timeout
+	_apply_speed()
+
+
+# Цифра урона над клеткой: всплывает вверх и тает
+func _floating_number(cell: Vector2i, text: String) -> void:
+	var label := Label3D.new()
+	label.text = text
+	label.font = UiKit.font_bold()
+	label.font_size = ENV_NUMBER_SIZE
+	label.pixel_size = 0.006
+	label.outline_size = 14
+	label.modulate = COLOR_ENV_NUMBER
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.position = board.grid_to_world(cell) + Vector3(0.0, 1.5, 0.0)
+	add_child(label)
+	var tween: Tween = create_tween()
+	tween.tween_property(label, "position:y", label.position.y + 0.9, 0.8)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.8).set_delay(0.3)
+	tween.tween_callback(label.queue_free)
 
 
 func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -> void:
@@ -398,6 +506,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_TAB:
 		_select_hero(_next_hero())
 		_enter_idle()
+	elif event is InputEventKey and event.pressed and not event.is_echo() \
+			and (event as InputEventKey).keycode >= KEY_1 and (event as InputEventKey).keycode <= KEY_9:
+		# Цифры 1–9 — карта из руки по номеру (та же цифра написана на самой карте)
+		var card_index: int = (event as InputEventKey).keycode - KEY_1
+		if card_index < _active.hand.size():
+			_on_card_pressed(card_index)
 	elif event.is_action_pressed("ui_cancel"):
 		_cancel_card()
 
@@ -426,8 +540,20 @@ func _on_hover(cell: Vector2i) -> void:
 	_show_hovered_enemy_threat(cell)
 	if _mode == Mode.AIMING and logic.get_card_targets(_active, _selected_card).has(cell):
 		board.show_cells("area", logic.get_card_area(_active, _selected_card, cell), COLOR_AREA)
+		# Реакции стихий, которые сработают от этой карты, — подсвечены своим цветом
+		var by_kind: Dictionary = {}
+		for k: String in REACTION_KINDS:
+			by_kind[k] = [] as Array[Vector2i]
+		for r: Dictionary in logic.predict_reactions(_active, _selected_card, cell):
+			by_kind[r["kind"]].append(r["cell"])
+		var colors: Dictionary = {"steam": COLOR_STEAM, "freeze": COLOR_FREEZE, "shatter": COLOR_SHATTER,
+				"lava": COLOR_LAVA, "crust": COLOR_CRUST}
+		for k: String in REACTION_KINDS:
+			board.show_cells("reaction_" + k, by_kind[k], colors[k])
 	else:
 		board.clear_layer("area")
+		for k: String in REACTION_KINDS:
+			board.clear_layer("reaction_" + k)
 
 
 # Навёл на врага — его зона угрозы подсвечивается ярче
@@ -435,32 +561,34 @@ func _show_hovered_enemy_threat(cell: Vector2i) -> void:
 	var u: BattleUnit = logic.unit_at(cell)
 	if u != null and not u.is_hero:
 		board.show_cells("hover_threat", logic.get_threat_cells(u), COLOR_HOVER_THREAT)
-		hud.show_enemy_info(_enemy_info(u))
+		hud.show_enemy(u, logic)   # карточка врага справа: кто это, чем бьёт, особенности
 	else:
 		board.clear_layer("hover_threat")
-		hud.show_enemy_info("")
+		hud.show_enemy(null, logic)
 
 
-# Текст подсказки о враге под курсором: кто это, чем бьёт сейчас и потом, особенности
-func _enemy_info(e: BattleUnit) -> String:
-	var d: EnemyData = e.data
-	var text: String = d.title
-	if d.is_boss:
-		text += " — босс"
-	elif d.is_elite:
-		text += " — элита"
-	if d.description != "":
-		text += "\n«%s»" % d.description
-	text += "\nСейчас — %s" % logic.enemy_attack(e).describe()
-	if d.cycle.size() > 1:
-		text += "\nПотом — %s" % d.attack_on_turn(logic.turn + 1).describe()
-	for t: String in d.traits():
-		text += "\n• %s" % t
-	return text
+# Режим сброса: следующая нажатая карта уходит в сброс (одна за ход)
+var _discarding: bool = false
+
+
+func _on_discard_toggled() -> void:
+	if _mode == Mode.BUSY:
+		return
+	if not _discarding and (_active == null or not logic.can_discard(_active, 0)):
+		hud.update_discard_button(logic, _active, false, false)
+		return
+	_discarding = not _discarding
+	_selected_card = -1
+	_enter_idle()
 
 
 func _on_card_pressed(index: int) -> void:
 	if _mode == Mode.BUSY:
+		return
+	if _discarding:
+		var h: BattleUnit = _active
+		_discarding = false
+		_do(func() -> void: logic.discard_card(h, index))
 		return
 	if _selected_card == index:
 		_cancel_card()
@@ -481,6 +609,10 @@ func _on_card_pressed(index: int) -> void:
 
 
 func _cancel_card() -> void:
+	if _discarding:
+		_discarding = false
+		_enter_idle()
+		return
 	if _mode == Mode.AIMING:
 		_enter_idle()
 
@@ -494,12 +626,25 @@ func _on_end_turn_pressed() -> void:
 func _do(action: Callable) -> void:
 	_mode = Mode.BUSY
 	_selected_card = -1
-	for layer: String in ["move", "target", "area", "hover_threat", "intent", "buff", "routes"]:
+	for layer: String in ["move", "target", "area", "hover_threat", "intent", "buff", "routes", "hazard_marks"]:
 		board.clear_layer(layer)
-	hud.show_enemy_info("")
+	for k: String in REACTION_KINDS:
+		board.clear_layer("reaction_" + k)
+	_set_fire_forecast({})   # пока идут анимации, предупреждений об огне на плашках нет
+	hud.show_enemy(null, logic)
 	hud.refresh(logic, _active, -1, true)
+	_discarding = false
+	hud.update_discard_button(logic, _active, false, true)
+	var is_end_turn: bool = action == logic.end_turn
+	var action_start_ms: int = Time.get_ticks_msec()
+	_enemy_phase_running = is_end_turn
+	_apply_speed()
 	action.call()
 	await _play_queue()
+	if is_end_turn:
+		_enemy_phase_ms += Time.get_ticks_msec() - action_start_ms
+	_enemy_phase_running = false
+	_apply_speed()
 	if logic.is_over:
 		await _finish_battle()
 		return
@@ -514,12 +659,15 @@ func _enter_idle() -> void:
 	_selected_card = -1
 	board.clear_layer("target")
 	board.clear_layer("area")
+	for k: String in REACTION_KINDS:
+		board.clear_layer("reaction_" + k)
 	var move_cells: Array[Vector2i] = []
 	for c: Vector2i in logic.get_move_targets(_active):
 		move_cells.append(c)
 	board.show_cells("move", move_cells, COLOR_MOVE)
 	_show_forecast()
 	hud.refresh(logic, _active, -1, false)
+	hud.update_discard_button(logic, _active, _discarding, false)
 
 
 # Прогноз: линии — куда пойдёт каждый враг, красные клетки — куда он ударит,
@@ -538,12 +686,49 @@ func _show_forecast() -> void:
 			if not seen.has(c):
 				seen[c] = true
 				hits.append(c)
+	# Остальное, что случится в ход врагов: взрывы бочек, падающие деревья, газ, огонь в конце раунда
+	var hazards: Dictionary = logic.forecast_hazards()
+	var marks: Array[Dictionary] = []
+	for fx: Dictionary in hazards["effects"]:
+		var fx_cells: Array[Vector2i] = fx["cells"]
+		for c: Vector2i in fx_cells:
+			if not seen.has(c):
+				seen[c] = true
+				hits.append(c)
+		if fx["kind"] == "explosion":
+			marks.append({"cell": _blast_center(fx_cells), "icon": "barrel", "color": Color(1.0, 0.85, 0.7)})
+		elif fx["kind"] == "tree":
+			marks.append({"cell": fx_cells[0], "icon": "tree", "color": Color(1.0, 0.85, 0.7)})
+	board.show_markers("hazard_marks", marks)
+	_set_fire_forecast(hazards["fire"])
 	board.show_routes(paths)
 	board.show_cells("intent", hits, COLOR_INTENT)
 	board.show_cells("buff", buffs, COLOR_BUFF)   # бирюзовое — кого шаман усилит «зовом»
 
 
+# Центр взрыва-креста: клетка, у которой в этом наборе четыре соседа
+func _blast_center(cells: Array[Vector2i]) -> Vector2i:
+	for c in cells:
+		var neighbours: int = 0
+		for d: Vector2i in GridShapes.DIRS:
+			if cells.has(c + d):
+				neighbours += 1
+		if neighbours == 4:
+			return c
+	return cells[0]
+
+
+# Запоминает прогноз огня и обновляет плашки тех, у кого предупреждение появилось или исчезло
+func _set_fire_forecast(forecast: Dictionary) -> void:
+	var changed: Array = _fire_forecast.keys() + forecast.keys()
+	_fire_forecast = forecast
+	for u: BattleUnit in logic.heroes + logic.enemies:
+		if changed.has(u.id) and u.is_alive() and _views.has(u):
+			_views[u].set_status(_plate_info(u, logic.snapshot(u)))
+
+
 func _finish_battle() -> void:
+	_print_battle_stats()
 	board.clear_layer("intent")
 	board.clear_layer("buff")
 	board.clear_layer("routes")
@@ -553,6 +738,30 @@ func _finish_battle() -> void:
 	for h in logic.heroes:
 		hp_left.append(h.hp)
 	Run.finish_battle(logic.won, hp_left)
+
+
+# Скорость игры: ×2 только пока идёт ход врагов и включена кнопка, в остальное время обычная
+func _apply_speed() -> void:
+	Engine.time_scale = 2.0 if _enemy_phase_running and Run.fast_enemies else 1.0
+
+
+# При выходе из боя скорость всегда возвращаем к обычной
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
+
+
+# Одна строка в Output: сколько длился бой. «Секунд» включает и время на раздумья игрока,
+# а «ход врагов» — только анимации после «Конец хода», по нему видно, сколько уходит на ожидание.
+func _print_battle_stats() -> void:
+	var row: int = Run.current.row if Run.current != null else -1
+	var hp_text: PackedStringArray = []
+	for i in logic.heroes.size():
+		var h: BattleUnit = logic.heroes[i]
+		hp_text.append("%s %d→%d" % [h.title, _start_hp[i] if i < _start_hp.size() else h.hp, h.hp])
+	print("Бой: арена %s, ряд %d, раундов %d, секунд %.0f, из них ход врагов %.0f, HP: %s" % [
+			logic.arena_title(), row, logic.turn,
+			(Time.get_ticks_msec() - _battle_start_ms) / 1000.0, _enemy_phase_ms / 1000.0,
+			", ".join(hp_text)])
 
 
 # Переводит точку на экране в клетку поля:
@@ -572,8 +781,9 @@ func _screen_to_cell(screen_pos: Vector2) -> Vector2i:
 
 # Ставит камеру на «сферу» вокруг центра поля: угол поворота, наклон, расстояние
 func _update_camera() -> void:
-	# Точка взгляда чуть ближе к камере, чем центр поля: так поле встаёт выше и рука карт его не закрывает
-	var look_shift := Vector3(0.0, 0.0, 2.6).rotated(Vector3.UP, deg_to_rad(_cam_yaw_deg))
+	# Точка взгляда чуть ближе к камере, чем центр поля: так поле встаёт выше и рука карт его не закрывает.
+	# Число подобрано так, чтобы сверху влезали плашки дальних врагов, а снизу поле не уходило под карты.
+	var look_shift := Vector3(0.0, 0.0, CAM_LOOK_SHIFT).rotated(Vector3.UP, deg_to_rad(_cam_yaw_deg))
 	var center := Vector3((board.width - 1) / 2.0, 0.0, (board.height - 1) / 2.0) + look_shift
 	var pitch: float = deg_to_rad(CAM_PITCH_DEG)
 	var offset := Vector3(0.0, sin(pitch), cos(pitch)) * _cam_dist

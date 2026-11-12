@@ -5,8 +5,9 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_stakes"
+icon = "stakes"
 title = "Вбить колья"
-description = "Частокол на соседней пустой клетке. Преграда; врезавшийся в неё получает 4 урона."
+description = "Частокол на соседней пустой клетке. Преграда; врезавшийся в неё получает 6 урона."
 cost = 1
 shape = 1
 cast_range = 1

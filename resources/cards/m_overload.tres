@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_overload"
+icon = "overload"
 title = "Перегрузка"
 description = "Удваивает заряд (до 10). Не потратил его до конца хода — маг получает урон, равный заряду."
 cost = 1

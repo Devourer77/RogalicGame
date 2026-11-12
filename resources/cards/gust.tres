@@ -5,10 +5,12 @@
 [resource]
 script = ExtResource("1_card")
 id = "gust"
+icon = "wind"
 title = "Порыв ветра"
-description = "Линия на 5 клеток: толкает всех на 2 клетки. Хорош, чтобы сбросить врагов в трясину."
+description = "Линия на 5 клеток: толкает всех на 2 клетки. Хорош, чтобы сбросить врагов в трясину. Горящие клетки линии поджигают следующую по ветру."
 cost = 1
 shape = 2
 cast_range = 5
 push = 2
+special = "gust"
 card_set = "elements"

@@ -31,20 +31,35 @@ const EVENTS: Array[Dictionary] = [
 ]
 
 var _column: VBoxContainer
+var _title: String = ""   # название события — показываем и на экране с итогом
 
 
 func _ready() -> void:
 	_column = UiKit.make_screen(self)
 	var event: Dictionary = EVENTS[Run.rng.randi_range(0, EVENTS.size() - 1)]
-	_column.add_child(UiKit.make_label(event["title"], 36))
-	_column.add_child(UiKit.make_label(event["text"], 20))
-	_column.add_child(UiKit.make_label(UiKit.run_status(), 18))
+	var sign: TextureRect = UiKit.icon_rect("event", 56, Color(0.62, 0.62, 1.0))
+	sign.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_column.add_child(sign)
+	_title = event["title"]
+	_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+	_column.add_child(_story(event["text"]))
+	_column.add_child(UiKit.party_bar())
 	for option: Dictionary in event["options"]:
 		var action: String = option["action"]
 		var b: Button = UiKit.make_button(option["text"], _choose.bind(action))
+		b.custom_minimum_size.x = 560
 		if action == "coin" and Run.gold < 15:
 			b.disabled = true
+			b.tooltip_text = "Не хватает золота"
 		_column.add_child(b)
+
+
+# Текст события в рамке
+func _story(text: String) -> PanelContainer:
+	var panel: PanelContainer = UiKit.make_panel(Color(UiKit.PANEL, 0.75), UiKit.LINE)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	panel.add_child(UiKit.make_text(text, 19, UiKit.TEXT, 640))
+	return panel
 
 
 func _choose(action: String) -> void:
@@ -81,6 +96,7 @@ func _choose(action: String) -> void:
 
 func _show_result(text: String) -> void:
 	UiKit.clear(_column)
-	_column.add_child(UiKit.make_label(text, 22))
-	_column.add_child(UiKit.make_label(UiKit.run_status(), 18))
-	_column.add_child(UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE)))
+	_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+	_column.add_child(_story(text))
+	_column.add_child(UiKit.party_bar())
+	_column.add_child(UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE), "", true))

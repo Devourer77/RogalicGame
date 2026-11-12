@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_runup"
+icon = "dash"
 title = "Разбег"
 description = "+2 шага и +2 натиска."
 cost = 0

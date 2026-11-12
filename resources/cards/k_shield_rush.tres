@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_shield_rush"
+icon = "ram"
 title = "Рывок щитом"
 description = "Бежит по прямой до 5 клеток. Врезавшись во врага: 3 урона и толчок на 2. Блок 4."
 cost = 1

@@ -5,8 +5,9 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_storm_spear"
+icon = "spear"
 title = "Копьё бури"
-description = "Линия до 6 клеток сквозь камыш, деревья и бочки (не ломая их): 4 урона. +1 заряд."
+description = "Линия до 6 клеток сквозь камыш, деревья и бочки (не ломая их): 4 урона. +1 заряд. Тем, кто в луже, — ещё +2."
 cost = 1
 shape = 2
 cast_range = 6

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_execute"
+icon = "axe"
 title = "Добивание"
 description = "5 урона соседу. Если у врага половина здоровья или меньше — 12 урона."
 cost = 1

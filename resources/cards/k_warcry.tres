@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_warcry"
+icon = "horn"
 title = "Боевой клич"
 description = "+2 ярости, возьмите 1 карту."
 cost = 0

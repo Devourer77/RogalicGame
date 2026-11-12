@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_pass_ram"
+icon = "ram_through"
 title = "Сквозной таран"
 description = "Бежит до 5 клеток насквозь: каждый враг на пути получает 3 урона и отлетает на клетку в сторону."
 cost = 2

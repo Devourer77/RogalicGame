@@ -80,6 +80,7 @@ const LAYER_HEIGHT: Dictionary = {
 	"routes": 0.2,    # линии маршрутов врагов
 }
 
+const IMPACT_FX_SCALE: float = 1.5   # во сколько раз крупнее частицы взрыва бочки и падения дерева (подкрути, если мало или много)
 const COLOR_ROUTE := Color(1.0, 0.92, 0.55, 0.95)   # тёплый жёлтый: виден и на камне, и на воде
 const COLOR_SWAMP_WATER := Color(0.05, 0.075, 0.065) # стоячая вода вокруг арены
 const COLOR_BANK := Color(0.2, 0.18, 0.14)           # топкий берег, на котором лежат плиты
@@ -343,6 +344,26 @@ func show_cells(layer: String, cells: Array[Vector2i], color: Color) -> void:
 		holder.add_child(m)
 
 
+# Значки над клетками (взрыв бочки, падающее дерево в прогнозе хода врагов).
+# marks — список {"cell": Vector2i, "icon": имя иконки, "color": Color}.
+func show_markers(layer: String, marks: Array[Dictionary]) -> void:
+	clear_layer(layer)
+	var holder := Node3D.new()
+	add_child(holder)
+	_layers[layer] = holder
+	for mark: Dictionary in marks:
+		var tex: Texture2D = UiKit.icon(mark["icon"])
+		var sprite := Sprite3D.new()
+		sprite.texture = tex
+		sprite.pixel_size = 0.55 / maxf(float(tex.get_width()), 1.0)   # значок примерно в полклетки
+		sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		sprite.shaded = false
+		sprite.no_depth_test = true
+		sprite.modulate = mark.get("color", Color.WHITE)
+		sprite.position = grid_to_world(mark["cell"]) + Vector3(0.0, 0.9, 0.0)
+		holder.add_child(sprite)
+
+
 func clear_layer(layer: String) -> void:
 	if _layers.has(layer):
 		_layers[layer].queue_free()
@@ -450,7 +471,8 @@ func _make_flames() -> CPUParticles3D:
 
 
 # Разовый выброс частиц: взрыв бочки, щепки дерева, брызги. Сам удаляется.
-func burst(cell: Vector2i, color: Color, amount: int = 24, speed: float = 4.0, glow: float = 3.0) -> void:
+# size — во сколько раз крупнее кусочки (взрыв бочки и падение дерева делаем крупнее)
+func burst(cell: Vector2i, color: Color, amount: int = 24, speed: float = 4.0, glow: float = 3.0, size: float = 1.0) -> void:
 	var p := CPUParticles3D.new()
 	p.one_shot = true
 	p.explosiveness = 1.0
@@ -466,7 +488,7 @@ func burst(cell: Vector2i, color: Color, amount: int = 24, speed: float = 4.0, g
 	shrink.add_point(Vector2(1.0, 0.0))
 	p.scale_amount_curve = shrink
 	var chunk := BoxMesh.new()
-	chunk.size = Vector3(0.1, 0.1, 0.1)
+	chunk.size = Vector3(0.1, 0.1, 0.1) * size
 	chunk.material = _glow_material(color, glow)
 	p.mesh = chunk
 	p.position = grid_to_world(cell) + Vector3(0.0, 0.35, 0.0)
@@ -544,11 +566,11 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 		match old_kind:
 			BattleLogic.Obj.TREE:
 				await _fall_tree(node, dir)
-				burst(cell + dir, Color(0.4, 0.37, 0.33), 14, 2.5, 0.0)   # щепки
+				burst(cell + dir, Color(0.4, 0.37, 0.33), roundi(14 * IMPACT_FX_SCALE), 2.5 * IMPACT_FX_SCALE, 0.0, IMPACT_FX_SCALE)   # щепки
 			BattleLogic.Obj.BARREL:
 				await _pop(node)
-				burst(cell, COLOR_GAS_LIGHT, 34, 5.0)                     # зелёная вспышка газа
-				burst(cell, Color(1.0, 0.6, 0.15), 20, 3.5)
+				burst(cell, COLOR_GAS_LIGHT, roundi(34 * IMPACT_FX_SCALE), 5.0 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)   # зелёная вспышка газа
+				burst(cell, Color(1.0, 0.6, 0.15), roundi(20 * IMPACT_FX_SCALE), 3.5 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)
 			BattleLogic.Obj.ICE_BLOCK:
 				burst(cell, Color(0.8, 0.95, 1.0), 16, 2.5, 1.0)          # осколки льда
 				await _sink(node)
@@ -619,6 +641,50 @@ func _make_object(kind: int, cell: Vector2i) -> Node3D:
 			root = OBJ_STAKES.instantiate()
 		BattleLogic.Obj.BRIDGE:
 			root = OBJ_BRIDGE.instantiate()
+		BattleLogic.Obj.LAVA:
+			root = _make_lava_node()
+		BattleLogic.Obj.CRUST:
+			root = _make_crust_node(hash_value)
+	return root
+
+
+# Плоская плита с самоподсветкой (для лавы и корки)
+func _glow_slab(size: Vector3, color: Color, glow: Color, energy: float, y: float) -> MeshInstance3D:
+	var m := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = size
+	m.mesh = box
+	m.position.y = y
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.roughness = 0.6
+	mat.emission_enabled = true
+	mat.emission = glow
+	mat.emission_energy_multiplier = energy
+	m.material_override = mat
+	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return m
+
+
+# Лава: тёмный остывший бортик и густая оранжево-жёлтая масса с тёплым светом (красного нет)
+func _make_lava_node() -> Node3D:
+	var root := Node3D.new()
+	root.add_child(_glow_slab(Vector3(0.98, 0.1, 0.98), Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05))
+	root.add_child(_glow_slab(Vector3(0.82, 0.14, 0.82), Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07))
+	root.add_child(_glow_slab(Vector3(0.4, 0.17, 0.4), Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6, 0.09))
+	_add_light(root, Vector3(0.0, 0.5, 0.0), Color(1.0, 0.6, 0.15), 0.8, 2.4)
+	return root
+
+
+# Корка: тёмно-серая плита с оранжевыми трещинами
+func _make_crust_node(hash_value: int) -> Node3D:
+	var root := Node3D.new()
+	root.rotation.y = (hash_value % 4) * PI / 2.0
+	root.add_child(_glow_slab(Vector3(0.94, 0.12, 0.94), Color(0.25, 0.25, 0.27), Color(0.2, 0.1, 0.03), 0.2, 0.06))
+	root.add_child(_glow_slab(Vector3(0.7, 0.13, 0.06), Color(0.3, 0.2, 0.1), Color(1.0, 0.5, 0.1), 1.2, 0.065))
+	var crack := _glow_slab(Vector3(0.06, 0.13, 0.55), Color(0.3, 0.2, 0.1), Color(1.0, 0.5, 0.1), 1.2, 0.065)
+	crack.position.x = 0.15
+	root.add_child(crack)
 	return root
 
 

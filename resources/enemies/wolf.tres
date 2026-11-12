@@ -7,6 +7,7 @@
 script = ExtResource("1_enemy")
 id = "wolf"
 title = "Волк"
+description = "Одни рёбра да злость: пересекает полполя за мгновение и вцепляется первым."
 max_hp = 7
 move_range = 4
 damage = 3

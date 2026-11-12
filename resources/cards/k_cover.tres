@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_cover"
+icon = "cover"
 title = "Прикрыть"
 description = "Блок 8 союзнику на расстоянии до 4 (или себе)."
 cost = 1

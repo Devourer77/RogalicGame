@@ -5,8 +5,9 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_fell"
+icon = "tree"
 title = "Свалить дерево"
-description = "Рыцарь валит соседнее дерево в выбранную сторону: 4 урона по 3 клеткам."
+description = "Рыцарь валит соседнее дерево в выбранную сторону: 7 урона по 3 клеткам."
 cost = 1
 shape = 11
 card_set = "warden"

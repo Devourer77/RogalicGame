@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_hold"
+icon = "hold"
 title = "Держать строй"
 description = "4 блока +3 за каждый неиспользованный шаг."
 cost = 1

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_whirl"
+icon = "whirl"
 title = "Вихрь стали"
 description = "5 урона по всем 8 клеткам вокруг. +1 ярость за каждого задетого врага."
 cost = 2

@@ -5,8 +5,9 @@
 [resource]
 script = ExtResource("1_card")
 id = "lightning"
+icon = "bolt"
 title = "Молния"
-description = "Одна клетка до 6: 6 урона. Попав в лужу, бьёт всех, кто стоит в этой луже."
+description = "Одна клетка до 6: 6 урона. Попав в лужу, бьёт всех, кто стоит в этой луже, и на 2 сильнее."
 cost = 2
 shape = 1
 cast_range = 6

@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_charge"
+icon = "ram"
 title = "Таран"
 description = "Бежит по прямой до 4 клеток. Врезавшись во врага: 4 урона и толчок на 1. Ломает деревья и бочки."
 cost = 1

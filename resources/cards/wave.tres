@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "wave"
+icon = "wave"
 title = "Волна"
 description = "Квадрат 3×3 на расстоянии до 4: 1 урон, толчок на 1, лужи. Вода тушит огонь."
 cost = 1

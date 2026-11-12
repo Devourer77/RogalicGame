@@ -5,8 +5,9 @@
 [resource]
 script = ExtResource("1_card")
 id = "m_ball_lightning"
+icon = "orb"
 title = "Шаровая молния"
-description = "Крест на расстоянии до 5: 3 урона +1 за каждый заряд. Тратит весь заряд."
+description = "Крест на расстоянии до 5: 3 урона +1 за каждый заряд. Тратит весь заряд. Тем, кто в луже, — ещё +2."
 cost = 2
 shape = 3
 cast_range = 5

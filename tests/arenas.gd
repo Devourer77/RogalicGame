@@ -15,6 +15,12 @@ func _initialize() -> void:
 			if b.objects.is_empty(): empty_fields += 1
 			if not b._field_is_open(): fails += 1
 			if b.enemies.size() < 5: fails += 1
+			# Враги стоят в своей зоне (со сдвигом на 1 ряд к героям) и не в трясине
+			for e: BattleUnit in b.enemies:
+				if e.cell.y < BattleLogic.ENEMY_ROW_OFFSET or e.cell.y > b._enemy_last_row() \
+						or b.object_at(e.cell) == BattleLogic.Obj.BOG:
+					fails += 1
+					print("Враг не в своей зоне: арена %s сид %d клетка %s" % [arena, s, e.cell])
 			if s == 1 or s == 2:
 				print("--- %s (%s), сид %d ---" % [b.arena_title(), arena, s])
 				for y in 12:

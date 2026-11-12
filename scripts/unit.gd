@@ -13,7 +13,8 @@ const PUSH_TIME_PER_CELL: float = 0.1
 
 var board: Board          # поле, на котором стоит фигурка (задаёт сцена боя)
 var is_moving: bool = false
-var _label: Label3D       # надпись над головой: имя, HP, блок
+var _plate: UnitPlate     # плашка над головой: полоса HP, блок, намерение врага
+var _plate_height: float = 2.0   # на какой высоте над клеткой она висит (в метрах)
 var _idle_speed: float = 1.0   # личный темп анимации покоя
 var _anim: AnimationPlayer  # анимации модели (есть у рыцаря; у моделей без них — простые Tween)
 
@@ -176,21 +177,40 @@ func play_death() -> void:
 	visible = false
 
 
-# Создаёт надпись над головой. height — высота над клеткой в метрах.
+# Создаёт плашку над головой. height — высота над клеткой в метрах.
+# Плашка — 2D-узел (Control): он рисуется поверх 3D, а мы каждый кадр
+# ставим его в ту точку экрана, где у фигурки «макушка».
 func setup_label(height: float) -> void:
-	_label = Label3D.new()
-	_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED  # всегда смотрит в камеру
-	_label.no_depth_test = true   # видна даже за другими фигурками
-	_label.font_size = 40
-	_label.outline_size = 10
-	_label.pixel_size = 0.0045   # мельче, чтобы надписи соседей не налезали друг на друга
-	_label.position = Vector3(0.0, height, 0.0)
-	add_child(_label)
+	_plate_height = height
+	_plate = UnitPlate.new()
+	add_child(_plate)
+	_update_plate()
 
 
-func set_status(text: String) -> void:
-	if _label != null:
-		_label.text = text
+# info — что показать на плашке (собирает сцена боя, см. Battle._plate_info)
+func set_status(info: Dictionary) -> void:
+	if _plate != null:
+		_plate.set_info(info)
+		_plate.modulate.a = 1.0 if info["hp"] > 0 else 0.0   # у павших плашки нет
+
+
+func _process(_delta: float) -> void:
+	_update_plate()
+
+
+# Переводит точку над головой из 3D в координаты экрана и ставит туда плашку
+func _update_plate() -> void:
+	if _plate == null:
+		return
+	var camera: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
+	var point: Vector3 = global_position + Vector3(0.0, _plate_height, 0.0)
+	if camera == null or not visible or camera.is_position_behind(point):
+		_plate.visible = false
+		return
+	_plate.visible = true
+	var screen: Vector2 = camera.unproject_position(point)
+	_plate.position = (screen - Vector2(UnitPlate.PLATE_SIZE.x / 2.0, UnitPlate.PLATE_SIZE.y)).round()
+	_plate.position.y = maxf(_plate.position.y, 2.0)   # у высоких врагов в дальнем ряду плашка не уезжает за верх экрана
 
 
 func _shake() -> void:

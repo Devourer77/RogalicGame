@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_cleave"
+icon = "slash"
 title = "Размах"
 description = "Дуга из трёх клеток перед рыцарем: 4 урона каждому."
 cost = 1

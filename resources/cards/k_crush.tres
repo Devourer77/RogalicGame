@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_card")
 id = "k_crush"
+icon = "hammer"
 title = "Сокрушить"
 description = "5 урона по соседней клетке и толчок на 3."
 cost = 2
