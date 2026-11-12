@@ -151,17 +151,19 @@ func _toad() -> void:
 	e.cell = Vector2i(-1, 7); l._set_tile(Vector2i(-1, 8), T.FIRE)
 	l._enemies_act()
 	check("Жаба: встаёт так, чтобы затянуть в огонь (справа-сверху)", e.cell == Vector2i(0, 7) and m.cell == Vector2i(-1, 8))
-	# Посмертный взрыв
+	# Посмертный взрыв (редизайн, «Нестабильная слизь»): 12 урона и 3 яда всем вокруг —
+	# и своим, и героям; деревья рядом падают. Лужи больше нет.
 	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]; var g: BattleUnit = l.enemies[1]; m = l.heroes[0]
 	e.cell = C(5, 5); g.cell = C(5, 4); m.cell = C(5, 6)
 	l.objects[C(4, 5)] = O.TREE
 	l._damage(e, 99)
-	check("Жаба: хлопок — 3 урона соседям, и своим, и героям", g.hp == 8 and m.hp == 27)
-	check("Жаба: хлопок валит дерево и оставляет лужу", l.object_at(C(4, 5)) == O.NONE and l.tile_at(C(5, 5)) == T.WATER)
+	check("Жаба: взрыв — 12 урона соседям, гоблин погиб, маг ранен и отравлен",
+			not g.is_alive() and m.hp == 30 - BattleLogic.INFLATION_DAMAGE and m.poison == BattleLogic.INFLATION_POISON)
+	check("Жаба: взрыв валит соседнее дерево", l.object_at(C(4, 5)) == O.NONE)
 	l = fresh(["bloated_toad", "bloated_toad"]); e = l.enemies[0]; var e2: BattleUnit = l.enemies[1]
 	e.cell = C(5, 5); e2.cell = C(6, 5); e2.hp = 3
 	l._damage(e, 99)
-	check("Жаба: хлопок убивает соседнюю жабу — цепочка без зависания", not e2.is_alive() and l.tile_at(C(6, 5)) == T.WATER)
+	check("Жаба: взрыв убивает соседнюю жабу — цепочка без зависания", not e.is_alive() and not e2.is_alive())
 	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]; g = l.enemies[1]
 	e.cell = C(5, 5); g.cell = C(5, 4); l.objects[C(5, 5) + DOWN] = O.BOG
 	l._push(e, DOWN, 1)
@@ -169,8 +171,8 @@ func _toad() -> void:
 	l = fresh(["bloated_toad"]); e = l.enemies[0]
 	e.cell = C(5, 5); e.hp = 2; e.entangled = 1; l._set_tile(C(5, 5), T.FIRE)
 	l.end_turn()
-	check("Жаба: сгорела в конце раунда — хлопок, огонь под ней погас, игра не падает",
-			not e.is_alive() and l.tile_at(C(5, 5)) == T.NONE and l.is_over)
+	check("Жаба: сгорела в конце раунда — взрыв, бой окончен, игра не падает",
+			not e.is_alive() and l.is_over)
 	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]; g = l.enemies[1]
 	e.cell = C(5, 5); g.cell = C(7, 6); l.tiles[C(5, 6)] = T.WATER; l.tiles[C(6, 6)] = T.WATER
 	var hit: Array[Vector2i] = l._spread_through_water([C(6, 6)] as Array[Vector2i])

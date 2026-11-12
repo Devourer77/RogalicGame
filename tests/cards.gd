@@ -344,8 +344,8 @@ func _pools() -> void:
 	print("--- Наборы и награды ---")
 	var mage: HeroData = load("res://resources/heroes/mage.tres")
 	var knight: HeroData = load("res://resources/heroes/knight.tres")
-	check("У мага в пуле 24 карты", mage.card_pool.size() == 24)
-	check("У рыцаря в пуле 32 карты", knight.card_pool.size() == 32)
+	check("У мага в пуле 34 карты (24 + 10 редизайна)", mage.card_pool.size() == 34)
+	check("У рыцаря в пуле 42 карты (32 + 10 редизайна)", knight.card_pool.size() == 42)
 	var rh: RunHero = run.party[0]
 	for i in 4: rh.deck.append(card("m_spark"))
 	var storm := 0; var total := 0
@@ -427,7 +427,10 @@ func _keep() -> void:
 	give(m, ["m_spark", "strike", "wave", "guard", "shove"])
 	check("Отметить первую карту", l.toggle_keep(m, 1) and l.is_kept(m, 1))
 	check("Отметить вторую карту", l.toggle_keep(m, 3))
-	check("Третью отметить нельзя", not l.toggle_keep(m, 4) and not l.is_kept(m, 4))
+	# Редизайн: удержать можно до KEEP_LIMIT = 3 карт
+	check("Отметить третью карту", l.toggle_keep(m, 4) and l.is_kept(m, 4))
+	check("Четвёртую отметить нельзя", not l.toggle_keep(m, 2) and not l.is_kept(m, 2))
+	l.toggle_keep(m, 4)   # снимаем третью — дальше проверяем, как раньше, с двумя
 	check("Снять и вернуть отметку", l.toggle_keep(m, 3) and not l.is_kept(m, 3) and l.toggle_keep(m, 3))
 	check("Неверный номер — отказ", not l.toggle_keep(m, 9))
 	# Сыграли карту левее — отметки сдвинулись вместе с картами
@@ -435,12 +438,13 @@ func _keep() -> void:
 	check("После розыгрыша отметки остались на тех же картах",
 			l.is_kept(m, 0) and l.is_kept(m, 2) and m.hand[0].id == "strike" and m.hand[2].id == "guard")
 	l.end_turn()
-	check("После хода в руке удержанные + 5 новых", m.hand.size() == 7)
+	# Редизайн: в конце хода добор TURN_DRAW = 3 карты
+	check("После хода в руке удержанные + 3 новых", m.hand.size() == 2 + BattleLogic.TURN_DRAW)
 	check("Удержанные карты на месте", m.hand[0].id == "strike" and m.hand[1].id == "guard")
 	check("Отметки сброшены", not l.is_kept(m, 0) and not l.is_kept(m, 1))
 	l.toggle_keep(m, 0)
 	l.end_turn()
-	check("Одна удержанная + 5 новых", m.hand.size() == 6 and m.hand[0].id == "strike")
+	check("Одна удержанная + 3 новых", m.hand.size() == 1 + BattleLogic.TURN_DRAW and m.hand[0].id == "strike")
 	# Маленькая колода: сброс замешивается обратно
 	m.draw_pile.clear(); m.discard_pile.clear(); m.kept.clear()
 	give(m, ["strike", "guard", "wave"])

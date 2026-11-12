@@ -16,13 +16,19 @@ func C(col: int, row: int) -> Vector2i:
 	return HexMath.from_column(col, row)
 
 
-func fresh() -> BattleLogic:
+# ids — враги боя. Без врагов бой кончается победой на первом же «Конец хода»,
+# и следующий ход (с новой маной) не начинается — для проверок хода ставим одного далёкого
+func fresh(ids: Array = []) -> BattleLogic:
 	var list: Array[EnemyData] = []
+	for id: String in ids:
+		list.append(load("res://resources/enemies/%s.tres" % id))
 	var l := BattleLogic.new()
 	l.setup(12, 12, run.rng, run.party, list)
 	l.rocks.clear(); l.tiles.clear(); l.objects.clear(); l.fire_timers.clear()
 	l.start()
 	l.heroes[0].cell = C(2, 9); l.heroes[1].cell = C(8, 9)
+	for i in l.enemies.size():
+		l.enemies[i].cell = C(11 - i, 0)
 	return l
 
 
@@ -31,7 +37,7 @@ func _initialize() -> void:
 	run = root.get_node("Run")
 	run.start_new_run(7)
 
-	var l := fresh()
+	var l := fresh(["goblin"])
 	var mage: BattleUnit = l.heroes[0]
 	var knight: BattleUnit = l.heroes[1]
 
