@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_rune_trap"
+icon = "rune_trap"
+title = "Сторожевая руна"
+description = "Руна на соседней пустой клетке. Враг наступил или по ней ударили — 5 урона врагам на ней и вокруг крестом. Героев не ранит."
+cost = 1
+shape = 1
+cast_range = 1
+card_set = "runes"
+special = "rune_trap"

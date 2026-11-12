@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_rune_fire"
+icon = "rune_fire"
+title = "Руна огня"
+description = "Следующие 3 удара поджигают клетку под каждым задетым врагом."
+cost = 1
+shape = 0
+cast_range = 0
+card_set = "runes"
+special = "rune_fire"

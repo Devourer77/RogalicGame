@@ -6,6 +6,8 @@ extends RefCounted
 
 # Четыре направления: вправо, влево, вниз (к игроку), вверх
 const DIRS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+# Четыре направления наискосок
+const DIAG_DIRS: Array[Vector2i] = [Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]
 
 
 # Расстояние «по клеткам», если ходить только по прямой (без диагоналей)
@@ -42,4 +44,12 @@ static func square_cells(center: Vector2i) -> Array[Vector2i]:
 	for dx in range(-1, 2):
 		for dy in range(-1, 2):
 			cells.append(center + Vector2i(dx, dy))
+	return cells
+
+
+# Косой крест: центр и 4 клетки наискосок от него
+static func xcross_cells(center: Vector2i) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = [center]
+	for d: Vector2i in DIAG_DIRS:
+		cells.append(center + d)
 	return cells

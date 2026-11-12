@@ -9,7 +9,7 @@ extends SceneTree
 func signature(b: BattleLogic) -> String:
 	var parts: PackedStringArray = []
 	for u: BattleUnit in b.heroes + b.enemies:
-		parts.append("%d:%s:%d:%d:%d:%d" % [u.id, u.cell, u.hp, u.block, u.entangled, u.bonus_damage])
+		parts.append("%d:%s:%d:%d:%d:%d:%d:%d" % [u.id, u.cell, u.hp, u.block, u.entangled, u.bonus_damage, u.wet, u.poison])
 	var cells: Array = b.objects.keys() + b.tiles.keys()
 	cells.sort()
 	for c: Vector2i in cells:

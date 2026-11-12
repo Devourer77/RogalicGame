@@ -103,6 +103,8 @@ func _play_battle(run: Node, seed_value: int, cfg: Dictionary) -> Dictionary:
 				break
 		if b.is_over:
 			break
+		for h in b.living_heroes():
+			_keep_best(b, h)
 		b.end_turn()
 	var result: Dictionary = {"won": b.won, "stuck": stuck, "rounds": b.turn,
 			"loss_mage": 0, "loss_knight": 0}
@@ -260,3 +262,15 @@ func _shuffle(items: Array) -> void:
 		var tmp: Variant = items[i]
 		items[i] = items[j]
 		items[j] = tmp
+
+
+# Режим KEEP_2: бот удерживает самые дорогие несыгранные карты (до KEEP_LIMIT)
+func _keep_best(b: BattleLogic, h: BattleUnit) -> void:
+	if BattleLogic.DRAW_MODE != BattleLogic.DrawMode.KEEP_2:
+		return
+	var order: Array[int] = []
+	for i in h.hand.size():
+		order.append(i)
+	order.sort_custom(func(x: int, y: int) -> bool: return h.hand[x].cost > h.hand[y].cost)
+	for i in mini(BattleLogic.KEEP_LIMIT, order.size()):
+		b.toggle_keep(h, order[i])

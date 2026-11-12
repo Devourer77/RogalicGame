@@ -15,6 +15,7 @@ const SETS: Dictionary[String, Array] = {
 	"elements": ["Повелитель стихий", Color(0.3, 0.8, 0.75)],
 	"onslaught": ["Натиск", Color(1.0, 0.65, 0.2)],
 	"warden": ["Страж топей", Color(0.6, 0.7, 0.8)],
+	"runes": ["Руны Стражи", Color(0.88, 0.9, 0.86)],
 }
 const BASIC_COLOR := Color(0.5, 0.52, 0.56)
 const COLOR_PAPER := Color(0.085, 0.105, 0.105)    # тёмный фон карты
@@ -34,6 +35,8 @@ const SHAPE_ICONS: Dictionary[int, String] = {
 	CardData.Shape.LEAP: "shape_leap",
 	CardData.Shape.AROUND: "shape_around",
 	CardData.Shape.FELL: "shape_fell",
+	CardData.Shape.DIAG: "shape_diag",
+	CardData.Shape.XCROSS: "shape_xcross",
 }
 const SHAPE_NAMES: Dictionary[int, String] = {
 	CardData.Shape.SELF: "на себя",
@@ -48,6 +51,8 @@ const SHAPE_NAMES: Dictionary[int, String] = {
 	CardData.Shape.LEAP: "прыжок и удар вокруг",
 	CardData.Shape.AROUND: "все клетки вокруг героя",
 	CardData.Shape.FELL: "дерево падает на 3 клетки",
+	CardData.Shape.DIAG: "клетка наискосок от героя",
+	CardData.Shape.XCROSS: "косой крест: клетка и 4 наискосок",
 }
 
 

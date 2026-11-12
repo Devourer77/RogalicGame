@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_rune_storm"
+icon = "rune_storm"
+title = "Руна бури"
+description = "Следующие 3 удара считаются молнией: по мокрым врагам +3 урона."
+cost = 1
+shape = 0
+cast_range = 0
+card_set = "runes"
+special = "rune_storm"

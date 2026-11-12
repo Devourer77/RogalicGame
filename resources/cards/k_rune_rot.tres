@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "k_rune_rot"
+icon = "rune_rot"
+title = "Руна гнили"
+description = "Следующие 3 удара отравляют задетых врагов: 2 урона в конце раунда мимо блока, 3 раунда."
+cost = 1
+shape = 0
+cast_range = 0
+card_set = "runes"
+special = "rune_rot"

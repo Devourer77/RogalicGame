@@ -645,6 +645,8 @@ func _make_object(kind: int, cell: Vector2i) -> Node3D:
 			root = _make_lava_node()
 		BattleLogic.Obj.CRUST:
 			root = _make_crust_node(hash_value)
+		BattleLogic.Obj.RUNE:
+			root = _make_rune_node()
 	return root
 
 
@@ -765,3 +767,22 @@ func show_routes(paths: Array) -> void:
 		# Сначала кладём треугольник на пол (остриё смотрит в -Z), потом поворачиваем к цели
 		arrow.rotation = Vector3(-PI / 2.0, atan2(-float(last.x - prev.x), -float(last.y - prev.y)), 0.0)
 		holder.add_child(arrow)
+
+
+# Сторожевая руна рыцаря: плоский светящийся знак на плите (заглушка до модели obj_rune.glb).
+# Серебристо-белая: не жёлтая (маршруты врагов) и не красная (угроза).
+func _make_rune_node() -> Node3D:
+	var root := Node3D.new()
+	var silver := Color(0.86, 0.9, 0.96)
+	var glow := Color(0.8, 0.88, 1.0)
+	var ring: MeshInstance3D = _glow_slab(Vector3(0.6, 0.02, 0.6), Color(0.2, 0.22, 0.26), glow, 0.25, 0.03)
+	root.add_child(ring)
+	var bar_a: MeshInstance3D = _glow_slab(Vector3(0.5, 0.025, 0.07), silver, glow, 1.6, 0.05)
+	bar_a.rotation.y = PI / 4.0
+	root.add_child(bar_a)
+	var bar_b: MeshInstance3D = _glow_slab(Vector3(0.5, 0.025, 0.07), silver, glow, 1.6, 0.05)
+	bar_b.rotation.y = -PI / 4.0
+	root.add_child(bar_b)
+	var stem: MeshInstance3D = _glow_slab(Vector3(0.07, 0.025, 0.5), silver, glow, 1.6, 0.05)
+	root.add_child(stem)
+	return root

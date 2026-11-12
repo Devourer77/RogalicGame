@@ -33,7 +33,9 @@ const COLOR_FREEZE := Color(0.5, 0.85, 1.0, 0.7)     # заморозка
 const COLOR_SHATTER := Color(0.7, 0.95, 1.0, 0.8)    # ледяные осколки
 const COLOR_LAVA := Color(1.0, 0.65, 0.1, 0.75)      # лава (оранжево-жёлтая, без красного)
 const COLOR_CRUST := Color(0.6, 0.6, 0.62, 0.75)     # корка
-const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust"]
+const COLOR_SHOCK := Color(1.0, 0.95, 0.55, 0.8)     # молния по мокрому
+const COLOR_RUNE := Color(0.9, 0.93, 1.0, 0.8)       # взрыв сторожевой руны (серебристо-белый)
+const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust", "shock"]
 const COLOR_BUFF := Color(0.37, 0.92, 0.83, 0.4)     # «зов» шамана: бирюза Раскола
 
 # Ощущение удара от окружения (взрыв бочки, падение дерева). Всё можно подкрутить:
@@ -88,6 +90,7 @@ func _ready() -> void:
 	_create_views()
 	_connect_logic()
 	hud.card_pressed.connect(_on_card_pressed)
+	hud.card_keep_toggled.connect(_on_card_keep_toggled)
 	hud.hero_pressed.connect(_on_hero_pressed)
 	hud.end_turn_pressed.connect(_on_end_turn_pressed)
 	hud.speed_toggled.connect(_apply_speed)
@@ -222,6 +225,10 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.THREAT
 	if state["entangled"] > 0:
 		marks.append("entangled")
+	if state.get("wet", 0) > 0:
+		marks.append("wet")
+	if state.get("poison", 0) > 0:
+		marks.append("poison")
 	info["marks"] = marks
 	if _fire_forecast.has(u.id):
 		info["fire"] = _fire_forecast[u.id]
@@ -314,6 +321,8 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 		color = COLOR_LAVA
 	elif kind == "crust":
 		color = COLOR_CRUST
+	elif kind == "shock":
+		color = COLOR_SHOCK
 	var cells: Array[Vector2i] = [cell]
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
@@ -331,11 +340,16 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 	elif kind == "gas":
 		color = COLOR_GAS
 		damage = 0
+	elif kind == "rune":
+		color = COLOR_RUNE
+		damage = BattleLogic.RUNE_TRAP_DAMAGE
 	# Кто стоит в зоне удара — запоминаем сейчас: к моменту анимации юниты уже сдвинуться могут
 	var victims: Array[Vector2i] = []
 	if damage > 0:
 		for c in cells:
-			if logic.unit_at(c) != null:
+			var hit_unit: BattleUnit = logic.unit_at(c)
+			# Руна рыцаря героев не ранит — цифру над ними не показываем
+			if hit_unit != null and not (kind == "rune" and hit_unit.is_hero):
 				victims.append(c)
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
@@ -511,7 +525,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Цифры 1–9 — карта из руки по номеру (та же цифра написана на самой карте)
 		var card_index: int = (event as InputEventKey).keycode - KEY_1
 		if card_index < _active.hand.size():
-			_on_card_pressed(card_index)
+			if (event as InputEventKey).shift_pressed:
+				_on_card_keep_toggled(card_index)   # Shift + цифра — удержать карту
+			else:
+				_on_card_pressed(card_index)
 	elif event.is_action_pressed("ui_cancel"):
 		_cancel_card()
 
@@ -547,7 +564,7 @@ func _on_hover(cell: Vector2i) -> void:
 		for r: Dictionary in logic.predict_reactions(_active, _selected_card, cell):
 			by_kind[r["kind"]].append(r["cell"])
 		var colors: Dictionary = {"steam": COLOR_STEAM, "freeze": COLOR_FREEZE, "shatter": COLOR_SHATTER,
-				"lava": COLOR_LAVA, "crust": COLOR_CRUST}
+				"lava": COLOR_LAVA, "crust": COLOR_CRUST, "shock": COLOR_SHOCK}
 		for k: String in REACTION_KINDS:
 			board.show_cells("reaction_" + k, by_kind[k], colors[k])
 	else:
@@ -699,6 +716,8 @@ func _show_forecast() -> void:
 			marks.append({"cell": _blast_center(fx_cells), "icon": "barrel", "color": Color(1.0, 0.85, 0.7)})
 		elif fx["kind"] == "tree":
 			marks.append({"cell": fx_cells[0], "icon": "tree", "color": Color(1.0, 0.85, 0.7)})
+		elif fx["kind"] == "rune":
+			marks.append({"cell": _blast_center(fx_cells), "icon": "rune_trap", "color": Color(0.9, 0.93, 1.0)})
 	board.show_markers("hazard_marks", marks)
 	_set_fire_forecast(hazards["fire"])
 	board.show_routes(paths)
@@ -804,3 +823,12 @@ func _turn_camera(delta_deg: float) -> void:
 func _zoom_camera(direction: float) -> void:
 	_cam_dist = clampf(_cam_dist + direction * 1.2, CAM_DIST_MIN, CAM_DIST_MAX)
 	_update_camera()
+
+
+# ПКМ по карте в руке (или Shift + цифра): отметить «удержать на следующий ход» или снять отметку
+func _on_card_keep_toggled(index: int) -> void:
+	if _mode == Mode.BUSY or _active == null or logic.is_over:
+		return
+	if not logic.toggle_keep(_active, index) and logic.can_keep(_active, index):
+		hud.add_log("Удержать можно не больше %d карт" % BattleLogic.KEEP_LIMIT)
+	hud.refresh(logic, _active, _selected_card, false)

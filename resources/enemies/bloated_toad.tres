@@ -21,3 +21,4 @@ pull = 1
 keep_distance = 2
 aquatic = true
 death_blast = 3
+always_wet = true

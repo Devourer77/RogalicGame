@@ -39,6 +39,7 @@ enum Obj {
 	BRIDGE,     # крепкие мостки рыцаря поверх трясины: проходимы и не ломаются
 	LAVA,       # лава: огонь на трясине. Стена на LAVA_TURNS раундов, потом снова трясина
 	CRUST,      # корка: вода или лёд на лаве. Проходима, но ход на ней заканчивается; потом сухая земля
+	RUNE,       # сторожевая руна рыцаря: проходима; взрывается, когда на неё наступил враг или по ней ударили
 }
 
 const LAVA_TURNS: int = 3        # сколько раундов держится лава
@@ -53,11 +54,13 @@ const MAX_HAND: int = 7
 #  REFILL_5    — рука остаётся, после «Конец хода» добираем до 5 (минимум 1 карта)
 #  PLUS_3      — рука остаётся, после «Конец хода» берём ещё 3
 #  PLUS_2      — рука остаётся, после «Конец хода» берём ещё 2
+#  KEEP_2      — рука сбрасывается, кроме отмеченных «удержать» (до KEEP_LIMIT карт), потом берём 5
 # Чтобы сменить режим, поменяй значение DRAW_MODE ниже.
 const DISCARDS_PER_TURN: int = 1   # сколько карт за ход герой может сбросить из руки
 
-enum DrawMode { DISCARD_ALL, REFILL_5, PLUS_3, PLUS_2 }
-const DRAW_MODE: DrawMode = DrawMode.REFILL_5
+enum DrawMode { DISCARD_ALL, REFILL_5, PLUS_3, PLUS_2, KEEP_2 }
+const DRAW_MODE: DrawMode = DrawMode.KEEP_2
+const KEEP_LIMIT: int = 2          # сколько карт герой может удержать на следующий ход (режим KEEP_2)
 const BUMP_DAMAGE: int = 3      # урон, если толкнутый врезался в препятствие
 const STEAM_DAMAGE: int = 3        # урон от парового взрыва (огонь на луже)
 const ICE_SHATTER_DAMAGE: int = 4  # урон от ледяных осколков (огонь на льду)
@@ -70,7 +73,13 @@ const BARREL_DAMAGE: int = 6    # урон от взрыва бочки
 const BOSS_BOG_DAMAGE: int = 8  # босс не тонет, но трясина его ранит
 const HERO_BOG_DAMAGE: int = 4  # герой не тонет: трясина для него как стена с таким уроном
 const STAKES_BUMP_DAMAGE: int = 6  # урон, если толкнули в частокол
-const WATER_SHOCK_BONUS: int = 2    # молния, попавшая в лужу, бьёт стоящих в луже на столько сильнее
+const WET_SHOCK_BONUS: int = 3      # молния по мокрому юниту бьёт сильнее на столько
+const WET_TURNS: int = 2            # сколько раундов юнит остаётся мокрым, выйдя из лужи
+const POISON_DAMAGE: int = 2        # урон яда в конце раунда (мимо блока)
+const POISON_TURNS: int = 3         # сколько раундов держится яд
+const RUNE_HITS: int = 3            # на сколько ударов хватает руны на оружии рыцаря
+const RUNE_TRAP_DAMAGE: int = 5     # урон сторожевой руны врагам на её клетке и четырёх соседних
+const WATER_SHOCK_BONUS: int = WET_SHOCK_BONUS    # молния, попавшая в лужу, бьёт стоящих в луже на столько сильнее
 const MAX_CHARGE: int = 5          # обычный предел заряда мага
 const MAX_CHARGE_OVERLOAD: int = 10  # предел заряда после «Перегрузки»
 const MAX_MOMENTUM: int = 5        # предел натиска рыцаря
@@ -127,6 +136,8 @@ var turn: int = 0
 var is_over: bool = false
 var won: bool = false
 var _next_id: int = 0
+var _lightning_now: bool = false                    # урон текущей карты считается молнией (по мокрым +WET_SHOCK_BONUS)
+var _hit_enemies: Array[BattleUnit] = []            # враги, которых задела текущая карта (для рун рыцаря)
 var _shock_cells: Dictionary[Vector2i, bool] = {}   # клетки, где молния этой карты бьёт сильнее (лужа)
 
 
@@ -512,7 +523,8 @@ func start() -> void:
 # чтобы надпись над головой показала цифры именно на этот момент
 func snapshot(u: BattleUnit) -> Dictionary:
 	var state: Dictionary = {"hp": u.hp, "block": u.block, "rage": u.rage, "taunt": u.taunt,
-			"charge": u.charge, "momentum": u.momentum, "entangled": u.entangled}
+			"charge": u.charge, "momentum": u.momentum, "entangled": u.entangled,
+			"wet": wet_turns(u), "poison": u.poison, "rune": u.rune, "rune_hits": u.rune_hits}
 	if u.data != null:
 		# Что враг собирается сделать в этом раунде — для надписи над головой
 		var atk: EnemyAttackData = enemy_attack(u)
@@ -707,6 +719,7 @@ func move_hero(h: BattleUnit, cell: Vector2i) -> bool:
 	h.cell = cell
 	unit_moved.emit(h, path)
 	_break_planks_behind(path)
+	_walked(h, path)
 	_add_momentum(h, path.size() - 1)
 	return true
 
@@ -750,6 +763,11 @@ func get_card_targets(h: BattleUnit, index: int) -> Array[Vector2i]:
 		CardData.Shape.ARC:
 			# Дуга: выбираем соседнюю клетку — в ту сторону и замах
 			for d: Vector2i in GridShapes.DIRS:
+				if is_inside(h.cell + d):
+					result.append(h.cell + d)
+		CardData.Shape.DIAG:
+			# Удар наискосок: одна из четырёх клеток по диагонали вплотную
+			for d: Vector2i in GridShapes.DIAG_DIRS:
 				if is_inside(h.cell + d):
 					result.append(h.cell + d)
 		CardData.Shape.CHARGE:
@@ -806,7 +824,7 @@ func get_card_targets(h: BattleUnit, index: int) -> Array[Vector2i]:
 # Подходит ли клетка как цель для карты с особым действием
 func _special_target_ok(special: String, c: Vector2i) -> bool:
 	match special:
-		"stakes":
+		"stakes", "rune_trap":
 			return _can_build(c)
 		"bridge":
 			return object_at(c) == Obj.BOG
@@ -866,8 +884,10 @@ func get_card_area(h: BattleUnit, index: int, target: Vector2i) -> Array[Vector2
 	match card.shape:
 		CardData.Shape.SELF:
 			cells.append(h.cell)
-		CardData.Shape.SINGLE, CardData.Shape.ALLY:
+		CardData.Shape.SINGLE, CardData.Shape.ALLY, CardData.Shape.DIAG:
 			cells.append(target)
+		CardData.Shape.XCROSS:
+			cells = GridShapes.xcross_cells(target)
 		CardData.Shape.LINE:
 			cells = _line_cells(h.cell, d, card.cast_range, card.special == "pierce")
 		CardData.Shape.CROSS:
@@ -925,6 +945,7 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	h.mana -= card_cost(h, index)
 	h.discount = 0   # скидка действует на одну карту
 	h.hand.remove_at(index)
+	_forget_kept(h, index)
 	h.discard_pile.append(card)
 	message.emit("%s: %s" % [h.title, card.title])
 	_resolve_card(h, card, area, target)
@@ -938,13 +959,12 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target: Vector2i) -> void:
 	var hit_cells: Array[Vector2i] = area
 	_shock_cells.clear()
+	_hit_enemies.clear()
+	# Молния (или удар рыцаря с «Руной бури») бьёт по мокрым сильнее
+	_lightning_now = card.element == CardData.Element.LIGHTNING \
+			or (card.damage > 0 and h.rune == "storm" and h.rune_hits > 0)
 	if card.element == CardData.Element.LIGHTNING:
 		hit_cells = _spread_through_water(area)
-		# Кто стоит в луже (или «водный» враг рядом с ней) — тот получит удар током сильнее
-		for c in hit_cells:
-			var wet: BattleUnit = unit_at(c)
-			if tile_at(c) == Tile.WATER or (wet != null and wet.data != null and wet.data.aquatic):
-				_shock_cells[c] = true
 	var dir: Vector2i = GridShapes.cardinal_dir(h.cell, target)
 	var from: Vector2i = h.cell
 	var alive_before: Array[BattleUnit] = living_enemies()
@@ -973,6 +993,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 			h.cell = target
 			unit_moved.emit(h, path)
 			_break_planks_behind(path)
+			_walked(h, [target])
 			card_cast.emit(h, card, hit_cells)
 			_hit_cells(card, damage, hit_cells, target)
 		CardData.Shape.FELL:
@@ -1015,6 +1036,8 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 
 	if card.special != "":
 		_resolve_special(h, card, area, target, dir)
+	_apply_weapon_rune(h, card, from)
+	_lightning_now = false
 
 	# Блок: на союзника (форма ALLY) или на себя
 	if card.block > 0:
@@ -1067,11 +1090,11 @@ func _hit_cells(card: CardData, damage: int, cells: Array[Vector2i], from: Vecto
 			if card.special == "execute" and u.hp * 2 <= u.max_hp:
 				dealt = damage - card.damage + EXECUTE_DAMAGE
 				message.emit("Добивание!")
-			if _shock_cells.has(c):
-				dealt += WATER_SHOCK_BONUS   # вода проводит ток
-			_damage(u, dealt, card.pierce_block)
+			_card_damage(u, dealt, card.pierce_block)
 		elif _is_breakable(c) and card.special != "pierce":
 			_hit_object(c, from)
+		if object_at(c) == Obj.RUNE and card.special != "pierce":
+			_trigger_rune(c)   # удар по клетке подрывает сторожевую руну
 
 
 # Тратит ярость, заряд и натиск на эту карту. Возвращает прибавку к урону.
@@ -1101,11 +1124,12 @@ func _charge_attack(h: BattleUnit, card: CardData, dir: Vector2i, damage: int, h
 		h.cell = path[path.size() - 1]
 		unit_moved.emit(h, path)
 		_break_planks_behind(path)
+		_walked(h, path)
 	card_cast.emit(h, card, hit_cells)
 	var hit_cell: Vector2i = charge["hit_cell"]
 	var victim: BattleUnit = unit_at(hit_cell) if hit_cell.x >= 0 else null
 	if victim != null and not victim.is_hero:
-		_damage(victim, damage, card.pierce_block)
+		_card_damage(victim, damage, card.pierce_block)
 		if card.push > 0 and victim.is_alive():
 			_push(victim, dir, card.push)
 	elif hit_cell.x >= 0 and _is_breakable(hit_cell):
@@ -1122,7 +1146,7 @@ func _pass_through_charge(h: BattleUnit, card: CardData, dir: Vector2i, damage: 
 	for c in _pass_lane(h, dir, card.cast_range):
 		var u: BattleUnit = unit_at(c)
 		if u != null and not u.is_hero:
-			_damage(u, damage, card.pierce_block)
+			_card_damage(u, damage, card.pierce_block)
 			if u.is_alive():
 				var push_dir: Vector2i = side if not is_blocked(c + side) else -side
 				_push(u, push_dir, 1)
@@ -1133,6 +1157,7 @@ func _pass_through_charge(h: BattleUnit, card: CardData, dir: Vector2i, damage: 
 		h.cell = path[path.size() - 1]
 		unit_moved.emit(h, path)
 		_break_planks_behind(path)
+		_walked(h, path)
 		_add_momentum(h, path.size() - 1)
 
 
@@ -1163,7 +1188,7 @@ func _chain_targets(cells: Array[Vector2i]) -> Array[BattleUnit]:
 
 func _chain_damage(chain: Array[BattleUnit], damage: int, pierce: bool) -> void:
 	for i in chain.size():
-		_damage(chain[i], maxi(1, damage - i), pierce)   # каждый прыжок слабее на 1
+		_card_damage(chain[i], maxi(1, damage - i), pierce)   # каждый прыжок слабее на 1
 
 
 # Особые действия карт (поле, объекты, состояния героя)
@@ -1177,6 +1202,14 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 			message.emit("Перегрузка! Заряд: %d" % h.charge)
 		"unstoppable":
 			h.unstoppable = true
+		"rune_fire", "rune_storm", "rune_rot":
+			# Руна на оружие: одна активная, новая заменяет старую
+			h.rune = card.special.trim_prefix("rune_")
+			h.rune_hits = RUNE_HITS
+			message.emit("%s: руна на клинке (%d удара)" % [h.title, RUNE_HITS])
+		"rune_trap":
+			if _can_build(target):
+				_set_object(target, Obj.RUNE, Vector2i.ZERO)
 		"outpost":
 			h.outpost = true
 			message.emit("%s держит заставу" % h.title)
@@ -1358,6 +1391,8 @@ func _fell_tree(c: Vector2i, dir: Vector2i) -> void:
 				status_changed.emit(u, snapshot(u))
 		if _is_breakable(t):
 			_hit_object(t, c)
+		if object_at(t) == Obj.RUNE:
+			_trigger_rune(t)
 
 
 # Босс и «тяжёлые» враги (корягач) слишком массивны, чтобы дерево сбило их с ног
@@ -1382,6 +1417,8 @@ func _explode_barrel(c: Vector2i) -> void:
 	for t in cells:
 		if _is_breakable(t):
 			_hit_object(t, c)
+		if object_at(t) == Obj.RUNE:
+			_trigger_rune(t)
 		_apply_element(t, CardData.Element.FIRE, c, false)
 
 
@@ -1478,6 +1515,13 @@ func _apply_element(c: Vector2i, element: CardData.Element, from: Vector2i, hero
 		CardData.Element.ICE:
 			new_tile = Tile.NONE if old == Tile.FIRE else Tile.ICE
 			if old == Tile.WATER:
+				_set_tile(c, new_tile)
+				_freeze_unit(c, hero_card)
+				return
+			# Мокрый юнит не в луже: лёд сковывает его так же, «Мокрый» снимается
+			var soaked: BattleUnit = unit_at(c)
+			if soaked != null and soaked.wet > 0 and not _always_wet(soaked) and not (hero_card and soaked.is_hero):
+				soaked.wet = 0
 				_set_tile(c, new_tile)
 				_freeze_unit(c, hero_card)
 				return
@@ -1589,8 +1633,11 @@ func _set_tile(c: Vector2i, tile: int) -> void:
 	if tile == Tile.FIRE:
 		fire_timers[c] = FIRE_DURATION
 		_burn_off_block(unit_at(c))
+		_set_wet(unit_at(c), 0)          # огонь сушит
 	else:
 		fire_timers.erase(c)
+	if tile == Tile.WATER:
+		_set_wet(unit_at(c), WET_TURNS)  # вода под ногами мочит
 	tile_changed.emit(c, tile)
 
 
@@ -1637,6 +1684,9 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 	if drowned:
 		message.emit("%s тонет в трясине!" % unit.title)
 		_kill(unit)
+		return
+	_walked(unit, path)
+	if not unit.is_alive():
 		return
 	if bumped:
 		message.emit("%s врезается!" % unit.title)
@@ -1734,7 +1784,7 @@ func discards_left(h: BattleUnit) -> int:
 
 # Можно ли сбросить карту: в режиме «сброс всей руки» сброс не нужен
 func can_discard(h: BattleUnit, index: int) -> bool:
-	return DRAW_MODE != DrawMode.DISCARD_ALL and not is_over and h.is_alive() \
+	return DRAW_MODE != DrawMode.DISCARD_ALL and DRAW_MODE != DrawMode.KEEP_2 and not is_over and h.is_alive() \
 		and discards_left(h) > 0 and index >= 0 and index < h.hand.size()
 
 
@@ -1744,6 +1794,7 @@ func discard_card(h: BattleUnit, index: int) -> bool:
 		return false
 	var card: CardData = h.hand[index]
 	h.hand.remove_at(index)
+	_forget_kept(h, index)
 	h.discard_pile.append(card)
 	_discards_left[h] = discards_left(h) - 1
 	message.emit("%s сбрасывает «%s»" % [h.title, card.title])
@@ -1800,6 +1851,8 @@ func end_turn() -> void:
 		if DRAW_MODE == DrawMode.DISCARD_ALL:
 			h.discard_pile.append_array(h.hand)
 			h.hand.clear()
+		elif DRAW_MODE == DrawMode.KEEP_2:
+			_discard_unkept(h)
 		h.unstoppable = false
 		# «Перегрузка»: заряд не потрачен — бьёт по самому магу
 		if h.is_alive() and h.overloaded and h.charge > 0:
@@ -1840,6 +1893,7 @@ func end_turn() -> void:
 			if lu != null:
 				message.emit("%s жарится в лаве" % lu.title)
 				_damage(lu, LAVA_DAMAGE)
+	_tick_statuses()
 	_tick_objects()
 	if _check_end():
 		return
@@ -1856,6 +1910,8 @@ func _end_turn_draw_count(h: BattleUnit) -> int:
 			return 3
 		DrawMode.PLUS_2:
 			return 2
+		DrawMode.KEEP_2:
+			return HAND_SIZE
 	return 0
 
 
@@ -1883,6 +1939,11 @@ func _enemies_act() -> bool:
 		var atk: EnemyAttackData = enemy_attack(e)
 		var start: Vector2i = e.cell
 		var dir: Vector2i = _enemy_move(e, atk)
+		if not e.is_alive():
+			# Погиб по дороге (сторожевая руна) — не дошёл и не ударил
+			if _check_end():
+				return true
+			continue
 		if e.cell != start and e.data.wet_trail:
 			_leave_puddle(start)
 		if e.entangled > 0:
@@ -1938,6 +1999,8 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 			_damage(u, damage)          # по пути можно задеть и других
 		elif _is_breakable(c) and not atk.pierce:
 			_hit_object(c, e.cell)      # промах по бочке — тоже взрыв
+		if object_at(c) == Obj.RUNE and not atk.pierce:
+			_trigger_rune(c)   # удар врага по клетке руны тоже её подрывает
 	for u in victims:
 		if not u.is_alive():
 			continue
@@ -2080,6 +2143,7 @@ func forecast_hazards() -> Dictionary:
 		effects.append({"cells": cells.duplicate(), "kind": kind}))
 	sim._enemies_act()
 	var fire: Dictionary = {}
+	var poison: Dictionary = {}
 	if not sim.is_over:
 		# Огонь жжёт тех, кто к концу хода врагов остался в горящей клетке
 		for c: Vector2i in sim.fire_timers.keys():
@@ -2087,7 +2151,11 @@ func forecast_hazards() -> Dictionary:
 			if u != null and u.is_alive():
 				var weak: bool = u.data != null and u.data.fire_weak
 				fire[u.id] = FIRE_DAMAGE * 2 if weak else FIRE_DAMAGE
-	return {"effects": effects, "fire": fire}
+		# Яд ранит отравленных в конце раунда (после огня)
+		for u in sim.living_enemies() + sim.living_heroes():
+			if u.poison > 0:
+				poison[u.id] = POISON_DAMAGE
+	return {"effects": effects, "fire": fire, "poison": poison}
 
 
 # ---------- Враги ----------
@@ -2198,6 +2266,9 @@ func _enemy_move(e: BattleUnit, atk: EnemyAttackData) -> Vector2i:
 		e.cell = best_cell
 		unit_moved.emit(e, path)
 		_break_planks_behind(path)
+		var walked: Array[Vector2i] = []
+		walked.assign(path)
+		_walked(e, walked)
 	return best_dir
 
 
@@ -2321,6 +2392,17 @@ func predict_reactions(h: BattleUnit, index: int, target: Vector2i) -> Array[Dic
 	if index < 0 or index >= h.hand.size():
 		return result
 	var card: CardData = h.hand[index]
+	# Молния (или «Руна бури») по мокрому врагу: +WET_SHOCK_BONUS
+	var shocking: bool = card.damage > 0 and (card.element == CardData.Element.LIGHTNING \
+			or (h.rune == "storm" and h.rune_hits > 0))
+	if shocking:
+		var shock_area: Array[Vector2i] = get_card_area(h, index, target)
+		if card.element == CardData.Element.LIGHTNING:
+			shock_area = _spread_through_water(shock_area)
+		for c in shock_area:
+			var wet_unit: BattleUnit = unit_at(c)
+			if wet_unit != null and not wet_unit.is_hero and is_wet(wet_unit):
+				result.append({"cell": c, "kind": "shock"})
 	if card.element == CardData.Element.NONE or card.special == "flood":
 		return result
 	for c in get_card_area(h, index, target):
@@ -2342,3 +2424,175 @@ func predict_reactions(h: BattleUnit, index: int, target: Vector2i) -> Array[Dic
 			if u != null and not u.is_hero:
 				result.append({"cell": c, "kind": "freeze"})
 	return result
+
+
+# ---------- Статусы, руны, удержание карт ----------
+
+# Юнит прошёл по клеткам path (ход, толчок, таран, прыжок): лужа мочит,
+# сторожевая руна взрывается под врагом. Вызывается после любого перемещения.
+func _walked(u: BattleUnit, path: Array[Vector2i]) -> void:
+	if u == null:
+		return
+	for c in path:
+		if tile_at(c) == Tile.WATER:
+			_set_wet(u, WET_TURNS)
+	if u.is_hero:
+		return
+	for i in range(1, path.size()):
+		if not u.is_alive():
+			return
+		if object_at(path[i]) == Obj.RUNE:
+			_trigger_rune(path[i], u)
+
+
+func _always_wet(u: BattleUnit) -> bool:
+	return u.data != null and u.data.always_wet
+
+
+# Мокрый ли юнит: статус, лужа под ногами или «всегда мокрый» враг (топляк, жаба)
+func is_wet(u: BattleUnit) -> bool:
+	return u.wet > 0 or tile_at(u.cell) == Tile.WATER or _always_wet(u)
+
+
+# Сколько раундов «Мокрого» показывать на плашке (0 — сухой)
+func wet_turns(u: BattleUnit) -> int:
+	if tile_at(u.cell) == Tile.WATER or _always_wet(u):
+		return WET_TURNS
+	return u.wet
+
+
+func _set_wet(u: BattleUnit, turns: int) -> void:
+	if u == null or not u.is_alive() or u.wet == turns:
+		return
+	u.wet = turns
+	status_changed.emit(u, snapshot(u))
+
+
+# Урон карты героя по врагу: молния по мокрому сильнее; запоминаем задетых для рун
+func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
+	if _lightning_now and is_wet(u):
+		amount += WET_SHOCK_BONUS
+		reaction.emit(u.cell, "shock")
+	if not _hit_enemies.has(u):
+		_hit_enemies.append(u)
+	_damage(u, amount, pierce)
+
+
+# Руна на оружии рыцаря срабатывает после карты с уроном, задевшей врага.
+# Одна карта — один удар руны, сколько бы врагов она ни задела.
+func _apply_weapon_rune(h: BattleUnit, card: CardData, from: Vector2i) -> void:
+	if h.rune == "" or h.rune_hits <= 0 or card.damage <= 0 or _hit_enemies.is_empty():
+		return
+	for e in _hit_enemies:
+		if not e.is_alive():
+			continue
+		match h.rune:
+			"fire":
+				_apply_element(e.cell, CardData.Element.FIRE, from)
+			"rot":
+				_set_poison(e, POISON_TURNS)
+	h.rune_hits -= 1
+	if h.rune_hits <= 0:
+		h.rune = ""
+		message.emit("Руна на клинке погасла")
+	status_changed.emit(h, snapshot(h))
+
+
+func _set_poison(u: BattleUnit, turns: int) -> void:
+	if u == null or not u.is_alive():
+		return
+	u.poison = maxi(u.poison, turns)
+	message.emit("%s отравлен" % u.title)
+	status_changed.emit(u, snapshot(u))
+
+
+# Конец раунда: яд ранит мимо блока; «Мокрый» высыхает (в луже — нет, в огне — сразу)
+func _tick_statuses() -> void:
+	for u in living_enemies() + living_heroes():
+		if not u.is_alive():
+			continue
+		if u.poison > 0:
+			u.poison -= 1
+			message.emit("%s страдает от яда" % u.title)
+			_damage(u, POISON_DAMAGE, true)
+			if u.is_alive():
+				status_changed.emit(u, snapshot(u))
+		if not u.is_alive() or u.wet <= 0:
+			continue
+		if tile_at(u.cell) == Tile.FIRE:
+			_set_wet(u, 0)
+		elif tile_at(u.cell) != Tile.WATER:
+			_set_wet(u, u.wet - 1)
+
+
+# Сторожевая руна взрывается: урон врагам на её клетке и четырёх соседних.
+# Героев не ранит, деревья и бочки не трогает. walker — враг, который на неё наступил
+# (он уже мог уйти дальше по пути, но урон получает).
+func _trigger_rune(c: Vector2i, walker: BattleUnit = null) -> void:
+	if object_at(c) != Obj.RUNE:
+		return
+	_set_object(c, Obj.NONE, Vector2i.ZERO)
+	message.emit("Сторожевая руна срабатывает!")
+	var cells: Array[Vector2i] = []
+	for t in GridShapes.cross_cells(c):
+		if is_inside(t):
+			cells.append(t)
+	effect_cells.emit(cells, "rune")
+	var victims: Array[BattleUnit] = []
+	if walker != null and walker.is_alive():
+		victims.append(walker)
+	for t in cells:
+		var u: BattleUnit = unit_at(t)
+		if u != null and not u.is_hero and not victims.has(u):
+			victims.append(u)
+	for u in victims:
+		_damage(u, RUNE_TRAP_DAMAGE)
+
+
+# --- Удержание карт (режим KEEP_2) ---
+
+func is_kept(h: BattleUnit, index: int) -> bool:
+	return h.kept.has(index)
+
+
+func can_keep(h: BattleUnit, index: int) -> bool:
+	return DRAW_MODE == DrawMode.KEEP_2 and not is_over and h.is_alive() \
+			and index >= 0 and index < h.hand.size()
+
+
+# Отметить карту «удержать на следующий ход» или снять отметку.
+# Возвращает false, если отметить нельзя (уже KEEP_LIMIT карт или неверный номер).
+func toggle_keep(h: BattleUnit, index: int) -> bool:
+	if not can_keep(h, index):
+		return false
+	if h.kept.has(index):
+		h.kept.erase(index)
+	elif h.kept.size() >= KEEP_LIMIT:
+		return false
+	else:
+		h.kept.append(index)
+	status_changed.emit(h, snapshot(h))
+	return true
+
+
+# Карта ушла из руки: её отметка пропадает, номера карт правее сдвигаются
+func _forget_kept(h: BattleUnit, index: int) -> void:
+	var updated: Array[int] = []
+	for k in h.kept:
+		if k < index:
+			updated.append(k)
+		elif k > index:
+			updated.append(k - 1)
+	h.kept = updated
+
+
+# Конец хода в режиме KEEP_2: в сброс уходит всё, кроме отмеченных карт
+func _discard_unkept(h: BattleUnit) -> void:
+	var stay: Array[CardData] = []
+	for i in h.hand.size():
+		if h.is_alive() and h.kept.has(i):
+			stay.append(h.hand[i])
+		else:
+			h.discard_pile.append(h.hand[i])
+	h.hand = stay
+	h.kept.clear()

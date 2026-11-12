@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="HeroData" load_steps=28 format=3]
+[gd_resource type="Resource" script_class="HeroData" load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="1_hero"]
 [ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
@@ -27,6 +27,7 @@
 [ext_resource type="Resource" path="res://resources/cards/m_transfer.tres" id="c_m_transfer"]
 [ext_resource type="Resource" path="res://resources/cards/m_swap.tres" id="c_m_swap"]
 [ext_resource type="Resource" path="res://resources/cards/m_bog_maw.tres" id="c_m_bog_maw"]
+[ext_resource type="Resource" path="res://resources/cards/m_cross_bolt.tres" id="c_m_cross_bolt"]
 
 [resource]
 script = ExtResource("1_hero")
@@ -40,4 +41,4 @@ gains_rage = false
 color = Color(0.35, 0.5, 1, 1)
 model = ExtResource("3_model")
 starter_deck = Array[ExtResource("2_card")]([ExtResource("c_strike"), ExtResource("c_strike"), ExtResource("c_guard"), ExtResource("c_guard"), ExtResource("c_shove"), ExtResource("c_m_spark"), ExtResource("c_m_storm_spear"), ExtResource("c_m_ball_lightning"), ExtResource("c_fireball"), ExtResource("c_wave"), ExtResource("c_ice_lance"), ExtResource("c_gust")])
-card_pool = Array[ExtResource("2_card")]([ExtResource("c_strike"), ExtResource("c_guard"), ExtResource("c_shove"), ExtResource("c_fireball"), ExtResource("c_ice_lance"), ExtResource("c_wave"), ExtResource("c_lightning"), ExtResource("c_dash"), ExtResource("c_gust"), ExtResource("c_meteor"), ExtResource("c_m_spark"), ExtResource("c_m_storm_spear"), ExtResource("c_m_focus"), ExtResource("c_m_chain"), ExtResource("c_m_ball_lightning"), ExtResource("c_m_rift"), ExtResource("c_m_overload"), ExtResource("c_m_ice_wall"), ExtResource("c_m_flood"), ExtResource("c_m_drain"), ExtResource("c_m_overgrowth"), ExtResource("c_m_transfer"), ExtResource("c_m_swap"), ExtResource("c_m_bog_maw")])
+card_pool = Array[ExtResource("2_card")]([ExtResource("c_strike"), ExtResource("c_guard"), ExtResource("c_shove"), ExtResource("c_fireball"), ExtResource("c_ice_lance"), ExtResource("c_wave"), ExtResource("c_lightning"), ExtResource("c_dash"), ExtResource("c_gust"), ExtResource("c_meteor"), ExtResource("c_m_spark"), ExtResource("c_m_storm_spear"), ExtResource("c_m_focus"), ExtResource("c_m_chain"), ExtResource("c_m_ball_lightning"), ExtResource("c_m_rift"), ExtResource("c_m_overload"), ExtResource("c_m_ice_wall"), ExtResource("c_m_flood"), ExtResource("c_m_drain"), ExtResource("c_m_overgrowth"), ExtResource("c_m_transfer"), ExtResource("c_m_swap"), ExtResource("c_m_bog_maw"), ExtResource("c_m_cross_bolt")])

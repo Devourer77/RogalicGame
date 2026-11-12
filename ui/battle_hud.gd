@@ -12,6 +12,7 @@ signal card_pressed(index: int)
 signal hero_pressed(index: int)
 signal end_turn_pressed
 signal discard_toggled   # нажали «Сбросить» или клавишу X
+signal card_keep_toggled(index: int)   # ПКМ по карте в руке: удержать её на следующий ход
 signal speed_toggled   # нажали «×1 / ×2» или клавишу F
 
 const LOG_LINES: int = 6
@@ -211,7 +212,8 @@ func _build_discard_button() -> void:
 
 # Обновляет кнопку сброса: сколько сбросов осталось и включён ли режим выбора карты
 func update_discard_button(logic: BattleLogic, active: BattleUnit, discarding: bool, busy: bool) -> void:
-	var enabled: bool = BattleLogic.DRAW_MODE != BattleLogic.DrawMode.DISCARD_ALL
+	var enabled: bool = BattleLogic.DRAW_MODE != BattleLogic.DrawMode.DISCARD_ALL \
+			and BattleLogic.DRAW_MODE != BattleLogic.DrawMode.KEEP_2
 	_discard_button.visible = enabled
 	if not enabled or active == null:
 		return
@@ -292,7 +294,9 @@ func _build_help() -> void:
 		["mouse_l", "", "ЛКМ по карте, потом по клетке — сыграть карту"],
 		["mouse_r", "", "ПКМ или Esc — отменить выбранную карту"],
 		["", "1–7", "Сыграть карту по её номеру"],
-		["", "X", "Сбросить одну карту за ход: X, потом карта (кнопка «Сбросить»)"],
+		["mouse_r", "", "ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до 2 карт"],
+		["hourglass", "", "В конце хода остальная рука уходит в сброс, герой берёт 5 новых карт"],
+		["drop", "", "Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит"],
 		["", "Tab", "Другой герой (или клик по герою, по его панели)"],
 		["target", "", "Наведи на врага — его удар, зона и особенности"],
 		["rotate", "", "Q / E — повернуть камеру"],
@@ -353,7 +357,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if key == KEY_F1:
 			toggle_help()
 			get_viewport().set_input_as_handled()
-		elif key == KEY_X:
+		elif key == KEY_X and BattleLogic.DRAW_MODE != BattleLogic.DrawMode.KEEP_2:
 			discard_toggled.emit()
 			get_viewport().set_input_as_handled()
 		elif key == KEY_F:
@@ -530,6 +534,19 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 		extra.add_child(_pill("discount", "−%d" % h.discount, UiKit.MANA_CHEAP, true, "Следующая карта дешевле на %d." % h.discount))
 	if h.entangled > 0:
 		extra.add_child(_pill("entangled", "Опутан", UiKit.THREAT, true, "Опутан корнями: в этот ход нет шагов. Карты играть можно."))
+	if h.rune != "" and h.rune_hits > 0:
+		var rune_names: Dictionary = {"fire": "огонь", "storm": "буря", "rot": "гниль"}
+		var rune_hints: Dictionary = {
+			"fire": "поджигают клетку под каждым задетым врагом",
+			"storm": "считаются молнией: по мокрым врагам +%d урона" % BattleLogic.WET_SHOCK_BONUS,
+			"rot": "отравляют задетых врагов (%d урона в конце раунда мимо блока)" % BattleLogic.POISON_DAMAGE,
+		}
+		extra.add_child(_pill("rune_" + h.rune, "Руна: %s · %d" % [rune_names[h.rune], h.rune_hits], UiKit.TEXT, true,
+				"Руна на клинке: следующие удары (%d) %s.\nОдна карта с уроном тратит один удар руны." % [h.rune_hits, rune_hints[h.rune]]))
+	if h.wet > 0:
+		extra.add_child(_pill("drop", "Мокрый %d" % h.wet, UnitPlate.COLOR_WET, true, "Мокрый: молния бьёт по нему на %d сильнее. Высыхает через пару раундов или от огня." % BattleLogic.WET_SHOCK_BONUS))
+	if h.poison > 0:
+		extra.add_child(_pill("poison", "Яд %d" % h.poison, UnitPlate.COLOR_POISON, true, "Яд: %d урона в конце раунда мимо блока." % BattleLogic.POISON_DAMAGE))
 	if extra.get_child_count() > 0:
 		info.add_child(extra)
 	else:
@@ -585,6 +602,24 @@ func _make_hand_slot(active: BattleUnit, index: int, cost: int, playable: bool, 
 		card.mouse_entered.connect(_slide_card.bind(card, raised_y, 1.06, 3))
 		card.mouse_exited.connect(_slide_card.bind(card, 0.0, 1.0, 0))
 	card.pressed.connect(card_pressed.emit.bind(index))
+	# ПКМ по карте — удержать её на следующий ход (режим KEEP_2). Замок показывает отметку.
+	if BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2:
+		card.gui_input.connect(func(event: InputEvent) -> void:
+			var click := event as InputEventMouseButton
+			if click != null and click.pressed and click.button_index == MOUSE_BUTTON_RIGHT:
+				card.accept_event()
+				card_keep_toggled.emit(index))
+		if active.kept.has(index):
+			var lock_back := Panel.new()
+			lock_back.add_theme_stylebox_override("panel", UiKit.box(Color(0.04, 0.05, 0.05, 0.92), UiKit.BRASS, 2, 14, 0, 0))
+			lock_back.position = Vector2(CardView.CARD_SIZE.x - 34.0, 34.0)
+			lock_back.size = Vector2(28, 28)
+			lock_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var lock_icon: TextureRect = UiKit.icon_rect("lock", 18, UiKit.BRASS.lightened(0.25))
+			lock_icon.position = Vector2(5, 5)
+			lock_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			lock_back.add_child(lock_icon)
+			card.add_child(lock_back)
 	slot.add_child(card)
 	return slot
 
@@ -644,6 +679,10 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 				text = "%s опутан и не может идти — выбери карту" % active.title
 		else:
 			text = "%s больше ничего не может.\nTab — другой герой" % active.title
+	# Подсказка про удержание: есть карты, но ни одна не отмечена
+	if text != "" and selected < 0 and BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2 \
+			and not active.hand.is_empty() and active.kept.is_empty():
+		text += "\nПКМ по карте — удержать (до %d)" % BattleLogic.KEEP_LIMIT
 	_hint.text = text
 	_hint_panel.visible = text != ""
 
@@ -713,6 +752,16 @@ func show_enemy(e: BattleUnit, logic: BattleLogic) -> void:
 	if e.block > 0:
 		health.add_child(UiKit.chip("shield", str(e.block), UiKit.BLOCK, "", 15, 17))
 	_enemy_box.add_child(health)
+	# Состояния врага: мокрый, отравлен
+	if logic.is_wet(e) or e.poison > 0:
+		var states := HBoxContainer.new()
+		states.add_theme_constant_override("separation", 10)
+		if logic.is_wet(e):
+			var wet_text: String = "Мокрый" if e.data.always_wet else "Мокрый (%d)" % logic.wet_turns(e)
+			states.add_child(UiKit.chip("drop", wet_text + ": молния +%d" % BattleLogic.WET_SHOCK_BONUS, UnitPlate.COLOR_WET, "", 14, 13))
+		if e.poison > 0:
+			states.add_child(UiKit.chip("poison", "Яд (%d): −%d в конце раунда" % [e.poison, BattleLogic.POISON_DAMAGE], UnitPlate.COLOR_POISON, "", 14, 13))
+		_enemy_box.add_child(states)
 
 	var now: EnemyAttackData = logic.enemy_attack(e)
 	_enemy_box.add_child(_attack_row("Сейчас", now, e.bonus_damage, true, width))

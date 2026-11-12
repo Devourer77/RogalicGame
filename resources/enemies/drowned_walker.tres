@@ -20,3 +20,4 @@ model = ExtResource("9_model")
 push = 1
 bog_walker = true
 wet_trail = true
+always_wet = true

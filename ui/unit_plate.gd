@@ -8,6 +8,8 @@ extends Control
 const PLATE_SIZE := Vector2(76, 38)
 const BAR_RECT := Rect2(15, 25, 46, 12)
 const COLOR_FIRE_WARN := Color(1.0, 0.62, 0.2)   # оранжевый: красный занят угрозой врагов
+const COLOR_WET := Color(0.5, 0.78, 1.0)         # «Мокрый»: голубая капля
+const COLOR_POISON := Color(0.72, 0.92, 0.25)    # «Яд»: ядовитый жёлто-зелёный, как газ в бочках
 
 var _info: Dictionary = {}
 
@@ -64,7 +66,13 @@ func _draw() -> void:
 	if fire > 0:
 		parts.append(["fire", COLOR_FIRE_WARN, "-%d" % fire])
 	for mark: String in _info.get("marks", []):
-		parts.append([mark, UiKit.TEXT, ""])
+		if mark == "wet":
+			parts.append(["drop", COLOR_WET, ""])
+		elif mark == "poison":
+			# Яд: столько урона юнит получит в конце раунда
+			parts.append(["poison", COLOR_POISON, "-%d" % BattleLogic.POISON_DAMAGE])
+		else:
+			parts.append([mark, UiKit.TEXT, ""])
 	var width: float = 0.0
 	for part: Array in parts:
 		width += 17.0

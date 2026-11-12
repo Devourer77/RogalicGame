@@ -42,6 +42,7 @@ enum Attack {
 @export var bog_walker: bool = false  # ходит по трясине и не тонет в ней
 @export var wet_trail: bool = false   # клетка, с которой ушёл, становится лужей
 @export var aquatic: bool = false     # молния по соседней луже бьёт и его
+@export var always_wet: bool = false  # всегда «Мокрый»: молния бьёт по нему сильнее
 @export var death_blast: int = 0      # погибая не в трясине, взрывается: столько урона 4 соседям
 @export var start_block: int = 0      # блок в начале боя
 @export var turn_block: int = 0       # блок в начале каждого хода врагов
@@ -78,6 +79,8 @@ func traits() -> PackedStringArray:
 		t.append("оставляет лужи")
 	if aquatic:
 		t.append("молния по соседней луже бьёт и его")
+	if always_wet:
+		t.append("всегда мокрый: молния бьёт сильнее")
 	if death_blast > 0:
 		t.append("погибая, взрывается (%d урона соседям); в трясине — нет" % death_blast)
 	if start_block > 0:

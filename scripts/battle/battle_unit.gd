@@ -28,6 +28,11 @@ var overloaded: bool = false  # «Перегрузка»: не потратил 
 var unstoppable: bool = false # «Неудержимый»: убийства в этот ход возвращают ману и шаги
 var outpost: bool = false     # «Застава»: враги, подошедшие вплотную, получают урон
 var entangled: int = 0        # «Опутан»: сколько ходов ещё действует (нет шагов; бить и играть карты можно)
+var wet: int = 0              # «Мокрый»: сколько раундов ещё держится (молния бьёт сильнее)
+var poison: int = 0           # «Яд»: сколько раундов ещё ранит в конце раунда (мимо блока)
+var rune: String = ""         # руна на оружии рыцаря: "fire", "storm", "rot" или пусто
+var rune_hits: int = 0        # на сколько ударов её ещё хватит
+var kept: Array[int] = []     # номера карт в руке, отмеченных «удержать» (режим KEEP_2)
 
 # --- Только для врагов ---
 var bonus_damage: int = 0     # «Зов Раскола»: следующий удар сильнее на столько
@@ -60,5 +65,9 @@ func copy() -> BattleUnit:
 	u.unstoppable = unstoppable
 	u.outpost = outpost
 	u.entangled = entangled
+	u.wet = wet
+	u.poison = poison
+	u.rune = rune
+	u.rune_hits = rune_hits
 	u.bonus_damage = bonus_damage
 	return u

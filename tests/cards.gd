@@ -50,6 +50,11 @@ func _initialize() -> void:
 	_pools()
 	_hand_draw()
 	_discard()
+	_keep()
+	_diagonal()
+	_wet()
+	_runes()
+	_trap()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 
@@ -327,8 +332,8 @@ func _pools() -> void:
 	print("--- Наборы и награды ---")
 	var mage: HeroData = load("res://resources/heroes/mage.tres")
 	var knight: HeroData = load("res://resources/heroes/knight.tres")
-	check("У мага в пуле 24 карты", mage.card_pool.size() == 24)
-	check("У рыцаря в пуле 28 карт", knight.card_pool.size() == 28)
+	check("У мага в пуле 25 карт", mage.card_pool.size() == 25)
+	check("У рыцаря в пуле 33 карты", knight.card_pool.size() == 33)
 	var rh: RunHero = run.party[0]
 	for i in 4: rh.deck.append(card("m_spark"))
 	var storm := 0; var total := 0
@@ -349,7 +354,9 @@ func _hand_draw() -> void:
 	var kept: Array[CardData] = m.hand.duplicate()
 	var before: int = m.hand.size()
 	l.end_turn()
-	if mode == BattleLogic.DrawMode.DISCARD_ALL:
+	if mode == BattleLogic.DrawMode.KEEP_2:
+		check("KEEP_2: без отметок — новая рука из 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
+	elif mode == BattleLogic.DrawMode.DISCARD_ALL:
 		check("DISCARD_ALL: новая рука из 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
 	else:
 		var want: int = 0
@@ -379,15 +386,15 @@ func _hand_draw() -> void:
 	k.hp = 0
 	var kn: int = k.hand.size()
 	l.end_turn()
-	check("Павший герой карт не берёт", k.hand.size() == kn)
+	check("Павший герой карт не берёт", k.hand.size() == kn or k.hand.is_empty())
 
 
 func _discard() -> void:
 	print("--- Сброс карты ---")
 	var l := fresh(["ogre"]); var m: BattleUnit = l.heroes[0]
 	l.enemies[0].cell = Vector2i(11, 0)
-	if BattleLogic.DRAW_MODE == BattleLogic.DrawMode.DISCARD_ALL:
-		check("DISCARD_ALL: сброс не нужен", not l.can_discard(m, 0))
+	if BattleLogic.DRAW_MODE == BattleLogic.DrawMode.DISCARD_ALL or BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2:
+		check("Сброс всей руки каждый ход: отдельный сброс не нужен", not l.can_discard(m, 0))
 		return
 	var n: int = m.hand.size(); var pile: int = m.discard_pile.size()
 	check("Сбросов за ход: %d" % BattleLogic.DISCARDS_PER_TURN, l.discards_left(m) == BattleLogic.DISCARDS_PER_TURN)
@@ -397,3 +404,254 @@ func _discard() -> void:
 	check("Неверный номер карты — отказ", not l.can_discard(l.heroes[1], 99))
 	l.end_turn()
 	check("В новый ход сброс снова доступен", l.discards_left(m) == BattleLogic.DISCARDS_PER_TURN)
+
+
+func _keep() -> void:
+	print("--- Удержание карт (KEEP_2) ---")
+	if BattleLogic.DRAW_MODE != BattleLogic.DrawMode.KEEP_2:
+		return
+	var l := fresh(["ogre"]); var m: BattleUnit = l.heroes[0]
+	l.enemies[0].cell = Vector2i(11, 0)
+	give(m, ["m_spark", "strike", "wave", "guard", "shove"])
+	check("Отметить первую карту", l.toggle_keep(m, 1) and l.is_kept(m, 1))
+	check("Отметить вторую карту", l.toggle_keep(m, 3))
+	check("Третью отметить нельзя", not l.toggle_keep(m, 4) and not l.is_kept(m, 4))
+	check("Снять и вернуть отметку", l.toggle_keep(m, 3) and not l.is_kept(m, 3) and l.toggle_keep(m, 3))
+	check("Неверный номер — отказ", not l.toggle_keep(m, 9))
+	# Сыграли карту левее — отметки сдвинулись вместе с картами
+	l.play_card(m, 0, l.enemies[0].cell if false else Vector2i(2, 8))
+	check("После розыгрыша отметки остались на тех же картах",
+			l.is_kept(m, 0) and l.is_kept(m, 2) and m.hand[0].id == "strike" and m.hand[2].id == "guard")
+	l.end_turn()
+	check("После хода в руке удержанные + 5 новых", m.hand.size() == 7)
+	check("Удержанные карты на месте", m.hand[0].id == "strike" and m.hand[1].id == "guard")
+	check("Отметки сброшены", not l.is_kept(m, 0) and not l.is_kept(m, 1))
+	l.toggle_keep(m, 0)
+	l.end_turn()
+	check("Одна удержанная + 5 новых", m.hand.size() == 6 and m.hand[0].id == "strike")
+	# Маленькая колода: сброс замешивается обратно
+	m.draw_pile.clear(); m.discard_pile.clear(); m.kept.clear()
+	give(m, ["strike", "guard", "wave"])
+	l.end_turn()
+	check("Колода кончилась — сброс замешан, рука из тех же 3 карт", m.hand.size() == 3)
+	var k: BattleUnit = l.heroes[1]
+	l.toggle_keep(k, 0)
+	k.hp = 0
+	l.end_turn()
+	check("Павший герой ничего не удерживает", k.hand.is_empty())
+
+
+func _diagonal() -> void:
+	print("--- Удары наискосок ---")
+	var l := fresh(["ogre", "goblin"]); var k: BattleUnit = l.heroes[1]; var e: BattleUnit = l.enemies[0]
+	e.cell = Vector2i(9, 8)
+	give(k, ["k_diag"])
+	var t: Array[Vector2i] = l.get_card_targets(k, 0)
+	check("Косой выпад: 4 цели наискосок", t.size() == 4 and t.has(Vector2i(9, 8)) and t.has(Vector2i(7, 10))
+			and not t.has(Vector2i(8, 8)))
+	var hp: int = e.hp
+	check("Косой выпад: сосед по прямой — не цель", not l.play_card(k, 0, Vector2i(8, 8)))
+	l.play_card(k, 0, e.cell)
+	check("Косой выпад: 6 урона", e.hp == hp - 6)
+	k.cell = Vector2i(11, 11)
+	give(k, ["k_diag"])
+	check("Косой выпад у угла поля: одна цель", l.get_card_targets(k, 0).size() == 1)
+	# Перекрёстный разряд
+	l = fresh(["goblin", "goblin", "goblin"]); var m: BattleUnit = l.heroes[0]
+	l.enemies[0].cell = Vector2i(2, 6); l.enemies[1].cell = Vector2i(3, 5); l.enemies[2].cell = Vector2i(3, 6)
+	give(m, ["m_cross_bolt"]); hp = l.enemies[0].hp
+	var area: Array[Vector2i] = l.get_card_area(m, 0, Vector2i(2, 6))
+	check("Перекрёстный разряд: 5 клеток косым крестом", area.size() == 5 and area.has(Vector2i(3, 5))
+			and area.has(Vector2i(1, 7)) and not area.has(Vector2i(3, 6)))
+	l.play_card(m, 0, Vector2i(2, 6))
+	check("Перекрёстный разряд: 4 урона по центру и наискосок, сосед по прямой цел",
+			l.enemies[0].hp == hp - 4 and l.enemies[1].hp == hp - 4 and l.enemies[2].hp == hp and m.charge == 1)
+	l = fresh(["goblin", "goblin"]); m = l.heroes[0]
+	l.enemies[0].cell = Vector2i(2, 6); l.enemies[1].cell = Vector2i(2, 5)
+	l.tiles[Vector2i(2, 6)] = T.WATER; l.tiles[Vector2i(2, 5)] = T.WATER
+	give(m, ["m_cross_bolt"]); hp = l.enemies[1].hp
+	l.play_card(m, 0, Vector2i(2, 6))
+	check("Перекрёстный разряд по луже расходится по воде", l.enemies[1].hp == hp - 4 - BattleLogic.WET_SHOCK_BONUS)
+
+
+func _wet() -> void:
+	print("--- Статус «Мокрый» ---")
+	var l := fresh(["ogre"]); var m: BattleUnit = l.heroes[0]; var e: BattleUnit = l.enemies[0]
+	e.cell = Vector2i(2, 6)
+	give(m, ["wave", "m_spark", "m_spark"])
+	l.play_card(m, 0, Vector2i(2, 6))
+	check("Волна намочила врага", l.is_wet(e) and e.wet == BattleLogic.WET_TURNS)
+	l.tiles.clear()   # лужи убираем: враг мокрый сам по себе
+	var hp: int = e.hp
+	l.play_card(m, 0, e.cell)
+	check("Искра по мокрому вне лужи: 2 + 3", e.hp == hp - 2 - BattleLogic.WET_SHOCK_BONUS)
+	e.cell = Vector2i(11, 0)
+	l.end_turn()
+	check("Через раунд срок «Мокрого» уменьшился", e.wet == BattleLogic.WET_TURNS - 1)
+	l.end_turn()
+	check("Через два раунда враг высох", e.wet == 0 and not l.is_wet(e))
+	# В луже срок не идёт, бонус один
+	l = fresh(["ogre"]); m = l.heroes[0]; e = l.enemies[0]
+	e.cell = Vector2i(2, 6); l._set_tile(Vector2i(2, 6), T.WATER)
+	check("Вода под ногами мочит", e.wet == BattleLogic.WET_TURNS)
+	give(m, ["m_spark"]); hp = e.hp
+	l.play_card(m, 0, e.cell)
+	check("В луже прибавка одна, а не две", e.hp == hp - 2 - BattleLogic.WET_SHOCK_BONUS)
+	# Толчок через лужу мочит
+	l = fresh(["ogre"]); m = l.heroes[0]; e = l.enemies[0]
+	e.cell = Vector2i(2, 8); l.tiles[Vector2i(2, 7)] = T.WATER
+	give(m, ["shove"])
+	l.play_card(m, 0, e.cell)
+	check("Толчок через лужу мочит", e.cell == Vector2i(2, 6) and e.wet == BattleLogic.WET_TURNS)
+	# Шаг героя через лужу
+	l = fresh(["ogre"]); m = l.heroes[0]
+	l.tiles[Vector2i(2, 8)] = T.WATER
+	l.move_hero(m, Vector2i(2, 7))
+	check("Герой прошёл через лужу — мокрый", m.wet == BattleLogic.WET_TURNS)
+	# Огонь сушит
+	l = fresh(["ogre"]); m = l.heroes[0]; e = l.enemies[0]
+	e.cell = Vector2i(2, 6); e.wet = 2
+	give(m, ["fireball"])
+	l.play_card(m, 0, e.cell)
+	check("Огонь сушит", e.wet == 0)
+	# Лёд по мокрому сковывает (обычного врага), «Мокрый» снимается
+	l = fresh(["goblin"]); m = l.heroes[0]; e = l.enemies[0]
+	e.cell = Vector2i(2, 7); e.wet = 2
+	give(m, ["ice_lance"])
+	l.play_card(m, 0, Vector2i(2, 8))
+	check("Лёд по мокрому: опутан на ход, высох", e.entangled == 1 and e.wet == 0)
+	# Всегда мокрые: топляк и жаба
+	l = fresh(["drowned_walker", "bloated_toad", "goblin"]); m = l.heroes[0]
+	check("Топляк и жаба всегда мокрые, гоблин — нет",
+			l.is_wet(l.enemies[0]) and l.is_wet(l.enemies[1]) and not l.is_wet(l.enemies[2]))
+	e = l.enemies[0]; e.cell = Vector2i(2, 6)
+	give(m, ["m_chain"]); hp = e.hp
+	l.enemies[2].cell = Vector2i(2, 5); var ghp: int = l.enemies[2].hp
+	l.play_card(m, 0, e.cell)
+	check("Цепная молния: прибавка только мокрому", e.hp == hp - 5 - BattleLogic.WET_SHOCK_BONUS
+			and l.enemies[2].hp == ghp - 4)
+	var pr: Array[Dictionary] = []
+	give(m, ["m_spark"])
+	pr = l.predict_reactions(m, 0, e.cell)
+	check("Подсказка: молния по мокрому помечена", pr.size() == 1 and pr[0]["kind"] == "shock")
+
+
+func _runes() -> void:
+	print("--- Яд и руны на оружие ---")
+	var l := fresh(["ogre", "goblin", "goblin"]); var k: BattleUnit = l.heroes[1]; var e: BattleUnit = l.enemies[0]
+	e.cell = Vector2i(8, 8)
+	give(k, ["k_rune_rot", "k_slash", "k_slash"])
+	l.play_card(k, 0, k.cell)
+	check("Руна гнили: на клинке, 3 удара", k.rune == "rot" and k.rune_hits == BattleLogic.RUNE_HITS)
+	l.play_card(k, 0, e.cell)
+	check("Удар с руной гнили отравил, осталось 2 удара", e.poison == BattleLogic.POISON_TURNS and k.rune_hits == 2)
+	e.block = 50
+	var hp: int = e.hp
+	l.play_card(k, 0, e.cell)
+	check("Удар в блок тоже тратит руну", k.rune_hits == 1 and e.hp == hp)
+	e.cell = Vector2i(11, 0); l.enemies[1].cell = Vector2i(10, 0); l.enemies[2].cell = Vector2i(9, 0)
+	l.end_turn()
+	e.block = 50; hp = e.hp
+	l._tick_statuses()
+	check("Яд идёт мимо блока: 2 урона", e.hp == hp - BattleLogic.POISON_DAMAGE and e.block == 50)
+	check("Срок яда уменьшается", e.poison == BattleLogic.POISON_TURNS - 2)
+	l._set_poison(e, BattleLogic.POISON_TURNS)
+	check("Повторный яд обновляет срок, не складывается", e.poison == BattleLogic.POISON_TURNS)
+	var hz: Dictionary = l.forecast_hazards()
+	check("Прогноз показывает урон ядом", hz["poison"].get(e.id, 0) == BattleLogic.POISON_DAMAGE)
+	# Смерть от яда: жаба лопается
+	l = fresh(["bloated_toad", "goblin"]); e = l.enemies[0]
+	e.cell = Vector2i(5, 5); l.enemies[1].cell = Vector2i(5, 4); e.hp = 1; e.poison = 1
+	hp = l.enemies[1].hp
+	l._tick_statuses()
+	check("Смерть от яда: жаба лопнула и задела соседа", not e.is_alive() and l.enemies[1].hp < hp)
+	# Дуга по трём врагам тратит один удар руны
+	l = fresh(["ogre", "ogre", "ogre"]); k = l.heroes[1]
+	l.enemies[0].cell = Vector2i(7, 8); l.enemies[1].cell = Vector2i(8, 8); l.enemies[2].cell = Vector2i(9, 8)
+	give(k, ["k_rune_rot", "k_cleave", "k_rune_fire", "k_shield"])
+	l.play_card(k, 0, k.cell)
+	l.play_card(k, 0, Vector2i(8, 8))
+	check("Дуга: отравлены все трое, потрачен один удар", k.rune_hits == 2 and l.enemies[0].poison > 0
+			and l.enemies[1].poison > 0 and l.enemies[2].poison > 0)
+	l.play_card(k, 0, k.cell)
+	check("Новая руна заменяет старую", k.rune == "fire" and k.rune_hits == BattleLogic.RUNE_HITS)
+	l.play_card(k, 0, k.cell)
+	check("Карта без урона руну не тратит", k.rune_hits == BattleLogic.RUNE_HITS)
+	# Руна огня: огонь там, куда врага оттолкнуло
+	l = fresh(["ogre"]); k = l.heroes[1]; e = l.enemies[0]
+	e.cell = Vector2i(8, 8)
+	give(k, ["k_rune_fire", "k_crush"])
+	l.play_card(k, 0, k.cell)
+	l.play_card(k, 0, e.cell)
+	check("Руна огня: горит клетка, куда враг отлетел", e.cell == Vector2i(8, 5) and l.tile_at(Vector2i(8, 5)) == T.FIRE
+			and l.tile_at(Vector2i(8, 8)) != T.FIRE)
+	# Руна бури: по мокрому +3, по сухому — нет
+	l = fresh(["ogre", "ogre"]); k = l.heroes[1]
+	l.enemies[0].cell = Vector2i(8, 8); l.enemies[0].wet = 2; l.enemies[1].cell = Vector2i(9, 9)
+	give(k, ["k_rune_storm", "k_slash", "k_slash"])
+	l.play_card(k, 0, k.cell)
+	hp = l.enemies[0].hp
+	l.play_card(k, 0, Vector2i(8, 8))
+	check("Руна бури: по мокрому +3", l.enemies[0].hp == hp - 6 - BattleLogic.WET_SHOCK_BONUS)
+	hp = l.enemies[1].hp
+	l.play_card(k, 0, Vector2i(9, 9))
+	check("Руна бури: по сухому обычный урон", l.enemies[1].hp == hp - 6 and k.rune_hits == 1)
+
+
+func _trap() -> void:
+	print("--- Сторожевая руна ---")
+	var l := fresh(["goblin", "goblin"]); var k: BattleUnit = l.heroes[1]; var m: BattleUnit = l.heroes[0]
+	give(k, ["k_rune_trap", "k_rune_trap"])
+	l.objects[Vector2i(8, 8)] = O.BARREL
+	var t: Array[Vector2i] = l.get_card_targets(k, 0)
+	check("Руну нельзя ставить на занятую клетку", not t.has(Vector2i(8, 8)) and t.has(Vector2i(9, 9)))
+	l.play_card(k, 0, Vector2i(9, 9))
+	check("Руна стоит на поле, клетка проходима", l.object_at(Vector2i(9, 9)) == O.RUNE and not l.is_blocked(Vector2i(9, 9)))
+	k.moves_left = 3
+	l.move_hero(k, Vector2i(9, 9))
+	check("Герой на руне её не активирует", l.object_at(Vector2i(9, 9)) == O.RUNE)
+	# Подрыв «Искрой»: врагам рядом 5 урона, герои целы
+	l = fresh(["goblin", "goblin"]); k = l.heroes[1]; m = l.heroes[0]
+	k.cell = Vector2i(4, 9)
+	l.objects[Vector2i(4, 8)] = O.RUNE
+	l.enemies[0].cell = Vector2i(4, 7); l.enemies[1].cell = Vector2i(5, 8)
+	var hp: int = l.enemies[0].hp; var khp: int = k.hp
+	give(m, ["m_spark"])
+	l.play_card(m, 0, Vector2i(4, 8))
+	check("Искра подрывает руну: соседним врагам по 5", l.enemies[0].hp == hp - 5 and l.enemies[1].hp == hp - 5
+			and l.object_at(Vector2i(4, 8)) == O.NONE)
+	check("Взрыв руны героя не ранит", k.hp == khp)
+	# Толчок на руну
+	l = fresh(["ogre"]); m = l.heroes[0]
+	l.enemies[0].cell = Vector2i(2, 8); l.objects[Vector2i(2, 7)] = O.RUNE
+	hp = l.enemies[0].hp
+	give(m, ["shove"])
+	l.play_card(m, 0, Vector2i(2, 8))
+	check("Толчок через руну: взрыв, 2 + 5 урона", l.enemies[0].hp == hp - 2 - 5 and l.object_at(Vector2i(2, 7)) == O.NONE)
+	# Враг наступил сам: получил урон и пошёл дальше
+	l = fresh(["ogre"]); m = l.heroes[0]
+	l.heroes[1].cell = Vector2i(11, 11)
+	l.enemies[0].cell = Vector2i(2, 5); l.objects[Vector2i(2, 6)] = O.RUNE
+	hp = l.enemies[0].hp
+	var plan: Array[Dictionary] = l.forecast_enemies()
+	var hz: Dictionary = l.forecast_hazards()
+	var seen := false
+	for fx: Dictionary in hz["effects"]: seen = seen or fx["kind"] == "rune"
+	check("Прогноз показывает взрыв руны на пути врага", seen)
+	l.end_turn()
+	check("Враг прошёл по руне: 5 урона, руна исчезла, он дошёл", l.enemies[0].hp == hp - 5
+			and l.object_at(Vector2i(2, 6)) == O.NONE and l.enemies[0].cell != Vector2i(2, 5))
+	# Враг погиб на руне и не ударил
+	l = fresh(["wolf"]); m = l.heroes[0]
+	l.heroes[1].cell = Vector2i(11, 11)
+	l.enemies[0].cell = Vector2i(2, 6); l.enemies[0].hp = 3; l.objects[Vector2i(2, 7)] = O.RUNE
+	hp = m.hp
+	l.end_turn()
+	check("Враг погиб на руне посреди пути и не ударил", m.hp == hp and l.won)
+	# Удар врага по клетке руны подрывает её
+	l = fresh(["goblin"]); m = l.heroes[0]
+	l.heroes[1].cell = Vector2i(11, 11)
+	l.enemies[0].cell = Vector2i(2, 8); l.objects[Vector2i(2, 9)] = O.RUNE
+	hp = l.enemies[0].hp
+	l.end_turn()
+	check("Удар врага по герою на руне подрывает её", l.object_at(Vector2i(2, 9)) == O.NONE and l.enemies[0].hp == hp - 5)

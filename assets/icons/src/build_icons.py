@@ -228,6 +228,21 @@ ICONS["shape_leap"] = shape({(2, 1), (1, 1), (3, 1), (2, 0), (2, 2)}, hero=(2, 4
 ICONS["shape_around"] = shape({(x, y) for x in (1, 2, 3) for y in (1, 2, 3)} - {(2, 2)}, hero=(2, 2))
 ICONS["shape_fell"] = shape({(2, 0), (2, 1), (2, 2)}, hero=(2, 4), trail={(2, 3)})
 
+ICONS["shape_diag"] = shape({(3, 2)}, hero=(2, 3))
+ICONS["shape_xcross"] = shape({(2, 2), (1, 1), (3, 1), (1, 3), (3, 3)})
+
+# ---------- удержание карт, статусы, руны ----------
+RUNE_STONE = poly([(32, 3), (55, 16), (55, 48), (32, 61), (9, 48), (9, 16)])
+ICONS["lock"] = r(13, 28, 38, 30, 5) + s("M21 28 V20 a11 11 0 0 1 22 0 V28", 6) + c(32, 41, 4.5, K) + r(30, 42, 4, 9, 1, K)
+ICONS["poison"] = (r(23, 3, 18, 6, 2) + p("M27 8 H37 V23 L52 50 a6 6 0 0 1 -5 9 H17 a6 6 0 0 1 -5 -9 L27 23Z")
+		+ c(27, 47, 3.5, K) + c(37, 41, 2.5, K) + c(34, 51, 2, K))
+ICONS["rune_fire"] = RUNE_STONE + g(p(FLAME, K), "translate(15 14) scale(0.53)")
+ICONS["rune_storm"] = RUNE_STONE + g(poly(BOLT, K), "translate(13 13) scale(0.6)")
+ICONS["rune_rot"] = RUNE_STONE + g(p(DROP, K), "translate(15 14) scale(0.53)")
+ICONS["rune_trap"] = ring(32, 32, 25, 5) + s("M32 15 V49 M20 25 L32 37 L44 25", 5)
+ICONS["slash_diag"] = s("M10 54 L44 20", 7) + poly([(56, 8), (34, 14), (50, 30)])
+ICONS["cross_bolt"] = s("M10 10 L54 54 M54 10 L10 54", 6) + c(32, 32, 9) + c(32, 32, 4, K)
+
 
 def main():
 	out_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
