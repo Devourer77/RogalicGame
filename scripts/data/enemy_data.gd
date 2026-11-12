@@ -11,6 +11,10 @@ enum Attack {
 	AROUND, # круговой удар: все 6 клеток вокруг себя
 }
 
+# Характер: NORMAL — как все; HUNTER — идёт к самому раненому герою; GUARD — держится рядом
+# со стрелком или шаманом (см. scripts/battle/enemy_ai.gd)
+enum AiStyle { NORMAL, HUNTER, GUARD }
+
 @export var id: String = ""
 @export var title: String = ""
 @export var description: String = ""   # одна строка лора, видна при наведении на врага
@@ -37,6 +41,7 @@ enum Attack {
 @export_group("Поведение")
 @export var keep_distance: int = 0   # старается не подходить к героям ближе, чем на столько клеток
 @export var max_per_battle: int = 0  # не больше стольких в одном бою (0 — без ограничения)
+@export var ai_style: AiStyle = AiStyle.NORMAL   # характер: как враг выбирает, куда идти и кого бить
 
 @export_group("Особенности")
 @export var bog_walker: bool = false  # ходит по трясине и не тонет в ней
@@ -79,6 +84,10 @@ func traits() -> PackedStringArray:
 	var t: PackedStringArray = []
 	if keep_distance > 0:
 		t.append("держит дистанцию")
+	if ai_style == AiStyle.HUNTER:
+		t.append("Охотник: идёт к самому раненому герою")
+	elif ai_style == AiStyle.GUARD:
+		t.append("Телохранитель: держится рядом со стрелком или шаманом")
 	if bog_walker:
 		t.append("ходит по трясине")
 	if wet_trail:

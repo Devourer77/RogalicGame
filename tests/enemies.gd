@@ -324,10 +324,9 @@ func _ogre() -> void:
 	check("Огр: чётный раунд — хлёст цепью", l.enemy_attack(e).title == "Хлёст цепью")
 	l._enemies_act()
 	check("Огр: цепь — 4 урона с трёх клеток и притягивает на 1", m.hp == 26 and m.cell == L(8))
-	# Третий раунд — круговой удар. Огр стоит рядом с магом (вправо-вверх), рядом свой гоблин.
-	l = fresh(["ogre", "goblin"]); e = l.enemies[0]; m = l.heroes[0]
-	var g: BattleUnit = l.enemies[1]
-	e.cell = C(3, 8); e.entangled = 1; g.cell = C(4, 8); g.entangled = 1; l.turn = 3
+	# Третий раунд — круговой удар. Огр стоит рядом с магом (вправо-вверх).
+	l = fresh(["ogre"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = C(3, 8); e.entangled = 1; l.turn = 3
 	check("Огр: третий раунд — круговой удар", l.enemy_attack(e).title == "Круговой удар")
 	var spin_cells: Array[Vector2i] = []
 	for f in l.forecast_enemies():
@@ -336,8 +335,14 @@ func _ogre() -> void:
 		spin_cells.size() == 6 and spin_cells.has(m.cell) and not spin_cells.has(e.cell))
 	l._enemies_act()
 	check("Огр: круговой удар достаёт соседа — 5 урона", m.hp == 25 and m.cell == C(2, 9))
-	check("Огр: круговой удар задевает и своих", g.hp == 11 - 5)
 	check("Огр: рыцарь вдали не задет", l.heroes[1].hp == 45)
+	# Круговой удар задевает и своих — это механика удара. ИИ сам такой удар не выберет
+	# (тест «не бьёт своих сильнее, чем героев» — в tests/enemy_ai.gd), поэтому бьём напрямую.
+	l = fresh(["ogre", "goblin"]); e = l.enemies[0]; m = l.heroes[0]
+	var g: BattleUnit = l.enemies[1]
+	e.cell = C(3, 8); g.cell = C(4, 8); l.turn = 3
+	l._enemy_strike(e, l.enemy_attack(e), HexMath.direction_to(e.cell, m.cell))
+	check("Огр: круговой удар задевает и своих", g.hp == 11 - 5 and m.hp == 25)
 	l = fresh(["ogre"]); e = l.enemies[0]; l.turn = 4
 	check("Огр: четвёртый раунд — цикл пошёл заново, размах колонной", l.enemy_attack(e).title == "Размах колонной")
 	l = fresh(["ogre"]); e = l.enemies[0]; m = l.heroes[0]
@@ -353,9 +358,10 @@ func _ogre() -> void:
 # Прогноз окружения: взрыв бочки от удара врага и огонь в конце раунда
 func _forecast_hazards() -> void:
 	print("--- Прогноз окружения ---")
-	var l := fresh(["ogre"]); var e: BattleUnit = l.enemies[0]; var m: BattleUnit = l.heroes[0]
-	e.cell = C(3, 8); e.entangled = 1; l.turn = 3   # круговой удар, огр стоит на месте
-	var barrel: Vector2i = e.cell + Vector2i(1, -1)   # соседняя с огром клетка (вправо-вверх)
+	# Культист бьёт линией по бочке рядом с магом: взрыв заденет мага. Культист опутан — стоит на месте.
+	var l := fresh(["cultist"]); var e: BattleUnit = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	e.cell = Vector2i(-2, 4); e.entangled = 1
+	var barrel: Vector2i = Vector2i(-2, 8)   # четвёртая клетка линии, соседняя с магом
 	l.objects[barrel] = O.BARREL
 	l.tiles[C(2, 9)] = T.FIRE; l.fire_timers[C(2, 9)] = 3   # маг стоит в огне
 	var hp_before: int = m.hp
@@ -363,7 +369,7 @@ func _forecast_hazards() -> void:
 	var blast_found := false
 	for fx: Dictionary in hz["effects"]:
 		if fx["kind"] == "explosion" and (fx["cells"] as Array).has(barrel): blast_found = true
-	check("Прогноз: удар огра по бочке рядом — крест взрыва есть в прогнозе", blast_found)
+	check("Прогноз: удар культиста по бочке рядом — крест взрыва есть в прогнозе", blast_found)
 	check("Прогноз: маг в огне — в конце раунда минус урон огня", hz["fire"].get(m.id, 0) == BattleLogic.FIRE_DAMAGE)
 	check("Прогноз ничего не менял в настоящем бою", m.hp == hp_before and l.object_at(barrel) == O.BARREL)
 

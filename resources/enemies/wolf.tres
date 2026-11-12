@@ -16,3 +16,4 @@ attack_range = 1
 color = Color(0.55, 0.55, 0.6, 1)
 size = 0.9
 model = ExtResource("2_model")
+ai_style = 1

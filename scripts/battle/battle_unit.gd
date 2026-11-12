@@ -44,6 +44,7 @@ var prism: bool = false       # «Магическая призма»: след�
 var vulnerable: int = 0       # «Уязвимость к магии»: следующее Заклинание бьёт сильнее на столько
 var retain_turns: Dictionary = {}  # карта -> сколько ходов пролежала в руке (OnRetain), у героев
 var bonus_damage: int = 0     # «Зов Раскола»: следующий удар сильнее на столько
+var ai_reason: String = ""    # почему враг так ходит («Добьёт Мага»); считает EnemyAI, показывает карточка врага
 
 
 func is_alive() -> bool:
@@ -85,4 +86,5 @@ func copy() -> BattleUnit:
 	u.prism = prism
 	u.vulnerable = vulnerable
 	u.bonus_damage = bonus_damage
+	u.ai_reason = ai_reason
 	return u

@@ -74,6 +74,8 @@ func _draw() -> void:
 		elif mark == "ritual":
 			# Ритуал: через сколько раундов ритуалист призовёт подмогу (это угроза — красный)
 			parts.append(["ritual", UiKit.THREAT, str(_info.get("ritual_turns", 0))])
+		elif mark.begins_with("ai_"):
+			parts.append([mark, UiKit.TEXT_DIM, ""])   # характер врага — серый: бирюза занята усилениями
 		else:
 			parts.append([mark, UiKit.TEXT, ""])
 	var width: float = 0.0
