@@ -1017,6 +1017,8 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_cur_attack = as_attack
 	_cur_spell = as_spell
 	_resolve_card(h, card, area, target)
+	if as_spell and card.damage > 0 and card.special != "prism":
+		_fire_prism(card)
 	_cur_card = null
 	_cur_attack = false
 	_cur_spell = false
@@ -1419,11 +1421,19 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				if HexMath.distance(e.cell, target) == 2:
 					_push(e, HexMath.direction_to(e.cell, target), 1)
 		"bastion":
-			# Рядом с Магом (или шаг к нему): Маг тоже получает блок
+			# Рядом с Магом (до 2 клеток): Маг получает половину блока, а Рыцарь до следующего хода
+			# принимает на себя половину урона по Магу
 			for other in living_heroes():
 				if other != h and HexMath.distance(h.cell, other.cell) <= 2:
 					other.block += card.block / 2
+					h.guarding = true
 					status_changed.emit(other, snapshot(other))
+		"prism":
+			var carrier: BattleUnit = unit_at(target)
+			if carrier != null and carrier.is_hero:
+				carrier.prism = true
+				message.emit("%s несёт магическую призму" % carrier.title)
+				status_changed.emit(carrier, snapshot(carrier))
 		"toxic_ignition":
 			if _ignite_ok:
 				message.emit("Взрыв болота!")
@@ -1974,6 +1984,13 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if amount <= 0 or not unit.is_alive():
 		return
+	# «Живой бастион»: Рыцарь рядом принимает половину урона по напарнику вместо него
+	if unit.is_hero and not unit.guarding:
+		for g in living_heroes():
+			if g != unit and g.guarding and HexMath.distance(g.cell, unit.cell) <= 1:
+				message.emit("%s прикрывает %s" % [g.title, unit.title])
+				_damage(g, amount / 2, ignore_block)
+				return
 	# Древесная броня корягача: огонь сжигает её, одиночная физическая атака режется вдвое
 	if unit.data != null and unit.data.wood_armor and _cur_card != null and not unit.armor_burnt:
 		if _cur_card.element == CardData.Element.FIRE:
@@ -2180,6 +2197,34 @@ func _astral_beam(h: BattleUnit, card: CardData, dir: Vector2i) -> void:
 
 
 
+# «Магическая призма»: Заклинание Мага разделяется на 3 луча от Рыцаря (оси с самым большим числом врагов), +3 урона
+func _fire_prism(card: CardData) -> void:
+	for carrier in living_heroes():
+		if not carrier.prism:
+			continue
+		carrier.prism = false
+		var scored: Array[Dictionary] = []
+		for d: Vector2i in HexMath.DIRS:
+			var n: int = 0
+			for c in HexMath.ray(carrier.cell, d, 8):
+				var u: BattleUnit = unit_at(c)
+				if u != null and not u.is_hero:
+					n += 1
+			scored.append({"dir": d, "n": n})
+		scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["n"] > b["n"])
+		var hit: Dictionary[BattleUnit, bool] = {}
+		for i in mini(3, scored.size()):
+			for c in HexMath.ray(carrier.cell, scored[i]["dir"], 8):
+				var u2: BattleUnit = unit_at(c)
+				if u2 != null and not u2.is_hero and not hit.has(u2):
+					hit[u2] = true
+		message.emit("Призма разделяет заклинание на лучи")
+		for u3: BattleUnit in hit.keys():
+			if u3.is_alive():
+				_card_damage(u3, card.damage + 3, false)
+		return
+
+
 # ---------- Враги: синергии ----------
 
 func _slime_count(h: BattleUnit) -> int:
@@ -2308,6 +2353,8 @@ func _start_heroes_turn() -> void:
 			h.block = 0
 			h.taunt = false
 			status_changed.emit(h, snapshot(h))
+		h.guarding = false
+		h.prism = false
 		h.mana = maxi(0, h.hero_data.mana_per_turn - int(_mana_penalty.get(h.id, 0)))
 		_mana_penalty[h.id] = 0
 		h.moves_left = maxi(0, h.hero_data.moves_per_turn - _slime_count(h))

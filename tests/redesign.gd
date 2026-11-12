@@ -107,6 +107,7 @@ func _initialize() -> void:
 	_passives()
 	_new_cards()
 	_synergies()
+	_bastion_prism()
 
 	print("--- провалов: %d ---" % fails)
 	quit(1 if fails > 0 else 0)
@@ -416,3 +417,35 @@ func _synergies() -> void:
 	var ghost: Dictionary = l4.ghost_preview(k4, 0, g4.cell)
 	check("Призрак: гоблин погибнет", (ghost["deaths"] as Array).has(g4.cell))
 	check("Призрак не меняет настоящий бой", g4.is_alive() and k4.hand.size() == 1)
+
+
+func _bastion_prism() -> void:
+	# Бастион: Рыцарь рядом принимает половину урона по Магу
+	var l := fresh()
+	var m: BattleUnit = l.heroes[0]
+	var k: BattleUnit = l.heroes[1]
+	m.cell = C(5, 9)
+	k.cell = m.cell + HexMath.DIRS[0]
+	m.block = 0; k.block = 0
+	k.guarding = true
+	var mhp: int = m.hp
+	var khp: int = k.hp
+	l._damage(m, 6)
+	check("Бастион: Маг не ранен", m.hp == mhp)
+	check("Бастион: Рыцарь принял половину (3)", k.hp == khp - 3)
+
+	# Призма: Заклинание Мага идёт лучами от Рыцаря
+	var l2 := fresh()
+	var m2: BattleUnit = l2.heroes[0]
+	var k2: BattleUnit = l2.heroes[1]
+	m2.cell = C(1, 9)
+	k2.cell = C(5, 8)
+	k2.prism = true
+	var e: BattleUnit = l2._new_unit("Враг")
+	e.data = enemy("goblin")
+	e.hp = 100; e.max_hp = 100
+	e.cell = k2.cell + HexMath.DIRS[0] * 3
+	l2.enemies.append(e)
+	l2._fire_prism(card("m_spark"))
+	check("Призма: враг на оси Рыцаря получил урон", e.hp < 100)
+	check("Призма израсходована", not k2.prism)

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_hex_prism"
+title = "Гексагональная призма"
+description = "Вешает на Рыцаря призму до конца хода. Следующее Заклинание Мага с уроном разойдётся тремя лучами от Рыцаря (оси с наибольшим числом врагов), +3 урона."
+cost = 1
+shape = 7
+cast_range = 3
+card_set = "redesign"
+special = "prism"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 1
