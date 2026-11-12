@@ -424,6 +424,23 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			ice.material_override = ice_mat
 			ice.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(ice)
+		BattleLogic.Tile.SWAMP:
+			# Трясина: тёмная болотная жижа с зеленоватым отсветом
+			var mud := _flat_disc(0.42 * CELL_STEP, Color(0.17, 0.22, 0.12, 0.95), 0.02)
+			var mud_mat: StandardMaterial3D = mud.material_override
+			mud_mat.roughness = 0.2
+			mud_mat.emission_enabled = true
+			mud_mat.emission = Color(0.2, 0.32, 0.1)
+			mud_mat.emission_energy_multiplier = 0.2
+			root.add_child(mud)
+		BattleLogic.Tile.GAS:
+			# Ядовитый газ: полупрозрачное ядовито-зелёное облако над клеткой
+			var cloud := _flat_disc(0.44 * CELL_STEP, Color(0.45, 0.85, 0.25, 0.45), 0.12)
+			var cloud_mat: StandardMaterial3D = cloud.material_override
+			cloud_mat.emission_enabled = true
+			cloud_mat.emission = Color(0.4, 0.9, 0.2)
+			cloud_mat.emission_energy_multiplier = 0.6
+			root.add_child(cloud)
 		BattleLogic.Tile.FIRE:
 			# Тлеющая земля, языки пламени из частиц и оранжевый свет
 			var embers := _flat_disc(0.42 * CELL_STEP, Color(1.0, 0.4, 0.08, 0.75), 0.03)

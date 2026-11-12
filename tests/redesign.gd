@@ -103,5 +103,45 @@ func _initialize() -> void:
 	cl.heroes[0].mana -= 2
 	check("клон не трогает оригинал", l3.heroes[0].mana == mana0)
 
+	_tiles()
+
 	print("--- провалов: %d ---" % fails)
 	quit(1 if fails > 0 else 0)
+
+
+# Трясина (Swamp) и ядовитый газ (GAS)
+func _tiles() -> void:
+	var l := fresh()
+	var m: BattleUnit = l.heroes[0]
+	m.cell = C(2, 9)
+	m.moves_left = 4
+	var swamp: Vector2i = m.cell + HexMath.DIRS[4]   # соседняя клетка
+	l.tiles[swamp] = BattleLogic.Tile.SWAMP
+	l.move_hero(m, swamp)
+	check("Трясина: вход отнял лишний шаг (4 − 1 путь − 1 увяз)", m.moves_left == 2)
+
+	# Молния по трясине идёт по цепочке
+	var l2 := fresh()
+	l2.tiles[C(5, 5)] = BattleLogic.Tile.SWAMP
+	l2.tiles[C(5, 5) + HexMath.DIRS[0]] = BattleLogic.Tile.SWAMP
+	var area: Array[Vector2i] = [C(5, 5)]
+	var spread: Array[Vector2i] = l2._spread_through_water(area)
+	check("Молния в трясине бьёт по всей цепочке смежных клеток", spread.has(C(5, 5) + HexMath.DIRS[0]))
+
+	# Газ: вход даёт урон и яд
+	var l3 := fresh()
+	var h3: BattleUnit = l3.heroes[1]
+	h3.cell = C(8, 9)
+	h3.moves_left = 3
+	var gas: Vector2i = h3.cell + HexMath.DIRS[4]
+	l3.tiles[gas] = BattleLogic.Tile.GAS
+	var hp0: int = h3.hp
+	l3.move_hero(h3, gas)
+	check("Газ: вход ранит на %d" % BattleLogic.GAS_DAMAGE, h3.hp == hp0 - BattleLogic.GAS_DAMAGE)
+	check("Газ: вход отравляет", h3.poison >= BattleLogic.GAS_POISON)
+
+	# Огонь взрывает газ и убирает его
+	var l4 := fresh()
+	l4.tiles[C(5, 5)] = BattleLogic.Tile.GAS
+	l4._set_tile(C(5, 5), BattleLogic.Tile.FIRE)
+	check("Огонь по газу: газ исчез, огня на клетке нет", l4.tile_at(C(5, 5)) == BattleLogic.Tile.NONE)

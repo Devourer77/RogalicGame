@@ -26,7 +26,8 @@ signal card_played(caster: BattleUnit, card: CardData, is_scrap: bool)   # дл�
 signal overheated(hero: BattleUnit, stacks: int)   # в конце хода мана героя была в минусе
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
-enum Tile { NONE, FIRE, WATER, ICE }
+# SWAMP — проходимая трясина (вход отнимает шаг, проводит молнию); GAS — ядовитый газ (взрывается от огня)
+enum Tile { NONE, FIRE, WATER, ICE, SWAMP, GAS }
 
 # Объекты поля (Гнилые топи). Один объект на клетку.
 enum Obj {
@@ -67,7 +68,7 @@ enum DrawMode { DISCARD_ALL, REFILL_5, PLUS_3, PLUS_2, KEEP_2 }
 const DRAW_MODE: DrawMode = DrawMode.KEEP_2
 const KEEP_LIMIT: int = 3          # сколько карт герой может удержать на следующий ход (режим KEEP_2)
 const TURN_DRAW: int = 3           # сколько карт герой добирает в конце хода (режим KEEP_2); рука не больше MAX_HAND
-const BUMP_DAMAGE: int = 3      # урон, если толкнутый врезался в препятствие
+const BUMP_DAMAGE: int = 4      # урон, если толкнутый врезался в препятствие
 const STEAM_DAMAGE: int = 3        # урон от парового взрыва (огонь на луже)
 const ICE_SHATTER_DAMAGE: int = 4  # урон от ледяных осколков (огонь на льду)
 const HEAVY_IDS: Array[String] = ["ogre", "mossy_treant"]   # слишком массивны, чтобы вмёрзнуть в лёд
@@ -81,6 +82,9 @@ const HERO_BOG_DAMAGE: int = 4  # герой не тонет: трясина д�
 const STAKES_BUMP_DAMAGE: int = 6  # урон, если толкнули в частокол
 const WET_SHOCK_BONUS: int = 3      # молния по мокрому юниту бьёт сильнее на столько
 const WET_TURNS: int = 2            # сколько раундов юнит остаётся мокрым, выйдя из лужи
+const GAS_DAMAGE: int = 3           # урон ядовитого газа тому, кто вошёл в него, протащен через него или стоит в нём в конце раунда
+const GAS_POISON: int = 2           # сколько раундов яда даёт газ
+const SWAMP_STEP_COST: int = 1      # вход в трясину (Swamp) отнимает столько шагов («Увяз»)
 const POISON_DAMAGE: int = 2        # урон яда в конце раунда (мимо блока)
 const POISON_TURNS: int = 3         # сколько раундов держится яд
 const RUNE_HITS: int = 3            # на сколько ударов хватает руны на оружии рыцаря
@@ -1443,13 +1447,19 @@ func _explode_barrel(c: Vector2i) -> void:
 		_apply_element(t, CardData.Element.FIRE, c, false)
 
 
-# Молния: если попала в лужу — бьёт по всем клеткам этой лужи
+# Проводит ли клетка электричество: лужа и трясина (цепочкой смежных клеток)
+func _conducts(c: Vector2i) -> bool:
+	var t: int = tile_at(c)
+	return t == Tile.WATER or t == Tile.SWAMP
+
+
+# Молния: если попала в лужу или трясину — бьёт по всем клеткам этой цепочки
 func _spread_through_water(area: Array[Vector2i]) -> Array[Vector2i]:
 	var result: Array[Vector2i] = area.duplicate()
 	var queue: Array[Vector2i] = []
 	var seen: Dictionary[Vector2i, bool] = {}
 	for c in area:
-		if tile_at(c) == Tile.WATER:
+		if _conducts(c):
 			queue.append(c)
 			seen[c] = true
 	while not queue.is_empty():
@@ -1458,7 +1468,7 @@ func _spread_through_water(area: Array[Vector2i]) -> Array[Vector2i]:
 			result.append(c)
 		for d: Vector2i in HexMath.DIRS:
 			var n: Vector2i = c + d
-			if not seen.has(n) and tile_at(n) == Tile.WATER:
+			if not seen.has(n) and _conducts(n):
 				seen[n] = true
 				queue.append(n)
 	# «Водные» враги (жаба): молния в соседней луже достаёт и их
@@ -1647,6 +1657,9 @@ func _burn_reeds(c: Vector2i) -> void:
 func _set_tile(c: Vector2i, tile: int) -> void:
 	if tile_at(c) == tile and tile != Tile.FIRE:
 		return
+	if tile == Tile.FIRE and tile_at(c) == Tile.GAS:
+		_explode_gas(c)   # газ взрывается и превращается в обычную землю
+		return
 	if tile == Tile.NONE:
 		tiles.erase(c)
 	else:
@@ -1660,6 +1673,25 @@ func _set_tile(c: Vector2i, tile: int) -> void:
 	if tile == Tile.WATER:
 		_set_wet(unit_at(c), WET_TURNS)  # вода под ногами мочит
 	tile_changed.emit(c, tile)
+
+
+# Ядовитый газ вспыхнул: взрыв на клетке (урон стоящему в ней), газ исчезает
+func _explode_gas(c: Vector2i) -> void:
+	tiles.erase(c)
+	message.emit("Ядовитый газ взрывается!")
+	effect_cells.emit([c] as Array[Vector2i], "explosion")
+	tile_changed.emit(c, Tile.NONE)
+	var u: BattleUnit = unit_at(c)
+	if u != null:
+		_damage(u, GAS_DAMAGE)
+
+
+# Юнит попал в газ: урон и яд
+func _gas_hit(u: BattleUnit) -> void:
+	message.emit("%s дышит ядом" % u.title)
+	_damage(u, GAS_DAMAGE)
+	if u.is_alive():
+		_set_poison(u, GAS_POISON)
 
 
 # Огонь сжигает блок у тех, кто его боится (корягач)
@@ -2470,6 +2502,16 @@ func _walked(u: BattleUnit, path: Array[Vector2i]) -> void:
 	for c in path:
 		if tile_at(c) == Tile.WATER:
 			_set_wet(u, WET_TURNS)
+	# Трясина и газ: срабатывают на каждой клетке пути, куда вошли (начальную не считаем)
+	for i in range(1, path.size()):
+		if not u.is_alive():
+			return
+		var t: int = tile_at(path[i])
+		if t == Tile.SWAMP and u.is_hero and u.moves_left > 0:
+			u.moves_left = maxi(0, u.moves_left - SWAMP_STEP_COST)
+			message.emit("%s увяз в трясине" % u.title)
+		elif t == Tile.GAS:
+			_gas_hit(u)
 	if u.is_hero:
 		return
 	for i in range(1, path.size()):
@@ -2545,6 +2587,10 @@ func _tick_statuses() -> void:
 	for u in living_enemies() + living_heroes():
 		if not u.is_alive():
 			continue
+		if tile_at(u.cell) == Tile.GAS:
+			_gas_hit(u)   # закончил раунд в газу
+			if not u.is_alive():
+				continue
 		if u.poison > 0:
 			u.poison -= 1
 			message.emit("%s страдает от яда" % u.title)
