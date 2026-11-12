@@ -37,7 +37,8 @@ const COLOR_LAVA := Color(1.0, 0.65, 0.1, 0.75)      # лава (оранжев�
 const COLOR_CRUST := Color(0.6, 0.6, 0.62, 0.75)     # корка
 const COLOR_SHOCK := Color(1.0, 0.95, 0.55, 0.8)     # молния по мокрому
 const COLOR_RUNE := Color(0.9, 0.93, 1.0, 0.8)       # взрыв сторожевой руны (серебристо-белый)
-const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust", "shock"]
+const COLOR_PINCER := Color(0.84, 0.67, 0.34, 0.8)   # «Клещи» — латунь (UiKit.BRASS)
+const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust", "shock", "pincer"]
 const COLOR_BUFF := Color(0.37, 0.92, 0.83, 0.4)     # «зов» шамана: бирюза Раскола
 
 # Ощущение удара от окружения (взрыв бочки, падение дерева). Всё можно подкрутить:
@@ -329,6 +330,8 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 		color = COLOR_CRUST
 	elif kind == "shock":
 		color = COLOR_SHOCK
+	elif kind == "pincer":
+		color = COLOR_PINCER
 	var cells: Array[Vector2i] = [cell]
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
@@ -583,7 +586,7 @@ func _on_hover(cell: Vector2i) -> void:
 		for r: Dictionary in logic.predict_reactions(_active, _selected_card, cell):
 			by_kind[r["kind"]].append(r["cell"])
 		var colors: Dictionary = {"steam": COLOR_STEAM, "freeze": COLOR_FREEZE, "shatter": COLOR_SHATTER,
-				"lava": COLOR_LAVA, "crust": COLOR_CRUST, "shock": COLOR_SHOCK}
+				"lava": COLOR_LAVA, "crust": COLOR_CRUST, "shock": COLOR_SHOCK, "pincer": COLOR_PINCER}
 		for k: String in REACTION_KINDS:
 			board.show_cells("reaction_" + k, by_kind[k], colors[k])
 	else:

@@ -65,6 +65,7 @@ func _initialize() -> void:
 	_wet()
 	_runes()
 	_trap()
+	_pincer()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 
@@ -638,3 +639,40 @@ func _trap() -> void:
 	hp = l.enemies[0].hp
 	l.end_turn()
 	check("Удар врага по герою на руне подрывает её", l.object_at(C(2, 9)) == O.NONE and l.enemies[0].hp == hp - 5)
+
+
+# «Клещи»: враг между героями на одной прямой получает от карт +50%
+func _pincer() -> void:
+	print("--- Клещи ---")
+	var l := fresh(["ogre"]); var m: BattleUnit = l.heroes[0]; var k: BattleUnit = l.heroes[1]
+	var e: BattleUnit = l.enemies[0]
+	e.cell = m.cell + UL * 2; k.cell = m.cell + UL * 3
+	check("Враг между магом и рыцарем на одной линии — в клещах", l.is_pincered(e))
+	give(m, ["m_spark"])
+	check("Прицел показывает «Клещи»", l.predict_reactions(m, 0, e.cell).any(
+			func(r: Dictionary) -> bool: return r["kind"] == "pincer" and r["cell"] == e.cell))
+	var hp: int = e.hp
+	l.play_card(m, 0, e.cell)
+	check("Искра в клещах: 2 → 3 урона", e.hp == hp - 3)
+	# Рыцарь вплотную, маг далеко на той же прямой: удар рыцаря тоже усилен
+	give(k, ["strike"]); hp = e.hp
+	l.play_card(k, 0, e.cell)
+	check("Удар рыцаря в клещах: 6 → 9 урона", e.hp == hp - 9)
+	# Рыцарь сбоку — не на линии
+	k.cell = e.cell + Vector2i(1, 0) + Vector2i(1, 0) + UL
+	check("Рыцарь не на прямой — клещей нет", not l.is_pincered(e))
+	give(m, ["m_spark"]); hp = e.hp
+	l.play_card(m, 0, e.cell)
+	check("Без клещей искра — 2 урона", e.hp == hp - 2)
+	# Оба героя с одной стороны — не клещи
+	k.cell = m.cell + UL
+	e.cell = m.cell + UL * 3
+	check("Оба героя с одной стороны — клещей нет", not l.is_pincered(e))
+	# Погибший герой клещи не держит
+	e.cell = m.cell + UL * 2; k.cell = m.cell + UL * 3; k.hp = 0
+	check("Мёртвый рыцарь клещи не держит", not l.is_pincered(e))
+	# Урон не от карты (огонь, яд, взрывы) не усиливается
+	k.hp = 45
+	hp = e.hp
+	l._damage(e, 4)
+	check("Урон не от карты в клещах не растёт", e.hp == hp - 4)

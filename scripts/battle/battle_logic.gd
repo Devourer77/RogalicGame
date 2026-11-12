@@ -85,6 +85,7 @@ const WET_TURNS: int = 2            # сколько раундов юнит о�
 const INFLATION_MAX: int = 3        # стаков «Раздувания» до взрыва жабы
 const INFLATION_DAMAGE: int = 12    # урон взрыва жабы
 const INFLATION_POISON: int = 3     # яд от взрыва жабы
+const PINCER_BONUS_PCT: int = 50   # «Клещи»: враг между героями на одной прямой получает от карт на столько % больше
 const TOAD_FUSE_HP: int = 4         # жаба с таким HP или меньше «тлеет»: прыгает к героям и взрывается
 const TOAD_FUSE_STACKS: int = 2     # …или с таким числом стаков «Раздувания»
 const TOAD_LEAP_BONUS: int = 1      # тлеющая жаба прыгает на столько клеток дальше обычного шага
@@ -159,6 +160,7 @@ var ground: Dictionary[Vector2i, int] = {}     # клетка -> Ground (вид 
 var arena_id: String = ""                      # какая арена (ключ из ARENAS)
 
 var _cur_card: CardData = null     # карта, эффекты которой считаются сейчас (для пассивок врагов)
+var _cur_hero: BattleUnit = null   # кто её сыграл (для «Клещей»)
 var _cur_attack: bool = false      # она считается «Атакой»
 var _cur_spell: bool = false       # она считается «Заклинанием»
 var _cur_straight: int = 0         # разгон героя по прямой перед этой картой
@@ -1025,12 +1027,14 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	if as_spell:
 		_absorb_magic()
 	_cur_card = card
+	_cur_hero = h
 	_cur_attack = as_attack
 	_cur_spell = as_spell
 	_resolve_card(h, card, area, target)
 	if as_spell and card.damage > 0 and card.special != "prism":
 		_fire_prism(card)
 	_cur_card = null
+	_cur_hero = null
 	_cur_attack = false
 	_cur_spell = false
 	_check_end()
@@ -2092,6 +2096,24 @@ func _inflation_burst(unit: BattleUnit) -> void:
 			_hit_object(c, unit.cell)
 
 
+# ---------- «Клещи» ----------
+
+# Враг «в клещах»: два живых героя стоят на одной прямой через него по разные стороны
+# (расстояние не важно — маг может быть далеко, лишь бы на той же линии).
+func is_pincered(e: BattleUnit) -> bool:
+	if e == null or e.is_hero or not e.is_alive():
+		return false
+	var dirs: Array[Vector2i] = []
+	for h in living_heroes():
+		var d: Vector2i = HexMath.straight_dir(e.cell, h.cell)
+		if d == Vector2i.ZERO:
+			continue
+		if dirs.has(-d):
+			return true
+		dirs.append(d)
+	return false
+
+
 # ---------- Жаба с фитилём ----------
 
 # Раненая или сильно раздутая жаба «тлеет»: в свой ход прыгает к героям
@@ -3084,6 +3106,12 @@ func predict_reactions(h: BattleUnit, index: int, target: Vector2i) -> Array[Dic
 	if index < 0 or index >= h.hand.size():
 		return result
 	var card: CardData = h.hand[index]
+	# «Клещи»: враги в области карты, зажатые между героями
+	if card.damage > 0:
+		for c in get_card_area(h, index, target):
+			var pinned: BattleUnit = unit_at(c)
+			if pinned != null and is_pincered(pinned):
+				result.append({"cell": c, "kind": "pincer"})
 	# Молния (или «Руна бури») по мокрому врагу: +WET_SHOCK_BONUS
 	var shocking: bool = card.damage > 0 and (card.element == CardData.Element.LIGHTNING \
 			or (h.rune == "storm" and h.rune_hits > 0))
@@ -3175,6 +3203,11 @@ func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
 	if _lightning_now and is_wet(u):
 		amount += WET_SHOCK_BONUS
 		reaction.emit(u.cell, "shock")
+	# «Клещи»: только урон самой карты (огонь, яд и взрывы сюда не попадают)
+	if _cur_hero != null and amount > 0 and is_pincered(u):
+		amount = amount * (100 + PINCER_BONUS_PCT) / 100
+		reaction.emit(u.cell, "pincer")
+		message.emit("%s в клещах!" % u.title)
 	if not _hit_enemies.has(u):
 		_hit_enemies.append(u)
 	_damage(u, amount, pierce)
