@@ -37,6 +37,8 @@ const COLOR_LAVA := Color(1.0, 0.65, 0.1, 0.75)      # лава (оранжев�
 const COLOR_CRUST := Color(0.6, 0.6, 0.62, 0.75)     # корка
 const COLOR_SHOCK := Color(1.0, 0.95, 0.55, 0.8)     # молния по мокрому
 const COLOR_RUNE := Color(0.9, 0.93, 1.0, 0.8)       # взрыв сторожевой руны (серебристо-белый)
+const COLOR_OBJECTIVE := Color(0.84, 0.67, 0.34, 0.28)        # цель «Прорыв» — латунь
+const COLOR_OBJECTIVE_WATER := Color(0.3, 0.55, 0.75, 0.35)   # ряд, который зальёт вода
 const COLOR_PINCER := Color(0.84, 0.67, 0.34, 0.8)   # «Клещи» — латунь (UiKit.BRASS)
 const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust", "shock", "pincer"]
 const COLOR_BUFF := Color(0.37, 0.92, 0.83, 0.4)     # «зов» шамана: бирюза Раскола
@@ -87,7 +89,8 @@ var _enemy_phase_running: bool = false   # идёт ход врагов (на н
 func _ready() -> void:
 	Run.ensure_run()
 	var layout_seed: int = Run.rng.randi()
-	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena)
+	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena,
+			Run.pending_objective)
 	board.build(layout_seed, logic.arena_id, logic.ground)
 	_update_camera()
 	_create_views()
@@ -112,6 +115,20 @@ func _ready() -> void:
 
 # ---------- Создание фигурок ----------
 
+# Фигурка врага: модель (или капсула-заглушка), лицом к героям, с плашкой над головой
+func _make_enemy_view(e: BattleUnit) -> Unit:
+	var view: Unit = _spawn_view(e.data.id.capitalize(), e.cell)
+	if e.data.model != null:
+		view.add_child(e.data.model.instantiate())
+		view.setup_animations()   # Idle, Walk, Attack, Hit, Death из модели
+	else:
+		view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
+	view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
+	view.setup_label(1.4 * e.data.size + 0.55)
+	_views[e] = view
+	return view
+
+
 func _create_views() -> void:
 	for h in logic.heroes:
 		var view: Unit = _spawn_view(h.hero_data.id.capitalize(), h.cell)
@@ -126,15 +143,7 @@ func _create_views() -> void:
 		_views[h] = view
 
 	for e in logic.enemies:
-		var view: Unit = _spawn_view(e.data.id.capitalize(), e.cell)
-		if e.data.model != null:
-			view.add_child(e.data.model.instantiate())
-			view.setup_animations()   # Idle, Walk, Attack, Hit, Death из модели
-		else:
-			view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
-		view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
-		view.setup_label(1.4 * e.data.size + 0.55)
-		_views[e] = view
+		_make_enemy_view(e)
 
 	for c: Vector2i in logic.rocks:
 		board.add_rock(c)
@@ -238,6 +247,10 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		marks.append("wet")
 	if state.get("poison", 0) > 0:
 		marks.append("poison")
+	# «Ритуал»: над ритуалистом — сколько раундов до призыва
+	if logic.objective == BattleLogic.Objective.RITUAL and u.id == logic.ritual_caster_id and u.is_alive():
+		marks.append("ritual")
+		info["ritual_turns"] = logic.ritual_timer
 	info["marks"] = marks
 	if _fire_forecast.has(u.id):
 		info["fire"] = _fire_forecast[u.id]
@@ -261,6 +274,8 @@ func _connect_logic() -> void:
 	logic.enemy_attacked.connect(_on_enemy_attacked)
 	logic.enemy_buffed.connect(_on_enemy_buffed)
 	logic.message.connect(_on_message)
+	logic.unit_spawned.connect(_on_unit_spawned)
+	logic.objective_changed.connect(_on_objective_changed)
 
 
 func _queue(step: Callable) -> void:
@@ -299,6 +314,22 @@ func _on_unit_died(unit: BattleUnit) -> void:
 		_queue(func() -> void: await view.play_sink())   # утонул в трясине
 	else:
 		_queue(func() -> void: await view.play_death())
+
+
+# Враг появился посреди боя (ритуал, подкрепление): фигурка возникает в очереди анимаций
+func _on_unit_spawned(unit: BattleUnit) -> void:
+	var info: Dictionary = _plate_info(unit, logic.snapshot(unit))
+	_queue(func() -> void:
+		var view: Unit = _make_enemy_view(unit)
+		view.set_status(info)
+	)
+
+
+# Цель боя обновилась: подсветка верхнего ряда («Прорыв») или ряда, который зальёт вода
+func _on_objective_changed() -> void:
+	var cells: Array[Vector2i] = logic.objective_cells()
+	var color: Color = COLOR_OBJECTIVE_WATER if logic.objective == BattleLogic.Objective.RISING_WATER else COLOR_OBJECTIVE
+	_queue(func() -> void: board.show_cells("objective", cells, color))
 
 
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:

@@ -38,6 +38,7 @@ var _speed_button: Button
 var _discard_button: Button
 var _end_tween: Tween
 var _round_label: Label
+var _objective_row: HBoxContainer   # цель боя под шапкой журнала (скрыта в обычном бою)
 var _arena_label: Label
 var _log_box: VBoxContainer
 var _enemy_card: PanelContainer
@@ -110,6 +111,11 @@ func _build_side_column() -> void:
 	head.add_child(_round_label)
 	_arena_label = UiKit.make_label("", 14, UiKit.TEXT_DIM)
 	head.add_child(_arena_label)
+	_objective_row = HBoxContainer.new()
+	_objective_row.add_theme_constant_override("separation", 6)
+	_objective_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_objective_row.visible = false
+	log_column.add_child(_objective_row)
 	var line := ColorRect.new()
 	line.color = Color(UiKit.LINE, 0.8)
 	line.custom_minimum_size.y = 1
@@ -383,11 +389,27 @@ func toggle_help() -> void:
 
 # ---------- Обновление ----------
 
+# Цель боя: значок, название и что осталось («Ритуал: 3 р. до призыва»)
+func _refresh_objective(logic: BattleLogic) -> void:
+	UiKit.clear(_objective_row)
+	_objective_row.visible = logic.objective != BattleLogic.Objective.KILL_ALL
+	if not _objective_row.visible:
+		return
+	_objective_row.add_child(UiKit.icon_rect(logic.objective_icon(), 16, UiKit.BRASS))
+	_objective_row.add_child(UiKit.make_label(logic.objective_title() + ":", 14, UiKit.BRASS, true))
+	var text: Label = UiKit.make_label(logic.objective_text(), 14, UiKit.TEXT)
+	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	text.custom_minimum_size.x = 200
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_objective_row.add_child(text)
+
+
 # Перерисовывает панели героев и руку активного героя.
 # selected — номер выбранной карты (-1 — нет), busy — идут анимации.
 func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) -> void:
 	_round_label.text = "Раунд %d" % maxi(logic.turn, 1)
 	_arena_label.text = ("·  " + logic.arena_title()) if logic.arena_title() != "" else ""
+	_refresh_objective(logic)
 
 	UiKit.clear(_hero_box)
 	for i in logic.heroes.size():

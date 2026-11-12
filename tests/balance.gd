@@ -44,6 +44,11 @@ func _initialize() -> void:
 		configs.append({"name": "ряд %d" % r, "row": r, "boss": false, "elite": false})
 	configs.append({"name": "элита", "row": ELITE_ROW, "boss": false, "elite": true})
 	configs.append({"name": "босс", "row": BOSS_ROW, "boss": true, "elite": false})
+	# Бои с особой целью (ряд 3). Бот целей не понимает и просто дерётся — строка показывает,
+	# насколько цель усложняет обычную драку (ритуал призывает, вода замедляет и т. д.)
+	configs.append({"name": "ритуал", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RITUAL})
+	configs.append({"name": "прорыв", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.BREAKTHROUGH})
+	configs.append({"name": "вода", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RISING_WATER})
 
 	var started: int = Time.get_ticks_msec()
 	var lines: PackedStringArray = []
@@ -90,8 +95,17 @@ func _play_battle(run: Node, seed_value: int, cfg: Dictionary) -> Dictionary:
 	bot_rng.seed = seed_value
 	var enemies: Array[EnemyData] = run._make_encounter(cfg["row"], cfg["boss"], cfg["elite"])
 	var arena: String = run.pick_arena(cfg["boss"])
+	var objective: int = cfg.get("objective", BattleLogic.Objective.KILL_ALL)
+	if objective == BattleLogic.Objective.RITUAL:
+		var has_caster: bool = false
+		for e in enemies:
+			has_caster = has_caster or BattleLogic.RITUAL_CASTERS.has(e.id)
+		if not has_caster:
+			enemies.append(load("res://resources/enemies/goblin_shaman.tres"))
+	if objective == BattleLogic.Objective.BREAKTHROUGH and arena == "gat":
+		arena = "grove"   # на гати прорыва не бывает
 	var b := BattleLogic.new()
-	b.setup(12, 12, run.rng, run.party, enemies, arena)
+	b.setup(12, 12, run.rng, run.party, enemies, arena, objective)
 	b.start()
 	var stuck: bool = false
 	while not b.is_over:

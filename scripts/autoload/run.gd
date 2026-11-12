@@ -15,6 +15,9 @@ const GAME_OVER_SCENE: String = "res://ui/game_over.tscn"
 
 const MAP_ROWS: int = 8        # последний ряд — босс, предпоследний — привал
 const MAP_COLS: int = 3
+const OBJECTIVE_FROM_ROW: int = 2     # с какого ряда карты бывают бои с особой целью
+const OBJECTIVE_CHANCE: float = 0.3   # шанс особой цели у обычного боя
+const OBJECTIVE_GOLD: int = 15        # доплата золотом за бой с особой целью
 const START_GOLD: int = 30
 const REST_HEAL_PERCENT: float = 0.3
 const REMOVE_CARD_PRICE: int = 60
@@ -51,6 +54,7 @@ var map: Array[MapNode] = []
 var current: MapNode = null              # где герой сейчас (null — ещё не вышел)
 var pending_enemies: Array[EnemyData] = []  # враги для ближайшего боя
 var pending_arena: String = ""               # арена ближайшего боя (ключ из BattleLogic.ARENAS)
+var pending_objective: int = 0               # цель ближайшего боя (BattleLogic.Objective)
 var _last_arena: String = ""                 # прошлая арена — чтобы не повторялась подряд
 var last_gold_reward: int = 0
 var shop_stock: Array[Dictionary] = []   # {"hero": RunHero, "card": CardData}
@@ -133,14 +137,17 @@ func enter_node(n: MapNode) -> void:
 		MapNode.Type.BATTLE:
 			pending_enemies = _make_encounter(n.row, false)
 			pending_arena = pick_arena(false)
+			pending_objective = pick_objective(n.row, pending_enemies, pending_arena)
 			goto(BATTLE_SCENE)
 		MapNode.Type.ELITE:
 			pending_enemies = _make_encounter(n.row, false, true)
 			pending_arena = pick_arena(false)
+			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
 		MapNode.Type.BOSS:
 			pending_enemies = _make_encounter(n.row, true)
 			pending_arena = pick_arena(true)
+			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
 		MapNode.Type.SHOP:
 			shop_stock.clear()
@@ -153,6 +160,22 @@ func enter_node(n: MapNode) -> void:
 			goto(REST_SCENE)
 		MapNode.Type.EVENT:
 			goto(EVENT_SCENE)
+
+
+# Особая цель обычного боя: с OBJECTIVE_FROM_ROW ряда карты, с шансом OBJECTIVE_CHANCE.
+# «Ритуал» — только если среди врагов есть шаман или культист; «Прорыв» — не на «Старой гати»
+# (через узкие переправы до верха почти не дойти).
+func pick_objective(row: int, enemies: Array[EnemyData], arena: String) -> int:
+	if row < OBJECTIVE_FROM_ROW or rng.randf() >= OBJECTIVE_CHANCE:
+		return BattleLogic.Objective.KILL_ALL
+	var options: Array[int] = [BattleLogic.Objective.RISING_WATER]
+	if arena != "gat":
+		options.append(BattleLogic.Objective.BREAKTHROUGH)
+	for e in enemies:
+		if BattleLogic.RITUAL_CASTERS.has(e.id):
+			options.append(BattleLogic.Objective.RITUAL)
+			break
+	return options[rng.randi_range(0, options.size() - 1)]
 
 
 # Выбирает арену для боя: у босса своя, обычные не повторяются два раза подряд
@@ -249,6 +272,9 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 		game_over(true)
 	else:
 		last_gold_reward = rng.randi_range(12, 20)
+		if pending_objective != BattleLogic.Objective.KILL_ALL:
+			last_gold_reward += OBJECTIVE_GOLD   # за бой с особой целью
+		pending_objective = BattleLogic.Objective.KILL_ALL
 		gold += last_gold_reward
 		goto(REWARD_SCENE)
 

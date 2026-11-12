@@ -24,6 +24,8 @@ signal reaction(cell: Vector2i, kind: String)   # реакция стихий: "
 signal message(text: String)
 signal card_played(caster: BattleUnit, card: CardData, is_scrap: bool)   # для пассивок врагов и условий карт
 signal overheated(hero: BattleUnit, stacks: int)   # в конце хода мана героя была в минусе
+signal unit_spawned(unit: BattleUnit)   # посреди боя появился новый враг (ритуал, подкрепление)
+signal objective_changed()              # цель боя обновилась (счётчик ритуала, прибывающая вода)
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
 # SWAMP — проходимая трясина (вход отнимает шаг, проводит молнию); GAS — ядовитый газ (взрывается от огня)
@@ -123,6 +125,31 @@ enum Ground {
 	PLANKS,  # деревянный настил (гать, помост заставы)
 }
 
+# Цель боя. KILL_ALL — обычный бой; остальные добавляют условие и не дают затягивать бой.
+enum Objective {
+	KILL_ALL,      # убить всех
+	RITUAL,        # ритуалист (шаман или культист) за RITUAL_TURNS раундов призывает подмогу и усиливает своих
+	BREAKTHROUGH,  # довести всех живых героев до верхнего ряда; сверху подходят подкрепления
+	RISING_WATER,  # с RISING_WATER_FROM раунда снизу ряд за рядом становится трясиной (Swamp)
+}
+const OBJECTIVE_TITLES: Dictionary = {
+	Objective.KILL_ALL: "Убей всех",
+	Objective.RITUAL: "Ритуал",
+	Objective.BREAKTHROUGH: "Прорыв",
+	Objective.RISING_WATER: "Вода прибывает",
+}
+const OBJECTIVE_ICONS: Dictionary = {
+	Objective.KILL_ALL: "swords", Objective.RITUAL: "ritual",
+	Objective.BREAKTHROUGH: "flag", Objective.RISING_WATER: "tide",
+}
+const RITUAL_CASTERS: Array[String] = ["goblin_shaman", "cultist"]   # кто может вести ритуал
+const RITUAL_TURNS: int = 4         # раундов до завершения ритуала
+const RITUAL_SUMMONS: int = 2       # сколько гоблинов призывает ритуал
+const RITUAL_POWER: int = 2         # +урон всех врагов за каждый завершённый ритуал
+const BREAKTHROUGH_EVERY: int = 2   # «Прорыв»: раз в столько раундов сверху приходит гоблин
+const RISING_WATER_FROM: int = 3    # «Вода прибывает»: с этого раунда в конце каждого раунда
+const SUMMON_ENEMY: String = "res://resources/enemies/goblin.tres"
+
 # Арены Гнилых топей: у каждой свой рисунок поля и своя тактика
 const ARENAS: Dictionary[String, String] = {
 	"gat": "Старая гать",           # полоса трясины поперёк поля и узкие переправы
@@ -159,6 +186,11 @@ var fire_timers: Dictionary[Vector2i, int] = {}  # сколько раундов
 var obj_timers: Dictionary[Vector2i, int] = {}   # сколько раундов ещё простоит временный объект
 var ground: Dictionary[Vector2i, int] = {}     # клетка -> Ground (вид плиты)
 var arena_id: String = ""                      # какая арена (ключ из ARENAS)
+var objective: int = Objective.KILL_ALL        # цель боя (Objective)
+var ritual_caster_id: int = -1                 # «Ритуал»: id ритуалиста
+var ritual_timer: int = 0                      # «Ритуал»: сколько раундов осталось
+var ritual_power: int = 0                      # «Ритуал»: +урон всех врагов от завершённых ритуалов
+var water_row: int = -1                        # «Вода прибывает»: какой ряд зальёт следующим (-1 — ещё не началось)
 
 var _cur_card: CardData = null     # карта, эффекты которой считаются сейчас (для пассивок врагов)
 var _cur_hero: BattleUnit = null   # кто её сыграл (для «Клещей»)
@@ -185,8 +217,10 @@ var _shock_cells: Dictionary[Vector2i, bool] = {}   # клетки, где мо�
 
 # Создаёт героев, врагов и всё поле. Ничего не показывает — только данные.
 func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
-		party: Array[RunHero], enemy_list: Array[EnemyData], arena: String = "") -> void:
+		party: Array[RunHero], enemy_list: Array[EnemyData], arena: String = "",
+		battle_objective: int = Objective.KILL_ALL) -> void:
 	arena_id = arena   # пусто — арена выберется случайно
+	objective = battle_objective
 	width = board_width
 	height = board_height
 	rng = random
@@ -565,6 +599,7 @@ func _field_is_open() -> bool:
 
 # Начало боя: герои ходят первыми
 func start() -> void:
+	_init_objective()
 	_start_heroes_turn()
 
 
@@ -579,7 +614,7 @@ func snapshot(u: BattleUnit) -> Dictionary:
 		# Что враг собирается сделать в этом раунде — для надписи над головой
 		var atk: EnemyAttackData = enemy_attack(u)
 		state["intent"] = atk.title
-		state["damage"] = atk.damage + u.bonus_damage if atk.shape != EnemyData.Attack.AURA else 0
+		state["damage"] = atk.damage + u.bonus_damage + ritual_power if atk.shape != EnemyData.Attack.AURA else 0
 		state["fuse"] = u.fuse
 		state["smoldering"] = is_smoldering(u)
 		if u.fuse > 0:
@@ -2101,6 +2136,148 @@ func _inflation_burst(unit: BattleUnit) -> void:
 			_hit_object(c, unit.cell)
 
 
+# ---------- Цели боя ----------
+
+func objective_title() -> String:
+	return OBJECTIVE_TITLES.get(objective, "")
+
+
+func objective_icon() -> String:
+	return OBJECTIVE_ICONS.get(objective, "swords")
+
+
+# Строка для интерфейса: что нужно сделать и сколько осталось
+func objective_text() -> String:
+	match objective:
+		Objective.RITUAL:
+			var caster: BattleUnit = _unit_by_id(ritual_caster_id)
+			if caster == null or not caster.is_alive():
+				return "Ритуал сорван — добей остальных"
+			return "Убей ритуалиста (%s): %d р. до призыва" % [caster.title, ritual_timer]
+		Objective.BREAKTHROUGH:
+			return "Доведи героев до верхнего ряда (или убей всех)"
+		Objective.RISING_WATER:
+			if water_row < 0:
+				return "Убей всех: с %d-го раунда снизу прибывает вода" % RISING_WATER_FROM
+			return "Убей всех: вода прибывает (ряд %d)" % (height - water_row)
+	return "Убей всех врагов"
+
+
+# Клетки, которые стоит подсветить: верхний ряд для прорыва, ряд, который зальёт, для воды
+func objective_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	match objective:
+		Objective.BREAKTHROUGH:
+			for x in width:
+				cells.append(_cell(x, 0))
+		Objective.RISING_WATER:
+			var row: int = _next_water_row()
+			if row >= 0 and turn + 1 >= RISING_WATER_FROM:
+				for x in width:
+					cells.append(_cell(x, row))
+	return cells
+
+
+func _init_objective() -> void:
+	if objective == Objective.RITUAL:
+		for e in enemies:
+			if e.is_alive() and RITUAL_CASTERS.has(e.data.id):
+				ritual_caster_id = e.id
+				ritual_timer = RITUAL_TURNS
+				break
+		if ritual_caster_id < 0:
+			objective = Objective.KILL_ALL   # некому вести ритуал — обычный бой
+	objective_changed.emit()
+
+
+func _unit_by_id(id: int) -> BattleUnit:
+	for u in heroes + enemies:
+		if u.id == id:
+			return u
+	return null
+
+
+# Конец раунда: тикают ритуал, подкрепления и вода
+func _objective_round_end() -> void:
+	match objective:
+		Objective.RITUAL:
+			var caster: BattleUnit = _unit_by_id(ritual_caster_id)
+			if caster == null or not caster.is_alive():
+				return
+			ritual_timer -= 1
+			status_changed.emit(caster, snapshot(caster))   # обновить счётчик над головой
+			if ritual_timer <= 0:
+				message.emit("%s завершил ритуал: из топей лезет подмога!" % caster.title)
+				for i in RITUAL_SUMMONS:
+					spawn_enemy(load(SUMMON_ENEMY))
+				ritual_power += RITUAL_POWER
+				ritual_timer = RITUAL_TURNS
+				for e in living_enemies():
+					status_changed.emit(e, snapshot(e))
+		Objective.BREAKTHROUGH:
+			if turn % BREAKTHROUGH_EVERY == 0:
+				message.emit("Сверху подходит подкрепление")
+				spawn_enemy(load(SUMMON_ENEMY))
+		Objective.RISING_WATER:
+			if turn >= RISING_WATER_FROM:
+				_flood_next_row()
+	objective_changed.emit()
+
+
+# Все живые герои стоят в верхнем ряду
+func _broke_through() -> bool:
+	var alive: Array[BattleUnit] = living_heroes()
+	if alive.is_empty():
+		return false
+	for h in alive:
+		if h.cell.y != 0:
+			return false
+	return true
+
+
+# Самый нижний ряд, где ещё есть сухая проходимая клетка (-1 — заливать нечего)
+func _next_water_row() -> int:
+	for y in range(height - 1, -1, -1):
+		for x in width:
+			if _floodable(_cell(x, y)):
+				return y
+	return -1
+
+
+func _floodable(c: Vector2i) -> bool:
+	return is_inside(c) and not rocks.has(c) and not objects.has(c) and tile_at(c) != Tile.SWAMP
+
+
+# Заливаем ряд: проходимая трясина (Swamp) — шаг на неё дороже, молнию проводит. Огонь гаснет.
+func _flood_next_row() -> void:
+	var row: int = _next_water_row()
+	if row < 0:
+		return
+	water_row = row
+	for x in width:
+		var c: Vector2i = _cell(x, row)
+		if _floodable(c):
+			fire_timers.erase(c)
+			_set_tile(c, Tile.SWAMP)
+	message.emit("Вода прибывает: нижний ряд ушёл в трясину")
+
+
+# Новый враг посреди боя — в верхних рядах на свободной клетке. null — места нет.
+func spawn_enemy(enemy_data: EnemyData) -> BattleUnit:
+	var c: Vector2i = _random_free_cell(0, _enemy_last_row())
+	if c == NO_CELL:
+		return null
+	var e := _new_unit(enemy_data.title)
+	e.data = enemy_data
+	e.hp = enemy_data.max_hp
+	e.max_hp = enemy_data.max_hp
+	e.block = enemy_data.start_block
+	e.cell = c
+	enemies.append(e)
+	unit_spawned.emit(e)
+	return e
+
+
 # ---------- «Клещи» ----------
 
 # Враг «в клещах»: два живых героя стоят на одной прямой через него по разные стороны
@@ -2555,6 +2732,9 @@ func end_turn() -> void:
 	_tick_objects()
 	if _check_end():
 		return
+	_objective_round_end()
+	if _check_end():
+		return
 
 	_start_heroes_turn()
 
@@ -2655,7 +2835,7 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 	enemy_attacked.emit(e, dir, cells)
 	if atk.title != "Удар":
 		message.emit("%s: %s" % [e.title, atk.title])
-	var damage: int = atk.damage + e.bonus_damage
+	var damage: int = atk.damage + e.bonus_damage + ritual_power
 	if e.bonus_damage > 0:
 		e.bonus_damage = 0   # усиление «Зова» — на один удар
 		status_changed.emit(e, snapshot(e))
@@ -2743,6 +2923,10 @@ func _check_end() -> bool:
 		is_over = true
 		won = false
 		message.emit("Отряд пал…")
+	elif objective == Objective.BREAKTHROUGH and _broke_through():
+		is_over = true
+		won = true
+		message.emit("Прорыв! Отряд вырвался из топей")
 	elif living_enemies().is_empty():
 		is_over = true
 		won = true
@@ -2773,6 +2957,12 @@ func clone() -> BattleLogic:
 	c.obj_timers = obj_timers.duplicate()
 	c.turn = turn
 	c.is_over = is_over
+	c.objective = objective
+	c.ritual_caster_id = ritual_caster_id
+	c.ritual_timer = ritual_timer
+	c.ritual_power = ritual_power
+	c.water_row = water_row
+	c._next_id = _next_id
 	return c
 
 
