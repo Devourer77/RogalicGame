@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_ricochet_shield"
+title = "Пробивной бросок щита"
+description = "5 урона + текущий блок Рыцаря, рикошетит в до 2 врагов в 2 клетках от цели."
+cost = 1
+shape = 1
+cast_range = 3
+damage = 5
+card_set = "redesign"
+special = "ricochet"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 0
+scrap_block = 6

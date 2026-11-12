@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_toxic_ignition"
+title = "Токсичный розжиг"
+description = "6 огня. Если цель на болоте, в газе или отравлена — взрыв: ещё 8 всем рядом, болото и газ выгорают."
+cost = 2
+shape = 1
+cast_range = 3
+damage = 6
+element = 1
+card_set = "redesign"
+special = "toxic_ignition"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 1

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="HeroData" load_steps=37 format=3]
+[gd_resource type="Resource" script_class="HeroData" load_steps=47 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="1_hero"]
 [ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
@@ -35,6 +35,16 @@
 [ext_resource type="Resource" path="res://resources/cards/k_rune_storm.tres" id="c_k_rune_storm"]
 [ext_resource type="Resource" path="res://resources/cards/k_rune_rot.tres" id="c_k_rune_rot"]
 [ext_resource type="Resource" path="res://resources/cards/k_rune_trap.tres" id="c_k_rune_trap"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_battering_ram.tres" id="c_warrior_battering_ram"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_crescent_cleave.tres" id="c_warrior_crescent_cleave"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_trapper_harpoon.tres" id="c_warrior_trapper_harpoon"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_living_bastion.tres" id="c_warrior_living_bastion"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_steel_ring.tres" id="c_warrior_steel_ring"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_kinetic_kick.tres" id="c_warrior_kinetic_kick"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_ground_slam.tres" id="c_warrior_ground_slam"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_tactical_swap.tres" id="c_warrior_tactical_swap"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_ricochet_shield.tres" id="c_warrior_ricochet_shield"]
+[ext_resource type="Resource" path="res://resources/cards/warrior_patient_execution.tres" id="c_warrior_patient_execution"]
 
 [resource]
 script = ExtResource("1_hero")
@@ -48,4 +58,4 @@ gains_rage = true
 color = Color(0.9, 0.62, 0.25, 1)
 model = ExtResource("3_model")
 starter_deck = Array[ExtResource("2_card")]([ExtResource("c_k_slash"), ExtResource("c_k_slash"), ExtResource("c_k_shield"), ExtResource("c_k_shield"), ExtResource("c_k_taunt"), ExtResource("c_k_cleave"), ExtResource("c_k_charge"), ExtResource("c_k_runup"), ExtResource("c_k_blood"), ExtResource("c_k_crush"), ExtResource("c_k_fell"), ExtResource("c_k_kick_barrel")])
-card_pool = Array[ExtResource("2_card")]([ExtResource("c_k_slash"), ExtResource("c_k_shield"), ExtResource("c_k_cleave"), ExtResource("c_k_charge"), ExtResource("c_k_taunt"), ExtResource("c_k_cover"), ExtResource("c_k_wall"), ExtResource("c_k_bastion"), ExtResource("c_k_warcry"), ExtResource("c_k_blood"), ExtResource("c_k_berserk"), ExtResource("c_k_shield_rush"), ExtResource("c_k_crush"), ExtResource("c_k_lance"), ExtResource("c_k_runup"), ExtResource("c_k_spin"), ExtResource("c_k_execute"), ExtResource("c_k_pass_ram"), ExtResource("c_k_leap"), ExtResource("c_k_whirl"), ExtResource("c_k_unstoppable"), ExtResource("c_k_stakes"), ExtResource("c_k_bridge"), ExtResource("c_k_fell"), ExtResource("c_k_kick_barrel"), ExtResource("c_k_hold"), ExtResource("c_k_outpost"), ExtResource("c_k_bell"), ExtResource("c_k_rune_fire"), ExtResource("c_k_rune_storm"), ExtResource("c_k_rune_rot"), ExtResource("c_k_rune_trap")])
+card_pool = Array[ExtResource("2_card")]([ExtResource("c_k_slash"), ExtResource("c_k_shield"), ExtResource("c_k_cleave"), ExtResource("c_k_charge"), ExtResource("c_k_taunt"), ExtResource("c_k_cover"), ExtResource("c_k_wall"), ExtResource("c_k_bastion"), ExtResource("c_k_warcry"), ExtResource("c_k_blood"), ExtResource("c_k_berserk"), ExtResource("c_k_shield_rush"), ExtResource("c_k_crush"), ExtResource("c_k_lance"), ExtResource("c_k_runup"), ExtResource("c_k_spin"), ExtResource("c_k_execute"), ExtResource("c_k_pass_ram"), ExtResource("c_k_leap"), ExtResource("c_k_whirl"), ExtResource("c_k_unstoppable"), ExtResource("c_k_stakes"), ExtResource("c_k_bridge"), ExtResource("c_k_fell"), ExtResource("c_k_kick_barrel"), ExtResource("c_k_hold"), ExtResource("c_k_outpost"), ExtResource("c_k_bell"), ExtResource("c_k_rune_fire"), ExtResource("c_k_rune_storm"), ExtResource("c_k_rune_rot"), ExtResource("c_k_rune_trap"), ExtResource("c_warrior_battering_ram"), ExtResource("c_warrior_crescent_cleave"), ExtResource("c_warrior_trapper_harpoon"), ExtResource("c_warrior_living_bastion"), ExtResource("c_warrior_steel_ring"), ExtResource("c_warrior_kinetic_kick"), ExtResource("c_warrior_ground_slam"), ExtResource("c_warrior_tactical_swap"), ExtResource("c_warrior_ricochet_shield"), ExtResource("c_warrior_patient_execution")])

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_kinetic_kick"
+title = "Кинетический пинок"
+description = "Бесплатно. 2 урона и толчок на 2. Если враг врезался или влетел в газ — возьмите карту. Нельзя после двух Атак за ход."
+cost = 0
+shape = 1
+cast_range = 1
+damage = 2
+push = 2
+card_set = "redesign"
+special = "kick"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 1

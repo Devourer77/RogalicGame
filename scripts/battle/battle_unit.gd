@@ -37,6 +37,8 @@ var kept: Array[int] = []     # номера карт в руке, отмече�
 # --- Только для врагов ---
 var inflation: int = 0        # стаки «Раздувания» (жаба)
 var armor_burnt: bool = false # «Древесная броня» сожжена огнём
+var vulnerable: int = 0       # «Уязвимость к магии»: следующее Заклинание бьёт сильнее на столько
+var retain_turns: Dictionary = {}  # карта -> сколько ходов пролежала в руке (OnRetain), у героев
 var bonus_damage: int = 0     # «Зов Раскола»: следующий удар сильнее на столько
 
 
@@ -73,5 +75,6 @@ func copy() -> BattleUnit:
 	u.rune_hits = rune_hits
 	u.inflation = inflation
 	u.armor_burnt = armor_burnt
+	u.vulnerable = vulnerable
 	u.bonus_damage = bonus_damage
 	return u

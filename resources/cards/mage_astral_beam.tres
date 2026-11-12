@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_astral_beam"
+title = "Астральный луч"
+description = "Луч до края поля: 7 урона, +4 за каждую цель на линии. Рыцарь на линии не ранится, а даёт луча +4 и получает 4 блока. После хода в руке — мимо блока."
+cost = 2
+shape = 2
+cast_range = 12
+card_set = "redesign"
+special = "astral"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 1

@@ -16,6 +16,7 @@ const SETS: Dictionary[String, Array] = {
 	"onslaught": ["Натиск", Color(1.0, 0.65, 0.2)],
 	"warden": ["Страж топей", Color(0.6, 0.7, 0.8)],
 	"runes": ["Руны Стражи", Color(0.88, 0.9, 0.86)],
+	"redesign": ["Тактика отряда", Color(0.9, 0.78, 0.4)],
 }
 const BASIC_COLOR := Color(0.5, 0.52, 0.56)
 const COLOR_PAPER := Color(0.085, 0.105, 0.105)    # тёмный фон карты
@@ -252,6 +253,15 @@ static func describe(card: CardData, cost: int = -1) -> String:
 		card.title, "  ★ редкая" if card.is_rare else "", set_name(card), mana, SHAPE_NAMES.get(card.shape, "")]
 	if card.shape != CardData.Shape.SELF and card.shape != CardData.Shape.AROUND and card.cast_range > 1:
 		text += ", дальность %d" % card.cast_range
+	var scrap: PackedStringArray = []
+	if card.scrap_moves > 0:
+		scrap.append("шагов: %d" % card.scrap_moves)
+	if card.scrap_block > 0:
+		scrap.append("блок: %d" % card.scrap_block)
+	if card.scrap_mana > 0:
+		scrap.append("мана: +%d" % card.scrap_mana)
+	if not scrap.is_empty():
+		text += "\n\n«В ноги» (X, бесплатно): " + ", ".join(scrap)
 	return text + "\n\n" + card.description
 
 

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "mage_thermal_vent"
+title = "Термический сброс"
+description = "Только при перегреве, бесплатно. Снимает перегрев, обоим героям по 4 блока за каждый, огненное кольцо вокруг Мага (5 за каждый)."
+cost = 0
+shape = 0
+cast_range = 0
+element = 1
+card_set = "redesign"
+special = "vent"
+owner_hero = "mage"
+is_spell = true
+scrap_moves = 0
+scrap_block = 4

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_steel_ring"
+title = "Кольцо стали"
+description = "6 урона всем вокруг и отталкивает на 1. Дешевле на 1, если вокруг 2+ врагов или Рыцарь стоит в трясине."
+cost = 2
+shape = 10
+cast_range = 0
+damage = 6
+push = 1
+card_set = "redesign"
+special = "steel_ring"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 1

@@ -88,6 +88,9 @@ const INFLATION_POISON: int = 3     # яд от взрыва жабы
 const SHAMAN_HEAL: int = 3          # «Поглощение магии»: лечение всех врагов за каждое Заклинание
 const SHAMAN_BLOCK: int = 3         # …и блок самому шаману
 const WOOD_ARMOR_DIVISOR: int = 2   # «Древесная броня» режет одиночную физическую атаку вдвое
+const VULNERABLE_BONUS: int = 3     # «Уязвимость к магии»: +урон от следующего Заклинания
+const RETAIN_MAX: int = 2           # сколько ходов карта копит бонус «Казни с выдержкой»
+const AETHER_DAMAGE: int = 2        # «Перегрузка эфира»: +урон за каждую единицу перегрева
 const GAS_DAMAGE: int = 3           # урон ядовитого газа тому, кто вошёл в него, протащен через него или стоит в нём в конце раунда
 const GAS_POISON: int = 2           # сколько раундов яда даёт газ
 const SWAMP_STEP_COST: int = 1      # вход в трясину (Swamp) отнимает столько шагов («Увяз»)
@@ -154,6 +157,13 @@ var arena_id: String = ""                      # какая арена (ключ
 
 var _cur_card: CardData = null     # карта, эффекты которой считаются сейчас (для пассивок врагов)
 var _cur_attack: bool = false      # она считается «Атакой»
+var _cur_spell: bool = false       # она считается «Заклинанием»
+var _cur_straight: int = 0         # разгон героя по прямой перед этой картой
+var _cur_moved: int = 0            # сколько клеток герой прошёл за ход до этой карты
+var _cur_retain: int = 0           # сколько ходов эта карта лежала в руке
+var _prev_owner: String = ""       # чья карта была сыграна перед этой
+var _ignite_ok: bool = false       # «Токсичный розжиг»: цель стояла на болоте/газе или была отравлена
+var _aether: bool = false          # «Перегрузка эфира» действует до конца хода
 var ctx := TurnContext.new()       # что отряд сделал в этот ход
 var _mana_penalty: Dictionary = {}  # номер героя -> штраф к мане на следующий ход (после сильного перегрева)
 var turn: int = 0
@@ -765,13 +775,33 @@ func _add_momentum(h: BattleUnit, steps: int) -> void:
 # ---------- Карты ----------
 
 func can_play(h: BattleUnit, index: int) -> bool:
-	return not is_over and h.is_alive() and index >= 0 and index < h.hand.size() \
-			and card_cost(h, index) <= h.mana + MAX_OVERHEAT
+	if is_over or not h.is_alive() or index < 0 or index >= h.hand.size():
+		return false
+	var card: CardData = h.hand[index]
+	if card.special == "kick" and ctx.attacks(h.hero_data.id) >= 2:
+		return false   # анти-спам: после двух Атак пинок недоступен
+	if card.special == "vent" and h.mana >= 0:
+		return false   # вентиляция только при перегреве
+	return card_cost(h, index) <= h.mana + MAX_OVERHEAT
 
 
 # Сколько маны реально стоит карта (с учётом скидки «Сосредоточения»)
 func card_cost(h: BattleUnit, index: int) -> int:
-	return maxi(0, h.hand[index].cost - h.discount)
+	var card: CardData = h.hand[index]
+	var cost: int = card.cost - h.discount
+	match card.special:
+		"steel_ring":
+			# дешевле, если вокруг ≥ 2 врагов или Рыцарь стоит в трясине
+			var around: int = 0
+			for n in HexMath.neighbors(h.cell):
+				var u: BattleUnit = unit_at(n)
+				if u != null and not u.is_hero:
+					around += 1
+			if around >= 2 or tile_at(h.cell) == Tile.SWAMP:
+				cost -= 1
+		"patient":
+			cost -= int(h.retain_turns.get(card, 0))
+	return maxi(0, cost)
 
 
 # Клетки, которые можно выбрать целью для карты из руки героя
@@ -959,15 +989,23 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	message.emit("%s: %s" % [h.title, card.title])
 	var as_spell: bool = is_spell_card(h, card)
 	var as_attack: bool = is_attack_card(h, card)
+	_cur_straight = ctx.straight(h.hero_data.id)
+	_cur_moved = ctx.moved(h.hero_data.id)
+	_prev_owner = ctx.last_card_owner
+	_ignite_ok = card.special == "toxic_ignition" and _ignitable(target)
+	_cur_retain = int(h.retain_turns.get(card, 0))
+	h.retain_turns.erase(card)
 	ctx.note_card(h.hero_data.id, as_attack, as_spell)
 	card_played.emit(h, card, false)
 	if as_spell:
 		_absorb_magic()
 	_cur_card = card
 	_cur_attack = as_attack
+	_cur_spell = as_spell
 	_resolve_card(h, card, area, target)
 	_cur_card = null
 	_cur_attack = false
+	_cur_spell = false
 	_check_end()
 	return true
 
@@ -1034,6 +1072,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 	var damage: int = card.damage
 	if damage > 0:
 		damage += _spend_bonuses(h, card)
+		damage += _special_damage_bonus(h, card)
 
 	# Цепная молния: заранее находим, куда она перескочит (чтобы показать вспышку)
 	var chain: Array[BattleUnit] = []
@@ -1319,6 +1358,121 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				_set_tile(dest, tile)
 				if tile == Tile.FIRE:
 					fire_timers[dest] = timer
+		"axis_ram":
+			# Осевая инерция: толкаем цель на столько клеток, сколько прошли перед ударом
+			var victim: BattleUnit = unit_at(target)
+			if victim != null and not victim.is_hero and victim.is_alive() and _cur_straight > 0:
+				_push(victim, dir, _cur_straight)
+		"crescent":
+			# Прошёл ≥ 2 гексов — задетые враги уязвимы к магии
+			if _cur_moved >= 2:
+				for c in area:
+					var v: BattleUnit = unit_at(c)
+					if v != null and not v.is_hero and v.is_alive():
+						v.vulnerable = VULNERABLE_BONUS
+						status_changed.emit(v, snapshot(v))
+		"harpoon":
+			# Притягивает первого врага на линии к Рыцарю вплотную; болото и газ срабатывают по пути
+			for c in area:
+				var v2: BattleUnit = unit_at(c)
+				if v2 != null and not v2.is_hero and v2.is_alive():
+					var gap: int = HexMath.distance(h.cell, v2.cell) - 1
+					if gap > 0:
+						_push(v2, HexMath.direction_to(v2.cell, h.cell), gap)
+					break
+		"ricochet":
+			# Рикошет: до 2 других врагов в 1–2 клетках от цели
+			var first: BattleUnit = unit_at(target)
+			var bounce: int = card.damage + h.block
+			var jumped: int = 0
+			for e in living_enemies():
+				if jumped >= 2:
+					break
+				if e != first and first != null and HexMath.distance(e.cell, first.cell) <= 2:
+					_card_damage(e, bounce, false)
+					jumped += 1
+		"kick":
+			# Награда за геометрию: враг врезался (не пролетел 2 клетки) или влетел в газ — берём карту
+			var kicked: BattleUnit = unit_at(target)
+			var pushed_to: Vector2i = target + dir * 2
+			if kicked != null and kicked.is_alive() and kicked.cell != pushed_to:
+				_draw_cards(h, 1)
+			elif kicked != null and tile_at(kicked.cell) == Tile.GAS:
+				_draw_cards(h, 1)
+		"slam":
+			# Стяжка: враги внешнего кольца подтягиваются на 1 клетку к эпицентру
+			for e in living_enemies():
+				if HexMath.distance(e.cell, target) == 2:
+					_push(e, HexMath.direction_to(e.cell, target), 1)
+		"bastion":
+			# Рядом с Магом (или шаг к нему): Маг тоже получает блок
+			for other in living_heroes():
+				if other != h and HexMath.distance(h.cell, other.cell) <= 2:
+					other.block += card.block / 2
+					status_changed.emit(other, snapshot(other))
+		"toxic_ignition":
+			if _ignite_ok:
+				message.emit("Взрыв болота!")
+				var boom: Array[Vector2i] = []
+				for c in HexMath.cluster(target):
+					if is_inside(c):
+						boom.append(c)
+				effect_cells.emit(boom, "explosion")
+				for c in boom:
+					var v3: BattleUnit = unit_at(c)
+					if v3 != null and not v3.is_hero:
+						_card_damage(v3, 8, false)
+					if tile_at(c) == Tile.SWAMP or tile_at(c) == Tile.GAS:
+						_set_tile(c, Tile.NONE)
+		"arc":
+			_arc_discharge(h, card, target)
+		"gravity":
+			for n in HexMath.neighbors(target):
+				var v4: BattleUnit = unit_at(n)
+				if v4 != null and not v4.is_hero and v4.is_alive():
+					_push(v4, HexMath.direction_to(n, target), 1)
+		"acid":
+			# Луч: клетки становятся трясиной, враги на линии сдвигаются на 1 вдоль луча
+			var resonance: bool = _prev_owner != "" and _prev_owner != h.hero_data.id
+			for c in area:
+				var v5: BattleUnit = unit_at(c)
+				if v5 != null and not v5.is_hero and v5.is_alive():
+					if resonance:
+						_set_poison(v5, 2)
+					_push(v5, dir, 1)
+				if _can_build(c) and object_at(c) == Obj.NONE:
+					_set_tile(c, Tile.SWAMP)
+		"kinetic":
+			# Маг разгоняет напарника: до 3 клеток по прямой от Мага; во враге — 6 урона вместо урона себе
+			var buddy: BattleUnit = unit_at(target)
+			if buddy != null and buddy != h and buddy.is_hero:
+				var kdir: Vector2i = HexMath.direction_to(h.cell, buddy.cell)
+				var cur: Vector2i = buddy.cell
+				var kpath: Array[Vector2i] = [cur]
+				for i in 3:
+					var nxt: Vector2i = cur + kdir
+					var blocker: BattleUnit = unit_at(nxt)
+					if is_blocked(nxt) or blocker != null:
+						if blocker != null and not blocker.is_hero:
+							_card_damage(blocker, 6, false)
+						break
+					cur = nxt
+					kpath.append(cur)
+				if kpath.size() > 1:
+					buddy.cell = cur
+					unit_moved.emit(buddy, kpath)
+					_walked(buddy, kpath)
+					ctx.add_straight(buddy.hero_data.id, kpath.size() - 1)
+		"aether":
+			# Намеренный перегрев: −2 маны, +2 карты, до конца хода карты бьют сильнее
+			h.mana -= 2
+			_aether = true
+			_draw_cards(h, 2)
+			message.emit("Перегрузка эфира: карты бьют сильнее за каждый перегрев")
+		"vent":
+			_thermal_vent(h)
+		"astral":
+			_astral_beam(h, card, dir)
 		"swap":
 			var other: BattleUnit = unit_at(target)
 			if other != null and other.is_hero and other != h:
@@ -1329,6 +1483,9 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				other.cell = a
 				unit_moved.emit(h, path_h)
 				unit_moved.emit(other, path_o)
+				if card.id == "warrior_tactical_swap":
+					h.block += card.block         # блок получает и напарник (обычным путём), и сам Рыцарь
+					other.discount = 1            # следующая карта напарника дешевле на 1
 		"bog_maw":
 			for c in area:
 				if _can_build(c) and object_at(c) == Obj.NONE:
@@ -1810,6 +1967,11 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 			message.emit("%s: древесная броня сгорела" % unit.title)
 		elif _cur_attack and _cur_card.shape == CardData.Shape.SINGLE:
 			amount = maxi(1, amount / WOOD_ARMOR_DIVISOR)
+	# «Уязвимость к магии»: следующее Заклинание бьёт сильнее
+	if _cur_spell and unit.vulnerable > 0:
+		amount += unit.vulnerable
+		unit.vulnerable = 0
+		status_changed.emit(unit, snapshot(unit))
 	# Рыцарь злится от каждого удара, даже если блок его поглотил
 	if unit.is_hero and unit.hero_data.gains_rage:
 		unit.rage += 1
@@ -1827,7 +1989,7 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		message.emit("%s падает" % unit.title)
 		_death_blast(unit)
 	elif unit.data != null and unit.data.inflation and _cur_attack and _cur_card != null \
-			and _cur_card.special != "no_inflation":
+			and _cur_card.special != "harpoon":
 		unit.inflation += 1
 		status_changed.emit(unit, snapshot(unit))
 		if unit.inflation >= INFLATION_MAX:
@@ -1894,6 +2056,115 @@ func _kill(unit: BattleUnit) -> void:
 	unit_died.emit(unit)
 
 
+
+# ---------- Новые карты: расчёты ----------
+
+# Прибавка к урону от особых условий карты (минус — уменьшение)
+func _special_damage_bonus(h: BattleUnit, card: CardData) -> int:
+	var bonus: int = 0
+	match card.special:
+		"axis_ram":
+			bonus += 3 * _cur_straight   # +3 за каждую клетку разгона по прямой
+		"crescent":
+			if _cur_moved == 0:
+				bonus -= card.damage / 2   # стоял на месте — вдвое слабее
+		"patient":
+			bonus += 7 * _cur_retain       # копит +7 урона за каждый ход в руке
+		"ricochet":
+			bonus += h.block               # сила броска равна блоку Рыцаря
+	if _aether:
+		bonus += AETHER_DAMAGE * _party_overheat()
+	return bonus
+
+
+func _party_overheat() -> int:
+	var most: int = 0
+	for hero in living_heroes():
+		most = maxi(most, overheat_stacks(hero))
+	return most
+
+
+# Цель «Токсичного розжига» стоит на болоте/газе или отравлена
+func _ignitable(c: Vector2i) -> bool:
+	var t: int = tile_at(c)
+	if t == Tile.SWAMP or t == Tile.GAS:
+		return true
+	var u: BattleUnit = unit_at(c)
+	return u != null and u.poison > 0
+
+
+# «Дуговой разряд»: в перегреве бьёт цепочку соседних врагов и стоящих в трясине, иначе прыгает на соседа
+func _arc_discharge(h: BattleUnit, card: CardData, target: Vector2i) -> void:
+	if h.mana < 0:
+		var chain: Array[BattleUnit] = []
+		var queue: Array[Vector2i] = [target]
+		var seen: Dictionary[Vector2i, bool] = {target: true}
+		while not queue.is_empty():
+			var c: Vector2i = queue.pop_front()
+			for n in HexMath.neighbors(c):
+				var u: BattleUnit = unit_at(n)
+				if not seen.has(n) and u != null and not u.is_hero:
+					seen[n] = true
+					chain.append(u)
+					queue.append(n)
+		for e in living_enemies():
+			if tile_at(e.cell) == Tile.SWAMP and not chain.has(e) and e.cell != target:
+				chain.append(e)
+		for e in chain:
+			if e.is_alive():
+				_card_damage(e, 9, false)
+		return
+	var near: Array[BattleUnit] = []
+	for n in HexMath.neighbors(target):
+		var u2: BattleUnit = unit_at(n)
+		if u2 != null and not u2.is_hero:
+			near.append(u2)
+	if not near.is_empty():
+		_card_damage(near[rng.randi_range(0, near.size() - 1)], 4, false)
+
+
+# «Термический сброс»: снимает перегрев, щит обоим героям и кольцо огня вокруг Мага
+func _thermal_vent(h: BattleUnit) -> void:
+	var stacks: int = overheat_stacks(h)
+	if stacks <= 0:
+		return
+	h.mana = 0
+	for hero in living_heroes():
+		hero.block += 4 * stacks
+		status_changed.emit(hero, snapshot(hero))
+	var ring: Array[Vector2i] = []
+	for n in HexMath.neighbors(h.cell):
+		if is_inside(n):
+			ring.append(n)
+	effect_cells.emit(ring, "explosion")
+	for n in ring:
+		var u: BattleUnit = unit_at(n)
+		if u != null and not u.is_hero:
+			_card_damage(u, 5 * stacks, false)
+		_apply_element(n, CardData.Element.FIRE, h.cell)
+
+
+# «Астральный луч»: каждая цель на линии усиливает луч на +4; Рыцарь на линии не ранится, а получает блок
+func _astral_beam(h: BattleUnit, card: CardData, dir: Vector2i) -> void:
+	var bonus: int = 0
+	var cells: Array[Vector2i] = _line_cells(h.cell, dir, card.cast_range, true)
+	effect_cells.emit(cells, "explosion")
+	for c in cells:
+		var u: BattleUnit = unit_at(c)
+		if u == null:
+			continue
+		if u.is_hero:
+			u.block += 4
+			bonus += 4
+			status_changed.emit(u, snapshot(u))
+		else:
+			var dealt: int = 7 + bonus
+			if _aether:
+				dealt += AETHER_DAMAGE * _party_overheat()
+			_card_damage(u, dealt, _cur_retain >= 1)
+			bonus += 4
+
+
 # ---------- Колода ----------
 
 func _draw_cards(h: BattleUnit, count: int) -> void:
@@ -1950,6 +2221,7 @@ func _shuffle(cards: Array[CardData]) -> void:
 func _start_heroes_turn() -> void:
 	turn += 1
 	ctx.reset()
+	_aether = false
 	for h in living_heroes():
 		if h.block > 0 or h.taunt:
 			h.block = 0
@@ -2756,3 +3028,8 @@ func _discard_unkept(h: BattleUnit) -> void:
 			h.discard_pile.append(h.hand[i])
 	h.hand = stay
 	h.kept.clear()
+	# OnRetain: карты, оставшиеся в руке, копят бонус
+	var retained: Dictionary = {}
+	for c in stay:
+		retained[c] = mini(RETAIN_MAX, int(h.retain_turns.get(c, 0)) + 1)
+	h.retain_turns = retained

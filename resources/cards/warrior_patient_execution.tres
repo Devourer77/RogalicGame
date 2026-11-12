@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "warrior_patient_execution"
+title = "Казнь с выдержкой"
+description = "11 урона мимо блока. За каждый ход в руке без розыгрыша (до 2): +7 урона и на 1 дешевле."
+cost = 2
+shape = 1
+cast_range = 1
+damage = 11
+card_set = "redesign"
+pierce_block = true
+special = "patient"
+owner_hero = "knight"
+is_attack = true
+scrap_moves = 1
