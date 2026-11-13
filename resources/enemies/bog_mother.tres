@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
 [ext_resource type="Resource" path="res://resources/enemies/bloated_toad.tres" id="3_toad"]
+[ext_resource type="PackedScene" path="res://assets/models/bog_mother.glb" id="9_model"]
 
 [sub_resource type="Resource" id="atk_tongue"]
 script = ExtResource("2_attack")
@@ -23,6 +24,7 @@ gas_cloud = true
 [sub_resource type="Resource" id="atk_brood"]
 script = ExtResource("2_attack")
 title = "Кладка"
+anim = "Attack3"
 shape = 3
 attack_range = 0
 damage = 0
@@ -46,3 +48,4 @@ cycle = Array[ExtResource("2_attack")]([SubResource("atk_tongue"), SubResource("
 bog_walker = true
 aquatic = true
 always_wet = true
+model = ExtResource("9_model")

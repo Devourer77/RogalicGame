@@ -43,7 +43,7 @@ func _initialize() -> void:
 	cam.look_at(Vector3(0, h * 0.42, 0.15))
 	var player: AnimationPlayer = model.find_children("*", "AnimationPlayer", true, false)[0]
 	DirAccess.make_dir_recursive_absolute("/tmp/claude-0/shots/model")
-	for anim: String in ["Idle", "Walk", "Attack", "Attack2", "Hit", "Death", "Block", "Cast", "CastSky"]:
+	for anim: String in ["Idle", "Walk", "Attack", "Attack2", "Attack3", "Hit", "Death", "Block", "Cast", "CastSky"]:
 		if not player.has_animation(anim): continue
 		var length: float = player.get_animation(anim).length
 		for i in 6:

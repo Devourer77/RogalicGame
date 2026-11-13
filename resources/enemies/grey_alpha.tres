@@ -1,7 +1,8 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/grey_alpha.glb" id="9_model"]
 
 [sub_resource type="Resource" id="atk_rend"]
 script = ExtResource("2_attack")
@@ -30,8 +31,9 @@ damage = 6
 attack = 0
 attack_range = 1
 color = Color(0.76, 0.76, 0.72, 1)
-size = 1.15
+size = 1.25
 is_elite = true
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_howl"), SubResource("atk_rend")])
 ai_style = 1
 bog_damage = 6
+model = ExtResource("9_model")
