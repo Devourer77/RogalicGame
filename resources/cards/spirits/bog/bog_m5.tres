@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "bog_m5+1"
+icon = "poison"
+title = "Болотный газ+I"
+description = "Топь в клетке до 5 и соседние клетки топи становятся газом."
+shape = 1
+cost = 0
+cast_range = 5
+special = "swamp_gas"
+card_set = "s_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "bog_m5+2"
+icon = "poison"
+title = "Болотный газ+II"
+description = "Вся топь в 3 клетках от клетки до 5 становится газом."
+shape = 1
+cast_range = 5
+special = "swamp_gas"
+card_set = "s_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "bog_m5"
+icon = "poison"
+title = "Болотный газ"
+description = "Топь в клетке до 5 и соседние клетки топи становятся газом."
+shape = 1
+cast_range = 5
+special = "swamp_gas"
+card_set = "s_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

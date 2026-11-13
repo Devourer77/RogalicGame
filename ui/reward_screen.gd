@@ -242,7 +242,23 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 			cards.add_child(holder)
 		col.add_child(cards)
 		var free: bool = Run.can_take_spirit(rh)
-		var b: Button = UiKit.make_button(("Отдать: " + rh.data.title) if free else (rh.data.title + ": слоты заняты"), func() -> void: pass)
+		# Места заняты — можно заменить одного из своих духов (его карты уйдут из колоды)
+		if not free:
+			for old: SpiritData in rh.spirits:
+				var swap: Button = UiKit.make_button("%s: заменить «%s»" % [rh.data.title, old.title], func() -> void: pass)
+				swap.tooltip_text = "«%s» уйдёт вместе со своими картами." % old.title
+				swap.pressed.connect(func() -> void:
+					if _picked:
+						return
+					Run.release_spirit(rh, old)
+					Run.add_spirit(rh, sp)
+					_note.text = "%s отпускает «%s» и берёт «%s»" % [rh.data.title, old.title, sp.title]
+					for x in buttons: x.disabled = true
+					_picked = true
+					_update_next())
+				buttons.append(swap)
+				col.add_child(swap)
+		var b: Button = UiKit.make_button(("Отдать: " + rh.data.title) if free else (rh.data.title + ": места заняты"), func() -> void: pass)
 		b.disabled = not free
 		b.pressed.connect(func() -> void:
 			if _picked:
@@ -269,7 +285,11 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 	_note = UiKit.make_label(" ", 14, UiKit.BRASS.lightened(0.2))
 	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_note)
-	_next_button = UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE), "", true)
+	# После элиты (Хозяин трясины) дальше — обычная награда элиты
+	var after_elite: bool = Run.current != null and Run.current.type == MapNode.Type.ELITE
+	_next_button = UiKit.make_button("Дальше", func() -> void:
+		Run.tamed_spirit = null
+		Run.goto(Run.REWARD_SCENE if after_elite else Run.MAP_SCENE), "", true)
 	_next_button.disabled = true
 	column.add_child(_next_button)
 

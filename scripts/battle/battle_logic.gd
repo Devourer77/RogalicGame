@@ -216,6 +216,9 @@ var _ignite_ok: bool = false       # «Токсичный розжиг»: цел
 var _aether: bool = false          # «Перегрузка эфира» действует до конца хода
 var ctx := TurnContext.new()       # что отряд сделал в этот ход
 var _calls: Dictionary = {}        # герой -> карты Зова его духов (в руку в начале боя)
+var _double_bump: bool = false     # «Буря»: столкновения от этой карты вдвое сильнее
+var drowned_count: int = 0         # сколько врагов утонуло в этом бою (условие Хозяина трясины)
+var _cur_target: Vector2i = NO_CELL   # клетка-цель текущей карты
 var _cur_chain: int = -1           # Цепь в момент розыгрыша текущей карты (-1 — карта не разыгрывается)
 var _mana_penalty: Dictionary = {}  # номер героя -> штраф к мане на следующий ход (после сильного перегрева)
 var turn: int = 0
@@ -1012,7 +1015,7 @@ func _special_target_ok(special: String, c: Vector2i) -> bool:
 		"spread":
 			var st: int = tile_at(c)
 			return st == Tile.FIRE or st == Tile.WATER or st == Tile.GAS or st == Tile.SWAMP
-		"water_target":
+		"water_target", "drag_down":
 			var wt: int = tile_at(c)
 			return wt == Tile.WATER or wt == Tile.SWAMP
 		"swap_any":
@@ -1156,6 +1159,7 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_cur_retain = int(h.retain_turns.get(card, 0))
 	h.retain_turns.erase(card)
 	_cur_chain = ctx.chain
+	_cur_target = target
 	ctx.note_card(h.hero_data.id, as_attack, as_spell)
 	if h.hero_data.id == "mage" and not card.is_rare and card.special != "echo":
 		ctx.last_mage_card = card
@@ -1186,6 +1190,7 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_cur_attack = false
 	_cur_spell = false
 	_cur_chain = -1
+	_cur_target = NO_CELL
 	_check_end()
 	return true
 
@@ -1981,10 +1986,202 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 					_card_damage(e, sw_dmg, false)
 					if e.is_alive() and card.upgrade_level == 2:
 						_push(e, HexMath.direction_to(h.cell, e.cell), 1)
+		# --- Духи: Вихорь и Хозяин трясины, смешанные пары (этап 4) ---
+		"swamp_area", "stomp":
+			# Клетки становятся топью (у «Топи» II враг в центре опутан)
+			var cells: Array[Vector2i] = area if card.special == "swamp_area" else HexMath.neighbors(h.cell)
+			for c in cells:
+				if is_inside(c) and not rocks.has(c) and not _is_obstacle(c) and object_at(c) == Obj.NONE:
+					_set_tile(c, Tile.SWAMP)
+			if card.special == "swamp_area" and card.bonus_amount > 0:
+				var cu: BattleUnit = unit_at(target)
+				if cu != null and not cu.is_hero:
+					cu.entangled = maxi(cu.entangled, 1)
+			if card.special == "stomp" and card.push > 0:
+				pass
+		"entangle":
+			var eu: BattleUnit = unit_at(target)
+			if eu != null and not eu.is_hero:
+				eu.entangled = maxi(eu.entangled, 1)
+				status_changed.emit(eu, snapshot(eu))
+		"rot_storm":
+			ctx.rot_storm = true
+			var ru: BattleUnit = unit_at(target)
+			if ru != null and not ru.is_hero:
+				ru.entangled = maxi(ru.entangled, 1)
+				status_changed.emit(ru, snapshot(ru))
+		"suck":
+			# «Засасывание»: враги в топи, лужах и у трясины
+			var s_dmg: int = card.bonus_amount + card.per_link_damage * chain_value()
+			for e in living_enemies():
+				if HexMath.distance(h.cell, e.cell) <= 5 and _mired(e.cell):
+					_card_damage(e, s_dmg, false)
+					if e.is_alive():
+						e.entangled = maxi(e.entangled, 1)
+		"swamp_walk":
+			for other in living_heroes():
+				other.swamp_free = true
+		"swamp_gas":
+			var radius_g: int = 3 if card.upgrade_level == 2 else 1
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				if tile_at(c) == Tile.SWAMP and HexMath.distance(c, target) <= radius_g:
+					_set_tile(c, Tile.GAS)
+		"press":
+			var pu2: BattleUnit = unit_at(target)
+			if pu2 != null and pu2.is_alive() and not pu2.is_hero and (card.upgrade_level == 2 or _mired(pu2.cell)):
+				pu2.entangled = maxi(pu2.entangled, 1)
+		"mire_push", "undertow":
+			var mu: BattleUnit = unit_at(target)
+			if mu == null:
+				for c in area:
+					if unit_at(c) != null and not unit_at(c).is_hero:
+						mu = unit_at(c)
+			if mu != null and mu.is_alive() and not mu.is_hero and _mired(mu.cell):
+				mu.entangled = maxi(mu.entangled, 1)
+		"root_guard":
+			h.root_guard = true
+		"gust_guard":
+			h.gust_guard = card.bonus_amount
+		"bog_shell":
+			var around_n: int = 0
+			for n: Vector2i in HexMath.neighbors(h.cell):
+				if tile_at(n) == Tile.SWAMP or tile_at(n) == Tile.WATER or object_at(n) == Obj.BOG:
+					around_n += 1
+			h.block += card.bonus_amount * around_n
+			if card.upgrade_level == 2:
+				for other in living_heroes():
+					if other != h:
+						other.block += card.block + card.bonus_amount * around_n
+		"sink":
+			# «Трясина под ним»: под врагом открывается трясина
+			var su3: BattleUnit = unit_at(target)
+			if su3 != null and su3.is_alive() and not su3.is_hero:
+				if _sinks(su3):
+					message.emit("%s уходит в трясину!" % su3.title)
+					drowned_count += 1
+					_kill(su3)
+				else:
+					_damage(su3, card.bonus_amount)
+					su3.entangled = maxi(su3.entangled, 1)
+				if unit_at(target) == null and object_at(target) == Obj.NONE:
+					_set_tile(target, Tile.NONE)
+					_set_object(target, Obj.BOG, Vector2i.ZERO)
+					obj_timers[target] = 2
+		"vortex", "water_vortex":
+			# «Смерч»: враги в 2 клетках стягиваются к центру
+			var pull_v: int = 2 if card.upgrade_level == 1 and card.special == "vortex" else 1
+			var v_dmg: int = card.bonus_amount + card.per_link_damage * chain_value()
+			var around_v: Array[BattleUnit] = []
+			for e in living_enemies():
+				if HexMath.distance(target, e.cell) <= 2:
+					around_v.append(e)
+			around_v.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
+				return HexMath.distance(a.cell, target) < HexMath.distance(b.cell, target))
+			for e in around_v:
+				_pull_toward(e, target, pull_v)
+				if e.is_alive():
+					_card_damage(e, v_dmg, false)
+				if card.special == "water_vortex" and e.is_alive():
+					_set_wet(e, WET_TURNS)
+			if card.special == "water_vortex":
+				for c in HexMath.cluster(target):
+					if unit_at(c) == null:
+						_apply_element(c, CardData.Element.WATER, h.cell)
+		"blow":
+			# «Сдуть»: огонь и газ вокруг клетки сносит на 2 от мага
+			var moved: Array[Vector2i] = []
+			var d2: Vector2i = HexMath.direction_to(h.cell, target)
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				var bt2: int = tile_at(c)
+				if (bt2 == Tile.FIRE or bt2 == Tile.GAS) and HexMath.distance(c, target) <= 3:
+					moved.append(c)
+			for c in moved:
+				var tile_b: int = tile_at(c)
+				var dest_b: Vector2i = c + d2 * 2
+				if is_inside(dest_b) and not _is_obstacle(dest_b):
+					_set_tile(c, Tile.NONE)
+					_set_tile(dest_b, tile_b)
+					if tile_b == Tile.FIRE:
+						fire_timers[dest_b] = FIRE_DURATION
+				var bu2: BattleUnit = unit_at(c)
+				if card.upgrade_level == 2 and bu2 != null and not bu2.is_hero:
+					_push(bu2, d2, 2)
+		"storm_push":
+			# «Буря»: все враги в 4 клетках отлетают, столкновения вдвое сильнее
+			var near_b: Array[BattleUnit] = []
+			for e in living_enemies():
+				if HexMath.distance(h.cell, e.cell) <= 4:
+					near_b.append(e)
+			near_b.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
+				return HexMath.distance(a.cell, h.cell) > HexMath.distance(b.cell, h.cell))
+			_double_bump = true
+			for e in near_b:
+				if e.is_alive():
+					_push(e, HexMath.direction_to(h.cell, e.cell), card.bonus_amount)
+			_double_bump = false
+		"leap_push":
+			# «Небесный таран»: после прыжка соседи отлетают
+			var push_l: int = card.push + (card.chain_push if chain_met(card) else 0)
+			for n: Vector2i in HexMath.neighbors(h.cell):
+				var lu2: BattleUnit = unit_at(n)
+				if lu2 != null and not lu2.is_hero and lu2.is_alive():
+					_push(lu2, HexMath.direction_to(h.cell, n), push_l)
+		"mire":
+			# «Зыбун»: лужи вокруг мага становятся топью, враги на них опутаны
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				if tile_at(c) == Tile.WATER and HexMath.distance(h.cell, c) <= card.bonus_amount:
+					_set_tile(c, Tile.SWAMP)
+					var zu: BattleUnit = unit_at(c)
+					if zu != null and not zu.is_hero:
+						zu.entangled = maxi(zu.entangled, 1)
+		"silt_wall":
+			for n: Vector2i in HexMath.neighbors(h.cell):
+				if is_inside(n) and not rocks.has(n):
+					_apply_element(n, CardData.Element.WATER, h.cell)
+					var su4: BattleUnit = unit_at(n)
+					if su4 != null and not su4.is_hero:
+						su4.entangled = maxi(su4.entangled, 1)
+		"front":
+			for c in area:
+				var fu2: BattleUnit = unit_at(c)
+				if fu2 != null and not fu2.is_hero:
+					h.charge = mini(maxi(MAX_CHARGE, h.charge), h.charge + 2)
+		"rot_wind":
+			# «Гнилой ветер»: газ растекается, враги в газе — урон и яд
+			var gas_cells: Array[Vector2i] = []
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				if tile_at(c) == Tile.GAS and HexMath.distance(h.cell, c) <= 5:
+					gas_cells.append(c)
+			for c in gas_cells:
+				for n: Vector2i in HexMath.neighbors(c):
+					if is_inside(n) and tile_at(n) == Tile.NONE and not _is_obstacle(n):
+						_set_tile(n, Tile.GAS)
+			var g_dmg: int = card.bonus_amount + card.per_link_damage * chain_value()
+			for e in living_enemies():
+				if tile_at(e.cell) == Tile.GAS and HexMath.distance(h.cell, e.cell) <= 6:
+					_card_damage(e, g_dmg, false)
+					if e.is_alive():
+						_set_poison(e, POISON_TURNS)
 		"boot":
 			# «Пинок»: бочку не взрывает, а откатывает
 			if object_at(target) == Obj.BARREL:
 				_roll_barrel(target, dir)
+
+
+# Клетка «топкая»: топь, лужа или рядом с трясиной
+func _mired(c: Vector2i) -> bool:
+	if tile_at(c) == Tile.SWAMP or tile_at(c) == Tile.WATER:
+		return true
+	for n: Vector2i in HexMath.neighbors(c):
+		if object_at(n) == Obj.BOG:
+			return true
+	return false
+
+
+# Цель текущей карты стоит в топи или луже (для бонусов «Разряд по корням», «Тянущее дно»)
+func _target_mired() -> bool:
+	return _cur_target != NO_CELL and (tile_at(_cur_target) == Tile.SWAMP or tile_at(_cur_target) == Tile.WATER \
+			or (unit_at(_cur_target) != null and unit_at(_cur_target).entangled > 0 and _cur_card != null and _cur_card.special == "root_shock"))
 
 
 # Тяжёлый враг: огр, корягач и боссы — их нельзя менять местами
@@ -2427,6 +2624,8 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 	_break_planks_behind(path)
 	if drowned:
 		message.emit("%s тонет в трясине!" % unit.title)
+		if not unit.is_hero:
+			drowned_count += 1
 		_kill(unit)
 		return
 	_walked(unit, path)
@@ -2595,9 +2794,10 @@ func fire_damage_for(u: BattleUnit) -> int:
 
 # Урон обычного столкновения. «Зуб огра»: 6 — врагам, отброшенным героями, и самим героям
 func _bump_damage(u: BattleUnit) -> int:
+	var base: int = BUMP_DAMAGE
 	if has_relic("ogre_tooth") and (u.is_hero or _cur_hero != null):
-		return OGRE_TOOTH_BUMP
-	return BUMP_DAMAGE
+		base = OGRE_TOOTH_BUMP
+	return base * 2 if _double_bump else base
 
 
 # ---------- Цели боя ----------
@@ -2847,6 +3047,8 @@ func _special_damage_bonus(h: BattleUnit, card: CardData) -> int:
 			bonus += 7 * _cur_retain       # копит +7 урона за каждый ход в руке
 		"ricochet":
 			bonus += h.block               # сила броска равна блоку Рыцаря
+		"root_shock", "undertow":
+			bonus += card.bonus_amount if _target_mired() else 0
 	if _aether:
 		bonus += AETHER_DAMAGE * _party_overheat()
 	return bonus
@@ -3114,6 +3316,14 @@ func _start_heroes_turn() -> void:
 			if charms.has("charm_horn") and h.hero_data.id == "knight":
 				h.block += 4        # «Рог дозорного»: рыцарь начинает бой с 4 блока
 		_discards_left[h] = DISCARDS_PER_TURN
+		h.swamp_free = false
+		h.root_guard = false
+		h.gust_guard = 0
+		if h.spirits.has("bog"):
+			h.entangled = 0      # пассив Хозяина трясины: опутывание не действует
+			h.swamp_free = true  # …и топь не отнимает шагов
+		if h.spirits.has("wind"):
+			h.moves_left += 1   # пассив Вихоря: +1 шаг каждый ход
 		if h.spirits.has("tide") and tile_at(h.cell) == Tile.WATER:
 			h.block += 3   # пассив Омутника: стоишь в луже — +3 блока
 		h.outpost = false
@@ -3450,6 +3660,13 @@ func _leave_puddle(c: Vector2i) -> void:
 # «Застава»: враг подошёл вплотную к рыцарю — получает удар. Возвращает true, если погиб.
 func _outpost_strike(e: BattleUnit) -> bool:
 	for h in living_heroes():
+		if HexMath.distance(h.cell, e.cell) == 1 and h.root_guard and e.is_alive():
+			e.entangled = maxi(e.entangled, 1)
+			message.emit("Корни держат: %s опутан" % e.title)
+		if HexMath.distance(h.cell, e.cell) == 1 and h.gust_guard > 0 and e.is_alive():
+			_push(e, HexMath.direction_to(h.cell, e.cell), h.gust_guard)
+			if not e.is_alive():
+				return true
 		if h.outpost and HexMath.distance(h.cell, e.cell) == 1:
 			message.emit("Застава: %s получает удар" % e.title)
 			_damage(e, OUTPOST_DAMAGE)
@@ -3804,7 +4021,7 @@ func _walked(u: BattleUnit, path: Array[Vector2i]) -> void:
 		if not u.is_alive():
 			return
 		var t: int = tile_at(path[i])
-		if t == Tile.SWAMP and u.is_hero and u.moves_left > 0:
+		if t == Tile.SWAMP and u.is_hero and u.moves_left > 0 and not u.swamp_free:
 			u.moves_left = maxi(0, u.moves_left - SWAMP_STEP_COST)
 			message.emit("%s увяз в трясине" % u.title)
 		elif t == Tile.GAS:
@@ -3843,6 +4060,10 @@ func _set_wet(u: BattleUnit, turns: int) -> void:
 
 # Урон карты героя по врагу: молния по мокрому сильнее; запоминаем задетых для рун
 func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
+	if _lightning_now and ctx.rot_storm and u.entangled > 0:
+		amount *= 2   # «Гнилая гроза»
+	if _cur_card != null and _cur_card.special == "drag_down" and u.entangled > 0:
+		amount *= 2   # «Утянуть на дно»
 	if _cur_hero != null and amount > 0 and _cur_hero.spirits.has("storm") and tile_at(u.cell) == Tile.WATER:
 		amount += 2   # пассив Грозовика: враг в луже получает больше
 	if _lightning_now and is_wet(u):

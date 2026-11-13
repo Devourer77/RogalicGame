@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_storm_wind_m1+1"
+icon = "orb"
+title = "Шаровая молния+I"
+description = "Линия 6: 4 урона молнией каждому +1 за звено (мокрым +3)."
+shape = 2
+element = 4
+cost = 2
+cast_range = 6
+damage = 4
+per_link_damage = 1
+card_set = "x_storm_wind"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_storm_wind_m1+2"
+icon = "orb"
+title = "Шаровая молния+II"
+description = "Линия 6: 3 урона молнией +1 за звено, толчок 1."
+shape = 2
+element = 4
+cost = 2
+cast_range = 6
+damage = 3
+per_link_damage = 1
+push = 1
+card_set = "x_storm_wind"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_storm_wind_m1"
+icon = "orb"
+title = "Шаровая молния"
+description = "Линия 6: 3 урона молнией каждому +1 за звено (мокрым +3)."
+shape = 2
+element = 4
+cost = 2
+cast_range = 6
+damage = 3
+per_link_damage = 1
+card_set = "x_storm_wind"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

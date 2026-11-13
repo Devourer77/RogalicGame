@@ -20,9 +20,28 @@ func _ready() -> void:
 	rest.custom_minimum_size.x = 340
 	rest.tooltip_text = "Вылечит: " + ", ".join(gains)
 	column.add_child(rest)
+	_add_spirit_transfers(column)
 	var skip: Button = UiKit.make_button("Идти дальше", Run.goto.bind(Run.MAP_SCENE))
 	skip.custom_minimum_size.x = 340
 	column.add_child(skip)
+
+
+# Передать духа другому герою: его карты сменятся на карты нового героя (улучшения сохранятся)
+func _add_spirit_transfers(column: VBoxContainer) -> void:
+	for rh in Run.party:
+		for sp: SpiritData in rh.spirits:
+			for other in Run.party:
+				if other == rh:
+					continue
+				var b: Button = UiKit.make_button("Передать «%s»: %s → %s" % [sp.title, rh.data.title, other.data.title], func() -> void: pass, sp.icon)
+				b.custom_minimum_size.x = 340
+				b.disabled = not Run.can_take_spirit(other)
+				b.tooltip_text = "Карты духа сменятся на карты другого героя, улучшения сохранятся." if not b.disabled else "У %s заняты места для духов" % other.data.title
+				b.pressed.connect(func() -> void:
+					if Run.transfer_spirit(rh, other, sp):
+						Sfx.play("magic", 0.05)
+						Run.goto(Run.REST_SCENE))
+				column.add_child(b)
 
 
 func _rest() -> void:

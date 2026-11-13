@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_storm_wind_m2+1"
+icon = "wind"
+title = "Грозовой фронт+I"
+description = "Линия 5: толчок 2, +2 заряда за каждого задетого."
+shape = 2
+cast_range = 5
+push = 2
+special = "front"
+card_set = "x_storm_wind"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_storm_wind_m2+2"
+icon = "wind"
+title = "Грозовой фронт+II"
+description = "Линия 5: толчок 1, +2 заряда за каждого задетого."
+shape = 2
+cost = 0
+cast_range = 5
+push = 1
+special = "front"
+card_set = "x_storm_wind"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_storm_wind_m2"
+icon = "wind"
+title = "Грозовой фронт"
+description = "Линия 5: толчок 1, +2 заряда за каждого задетого."
+shape = 2
+cast_range = 5
+push = 1
+special = "front"
+card_set = "x_storm_wind"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

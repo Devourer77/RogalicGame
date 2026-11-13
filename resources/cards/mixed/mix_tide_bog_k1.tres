@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_tide_bog_k1+1"
+icon = "hammer"
+title = "Тянущее дно+I"
+description = "Соседний враг: 3 урона; в луже или топи — ещё 5 и опутан."
+shape = 1
+damage = 3
+special = "undertow"
+bonus_amount = 5
+card_set = "x_tide_bog"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide", "bog"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_tide_bog_k1+2"
+icon = "hammer"
+title = "Тянущее дно+II"
+description = "Соседний враг: 3 урона; в луже или топи — ещё 3 и опутан."
+shape = 1
+cost = 0
+damage = 3
+special = "undertow"
+bonus_amount = 3
+card_set = "x_tide_bog"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide", "bog"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_tide_bog_k1"
+icon = "hammer"
+title = "Тянущее дно"
+description = "Соседний враг: 3 урона; в луже или топи — ещё 3 и опутан."
+shape = 1
+damage = 3
+special = "undertow"
+bonus_amount = 3
+card_set = "x_tide_bog"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide", "bog"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

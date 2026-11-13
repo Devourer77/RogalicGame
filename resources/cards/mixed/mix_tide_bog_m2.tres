@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_tide_bog_m2+1"
+icon = "drop"
+title = "Утянуть на дно+I"
+description = "Враг в топи или луже до 5: 6 урона +2 за звено; опутанному — вдвое."
+shape = 1
+cost = 2
+cast_range = 5
+damage = 6
+per_link_damage = 2
+special = "drag_down"
+card_set = "x_tide_bog"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "bog"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_tide_bog_m2+2"
+icon = "drop"
+title = "Утянуть на дно+II"
+description = "Враг в топи или луже до 5: 5 урона +2 за звено; опутанному вдвое.\nЦепь 4: стоит 1."
+shape = 1
+cost = 2
+cast_range = 5
+damage = 5
+per_link_damage = 2
+special = "drag_down"
+chain_need = 4
+chain_cost = 1
+card_set = "x_tide_bog"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "bog"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_tide_bog_m2"
+icon = "drop"
+title = "Утянуть на дно"
+description = "Враг в топи или луже до 5: 5 урона +2 за звено; опутанному — вдвое."
+shape = 1
+cost = 2
+cast_range = 5
+damage = 5
+per_link_damage = 2
+special = "drag_down"
+card_set = "x_tide_bog"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "bog"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

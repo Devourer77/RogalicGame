@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_tide_wind_m2+1"
+icon = "whirl"
+title = "Водяной смерч+I"
+description = "Клетка до 5: враги в 2 клетках стягиваются и мокнут, вокруг лужи; 3 урона +1 за звено."
+shape = 1
+cost = 2
+cast_range = 5
+special = "water_vortex"
+bonus_amount = 3
+per_link_damage = 1
+card_set = "x_tide_wind"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_tide_wind_m2+2"
+icon = "whirl"
+title = "Водяной смерч+II"
+description = "Клетка до 5: враги стягиваются и мокнут, лужи; 2 урона +1 за звено.\nЦепь 3: стоит 1."
+shape = 1
+cost = 2
+cast_range = 5
+special = "water_vortex"
+bonus_amount = 2
+per_link_damage = 1
+chain_need = 3
+chain_cost = 1
+card_set = "x_tide_wind"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_tide_wind_m2"
+icon = "whirl"
+title = "Водяной смерч"
+description = "Клетка до 5: враги в 2 клетках стягиваются на 1 и мокнут, вокруг — лужи; 2 урона +1 за звено."
+shape = 1
+cost = 2
+cast_range = 5
+special = "water_vortex"
+bonus_amount = 2
+per_link_damage = 1
+card_set = "x_tide_wind"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

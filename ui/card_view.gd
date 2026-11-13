@@ -32,6 +32,13 @@ const SETS: Dictionary[String, Array] = {
 	"s_tide": ["Омутник", Color("4f8fc0")],
 	"s_storm": ["Грозовик", Color("b8ad6a")],
 	"x_tide_storm": ["Гроза над омутом", Color("6f9f9a")],
+	"s_wind": ["Вихорь", Color("8fae96")],
+	"s_bog": ["Хозяин трясины", Color("4e6e50")],
+	"x_tide_bog": ["Чёрная вода", Color("456f72")],
+	"x_tide_wind": ["Шторм", Color("6f9fae")],
+	"x_storm_bog": ["Болотные огни", Color("8a8e5c")],
+	"x_storm_wind": ["Буревестник", Color("a4ae86")],
+	"x_bog_wind": ["Болотный туман", Color("6e8a72")],
 }
 # Роли карт (значок-подпись рядом с архетипом)
 const ROLE_NAMES: Array[String] = ["", "Ход", "Заготовка", "Связка", "Развязка"]

@@ -16,7 +16,7 @@ func _initialize() -> void:
 			for h in b.living_heroes():
 				var pool: Array[CardData] = h.hero_data.card_pool.duplicate()
 				# карты духов и смешанные — тоже в случайные руки (с улучшениями)
-				for sid in ["tide", "storm"]:
+				for sid in ["tide", "storm", "wind", "bog"]:
 					var sd: SpiritData = load("res://resources/spirits/%s.tres" % sid)
 					for c in sd.cards_for(h.hero_data.id) + sd.mixed_cards:
 						if c.owner_hero == h.hero_data.id:

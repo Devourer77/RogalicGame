@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "bog_m4+1"
+icon = "planks"
+title = "Кочка+I"
+description = "+2 шага; в этот ход топь не отнимает шагов у обоих героев."
+shape = 0
+cost = 0
+cast_range = 0
+bonus_moves = 2
+special = "swamp_walk"
+card_set = "s_bog"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["bog"])
+spirit_slot = 4
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "bog_m4+2"
+icon = "planks"
+title = "Кочка+II"
+description = "+1 шаг, добор 1; в этот ход топь не отнимает шагов у героев."
+shape = 0
+cost = 0
+cast_range = 0
+bonus_moves = 1
+special = "swamp_walk"
+draw = 1
+card_set = "s_bog"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["bog"])
+spirit_slot = 4
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "bog_m4"
+icon = "planks"
+title = "Кочка"
+description = "+1 шаг; в этот ход топь не отнимает шагов у обоих героев."
+shape = 0
+cost = 0
+cast_range = 0
+bonus_moves = 1
+special = "swamp_walk"
+card_set = "s_bog"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["bog"])
+spirit_slot = 4
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

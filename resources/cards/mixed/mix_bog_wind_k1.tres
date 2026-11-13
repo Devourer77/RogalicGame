@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_bog_wind_k1+1"
+icon = "hammer"
+title = "Удар в трясину+I"
+description = "Соседний враг: 5 урона +1 за звено, толчок 6 (в трясине тонет, в топи опутан)."
+shape = 1
+cost = 2
+damage = 5
+per_link_damage = 1
+push = 6
+special = "mire_push"
+card_set = "x_bog_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["bog", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_bog_wind_k1+2"
+icon = "hammer"
+title = "Удар в трясину+II"
+description = "Соседний враг: 6 урона +2 за звено, толчок 4 (тонет или опутан)."
+shape = 1
+cost = 2
+damage = 6
+per_link_damage = 2
+push = 4
+special = "mire_push"
+card_set = "x_bog_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["bog", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_bog_wind_k1"
+icon = "hammer"
+title = "Удар в трясину"
+description = "Соседний враг: 5 урона +1 за звено, толчок 4 (в трясине тонет, в топи опутан)."
+shape = 1
+cost = 2
+damage = 5
+per_link_damage = 1
+push = 4
+special = "mire_push"
+card_set = "x_bog_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["bog", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

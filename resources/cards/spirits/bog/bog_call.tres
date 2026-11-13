@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "bog_call"
+icon = "maw"
+title = "Зов: Зыбь"
+description = "Зов духа (раз в бой): клетка до 3 на 2 раунда становится трясиной."
+shape = 1
+cost = 0
+cast_range = 3
+special = "sink"
+is_call = true
+chain_add = -1
+scrap_moves = 0
+card_set = "s_bog"

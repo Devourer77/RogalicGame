@@ -87,7 +87,7 @@ func _data() -> void:
 		for c in s.mage_cards + s.knight_cards:
 			ok = ok and c.upgrade_1 != null and c.upgrade_2 != null and c.spirit_ids.size() == 1 and c.spirit_ids[0] == id
 		check("%s: у всех карт две ветки и метка духа" % id, ok)
-	check("Смешанных карт пары — 4", sp("tide").mixed_cards.size() == 4)
+	check("У Омутника смешанных: 3 пары × 4", sp("tide").mixed_cards.size() == 12)
 
 
 func _run_side() -> void:

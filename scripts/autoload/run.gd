@@ -28,7 +28,7 @@ const MAX_RELICS: int = 4             # больше порченых релик
 const RELIC_CHOICES: int = 3          # из скольких выбирать после элиты
 const RELIC_DIR: String = "res://resources/relics/"
 const SPIRIT_DIR: String = "res://resources/spirits/"
-const SPIRIT_IDS: Array[String] = ["tide", "storm"]   # обычные духи, которые встречаются в логове
+const SPIRIT_IDS: Array[String] = ["tide", "storm", "wind"]   # обычные духи, которые встречаются в логове
 const SPIRIT_SLOTS: int = 2                            # духов на героя
 const LAIR_ROW: int = 2                                # ряд карты с логовом духа (одна точка)
 const SPIRIT_CARD_WEIGHT: float = 2.0                  # карты своих духов и смешанные выпадают чаще
@@ -89,6 +89,8 @@ var map: Array[MapNode] = []
 var current: MapNode = null              # где герой сейчас (null — ещё не вышел)
 var pending_enemies: Array[EnemyData] = []  # враги для ближайшего боя
 var pending_spirit: SpiritData = null      # дух в логове (бой за него)
+var last_drowned: int = 0                  # сколько врагов утонуло в последнем бою
+const BOG_SPIRIT_DROWNS: int = 2            # условие Хозяина трясины: утопить столько врагов в бою с корягачом
 var tamed_spirit: SpiritData = null        # дух, покорённый в последнем бою (ждёт выбора героя)
 var pending_arena: String = ""               # арена ближайшего боя (ключ из BattleLogic.ARENAS)
 var pending_objective: int = 0               # цель ближайшего боя (BattleLogic.Objective)
@@ -506,6 +508,9 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 	if current != null and current.type == MapNode.Type.LAIR:
 		tamed_spirit = pending_spirit
 		pending_spirit = null
+	if current != null and current.type == MapNode.Type.ELITE and bog_spirit_offered() \
+			and last_drowned >= BOG_SPIRIT_DROWNS:
+		tamed_spirit = spirit_data("bog")   # уникальный дух: условие выполнено
 	if current != null and current.type == MapNode.Type.ELITE:
 		elite_kills += 1
 		last_battle_big = true
@@ -704,6 +709,58 @@ func _roll_lair_spirit() -> SpiritData:
 	if free.is_empty():
 		return null
 	return free[rng.randi_range(0, free.size() - 1)]
+
+
+# В этом элитном бою живёт Хозяин трясины (бой с корягачом, а духа ещё нет)
+func bog_spirit_offered() -> bool:
+	if party_has_spirit("bog") or pending_encounter == null:
+		return false
+	for e in pending_encounter.core:
+		if e.id == "mossy_treant":
+			return true
+	return false
+
+
+# Отпустить духа: его карты и смешанные карты его пар уходят из колод
+func release_spirit(rh: RunHero, sp: SpiritData) -> void:
+	rh.spirits.erase(sp)
+	for h in party:
+		var keep: Array[CardData] = []
+		for c in h.deck:
+			if not c.spirit_ids.has(sp.id):
+				keep.append(c)
+		h.deck = keep
+
+
+# Передать духа другому герою (на привале): его карты меняются на парные карты нового героя
+func transfer_spirit(from: RunHero, to: RunHero, sp: SpiritData) -> bool:
+	if from == to or not from.spirits.has(sp) or not can_take_spirit(to):
+		return false
+	from.spirits.erase(sp)
+	to.spirits.append(sp)
+	var target_cards: Array[CardData] = sp.cards_for(to.data.id)
+	var keep: Array[CardData] = []
+	for c in from.deck:
+		var single: bool = c.spirit_ids.size() == 1 and c.spirit_ids[0] == sp.id and c.spirit_slot > 0
+		if not single:
+			keep.append(c)
+			continue
+		var twin: CardData = target_cards[c.spirit_slot - 1]
+		if c.upgrade_level == 1:
+			twin = twin.upgrade_1
+		elif c.upgrade_level == 2:
+			twin = twin.upgrade_2
+		to.deck.append(twin)
+	from.deck = keep
+	return true
+
+
+# Дух для события «Клетка Венца»: Грозовик или Вихорь, которого ещё нет в отряде
+func cage_spirit() -> SpiritData:
+	for id in ["storm", "wind"]:
+		if not party_has_spirit(id):
+			return spirit_data(id)
+	return null
 
 
 func can_take_spirit(rh: RunHero) -> bool:

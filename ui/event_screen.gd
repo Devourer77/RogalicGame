@@ -36,6 +36,16 @@ const EVENTS: Array[Dictionary] = [
 			{"text": "Пройти мимо", "action": "leave"},
 		],
 	},
+	# Появляется, только пока в отряде нет хотя бы одного обычного духа (см. _pick_event)
+	{
+		"title": "Клетка Венца",
+		"id": "cage",
+		"text": "По гати тащат телегу трое культистов. В клетке-фонаре на ней бьётся что-то живое — дух, пойманный для Венца. Охрана устала и не ждёт нападения.",
+		"options": [
+			{"text": "Отбить духа (каждому −5 HP, дух выбирает героя)", "action": "cage_free"},
+			{"text": "Пройти мимо", "action": "leave"},
+		],
+	},
 	# Появляется, только пока есть закрытые обереги, и не чаще раза за забег (см. _pick_event)
 	{
 		"title": "Тайник павшего дозорного",
@@ -81,6 +91,8 @@ func _pick_event() -> Dictionary:
 	var pool: Array[Dictionary] = []
 	for e in EVENTS:
 		if e.get("id", "") == "cache" and (Run.cache_seen or Meta.closed_charms().is_empty()):
+			continue
+		if e.get("id", "") == "cage" and Run.cage_spirit() == null:
 			continue
 		pool.append(e)
 	var event: Dictionary = pool[Run.rng.randi_range(0, pool.size() - 1)]
@@ -161,6 +173,14 @@ func _choose(action: String) -> void:
 			Run.event_echoes += 6
 			_show_result("Размокшие листы рассыпаются в пальцах, но последние строки ученик успевает запомнить — и они звучат знакомо, будто писал кто-то из вас.",
 					"+6 Отзвуков")
+			return
+		"cage_free":
+			Sfx.play("hit", 0.06)
+			for rh in Run.party:
+				rh.lose_hp(5)
+			Run.tamed_spirit = Run.cage_spirit()
+			Run.last_gold_reward = 0
+			Run.goto(Run.REWARD_SCENE)   # там дух выбирает героя
 			return
 		"cache_leave":
 			result = "Вы закрываете крышку и уходите. Пусть хоть что-то в этих топях останется на своём месте."

@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "bog_m6+1"
+icon = "maw"
+title = "Пасть топей+I"
+description = "Круг 1 до 5: трясина на 2 раунда, враги внутри опутаны; толкнутый в неё тонет."
+shape = 3
+cast_range = 5
+special = "bog_maw"
+is_rare = true
+card_set = "s_bog"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["bog"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "bog_m6+2"
+icon = "maw"
+title = "Пасть топей+II"
+description = "Круг 1 до 5: трясина на 2 раунда, враги опутаны.\nЦепь 3: стоит 1."
+shape = 3
+cost = 2
+cast_range = 5
+special = "bog_maw"
+chain_need = 3
+chain_cost = 1
+is_rare = true
+card_set = "s_bog"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["bog"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "bog_m6"
+icon = "maw"
+title = "Пасть топей"
+description = "Круг 1 до 5: трясина на 2 раунда, враги внутри опутаны; толкнутый в неё тонет."
+shape = 3
+cost = 2
+cast_range = 5
+special = "bog_maw"
+is_rare = true
+card_set = "s_bog"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["bog"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

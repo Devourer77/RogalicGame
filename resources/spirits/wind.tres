@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SpiritData" load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spirit_data.gd" id="1_spirit"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_call.tres" id="c1"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_m1.tres" id="c2"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_m2.tres" id="c3"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_m3.tres" id="c4"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_m4.tres" id="c5"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_m5.tres" id="c6"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_m6.tres" id="c7"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_k1.tres" id="c8"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_k2.tres" id="c9"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_k3.tres" id="c10"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_k4.tres" id="c11"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_k5.tres" id="c12"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/wind/wind_k6.tres" id="c13"]
+[ext_resource type="Resource" path="res://resources/enemies/spirit_wind.tres" id="c14"]
+
+[resource]
+script = ExtResource("1_spirit")
+id = "wind"
+title = "Вихорь"
+description = "Выл в пустых залах ордена. Теперь воет над топью."
+passive_text = "+1 шаг каждый ход."
+color = Color(0.72, 0.85, 0.76, 1)
+icon = "wind"
+call_card = ExtResource("c1")
+mage_cards = Array[ExtResource("2_card")]([ExtResource("c2"), ExtResource("c3"), ExtResource("c4"), ExtResource("c5"), ExtResource("c6"), ExtResource("c7")])
+knight_cards = Array[ExtResource("2_card")]([ExtResource("c8"), ExtResource("c9"), ExtResource("c10"), ExtResource("c11"), ExtResource("c12"), ExtResource("c13")])
+mixed_cards = Array[ExtResource("2_card")]([])
+enemy = ExtResource("c14")

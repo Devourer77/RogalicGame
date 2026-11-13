@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "wind_k3+1"
+icon = "whirl"
+title = "Ураганный размах+I"
+description = "Дуга: 6 урона, толчок 2.\nЦепь 3: толчок 3."
+shape = 5
+cost = 2
+damage = 6
+push = 2
+chain_need = 3
+chain_push = 1
+card_set = "s_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["wind"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "wind_k3+2"
+icon = "whirl"
+title = "Ураганный размах+II"
+description = "6 клеток вокруг: 4 урона, толчок 2.\nЦепь 3: толчок 3."
+shape = 10
+cost = 2
+cast_range = 0
+damage = 4
+push = 2
+chain_need = 3
+chain_push = 1
+card_set = "s_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["wind"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "wind_k3"
+icon = "whirl"
+title = "Ураганный размах"
+description = "Дуга: 4 урона, толчок 2.\nЦепь 3: толчок 3."
+shape = 5
+cost = 2
+damage = 4
+push = 2
+chain_need = 3
+chain_push = 1
+card_set = "s_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["wind"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

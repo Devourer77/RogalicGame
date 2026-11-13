@@ -15,6 +15,7 @@ var attack_cards: Dictionary = {}        # герой -> сколько карт
 var spells_played: int = 0               # сколько «Заклинаний» сыграл отряд
 var last_action: Action = Action.NONE    # что отряд сделал последним
 var last_card_owner: String = ""         # чья карта сыграна последней (для «резонанса» героев)
+var rot_storm: bool = false              # «Гнилая гроза»: молния по опутанным вдвое
 var chain: int = 0                       # Цепь: сколько карт отряд сыграл за ход (общая на двоих)
 var spells_this_turn: int = 0            # сколько Заклинаний сыграно в этот ход (для шамана)
 var last_mage_card: CardData = null      # последняя карта мага в этот ход (для «Эха»)
@@ -30,6 +31,7 @@ func reset() -> void:
 	last_action = Action.NONE
 	last_card_owner = ""
 	chain = 0
+	rot_storm = false
 	spells_this_turn = 0
 	last_mage_card = null
 
@@ -105,6 +107,7 @@ func copy() -> TurnContext:
 	c.last_action = last_action
 	c.last_card_owner = last_card_owner
 	c.chain = chain
+	c.rot_storm = rot_storm
 	c.spells_this_turn = spells_this_turn
 	c.last_mage_card = last_mage_card
 	return c

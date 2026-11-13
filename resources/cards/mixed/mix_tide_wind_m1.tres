@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_tide_wind_m1+1"
+icon = "flood"
+title = "Ливень+I"
+description = "Линия 6: толчок 3, вся линия — лужи, задетые мокнут."
+shape = 2
+element = 2
+cast_range = 6
+push = 3
+card_set = "x_tide_wind"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_tide_wind_m1+2"
+icon = "flood"
+title = "Ливень+II"
+description = "Линия 6: толчок 2, вся линия — лужи.\nЦепь 2: стоит 0."
+shape = 2
+element = 2
+cast_range = 6
+push = 2
+chain_need = 2
+chain_cost = 0
+card_set = "x_tide_wind"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_tide_wind_m1"
+icon = "flood"
+title = "Ливень"
+description = "Линия 6: толчок 2, вся линия — лужи, задетые мокнут."
+shape = 2
+element = 2
+cast_range = 6
+push = 2
+card_set = "x_tide_wind"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

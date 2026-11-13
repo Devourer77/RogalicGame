@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk0"]
+script = ExtResource("2_attack")
+title = "Хватка корней"
+shape = 0
+damage = 4
+entangle = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "spirit_bog"
+title = "Хозяин трясины"
+description = "Топь была его домом задолго до людей. Он не рад гостям."
+max_hp = 30
+move_range = 2
+damage = 3
+color = Color(0.25, 0.4, 0.3, 1)
+tamable = true
+is_elite = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk0")])

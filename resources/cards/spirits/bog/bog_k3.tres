@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "bog_k3+1"
+icon = "hammer"
+title = "Утопить+I"
+description = "6 урона вплотную +1 за звено, толчок 3 (в трясину — тонет, в топь — опутан)."
+shape = 1
+cost = 2
+damage = 6
+per_link_damage = 1
+push = 3
+special = "mire_push"
+card_set = "s_bog"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["bog"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "bog_k3+2"
+icon = "hammer"
+title = "Утопить+II"
+description = "6 урона вплотную +2 за звено, толчок 2 (в трясину — тонет, в топь — опутан)."
+shape = 1
+cost = 2
+damage = 6
+per_link_damage = 2
+push = 2
+special = "mire_push"
+card_set = "s_bog"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["bog"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "bog_k3"
+icon = "hammer"
+title = "Утопить"
+description = "6 урона вплотную +1 за звено, толчок 2 (в трясину — тонет, в топь — опутан)."
+shape = 1
+cost = 2
+damage = 6
+per_link_damage = 1
+push = 2
+special = "mire_push"
+card_set = "s_bog"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["bog"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "wind_k6+1"
+icon = "leap"
+title = "Небесный таран+I"
+description = "Прыжок до 4: соседям 5 урона + натиск, толчок 2.\nЦепь 3: толчок 3."
+shape = 9
+cost = 2
+cast_range = 4
+damage = 5
+push = 2
+special = "leap_push"
+chain_need = 3
+chain_push = 1
+is_rare = true
+card_set = "s_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["wind"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "wind_k6+2"
+icon = "leap"
+title = "Небесный таран+II"
+description = "Прыжок до 6: соседям 3 урона + натиск, толчок 2.\nЦепь 3: толчок 3."
+shape = 9
+cost = 2
+cast_range = 6
+damage = 3
+push = 2
+special = "leap_push"
+chain_need = 3
+chain_push = 1
+is_rare = true
+card_set = "s_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["wind"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "wind_k6"
+icon = "leap"
+title = "Небесный таран"
+description = "Прыжок до 4: соседям 3 урона + натиск, толчок 2.\nЦепь 3: толчок 3."
+shape = 9
+cost = 2
+cast_range = 4
+damage = 3
+push = 2
+special = "leap_push"
+chain_need = 3
+chain_push = 1
+is_rare = true
+card_set = "s_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["wind"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

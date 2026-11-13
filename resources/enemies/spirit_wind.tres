@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk0"]
+script = ExtResource("2_attack")
+title = "Порыв"
+shape = 1
+attack_range = 4
+damage = 3
+push = 2
+
+[sub_resource type="Resource" id="atk1"]
+script = ExtResource("2_attack")
+title = "Круговерть"
+shape = 4
+damage = 3
+push = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "spirit_wind"
+title = "Вихорь"
+description = "Выл в пустых залах ордена. Теперь воет над топью."
+max_hp = 22
+move_range = 2
+damage = 3
+color = Color(0.7, 0.82, 0.74, 1)
+tamable = true
+is_elite = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk0"), SubResource("atk1")])

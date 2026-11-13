@@ -113,6 +113,8 @@ func _ready() -> void:
 		_start_hp.append(h.hp)
 	_mode = Mode.BUSY
 	logic.start()
+	if Run.current != null and Run.current.type == MapNode.Type.ELITE and Run.bog_spirit_offered():
+		logic.message.emit("В корнях корягача спит Хозяин трясины: утопи %d врагов в трясине — и он пойдёт с тобой." % Run.BOG_SPIRIT_DROWNS)
 	await _play_queue()
 	_select_hero(logic.living_heroes()[0])
 	_enter_idle()
@@ -874,6 +876,7 @@ func _finish_battle() -> void:
 	var hp_left: Array[int] = []
 	for h in logic.heroes:
 		hp_left.append(h.hp)
+	Run.last_drowned = logic.drowned_count   # условие уникального духа (Хозяин трясины)
 	Run.finish_battle(logic.won, hp_left)
 
 

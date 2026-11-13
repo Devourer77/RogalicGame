@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "bog_m1+1"
+icon = "maw"
+title = "Топь+I"
+description = "Круг 1 до 6: клетки становятся топью."
+shape = 3
+cast_range = 6
+special = "swamp_area"
+card_set = "s_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 1
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "bog_m1+2"
+icon = "maw"
+title = "Топь+II"
+description = "Круг 1 до 4: клетки становятся топью, враг в центре опутан."
+shape = 3
+cast_range = 4
+special = "swamp_area"
+bonus_amount = 1
+card_set = "s_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 1
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "bog_m1"
+icon = "maw"
+title = "Топь"
+description = "Круг 1 до 4: клетки становятся топью."
+shape = 3
+cast_range = 4
+special = "swamp_area"
+card_set = "s_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 1
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

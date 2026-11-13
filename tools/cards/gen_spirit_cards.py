@@ -250,7 +250,9 @@ def write_spirit(sid, title, desc, passive, color, icon, call, mage, knight, mix
         fh.write("\n".join(head + [""] + body_lines) + "\n")
 
 
-if __name__ == "__main__":
+def build(extra=None):
+    """Пишет Омутника и Грозовика. extra — дополнительные смешанные карты: {"tide": [пути], "storm": [...]}."""
+    extra = extra or {}
     tm = write_set(TIDE_M, "resources/cards/spirits/tide", [T], "s_tide")
     tk = write_set(TIDE_K, "resources/cards/spirits/tide", [T], "s_tide")
     sm = write_set(STORM_M, "resources/cards/spirits/storm", [S], "s_storm")
@@ -271,8 +273,12 @@ if __name__ == "__main__":
                  dict(title="Гром вокруг", shape=4, damage=3, push=1)])
     write_spirit("tide", "Омутник", "Тонул в каждом омуте Марки. Теперь сам решает, кого утопить.",
                  "в начале хода, если герой стоит в луже, +3 блока.", "0.45, 0.72, 0.95, 1", "drop",
-                 call_tide, tm, tk, mx, "res://resources/enemies/spirit_tide.tres")
+                 call_tide, tm, tk, mx + extra.get("tide", []), "res://resources/enemies/spirit_tide.tres")
     write_spirit("storm", "Грозовик", "Гроза без неба. Злится, что ей некуда упасть.",
                  "удары героя по врагу в луже +2 урона.", "0.9, 0.86, 0.55, 1", "bolt",
-                 call_storm, sm, sk, [], "res://resources/enemies/spirit_storm.tres")
+                 call_storm, sm, sk, extra.get("storm", []), "res://resources/enemies/spirit_storm.tres")
     print("готово:", len(tm) + len(tk) + len(sm) + len(sk) + len(mx), "карт")
+
+
+if __name__ == "__main__":
+    build()

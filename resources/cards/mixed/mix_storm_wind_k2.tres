@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_storm_wind_k2+1"
+icon = "ram"
+title = "Громовой рывок+I"
+description = "Бег по прямой до 5 насквозь: каждому 5 урона молнией и отлёт вбок."
+shape = 6
+element = 4
+cost = 2
+cast_range = 5
+damage = 5
+special = "pass_through"
+card_set = "x_storm_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_storm_wind_k2+2"
+icon = "ram"
+title = "Громовой рывок+II"
+description = "Бег по прямой до 7 насквозь: каждому 4 урона молнией и отлёт вбок."
+shape = 6
+element = 4
+cost = 2
+cast_range = 7
+damage = 4
+special = "pass_through"
+card_set = "x_storm_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_storm_wind_k2"
+icon = "ram"
+title = "Громовой рывок"
+description = "Бег по прямой до 5 насквозь: каждому на пути 4 урона молнией и отлёт вбок."
+shape = 6
+element = 4
+cost = 2
+cast_range = 5
+damage = 4
+special = "pass_through"
+card_set = "x_storm_wind"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

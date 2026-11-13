@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="SpiritData" load_steps=21 format=3]
+[gd_resource type="Resource" script_class="SpiritData" load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/spirit_data.gd" id="1_spirit"]
 [ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
@@ -19,7 +19,15 @@
 [ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_storm_m2.tres" id="c15"]
 [ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_storm_k1.tres" id="c16"]
 [ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_storm_k2.tres" id="c17"]
-[ext_resource type="Resource" path="res://resources/enemies/spirit_tide.tres" id="c18"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_bog_m1.tres" id="c18"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_bog_m2.tres" id="c19"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_bog_k1.tres" id="c20"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_bog_k2.tres" id="c21"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_wind_m1.tres" id="c22"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_wind_m2.tres" id="c23"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_wind_k1.tres" id="c24"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_tide_wind_k2.tres" id="c25"]
+[ext_resource type="Resource" path="res://resources/enemies/spirit_tide.tres" id="c26"]
 
 [resource]
 script = ExtResource("1_spirit")
@@ -32,5 +40,5 @@ icon = "drop"
 call_card = ExtResource("c1")
 mage_cards = Array[ExtResource("2_card")]([ExtResource("c2"), ExtResource("c3"), ExtResource("c4"), ExtResource("c5"), ExtResource("c6"), ExtResource("c7")])
 knight_cards = Array[ExtResource("2_card")]([ExtResource("c8"), ExtResource("c9"), ExtResource("c10"), ExtResource("c11"), ExtResource("c12"), ExtResource("c13")])
-mixed_cards = Array[ExtResource("2_card")]([ExtResource("c14"), ExtResource("c15"), ExtResource("c16"), ExtResource("c17")])
-enemy = ExtResource("c18")
+mixed_cards = Array[ExtResource("2_card")]([ExtResource("c14"), ExtResource("c15"), ExtResource("c16"), ExtResource("c17"), ExtResource("c18"), ExtResource("c19"), ExtResource("c20"), ExtResource("c21"), ExtResource("c22"), ExtResource("c23"), ExtResource("c24"), ExtResource("c25")])
+enemy = ExtResource("c26")

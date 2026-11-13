@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_bog_wind_m1+1"
+icon = "wind"
+title = "Затянуть в топь+I"
+description = "Враг до 5: толчок 2 от мага; остановился в топи или луже — опутан."
+shape = 1
+cost = 0
+cast_range = 5
+push = 2
+special = "mire_push"
+card_set = "x_bog_wind"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["bog", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_bog_wind_m1+2"
+icon = "wind"
+title = "Затянуть в топь+II"
+description = "Враг до 5: толчок 3 от мага; остановился в топи или луже — опутан."
+shape = 1
+cast_range = 5
+push = 3
+special = "mire_push"
+card_set = "x_bog_wind"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["bog", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_bog_wind_m1"
+icon = "wind"
+title = "Затянуть в топь"
+description = "Враг до 5: толчок 2 от мага; остановился в топи или луже — опутан."
+shape = 1
+cast_range = 5
+push = 2
+special = "mire_push"
+card_set = "x_bog_wind"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["bog", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

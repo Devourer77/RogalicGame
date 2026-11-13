@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "bog_k5+1"
+icon = "shield"
+title = "Болотный панцирь+I"
+description = "Блок 4 +3 за каждую клетку топи, лужи или трясины вокруг."
+shape = 0
+cast_range = 0
+block = 4
+special = "bog_shell"
+bonus_amount = 3
+card_set = "s_bog"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "bog_k5+2"
+icon = "shield"
+title = "Болотный панцирь+II"
+description = "Блок 4 +2 за топкую клетку вокруг — и союзнику столько же."
+shape = 0
+cast_range = 0
+block = 4
+special = "bog_shell"
+bonus_amount = 2
+card_set = "s_bog"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "bog_k5"
+icon = "shield"
+title = "Болотный панцирь"
+description = "Блок 4 +2 за каждую клетку топи, лужи или трясины вокруг."
+shape = 0
+cast_range = 0
+block = 4
+special = "bog_shell"
+bonus_amount = 2
+card_set = "s_bog"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["bog"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

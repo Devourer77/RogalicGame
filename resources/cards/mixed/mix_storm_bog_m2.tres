@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_storm_bog_m2+1"
+icon = "entangled"
+title = "Гнилая гроза+I"
+description = "Враг до 5 опутан; до конца хода молния по опутанным — вдвое."
+shape = 1
+cost = 0
+cast_range = 5
+special = "rot_storm"
+card_set = "x_storm_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["storm", "bog"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_storm_bog_m2+2"
+icon = "entangled"
+title = "Гнилая гроза+II"
+description = "Враг до 7 опутан; до конца хода молния по опутанным — вдвое."
+shape = 1
+cast_range = 7
+special = "rot_storm"
+card_set = "x_storm_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["storm", "bog"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_storm_bog_m2"
+icon = "entangled"
+title = "Гнилая гроза"
+description = "Враг до 5 опутан; до конца хода молния по опутанным — вдвое."
+shape = 1
+cast_range = 5
+special = "rot_storm"
+card_set = "x_storm_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["storm", "bog"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

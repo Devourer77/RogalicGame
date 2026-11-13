@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_tide_wind_k2+1"
+icon = "drop"
+title = "Брызги в лицо+I"
+description = "Враг до 3: 2 урона, мокнет, толчок 1.\nЦепь 2: толчок 2."
+shape = 1
+element = 2
+cost = 0
+cast_range = 3
+damage = 2
+push = 1
+chain_need = 2
+chain_push = 1
+card_set = "x_tide_wind"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_tide_wind_k2+2"
+icon = "drop"
+title = "Брызги в лицо+II"
+description = "Враг до 5: 1 урон, мокнет, толчок 1.\nЦепь 2: толчок 2."
+shape = 1
+element = 2
+cost = 0
+cast_range = 5
+damage = 1
+push = 1
+chain_need = 2
+chain_push = 1
+card_set = "x_tide_wind"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_tide_wind_k2"
+icon = "drop"
+title = "Брызги в лицо"
+description = "Враг до 3: 1 урон, мокнет, толчок 1.\nЦепь 2: толчок 2."
+shape = 1
+element = 2
+cost = 0
+cast_range = 3
+damage = 1
+push = 1
+chain_need = 2
+chain_push = 1
+card_set = "x_tide_wind"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")
