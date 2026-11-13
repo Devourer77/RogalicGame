@@ -4,3 +4,4 @@
 
 # Резервные копии Blender
 *.blend1
+__pycache__/
