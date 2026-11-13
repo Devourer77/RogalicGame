@@ -31,6 +31,9 @@ func _rebuild() -> void:
 	if bell > 0:
 		var bonus: Label = UiKit.make_label("Звон %d  ·  +%d%%" % [bell, roundi(Meta.BELL_ECHO_BONUS * bell * 100.0)], 16, UiKit.BRASS.lightened(0.15))
 		body.add_child(bonus)
+	var spirits: Array = r.get("spirits", [])
+	if not spirits.is_empty():
+		body.add_child(spirit_row("Покорены духи:", spirits, 17))
 	body.add_child(UiKit.make_divider(400))
 	var total := HBoxContainer.new()
 	total.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -48,4 +51,17 @@ func _line(text: String, amount: int) -> Control:
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(label)
 	row.add_child(UiKit.chip("echo", "+%d" % amount, UiKit.ECHO, "", 17, 18))
+	return row
+
+
+# Строка «Покорены духи: [значок] Омутник  [значок] Грозовик» — её берёт и Летопись
+static func spirit_row(caption: String, ids: Array, font_size: int = 16) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	if caption != "":
+		row.add_child(UiKit.make_label(caption, font_size, UiKit.TEXT))
+	for id in ids:
+		var sp: SpiritData = Run.spirit_data(str(id))
+		if sp != null:
+			row.add_child(UiKit.chip(sp.icon, sp.title, sp.color.lightened(0.2), sp.passive_text, font_size, font_size + 4))
 	return row

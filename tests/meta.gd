@@ -67,7 +67,7 @@ func _init() -> void:
 	_check(m2.deck_changes("mage") == 2 and m2.deck_changes("knight") == 2, "базово 2 изменения колоды")
 	m2.buy("mage_loadout")
 	_check(m2.deck_changes("mage") == 3 and m2.deck_changes("knight") == 2, "Своя выкладка Мага: +1 только Магу")
-	_check(m2.steps_total() == 21, "всего 21 ступень улучшений")
+	_check(m2.steps_total() == 23, "всего 23 ступени улучшений (21 + две у Святилища)")
 
 	# Закрытые карты: пока не куплены «Забытые формулы»
 	var m3: Node = _fresh()
@@ -109,6 +109,35 @@ func _init() -> void:
 	_check(m5.in_stock("mage", "fireball"), "Запас пережил сохранение")
 	m5.reset()
 	_check(m5.echoes == 0 and m5.charms.is_empty() and m5.upgrades.is_empty() and m5.card_stock.is_empty(), "reset обнуляет всё")
+
+	# Духи: встреча, покорение, «Приманка», сохранение, чистка Запаса
+	var m6: Node = _fresh()
+	m6.echoes = 1000
+	m6.mark_spirit_seen("storm")
+	_check(m6.is_spirit_seen("storm") and not m6.is_spirit_tamed("storm"), "встреченный дух ещё не покорён")
+	m6.record_spirit_tamed("tide")
+	m6.record_spirit_tamed("tide")
+	_check(m6.is_spirit_seen("tide") and m6.tamed_count("tide") == 2, "покорение считается и делает духа встреченным")
+	_check(not m6.choose_bait("tide"), "без «Приманки» выбрать духа для логова нельзя")
+	m6.buy("spirit_bait")
+	_check(not m6.choose_bait("storm"), "непокорённого духа в логово не позвать")
+	_check(m6.choose_bait("tide") and m6.bait_spirit() == "tide", "«Приманка» зовёт покорённого духа")
+	m6.choose_bait("tide")
+	_check(m6.bait_spirit() == "", "повторное нажатие снимает выбор")
+	m6.choose_bait("tide")
+	m6.buy("spirit_bond")
+	_check(m6.effect_total("spirit_start_cards") == 1, "«Старая узда»: +1 карта духа")
+	m6.card_stock = {"mage": ["mb_spark", "tide_m4", "mix_tide_storm_m1", "m_flood_old"]}
+	var heroes: Array[HeroData] = [load("res://resources/heroes/mage.tres") as HeroData]
+	m6.prune_stock(heroes)
+	_check(m6.stock_ids("mage").size() == 1 and m6.stock_ids("mage")[0] == "mb_spark", "из Запаса уходят карты духов и пропавшие карты (%s)" % [m6.stock_ids("mage")])
+	m6.save()
+	var m7: Node = MetaScript.new()
+	m7.save_path = "user://progress_test.cfg"
+	m7.load_progress()
+	_check(m7.tamed_count("tide") == 2 and m7.is_spirit_seen("storm") and m7.bait_spirit() == "tide", "духи пережили сохранение")
+	m7.reset()
+	_check(m7.spirits_seen.is_empty() and m7.spirits_tamed.is_empty() and m7.lair_bait == "", "reset забывает духов")
 
 	# Чистим тестовый файл
 	if FileAccess.file_exists("user://progress_test.cfg"):

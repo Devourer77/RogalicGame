@@ -22,6 +22,10 @@ func _ready() -> void:
 			Meta.buy(u.id)
 	for c in Meta.CHARMS:
 		Meta.unlock_charm(c.id)
+	for id in Run.ALL_SPIRIT_IDS:
+		if id != "wind":
+			Meta.record_spirit_tamed(id)   # Вихорь остаётся только встреченным — видно оба состояния
+	Meta.mark_spirit_seen("wind")
 	Meta.first_boss_killed = true
 	Meta.bell_max = Meta.MAX_BELL
 	Meta.bell_chosen = 3

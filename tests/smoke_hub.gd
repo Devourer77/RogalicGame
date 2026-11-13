@@ -131,8 +131,11 @@ func _run() -> void:
 	print("— Гибель → хаб → «Итог пути»")
 	var echoes_before: int = Meta.echoes
 	Run.rows_passed = 4
+	Run.add_spirit(Run.party[0], Run.spirit_data("tide"))
 	Run.game_over(false)
 	await _frames(4)
+	_check(Meta.last_result.get("spirits", []) == ["tide"], "в «Итоге пути» записан покорённый Омутник")
+	_check(Meta.is_spirit_tamed("tide"), "Святилище помнит Омутника")
 	_check(Meta.echoes == echoes_before + 8, "4 ряда на Звоне 0 — +8 Отзвуков (%d)" % (Meta.echoes - echoes_before))
 	_check(_scene().scene_file_path == Run.GAME_OVER_SCENE, "экран итога забега")
 	var back: Button = _find_button(_scene(), "К колоколу")
@@ -211,6 +214,22 @@ func _poke(panel: HubPanel, id: String) -> void:
 					break
 			await _frames(2)
 			print("    обереги выбраны: ", Meta.charms_chosen, " (было ", before_n, ")")
+		"shrine":
+			_check(_find_button(panel, "???") != null, "в Святилище неизвестные духи — «???»")
+			var buy: Button = _find_button(panel, "Изучить")
+			_check(buy != null, "в Святилище есть улучшения духов")
+			if buy != null:
+				buy.pressed.emit()
+				await _frames(2)
+			Meta.record_spirit_tamed("tide")   # как будто Омутника покорили в прошлом забеге
+			await _frames(2)
+			_check(_find_button(panel, "Омутник") != null, "покорённый Омутник виден по имени")
+			var call: Button = _find_button(panel, "Звать в логово")
+			_check(call != null, "с «Приманкой» Омутника можно позвать в логово")
+			if call != null:
+				call.pressed.emit()
+				await _frames(2)
+			_check(Meta.bait_spirit() == "tide", "логово зовёт Омутника")
 		"barracks":
 			_check(_count_buttons(panel) >= 2, "в Караульне есть кнопки")
 			for b in _all_buttons(panel):

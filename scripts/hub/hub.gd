@@ -9,8 +9,8 @@ const FLOOR_SIZE: Vector2 = Vector2(24.0, 16.0)
 const WALL_HEIGHT: float = 3.0
 const START_POS: Vector3 = Vector3(0.0, 0.0, 2.5)   # герои встают чуть южнее колокола
 const FIRE_POS: Vector3 = Vector3(0.0, 0.0, 4.5)
+const SHRINE_POS: Vector3 = Vector3(8.0, 0.0, -5.4)   # северо-восточный угол, напротив Караульни
 const PERSONAL_STAY_DISTANCE: float = 3.0   # неактивный герой остаётся у личной точки, если стоит ближе
-const LANTERN_COUNT: int = 21                # по числу ступеней улучшений: каждая зажигает фонарь
 const SHELF_SLOTS: int = 10
 
 # Цвета заглушек (по палитре из мир.md; красного нет).
@@ -36,6 +36,7 @@ const POINTS: Array[Dictionary] = [
 			"deny": "Латы Стражи. Здесь нужен рыцарь", "deny_hint": "Только Рыцарь · Tab — сменить героя"},
 	{"id": "board", "title": "Доска дозора", "pos": Vector3(-8.5, 0.0, 5.2), "radius": 2.4, "look": Vector3(-8.5, 1.0, 5.2)},
 	{"id": "shelf", "title": "Полка трофеев", "pos": Vector3(8.5, 0.0, 5.0), "radius": 2.4, "look": Vector3(8.5, 1.0, 5.0)},
+	{"id": "shrine", "title": "Святилище духов", "pos": SHRINE_POS, "radius": 2.2, "look": SHRINE_POS + Vector3(0.0, 1.2, -0.6)},
 ]
 
 # Реплика героя при открытии общих точек (у личных своя запись, у остальных — молчание)
@@ -66,9 +67,13 @@ var _lantern_mats: Array[StandardMaterial3D] = []
 var _banner: Node3D
 var _shelf_items: Array[MeshInstance3D] = []
 var _shelf_mats: Array[StandardMaterial3D] = []
+var _shrine_orbs: Array[MeshInstance3D] = []          # шар на каждом камне Святилища (по Run.ALL_SPIRIT_IDS)
+var _shrine_mats: Array[StandardMaterial3D] = []
+var _shrine_light: OmniLight3D
 
 
 func _ready() -> void:
+	Meta.prune_stock(Run.HEROES)   # старые карты и карты духов не должны лежать в Запасе Караульни
 	_setup_input()
 	_build_floor()
 	_build_walls()
@@ -270,6 +275,8 @@ func _open_point_panel(point: Dictionary) -> void:
 		Sfx.play("bell", 0.03)
 	elif point["id"] == "campfire":
 		Sfx.play("fire", 0.06)
+	elif point["id"] == "shrine":
+		Sfx.play("magic", 0.05)
 	else:
 		Sfx.play("ui_click", 0.05)
 	var panel: HubPanel = _make_panel(point["id"])
@@ -294,6 +301,8 @@ func _make_panel(id: String) -> HubPanel:
 			return UpgradePanel.open(parent, MetaUpgradeData.Desk.KNIGHT, hero)
 		"board":
 			return UpgradePanel.open(parent, MetaUpgradeData.Desk.PARTY, hero)
+		"shrine":
+			return ShrinePanel.open(parent, hero)
 		_:
 			return CharmPanel.open(parent, hero)
 
@@ -369,6 +378,24 @@ func refresh_world() -> void:
 			item.scale = Vector3(1.0, 1.0, 0.2)   # меловой контур
 			sm.albedo_color = Color(0.75, 0.75, 0.7, 0.9)
 
+	# Святилище: шар покорённого духа светится его цветом, встреченного — тускло, неизвестного нет
+	var any_tamed: bool = false
+	for i in _shrine_orbs.size():
+		var sp: SpiritData = Run.spirit_data(Run.ALL_SPIRIT_IDS[i])
+		var om: StandardMaterial3D = _shrine_mats[i]
+		var seen: bool = sp != null and Meta.is_spirit_seen(sp.id)
+		var tamed: bool = sp != null and Meta.is_spirit_tamed(sp.id)
+		_shrine_orbs[i].visible = seen
+		if not seen:
+			continue
+		om.albedo_color = sp.color if tamed else sp.color.darkened(0.6)
+		om.emission_enabled = tamed
+		om.emission = sp.color
+		om.emission_energy_multiplier = 2.5
+		any_tamed = any_tamed or tamed
+	if _shrine_light != null:
+		_shrine_light.visible = any_tamed
+
 
 func _swing_bell() -> void:
 	if _bell_pivot == null:
@@ -422,13 +449,15 @@ func _add_wall(wall_name: String, pos: Vector3, size: Vector3) -> void:
 	add_child(body)
 
 
-# 21 фонарь вдоль края площадки: каждая купленная ступень улучшения зажигает следующий.
+# Фонари вдоль края площадки — по одному на каждую ступень улучшений (Meta.steps_total()):
+# каждая купленная ступень зажигает следующий.
 func _build_lanterns() -> void:
+	var lantern_count: int = Meta.steps_total()
 	var half_x: float = FLOOR_SIZE.x * 0.5 - 0.3
 	var half_z: float = FLOOR_SIZE.y * 0.5 - 0.3
 	var perimeter: float = 2.0 * (half_x + half_z) * 2.0
-	for i in LANTERN_COUNT:
-		var t: float = perimeter * float(i) / float(LANTERN_COUNT)
+	for i in lantern_count:
+		var t: float = perimeter * float(i) / float(lantern_count)
 		var pos: Vector3 = _perimeter_point(t, half_x, half_z)
 		var lamp: StaticBody3D = _add_block("Lantern%d" % i, pos, Vector3(0.22, 0.3, 0.22), COL_OFF, 0.0, false)
 		lamp.position.y += 1.4   # фонарь на шесте: сам шест ниже
@@ -464,6 +493,7 @@ func _build_points() -> void:
 	_build_armory()
 	_build_notice_board()
 	_build_trophy_shelf()
+	_build_shrine()
 
 
 # Колокол — центр. На балке шесть свечей по числу звонов (горят открытые Звоны, выбранный ярче).
@@ -587,6 +617,34 @@ func _build_trophy_shelf() -> void:
 	_add_label("Полка трофеев", c + Vector3(0.0, 2.8, 0.0))
 
 
+# Святилище духов — северо-восток. Каменный пятак и полукруг камней, по камню на духа.
+# На камне шар: появляется, когда дух встречен, и горит его цветом, когда покорён.
+func _build_shrine() -> void:
+	var c: Vector3 = SHRINE_POS
+	_add_cylinder("ShrineBase", c, 1.9, 0.15, COL_STONE.darkened(0.2), 0.0, false)
+	_add_block("ShrineAltar", c + Vector3(0.0, 0.0, -0.4), Vector3(0.9, 0.7, 0.6), COL_STONE)
+	var n: int = Run.ALL_SPIRIT_IDS.size()
+	for i in n:
+		# Камни полукругом с севера, открытой стороной к центру заставы (на юго-запад)
+		var angle: float = PI + PI * (float(i) + 0.5) / float(n)
+		var pos: Vector3 = c + Vector3(cos(angle), 0.0, sin(angle)) * 1.5
+		var height: float = 1.3 + 0.25 * float(i % 2)
+		_add_cylinder("ShrineStone%d" % i, pos, 0.22, height, Color(0.34, 0.36, 0.34))
+		var orb: StaticBody3D = _add_sphere("ShrineOrb%d" % i, pos + Vector3(0.0, height + 0.05, 0.0), 0.17, COL_OFF)
+		var mesh_instance: MeshInstance3D = orb.get_child(0) as MeshInstance3D
+		_shrine_orbs.append(mesh_instance)
+		_shrine_mats.append(mesh_instance.material_override as StandardMaterial3D)
+	_shrine_light = OmniLight3D.new()
+	_shrine_light.name = "ShrineLight"
+	_shrine_light.light_color = Color(0.6, 0.8, 0.95)
+	_shrine_light.light_energy = 1.0
+	_shrine_light.omni_range = 4.5
+	_shrine_light.position = c + Vector3(0.0, 1.8, -0.4)
+	_shrine_light.visible = false
+	add_child(_shrine_light)
+	_add_label("Святилище духов", c + Vector3(0.0, 2.8, 0.0))
+
+
 # --- Помощники для заглушек ------------------------------------------------------------
 # pos — точка на земле под центром предмета; предмет растёт вверх от неё.
 
@@ -631,6 +689,24 @@ func _add_cylinder(cyl_name: String, pos: Vector3, radius: float, height: float,
 		cylinder.height = height
 		shape.shape = cylinder
 		body.add_child(shape)
+	add_child(body)
+	return body
+
+
+# Шар без столкновений (pos — нижняя точка шара)
+func _add_sphere(sphere_name: String, pos: Vector3, radius: float, color: Color) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	body.name = sphere_name
+	body.position = pos + Vector3(0.0, radius, 0.0)
+	var mesh_instance := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 12
+	mesh.rings = 6
+	mesh_instance.mesh = mesh
+	mesh_instance.material_override = _make_material(color, 0.0)
+	body.add_child(mesh_instance)
 	add_child(body)
 	return body
 

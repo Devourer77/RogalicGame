@@ -271,7 +271,7 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 		var cards := HBoxContainer.new()
 		cards.add_theme_constant_override("separation", 6)
 		var cl: Array[CardData] = sp.cards_for(rh.data.id)
-		for i in mini(3, cl.size()):
+		for i in mini(Run.spirit_start_count(sp), cl.size()):
 			var cb: Button = CardView.make_button(cl[i], rh.data.color)
 			cb.mouse_filter = Control.MOUSE_FILTER_PASS
 			var holder := Control.new()

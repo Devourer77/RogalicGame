@@ -26,8 +26,12 @@ func _rebuild() -> void:
 		best_rows = maxi(best_rows, e.get("rows", 0))
 		if e.get("complete", false):
 			complete_count += 1
-	var stats: Label = UiKit.make_label("Дальше всего: ряд %d  ·  Пройдено до конца: %d  ·  Обереги: %d / %d" % [
-			best_rows, complete_count, Meta.opened_count(), Meta.CHARMS.size()], 15, UiKit.TEXT, true)
+	var tamed_kinds: int = 0
+	for id in Run.ALL_SPIRIT_IDS:
+		if Meta.is_spirit_tamed(id):
+			tamed_kinds += 1
+	var stats: Label = UiKit.make_label("Дальше всего: ряд %d  ·  Пройдено до конца: %d  ·  Обереги: %d / %d  ·  Духи: %d / %d" % [
+			best_rows, complete_count, Meta.opened_count(), Meta.CHARMS.size(), tamed_kinds, Run.ALL_SPIRIT_IDS.size()], 15, UiKit.TEXT, true)
 	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_child(stats)
 
@@ -53,6 +57,14 @@ func _make_row(e: Dictionary) -> Control:
 	var where: Label = UiKit.make_label(_where(e), 16, UiKit.TEXT)
 	where.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(where)
+	# Духи, покорённые в этом забеге: только значки, имя — в подсказке
+	for id in e.get("spirits", []):
+		var sp: SpiritData = Run.spirit_data(str(id))
+		if sp != null:
+			var mark: TextureRect = ic(sp.icon, 20, sp.color.lightened(0.2))
+			mark.tooltip_text = "Покорён: " + sp.title
+			mark.mouse_filter = Control.MOUSE_FILTER_PASS
+			row.add_child(mark)
 	row.add_child(echo_cost(e.get("echoes", 0)))
 	return panel
 

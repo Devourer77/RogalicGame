@@ -1,5 +1,5 @@
 extends Node
-# Прогресс «между забегами»: Отзвуки, Звоны (сложность), улучшения, обереги, Запас карт, история.
+# Прогресс «между забегами»: Отзвуки, Звоны (сложность), улучшения, обереги, Запас карт, духи, история.
 # Это autoload (синглтон): доступен из любого скрипта по имени Meta.
 # Сохраняется в файл user://progress.cfg (Проект → Открыть папку данных проекта).
 # Важно: Meta должна стоять в списке автозагрузки ВЫШЕ Run.
@@ -33,6 +33,8 @@ const UPGRADES: Array[MetaUpgradeData] = [
 	preload("res://resources/meta_upgrades/knight_techniques.tres"),
 	preload("res://resources/meta_upgrades/knight_prep.tres"),
 	preload("res://resources/meta_upgrades/knight_loadout.tres"),
+	preload("res://resources/meta_upgrades/spirit_bait.tres"),
+	preload("res://resources/meta_upgrades/spirit_bond.tres"),
 ]
 
 const CHARMS: Array[RelicData] = [
@@ -70,6 +72,9 @@ var first_boss_killed: bool = false
 var card_stock: Dictionary = {}  # id героя -> Array[String] id карт («Запас» Караульни)
 var decks: Dictionary = {}       # id героя -> Array[String] id карт своей стартовой колоды
 var history: Array[Dictionary] = []  # последние забеги (новые — в конце)
+var spirits_seen: Array[String] = []  # духи, которых отряд хоть раз встречал (логово, клетка, элита)
+var spirits_tamed: Dictionary = {}    # id духа -> сколько раз его покоряли (за все забеги)
+var lair_bait: String = ""            # «Приманка»: кого звать в логово (пусто — случайный дух)
 var last_result: Dictionary = {}     # итог только что закончившегося забега
 
 
@@ -190,7 +195,7 @@ func effect_total(effect: String, hero_id: String = "") -> int:
 	return total
 
 
-# Сколько ступеней куплено всего (из 21) — по ним зажигаются фонари хаба
+# Сколько ступеней куплено всего — по ним зажигаются фонари хаба (по фонарю на ступень)
 func steps_bought() -> int:
 	var n: int = 0
 	for u in UPGRADES:
@@ -324,6 +329,79 @@ func stock_ids(hero_id: String) -> Array[String]:
 	return result
 
 
+# ---------- Духи (Святилище) ----------
+# Духи живут только внутри забега. Между забегами Святилище помнит, кого встречали и кого покорили.
+
+func mark_spirit_seen(id: String) -> void:
+	if id == "" or spirits_seen.has(id):
+		return
+	spirits_seen.append(id)
+	save()
+	changed.emit()
+
+
+# Дух пришёл к герою (Run.add_spirit): записываем покорение
+func record_spirit_tamed(id: String) -> void:
+	if id == "":
+		return
+	if not spirits_seen.has(id):
+		spirits_seen.append(id)
+	spirits_tamed[id] = int(spirits_tamed.get(id, 0)) + 1
+	save()
+	changed.emit()
+
+
+func is_spirit_seen(id: String) -> bool:
+	return spirits_seen.has(id) or is_spirit_tamed(id)
+
+
+func is_spirit_tamed(id: String) -> bool:
+	return int(spirits_tamed.get(id, 0)) > 0
+
+
+func tamed_count(id: String) -> int:
+	return int(spirits_tamed.get(id, 0))
+
+
+# «Приманка»: выбрать духа для логова. Можно только уже покорённого; тот же id ещё раз — снять выбор.
+func choose_bait(id: String) -> bool:
+	if effect_total("lair_bait") <= 0:
+		return false
+	if id == lair_bait or id == "":
+		lair_bait = ""
+	elif is_spirit_tamed(id):
+		lair_bait = id
+	else:
+		return false
+	save()
+	changed.emit()
+	return true
+
+
+# Кого позвать в логово (пусто — как обычно, случайный)
+func bait_spirit() -> String:
+	if effect_total("lair_bait") <= 0 or not is_spirit_tamed(lair_bait):
+		return ""
+	return lair_bait
+
+
+# Убрать из Запаса карты, которых у героя больше нет (старые наборы, карты духов из прошлых версий).
+# Зовётся из хаба: здесь нельзя обращаться к Run, поэтому герои передаются снаружи.
+func prune_stock(heroes: Array[HeroData]) -> void:
+	var dirty: bool = false
+	for hero in heroes:
+		var keep: Array = []
+		for id in card_stock.get(hero.id, []):
+			var c: CardData = Loadout.find_card(hero, id)
+			if c != null and c.spirit_ids.is_empty():
+				keep.append(id)
+		if keep.size() != (card_stock.get(hero.id, []) as Array).size():
+			card_stock[hero.id] = keep
+			dirty = true
+	if dirty:
+		save()
+
+
 # ---------- Сохранение ----------
 
 func save() -> void:
@@ -339,6 +417,9 @@ func save() -> void:
 	cfg.set_value("meta", "card_stock", card_stock)
 	cfg.set_value("meta", "decks", decks)
 	cfg.set_value("meta", "history", history)
+	cfg.set_value("meta", "spirits_seen", spirits_seen)
+	cfg.set_value("meta", "spirits_tamed", spirits_tamed)
+	cfg.set_value("meta", "lair_bait", lair_bait)
 	var err: Error = cfg.save(save_path)
 	if err != OK:
 		push_warning("Не удалось сохранить прогресс: %s" % error_string(err))
@@ -364,6 +445,9 @@ func load_progress() -> void:
 	card_stock = cfg.get_value("meta", "card_stock", {})
 	decks = cfg.get_value("meta", "decks", {})
 	history.assign(cfg.get_value("meta", "history", []))
+	spirits_seen.assign(cfg.get_value("meta", "spirits_seen", []))
+	spirits_tamed = cfg.get_value("meta", "spirits_tamed", {})
+	lair_bait = str(cfg.get_value("meta", "lair_bait", ""))
 	if not is_bell_open(bell_chosen):
 		bell_chosen = 0
 
@@ -380,6 +464,9 @@ func reset() -> void:
 	card_stock = {}
 	decks = {}
 	history.clear()
+	spirits_seen.clear()
+	spirits_tamed = {}
+	lair_bait = ""
 	last_result = {}
 	# Файл сохранения стираем: меню снова покажет «Начать», как при первом запуске
 	if FileAccess.file_exists(save_path):

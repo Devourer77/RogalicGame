@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MetaUpgradeData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/meta_upgrade_data.gd" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+id = "spirit_bond"
+title = "Старая узда"
+desc = "Дух, которого отряд покорял в прошлых забегах, сразу приносит герою 4 карты вместо 3."
+icon = "chain"
+board = 3
+hero_id = ""
+costs = Array[int]([40])
+effect = "spirit_start_cards"
+value = 1

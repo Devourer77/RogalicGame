@@ -178,7 +178,7 @@ func _choose(action: String) -> void:
 			Sfx.play("hit", 0.06)
 			for rh in Run.party:
 				rh.lose_hp(5)
-			Run.tamed_spirit = Run.cage_spirit()
+			Run.offer_spirit(Run.cage_spirit())
 			Run.last_gold_reward = 0
 			Run.goto(Run.REWARD_SCENE)   # там дух выбирает героя
 			return

@@ -29,6 +29,7 @@ const RELIC_CHOICES: int = 3          # из скольких выбирать �
 const RELIC_DIR: String = "res://resources/relics/"
 const SPIRIT_DIR: String = "res://resources/spirits/"
 const SPIRIT_IDS: Array[String] = ["tide", "storm", "wind"]   # обычные духи, которые встречаются в логове
+const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog"]   # все духи по порядку Святилища
 const SPIRIT_SLOTS: int = 2                            # духов на героя
 const LAIR_ROW: int = 2                                # ряд карты с логовом духа (одна точка)
 const SPIRIT_CARD_WEIGHT: float = 2.0                  # карты своих духов и смешанные выпадают чаще
@@ -92,6 +93,9 @@ var pending_spirit: SpiritData = null      # дух в логове (бой за
 var last_drowned: int = 0                  # сколько врагов утонуло в последнем бою
 const BOG_SPIRIT_DROWNS: int = 2            # условие Хозяина трясины: утопить столько врагов в бою с корягачом
 var tamed_spirit: SpiritData = null        # дух, покорённый в последнем бою (ждёт выбора героя)
+var run_spirits: Array[String] = []        # кого покорили в этом забеге (для «Итога пути» и Летописи)
+var known_spirits: Array[String] = []      # кого отряд покорял в прошлых забегах (для «Старой узды»)
+const SPIRIT_START_CARDS: int = 3          # сколько карт дух даёт герою сразу
 var pending_arena: String = ""               # арена ближайшего боя (ключ из BattleLogic.ARENAS)
 var pending_objective: int = 0               # цель ближайшего боя (BattleLogic.Objective)
 var pending_encounter: EncounterData = null  # отряд ближайшего боя (его название видно в начале боя)
@@ -167,6 +171,13 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	event_echoes = 0
 	run_complete = false
 	fast_enemies = false
+	run_spirits.clear()
+	known_spirits.clear()
+	for id: String in Meta.spirits_tamed:
+		if Meta.is_spirit_tamed(id):
+			known_spirits.append(id)
+	tamed_spirit = null
+	pending_spirit = null
 	current = null
 	pending_enemies.clear()
 	pending_encounter = null
@@ -203,6 +214,8 @@ func add_card(rh: RunHero, card: CardData) -> bool:
 	rh.deck.append(card)
 	if card.is_rare or card.card_set == "":
 		return false   # редкие в колоду не записываются, базовые есть в Запасе всегда
+	if not card.spirit_ids.is_empty():
+		return false   # карты духов приходят только вместе с духом — в Запас их не пишем
 	return Meta.record_card(rh.data.id, card.id)
 
 
@@ -288,6 +301,8 @@ func enter_node(n: MapNode) -> void:
 			goto(BATTLE_SCENE)
 		MapNode.Type.ELITE:
 			pending_enemies = _make_encounter(n.row, false, true)
+			if bog_spirit_offered():
+				Meta.mark_spirit_seen("bog")   # Хозяин трясины показался: Святилище откроет подсказку
 			pending_arena = _encounter_arena(false)
 			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
@@ -506,11 +521,11 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 	last_battle_big = false
 	tamed_spirit = null
 	if current != null and current.type == MapNode.Type.LAIR:
-		tamed_spirit = pending_spirit
+		offer_spirit(pending_spirit)
 		pending_spirit = null
 	if current != null and current.type == MapNode.Type.ELITE and bog_spirit_offered() \
 			and last_drowned >= BOG_SPIRIT_DROWNS:
-		tamed_spirit = spirit_data("bog")   # уникальный дух: условие выполнено
+		offer_spirit(spirit_data("bog"))   # уникальный дух: условие выполнено
 	if current != null and current.type == MapNode.Type.ELITE:
 		elite_kills += 1
 		last_battle_big = true
@@ -627,7 +642,7 @@ func game_over(victory: bool) -> void:
 	Meta.add_run_result({
 		"rows": rows_passed, "elites": elite_kills, "bosses": boss_kills,
 		"event_echoes": event_echoes, "trophy_echoes": trophy_echoes, "bell": bell, "complete": run_complete,
-		"victory": victory, "seed": seed_value,
+		"victory": victory, "seed": seed_value, "spirits": run_spirits.duplicate(),
 	})
 	goto(GAME_OVER_SCENE)
 
@@ -699,8 +714,19 @@ func party_has_spirit(id: String) -> bool:
 	return false
 
 
-# Случайный обычный дух, которого ещё нет в отряде (null — все уже есть)
+# Дух сломлен и ждёт, к кому из героев пойти (экран награды). Святилище его запоминает.
+func offer_spirit(sp: SpiritData) -> void:
+	tamed_spirit = sp
+	if sp != null:
+		Meta.mark_spirit_seen(sp.id)
+
+
+# Дух для логова: «Приманка» из хаба или случайный обычный, которого ещё нет в отряде (null — все уже есть)
 func _roll_lair_spirit() -> SpiritData:
+	var bait: String = Meta.bait_spirit()
+	if bait != "" and SPIRIT_IDS.has(bait) and not party_has_spirit(bait):
+		Meta.mark_spirit_seen(bait)
+		return spirit_data(bait)
 	var free: Array[SpiritData] = []
 	for id in SPIRIT_IDS:
 		var sp: SpiritData = spirit_data(id)
@@ -708,7 +734,9 @@ func _roll_lair_spirit() -> SpiritData:
 			free.append(sp)
 	if free.is_empty():
 		return null
-	return free[rng.randi_range(0, free.size() - 1)]
+	var picked: SpiritData = free[rng.randi_range(0, free.size() - 1)]
+	Meta.mark_spirit_seen(picked.id)
+	return picked
 
 
 # В этом элитном бою живёт Хозяин трясины (бой с корягачом, а духа ещё нет)
@@ -767,23 +795,34 @@ func can_take_spirit(rh: RunHero) -> bool:
 	return rh.spirits.size() < SPIRIT_SLOTS
 
 
-# Дух приходит к герою: его первые три карты сразу в колоду
+# Сколько карт дух даёт герою сразу: 3, а со «Старой уздой» — 4, если отряд уже покорял его раньше
+func spirit_start_count(sp: SpiritData) -> int:
+	var count: int = SPIRIT_START_CARDS
+	if sp != null and known_spirits.has(sp.id):
+		count += Meta.effect_total("spirit_start_cards")
+	return count
+
+
+# Дух приходит к герою: его первые карты сразу в колоду (обычно три)
 func add_spirit(rh: RunHero, sp: SpiritData) -> bool:
 	if sp == null or not can_take_spirit(rh) or party_has_spirit(sp.id):
 		return false
 	rh.spirits.append(sp)
 	var cards: Array[CardData] = sp.cards_for(rh.data.id)
-	for i in mini(3, cards.size()):
+	for i in mini(spirit_start_count(sp), cards.size()):
 		rh.deck.append(cards[i])
+	if not run_spirits.has(sp.id):
+		run_spirits.append(sp.id)
+	Meta.record_spirit_tamed(sp.id)
 	return true
 
 
-# Карты духов, которые могут выпасть герою в награде: Д4–Д6 своих духов и смешанные открытых пар
+# Карты духов, которые могут выпасть герою в награде: оставшиеся карты своих духов (обычно Д4–Д6) и смешанные открытых пар
 func spirit_reward_cards(rh: RunHero) -> Array[CardData]:
 	var result: Array[CardData] = []
 	for sp in rh.spirits:
 		var cards: Array[CardData] = sp.cards_for(rh.data.id)
-		for i in range(3, cards.size()):
+		for i in range(spirit_start_count(sp), cards.size()):
 			result.append(cards[i])
 	for other in party:
 		for sp in other.spirits:

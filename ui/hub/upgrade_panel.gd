@@ -1,6 +1,7 @@
 class_name UpgradePanel
 extends HubPanel
 # Постоянные улучшения за Отзвуки. Одна панель на три доски: Доска дозора, Круг ордена, Оружейная.
+# Строку улучшения (make_row) берёт и Святилище духов.
 
 var board: MetaUpgradeData.Desk = MetaUpgradeData.Desk.PARTY
 
@@ -30,10 +31,10 @@ func _rebuild() -> void:
 	body.add_child(UiKit.make_text(notes[board], 15, UiKit.TEXT_DIM, 660))
 	for u in Meta.UPGRADES:
 		if u.board == board:
-			body.add_child(_make_row(u))
+			body.add_child(make_row(u))
 
 
-func _make_row(u: MetaUpgradeData) -> Control:
+static func make_row(u: MetaUpgradeData) -> Control:
 	var maxed: bool = Meta.is_maxed(u.id)
 	var panel: PanelContainer = UiKit.make_panel(Color(UiKit.PANEL_LIGHT, 0.6), UiKit.BRASS_DARK if maxed else UiKit.LINE)
 	var row := HBoxContainer.new()

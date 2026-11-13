@@ -1,9 +1,9 @@
 class_name MetaUpgradeData
 extends Resource
-# Постоянное улучшение за Отзвуки (Доска дозора, Круг ордена, Оружейная).
+# Постоянное улучшение за Отзвуки (Доска дозора, Круг ордена, Оружейная, Святилище духов).
 # Файлы лежат в resources/meta_upgrades/*.tres — цены и числа правятся там, без кода.
 
-enum Desk { PARTY, MAGE, KNIGHT }   # на какой доске лежит улучшение (не «Board»: так зовётся поле боя)
+enum Desk { PARTY, MAGE, KNIGHT, SPIRIT }   # на какой доске лежит улучшение (не «Board»: так зовётся поле боя)
 
 @export var id: String = ""
 @export var title: String = ""

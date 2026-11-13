@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "m_cross_bolt"
+icon = "cross_bolt"
+title = "Перекрёстный разряд"
+description = "Косой крест на расстоянии до 5: 4 урона молнией по клетке и четырём клеткам наискосок. +1 заряд. По мокрым — ещё +3."
+cost = 2
+shape = 13
+cast_range = 5
+damage = 4
+charge_gain = 1
+element = 4
+card_set = "storm"
