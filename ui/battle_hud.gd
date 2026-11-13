@@ -17,7 +17,8 @@ signal speed_toggled   # нажали «×1 / ×2» или клавишу F
 
 const LOG_LINES: int = 6
 const HAND_PEEK: float = 116.0     # сколько карты торчит над нижним краем экрана, пока на неё не навели
-const HAND_MAX_WIDTH: float = 800.0 # шире этого рука не растягивается
+const HAND_MAX_WIDTH: float = 780.0 # шире этого рука не растягивается (не заходит под кнопки справа)
+const CORNER_WIDTH: float = 230.0   # ширина правого нижнего угла: подсказка, цепь, кнопки
 const SIDE_WIDTH: float = 300.0
 
 # Цвета клеток на поле — такие же, как в scripts/battle.gd (для памятки слева снизу)
@@ -38,6 +39,8 @@ var _chain_label: Label   # «Цепь N» — сколько карт отря�
 var _last_chain: int = 0
 var _speed_button: Button
 var _discard_button: Button
+var _corner: VBoxContainer         # правый нижний угол: подсказка, «Цепь», «Сбросить» + скорость, «Конец хода»
+var _corner_row: HBoxContainer     # строка с «Сбросить» и скоростью врагов
 var _end_tween: Tween
 var _round_label: Label
 var _objective_row: HBoxContainer   # цель боя под шапкой журнала (скрыта в обычном бою)
@@ -67,6 +70,7 @@ func _ready() -> void:
 
 	_build_hero_box()
 	_build_side_column()
+	_build_corner()
 	_build_hand()
 	_build_end_button()
 	_build_speed_button()
@@ -161,17 +165,13 @@ func _build_hand() -> void:
 	# Подсказка — справа снизу, прямо над кнопкой «Конец хода»
 	_hint_panel = PanelContainer.new()
 	_hint_panel.add_theme_stylebox_override("panel", UiKit.box(Color(UiKit.PANEL, 0.82), Color(UiKit.LINE, 0.8), 1, 9, 10, 5))
-	_hint_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_hint_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_hint_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_hint_panel.offset_right = -14
-	_hint_panel.offset_bottom = -82
+	_hint_panel.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hint_panel.visible = false
-	_root.add_child(_hint_panel)
+	_corner.add_child(_hint_panel)
 	_hint = UiKit.make_label("", 13, UiKit.TEXT)
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_hint.custom_minimum_size.x = 232
+	_hint.custom_minimum_size.x = CORNER_WIDTH - 20
 	_hint_panel.add_child(_hint)
 
 
@@ -182,15 +182,10 @@ func _build_end_button() -> void:
 	_end_button.focus_mode = Control.FOCUS_NONE
 	_end_button.add_theme_font_override("font", UiKit.font_bold())
 	_end_button.add_theme_font_size_override("font_size", 18)
-	_end_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_end_button.offset_left = -204
-	_end_button.offset_top = -72
-	_end_button.offset_right = -14
-	_end_button.offset_bottom = -14
+	_end_button.custom_minimum_size = Vector2(CORNER_WIDTH, 58)
 	_end_button.tooltip_text = "Закончить ход героев. Враги сделают ровно то, что показано на поле:\nжёлтые линии — куда пойдут, красные клетки — куда ударят."
 	Sfx.bind_button(_end_button, "turn")
 	_end_button.pressed.connect(end_turn_pressed.emit)
-	_root.add_child(_end_button)
 	# Цепь — над кнопкой «Конец хода», крупно, латунью
 	_chain_label = Label.new()
 	_chain_label.add_theme_font_override("font", UiKit.font_bold())
@@ -199,50 +194,62 @@ func _build_end_button() -> void:
 	_chain_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	_chain_label.add_theme_constant_override("outline_size", 6)
 	_chain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_chain_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_chain_label.offset_left = -204
-	_chain_label.offset_right = -14
-	_chain_label.offset_top = -112
-	_chain_label.offset_bottom = -76
+	_chain_label.custom_minimum_size = Vector2(CORNER_WIDTH, 36)
 	_chain_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	_chain_label.tooltip_text = "Цепь: сколько карт отряд сыграл в этот ход.\nКарты с «Цепь N» и «+X за звено» становятся сильнее."
-	_chain_label.pivot_offset = Vector2(190, 18)
-	_root.add_child(_chain_label)
+	_chain_label.pivot_offset = Vector2(CORNER_WIDTH, 18)
+	# Порядок в углу сверху вниз: подсказка, «Цепь», кнопки поменьше, «Конец хода»
+	_corner.add_child(_chain_label)
+	_corner.add_child(_corner_row)
+	_corner.add_child(_end_button)
+
+
+# Правый нижний угол — одна колонка, чтобы подсказка, «Цепь» и кнопки никогда не наезжали
+# друг на друга и на руку (раньше стояли по отдельным отступам и перекрывались).
+func _build_corner() -> void:
+	_corner = VBoxContainer.new()
+	_corner.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	_corner.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_corner.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_corner.offset_right = -14
+	_corner.offset_bottom = -14
+	_corner.alignment = BoxContainer.ALIGNMENT_END
+	_corner.add_theme_constant_override("separation", 6)
+	_corner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_corner)
+	_corner_row = HBoxContainer.new()
+	_corner_row.add_theme_constant_override("separation", 6)
+	_corner_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 # Памятка по цветам клеток и кнопка справки — слева снизу
-# Маленькая кнопка слева от «Конец хода»: ход врагов быстрее в два раза (клавиша F)
+# Маленькая кнопка над «Конец хода», справа: ход врагов быстрее в два раза (клавиша F)
 func _build_speed_button() -> void:
 	_speed_button = Button.new()
 	_speed_button.toggle_mode = true
 	_speed_button.focus_mode = Control.FOCUS_NONE
 	_speed_button.add_theme_font_size_override("font_size", 13)
-	_speed_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_speed_button.offset_left = -344
-	_speed_button.offset_top = -72
-	_speed_button.offset_right = -214
-	_speed_button.offset_bottom = -14
+	_speed_button.custom_minimum_size = Vector2((CORNER_WIDTH - 6) / 2, 46)
+	_speed_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_speed_button.tooltip_text = "Скорость хода врагов: обычная или в два раза быстрее. Клавиша F.\nМожно переключать и пока враги ходят."
 	Sfx.bind_button(_speed_button)
 	_speed_button.pressed.connect(toggle_speed_from_button)
-	_root.add_child(_speed_button)
+	_corner_row.add_child(_speed_button)
 	_update_speed_button()
 
 
-# Кнопка «Сбросить» слева от кнопки скорости: сбросить одну карту из руки за ход (клавиша X)
+# Кнопка «Сбросить» над «Конец хода», слева от кнопки скорости: сбросить одну карту из руки за ход (клавиша X)
 func _build_discard_button() -> void:
 	_discard_button = Button.new()
 	_discard_button.toggle_mode = true
 	_discard_button.focus_mode = Control.FOCUS_NONE
 	_discard_button.add_theme_font_size_override("font_size", 13)
-	_discard_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	_discard_button.offset_left = -484
-	_discard_button.offset_top = -72
-	_discard_button.offset_right = -354
-	_discard_button.offset_bottom = -14
+	_discard_button.custom_minimum_size = Vector2((CORNER_WIDTH - 6) / 2, 46)
+	_discard_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	Sfx.bind_button(_discard_button)
 	_discard_button.pressed.connect(discard_toggled.emit)
-	_root.add_child(_discard_button)
+	_corner_row.add_child(_discard_button)
+	_corner_row.move_child(_discard_button, 0)   # «Сбросить» слева, скорость справа
 
 
 # Обновляет кнопку сброса: сколько сбросов осталось и включён ли режим выбора карты
