@@ -672,7 +672,8 @@ func _make_hand_slot(active: BattleUnit, index: int, cost: int, playable: bool, 
 
 
 func _selected_frame() -> StyleBoxFlat:
-	var frame: StyleBoxFlat = UiKit.box(CardView.COLOR_PAPER.lightened(0.06), UiKit.BRASS.lightened(0.3), 3, 10, 0, 0)
+	var frame: StyleBoxFlat = UiKit.box(CardView.COLOR_PAPER.lightened(0.06), UiKit.BRASS.lightened(0.3), 4, 8, 0, 0)
+	frame.corner_detail = 1   # срезанные углы, как у самой карты
 	frame.shadow_color = Color(UiKit.BRASS, 0.55)
 	frame.shadow_size = 12
 	return frame
