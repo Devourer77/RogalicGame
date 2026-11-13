@@ -20,11 +20,15 @@ config/icon="res://icon.svg"
 Meta="*res://scripts/autoload/meta.gd"
 Run="*res://scripts/autoload/run.gd"
 Sfx="*res://scripts/autoload/sfx.gd"
+GameWindow="*res://scripts/autoload/game_window.gd"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
+window/size/mode=3
+window/size/window_width_override=1920
+window/size/window_height_override=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
