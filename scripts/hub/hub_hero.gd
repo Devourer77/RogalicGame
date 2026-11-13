@@ -1,7 +1,8 @@
 class_name HubHero
 extends CharacterBody3D
 ## Герой в хабе. Активный ходит по WASD относительно камеры, второй сам идёт к костру и садится.
-## Пока — капсула-заглушка. CharacterBody3D — узел Godot для персонажа, которого двигает код:
+## Облик — та же модель, что в бою (HeroData.model), с анимациями Idle и Walk; если модели нет —
+## капсула-заглушка. CharacterBody3D — узел Godot для персонажа, которого двигает код:
 ## сам упирается в стены при move_and_slide().
 
 const MOVE_SPEED: float = 3.5         # метров в секунду
@@ -12,16 +13,21 @@ const ARRIVE_DISTANCE: float = 0.25   # так близко к месту — с
 const SIT_DROP: float = 0.4           # на сколько опускается сидящий герой
 const STUCK_CHECK_TIME: float = 1.2   # раз в столько секунд проверяем, не застрял ли идущий к костру
 const STUCK_MIN_PROGRESS: float = 0.15
+# Во сколько раз ускорить анимацию ходьбы, чтобы шаги совпали со скоростью в хабе
+# (в бою герой идёт быстрее, там ускорение 1,6).
+const WALK_ANIM_SPEED: float = 1.0
 
 signal arrived   # неактивный герой дошёл до места
 
 @export var hero_id: String = "mage"  # "mage" или "knight"
 
+var model_scene: PackedScene          # модель героя (из HeroData); задать до add_child
 var camera: Camera3D                  # ходим относительно этой камеры
 var can_move: bool = true             # false, пока открыта панель или камера перелетает
 var is_active: bool = true            # под управлением игрока
 
 var _mesh_root: Node3D
+var _anim: AnimationPlayer            # анимации модели; null — у капсулы
 var _walk_time: float = 0.0
 var _goal: Vector3 = Vector3.ZERO
 var _path: Array[Vector3] = []        # путь по точкам: идём к первой, потом к следующей
@@ -54,10 +60,16 @@ func _physics_process(delta: float) -> void:
 		_walk_time += delta * 9.0
 		if is_active and int(_walk_time / PI) > prev_step:
 			Sfx.play("step", 0.1, -6.0)
-		_mesh_root.position.y = absf(sin(_walk_time)) * 0.06   # лёгкое покачивание вместо анимации ходьбы
+		if _anim != null:
+			_play_loop("Walk", WALK_ANIM_SPEED)
+		else:
+			_mesh_root.position.y = absf(sin(_walk_time)) * 0.06   # покачивание вместо анимации ходьбы
 	elif not _seated:
 		_walk_time = 0.0
-		_mesh_root.position.y = move_toward(_mesh_root.position.y, 0.0, delta)
+		if _anim != null:
+			_play_loop("Idle")
+		else:
+			_mesh_root.position.y = move_toward(_mesh_root.position.y, 0.0, delta)
 
 
 # WASD относительно камеры, но по земле (без наклона вниз). По диагонали скорость та же.
@@ -148,13 +160,31 @@ func _sit() -> void:
 	d.y = 0.0
 	if d.length() > 0.01:
 		rotation.y = atan2(-d.x, -d.z)
+	if _anim != null:
+		# Анимации «сидеть» у моделей пока нет: герой стоит у огня и «дышит»
+		if _anim.has_animation("Sit"):
+			_play_loop("Sit")
+		else:
+			_play_loop("Idle")
+		return
 	create_tween().tween_property(_mesh_root, "position:y", -SIT_DROP, 0.25)
 
 
 func _stand_up() -> void:
 	if _seated:
 		_seated = false
-		create_tween().tween_property(_mesh_root, "position:y", 0.0, 0.2)
+		if _anim == null:
+			create_tween().tween_property(_mesh_root, "position:y", 0.0, 0.2)
+
+
+# Включает зацикленную анимацию, если она ещё не играет (плавный переход 0,15 с)
+func _play_loop(anim_name: String, speed: float = 1.0) -> void:
+	if _anim == null or not _anim.has_animation(anim_name):
+		return
+	if _anim.current_animation != anim_name:
+		_anim.play(anim_name, 0.15, speed)
+	else:
+		_anim.speed_scale = speed
 
 
 # ---------- Заглушка-тело ----------
@@ -171,6 +201,10 @@ func _build_body() -> void:
 	_mesh_root = Node3D.new()
 	_mesh_root.name = "Visual"
 	add_child(_mesh_root)
+
+	if model_scene != null:
+		_build_model()
+		return
 
 	# Цвета-якоря героев из мир.md: Маг — тёмно-синий, Рыцарь — тусклая сталь и тёмно-жёлтый.
 	var body_color: Color = Color(0.16, 0.2, 0.42) if hero_id == "mage" else Color(0.5, 0.52, 0.55)
@@ -193,6 +227,21 @@ func _build_body() -> void:
 	nose.material_override = _material(accent_color)
 	nose.position = Vector3(0.0, BODY_HEIGHT * 0.8, -BODY_RADIUS)
 	_mesh_root.add_child(nose)
+
+
+# Модель из боя. Она смотрит на +Z, а в хабе «вперёд» — это −Z, поэтому разворачиваем её на 180°.
+func _build_model() -> void:
+	var model: Node3D = model_scene.instantiate()
+	model.rotation.y = PI
+	_mesh_root.add_child(model)
+	var players: Array[Node] = model.find_children("*", "AnimationPlayer", true, false)
+	if players.is_empty():
+		return
+	_anim = players[0] as AnimationPlayer
+	for anim_name: String in ["Idle", "Walk", "Sit"]:
+		if _anim.has_animation(anim_name):
+			_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
+	_play_loop("Idle")
 
 
 func _material(color: Color) -> StandardMaterial3D:
