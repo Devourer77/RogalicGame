@@ -50,12 +50,18 @@ const ENCOUNTERS: Array[EncounterData] = [
 	preload("res://resources/encounters/rift_mix.tres"),
 	preload("res://resources/encounters/drivers.tres"),
 	preload("res://resources/encounters/rising_bog.tres"),
+	preload("res://resources/encounters/novices.tres"),
+	preload("res://resources/encounters/spores.tres"),
+	preload("res://resources/encounters/torches.tres"),
+	preload("res://resources/encounters/reed_ambush.tres"),
+	preload("res://resources/encounters/stone_line.tres"),
 ]
 # Пулы элит и боссов акта: в начале забега выбираются ELITES_PER_RUN разных элит и один босс
 const ELITE_POOL: Array[EncounterData] = [
 	preload("res://resources/encounters/elite_treant.tres"),
 	preload("res://resources/encounters/elite_queen.tres"),
 	preload("res://resources/encounters/elite_alpha.tres"),
+	preload("res://resources/encounters/elite_singer.tres"),
 ]
 const BOSS_POOL: Array[EncounterData] = [
 	preload("res://resources/encounters/boss_ogre.tres"),

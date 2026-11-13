@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/reed_lurker.tres" id="2_lurker"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin_slinger.tres" id="3_slinger"]
+[ext_resource type="Resource" path="res://resources/enemies/wolf.tres" id="4_wolf"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin.tres" id="5_goblin"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "reed_ambush"
+title = "Засада в камыше"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_lurker"), ExtResource("2_lurker"), ExtResource("3_slinger"), ExtResource("4_wolf")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("2_lurker"), ExtResource("5_goblin")])
+min_row = 1
+max_row = 3
+arena = "reeds"

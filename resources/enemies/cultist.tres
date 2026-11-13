@@ -8,6 +8,7 @@ script = ExtResource("1_enemy")
 id = "cultist"
 title = "Культист"
 description = "Он поёт, пока небо трескается. Ему нравится этот звук."
+cult = true
 max_hp = 8
 move_range = 2
 damage = 4

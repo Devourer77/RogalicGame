@@ -44,6 +44,7 @@ var prism: bool = false       # «Магическая призма»: след�
 var vulnerable: int = 0       # «Уязвимость к магии»: следующее Заклинание бьёт сильнее на столько
 var retain_turns: Dictionary = {}  # карта -> сколько ходов пролежала в руке (OnRetain), у героев
 var bonus_damage: int = 0     # «Зов Раскола»: следующий удар сильнее на столько
+var crown_power: int = 0      # «Наследие венца»: все удары сильнее на столько (до конца боя)
 var ai_reason: String = ""    # почему враг так ходит («Добьёт Мага»); считает EnemyAI, показывает карточка врага
 
 
@@ -77,6 +78,7 @@ func copy() -> BattleUnit:
 	u.entangled = entangled
 	u.wet = wet
 	u.poison = poison
+	u.crown_power = crown_power
 	u.rune = rune
 	u.rune_hits = rune_hits
 	u.inflation = inflation

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/rock_crawler.tres" id="2_crawler"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin_shaman.tres" id="3_shaman"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin_slinger.tres" id="4_slinger"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="5_cultist"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin.tres" id="6_goblin"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "stone_line"
+title = "Каменный строй"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_crawler"), ExtResource("2_crawler"), ExtResource("3_shaman"), ExtResource("4_slinger"), ExtResource("5_cultist")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("6_goblin")])
+min_row = 4

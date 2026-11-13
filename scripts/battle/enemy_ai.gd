@@ -122,11 +122,38 @@ static func _decide(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 				or (ctx["prey"] != null and info["prey_hurt"])
 		return result
 
+	# Засадник: ударить некого — ждёт в ближайшем к героям камыше, не выходя на открытое место
+	if e.data.ai_style == EnemyData.AiStyle.AMBUSH:
+		var hide: Vector2i = _ambush_cell(l, e, options, heroes)
+		if hide != Vector2i(-999, -999):
+			result["cell"] = hide
+			result["reason"] = "Засада: ждёт в камыше"
+			return result
+
 	# Ударить некого — подходим
 	var move: Dictionary = _best_approach(l, e, options, taunters, heroes, ctx)
 	result["cell"] = move["cell"]
 	result["reason"] = move["reason"]
 	return result
+
+
+# Клетка камыша, куда засаднику перейти: из досягаемых — ближайшая к героям (при равенстве — меньше шагов).
+# Камыша рядом нет — Vector2i(-999, -999), тогда засадник идёт к героям как обычный враг.
+static func _ambush_cell(l: BattleLogic, e: BattleUnit, options: Dictionary[Vector2i, Array],
+		heroes: Array[BattleUnit]) -> Vector2i:
+	var best: Vector2i = Vector2i(-999, -999)
+	var best_key: Vector2i = Vector2i(9999, 9999)
+	for c: Vector2i in options.keys():
+		if l.object_at(c) != BattleLogic.Obj.REEDS:
+			continue
+		var near: int = 9999
+		for h in heroes:
+			near = mini(near, HexMath.distance(c, h.cell))
+		var key := Vector2i(near, options[c].size())
+		if key.x < best_key.x or (key.x == best_key.x and key.y < best_key.y):
+			best_key = key
+			best = c
+	return best
 
 
 # Всё, что нужно знать об обстановке, считается один раз на врага

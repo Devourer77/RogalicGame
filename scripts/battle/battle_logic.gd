@@ -631,7 +631,8 @@ func snapshot(u: BattleUnit) -> Dictionary:
 		# Что враг собирается сделать в этом раунде — для надписи над головой
 		var atk: EnemyAttackData = enemy_attack(u)
 		state["intent"] = atk.title
-		state["damage"] = atk.damage + u.bonus_damage + ritual_power if atk.shape != EnemyData.Attack.AURA else 0
+		state["damage"] = atk.damage + u.bonus_damage + u.crown_power + ritual_power + _ambush_bonus(u) \
+				if atk.shape != EnemyData.Attack.AURA else 0
 		state["fuse"] = u.fuse
 		state["smoldering"] = is_smoldering(u)
 		if u.fuse > 0:
@@ -2136,6 +2137,7 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		unit_died.emit(unit)
 		message.emit("%s падает" % unit.title)
 		_death_blast(unit)
+		_pass_crown(unit)
 	elif unit.data != null and unit.data.inflation and _cur_attack and _cur_card != null \
 			and _cur_card.special != "harpoon":
 		unit.inflation += 1
@@ -2148,6 +2150,32 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 # Жаба, погибая, лопается: урон четырём соседям (и своим, и чужим), удар по
 # деревьям и бочкам рядом, на её клетке остаётся лужа. Утонула — взрыва нет
 # (тогда вызывается _kill, а не _damage).
+# «Засада»: удар из камыша сильнее
+func _ambush_bonus(e: BattleUnit) -> int:
+	if e.data == null or e.data.ambush <= 0 or object_at(e.cell) != Obj.REEDS:
+		return 0
+	return e.data.ambush
+
+
+# «Наследие венца»: павший послушник отдаёт силу ближайшему живому культисту
+# (при равенстве — первому по списку, без случайности)
+func _pass_crown(unit: BattleUnit) -> void:
+	if unit.data == null or unit.data.bequest <= 0:
+		return
+	var heir: BattleUnit = null
+	for e in living_enemies():
+		if e == unit or not e.data.cult:
+			continue
+		if heir == null or HexMath.distance(e.cell, unit.cell) < HexMath.distance(heir.cell, unit.cell):
+			heir = e
+	if heir == null:
+		return
+	heir.crown_power += unit.data.bequest
+	message.emit("%s принимает венец: удары +%d" % [heir.title, unit.data.bequest])
+	enemy_buffed.emit(heir, [heir.cell] as Array[Vector2i])
+	status_changed.emit(heir, snapshot(heir))
+
+
 func _death_blast(unit: BattleUnit) -> void:
 	if unit.data != null and unit.data.inflation:
 		_inflation_burst(unit)
@@ -2931,7 +2959,7 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 	enemy_attacked.emit(e, dir, cells)
 	if atk.title != "Удар":
 		message.emit("%s: %s" % [e.title, atk.title])
-	var damage: int = atk.damage + e.bonus_damage + ritual_power
+	var damage: int = atk.damage + e.bonus_damage + e.crown_power + ritual_power + _ambush_bonus(e)
 	if e.bonus_damage > 0:
 		e.bonus_damage = 0   # усиление «Зова» — на один удар
 		status_changed.emit(e, snapshot(e))
@@ -2958,6 +2986,9 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 			_set_poison(u, atk.poison)
 	if atk.gas_cloud:
 		_gas_cloud(cells)
+	if atk.ignite:
+		for c in cells:
+			_apply_element(c, CardData.Element.FIRE, e.cell, false)
 	if e.data.swamp_on_hit:
 		_make_swamp_around(e, victims)
 	if atk.push > 0:
@@ -3441,6 +3472,9 @@ func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
 		amount = amount * (100 + PINCER_BONUS_PCT) / 100
 		reaction.emit(u.cell, "pincer")
 		message.emit("%s в клещах!" % u.title)
+	elif amount > 0 and u.data != null and u.data.shell:
+		amount = amount / 2   # «Панцирь»: без клещей половина урона (вниз)
+		message.emit("%s: панцирь держит удар" % u.title)
 	if not _hit_enemies.has(u):
 		_hit_enemies.append(u)
 	_damage(u, amount, pierce)

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "cult_novice"
+title = "Послушник Венца"
+description = "Свой венец он ещё не заслужил. Но готов отдать его тому, кто заслужил."
+max_hp = 6
+move_range = 3
+damage = 3
+attack = 0
+attack_range = 1
+color = Color(0.45, 0.44, 0.42, 1)
+attack_title = "Удар кадилом"
+cult = true
+bequest = 2

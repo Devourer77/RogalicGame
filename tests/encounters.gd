@@ -49,6 +49,7 @@ func _initialize() -> void:
 	_alpha()
 	_mother()
 	_forecast()
+	_second_wave()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 
@@ -85,7 +86,10 @@ func _packs() -> void:
 	check("За забег отряд не повторяется", repeat_ok)
 	check("Шаман — не больше одного на бой", shaman_ok)
 	check("Встречаются все %d отрядов" % run.ENCOUNTERS.size(), packs_seen.size() == run.ENCOUNTERS.size())
-	check("В обычных боях есть все 8 видов (7 старых + ткач)", seen.size() == 8 and seen.has("swamp_weaver"))
+	var expect: Dictionary = {}
+	for enc: EncounterData in run.ENCOUNTERS:
+		for d in enc.core + enc.filler: expect[d.id] = true
+	check("В обычных боях встречаются все виды из отрядов (%d)" % expect.size(), seen.size() == expect.size())
 	# Тот же сид — тот же отряд
 	run.start_new_run(42); run._make_encounter(2, false); var a: String = run.pending_encounter.id
 	run.start_new_run(42); run._make_encounter(2, false)
@@ -264,3 +268,86 @@ func _forecast() -> void:
 			if sim.heroes[i].hp != l.heroes[i].hp or sim.heroes[i].cell != l.heroes[i].cell: ok = false
 		if sim.tiles != l.tiles: ok = false
 	check("Копия боя ходит так же, как настоящий бой (призыв, газ, паутина)", ok)
+
+
+# Второй набор: скальник, споровик, скрытень, факельщик, послушник, Певчая
+func _second_wave() -> void:
+	print("--- Скальник ---")
+	var l := fresh(["rock_crawler"]); var e: BattleUnit = l.enemies[0]
+	e.cell = L(5)
+	l._cur_hero = l.heroes[0]
+	l._card_damage(e, 10, false)
+	check("Панцирь: без клещей урон от карты вдвое меньше (10 → 5)", e.hp == 11)
+	l = fresh(["rock_crawler"]); e = l.enemies[0]
+	e.cell = L(5); l.heroes[0].cell = L(9); l.heroes[1].cell = L(2)
+	l._cur_hero = l.heroes[0]
+	l._card_damage(e, 10, false)
+	check("Панцирь: в клещах — полный урон и +50% (10 → 15)", e.hp == 1)
+
+	print("--- Споровик ---")
+	l = fresh(["sporeling"]); e = l.enemies[0]; var m: BattleUnit = l.heroes[0]
+	e.cell = L(8)
+	var before: Vector2i = e.cell
+	l._enemies_act()
+	var gas := 0
+	for c in HexMath.neighbors(e.cell):
+		if l.tile_at(c) == T.GAS: gas += 1
+	check("Споровик не двигается", e.cell == before)
+	check("Споры: 2 урона вплотную и газ вокруг", m.hp == 28 and gas >= 5)
+	l = fresh(["sporeling"]); e = l.enemies[0]
+	l.turn = 2
+	l._enemies_act()
+	check("Рост: +4 блока себе", e.block == 4)
+
+	print("--- Скрытень ---")
+	l = fresh(["reed_lurker"]); e = l.enemies[0]
+	e.cell = C(5, 2)
+	var reed: Vector2i = C(5, 4)
+	l.objects[reed] = BattleLogic.Obj.REEDS
+	l._enemies_act()
+	check("Засадник: ударить некого — уходит в камыш и ждёт", e.cell == reed)
+	l = fresh(["reed_lurker"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = L(8); l.objects[L(8)] = BattleLogic.Obj.REEDS
+	l._enemies_act()
+	check("Удар из камыша: 4 + 3 засада", m.hp == 23)
+
+	print("--- Факельщик ---")
+	l = fresh(["torch_goblin"]); e = l.enemies[0]; m = l.heroes[0]
+	e.cell = L(6)
+	l._enemies_act()
+	check("Факел: 1 урон и огонь под магом", m.hp == 29 and l.tile_at(m.cell) == T.FIRE)
+
+	print("--- Послушник ---")
+	l = fresh(["cult_novice", "cultist"]); var nov: BattleUnit = l.enemies[0]; var cul: BattleUnit = l.enemies[1]
+	l._damage(nov, 20)
+	check("Послушник пал — культист принял венец (+2)", cul.crown_power == 2)
+	cul.cell = L(5)
+	l._enemies_act()
+	check("Культист с венцом бьёт на 4 + 2", l.heroes[0].hp == 24 or l.heroes[1].hp == 39)
+
+	print("--- Певчая Венца ---")
+	l = fresh(["choir_singer", "cultist"]); e = l.enemies[0]; cul = l.enemies[1]
+	e.cell = C(5, 1); cul.cell = C(6, 1)
+	l._enemies_act()
+	check("Хор: культисту +3 блока и +2 к удару", cul.block >= 3 and cul.bonus_damage == 2 or l.heroes[0].hp < 30 or l.heroes[1].hp < 45)
+	l = fresh(["choir_singer"]); e = l.enemies[0]; m = l.heroes[0]
+	l.turn = 2; e.cell = L(4)
+	l._enemies_act()
+	check("Луч Венца: 5 урона по линии сквозь преграды", m.hp == 25)
+
+	print("--- Прогноз (второй набор) ---")
+	var ok := true
+	for kind in [["sporeling", 1], ["reed_lurker", 1], ["torch_goblin", 1], ["choir_singer", 1], ["rock_crawler", 1]]:
+		var b := fresh([kind[0], "cult_novice", "cultist"])
+		b.turn = kind[1]
+		b.enemies[0].cell = C(5, 6)
+		b.objects[C(4, 7)] = BattleLogic.Obj.REEDS
+		b.objects[C(6, 7)] = BattleLogic.Obj.BARREL
+		var sim: BattleLogic = b.clone()
+		sim._enemies_act(); b._enemies_act()
+		for i in b.enemies.size():
+			if sim.enemies[i].cell != b.enemies[i].cell or sim.enemies[i].hp != b.enemies[i].hp: ok = false
+		for i in b.heroes.size():
+			if sim.heroes[i].hp != b.heroes[i].hp: ok = false
+		if sim.tiles != b.tiles: ok = false
+	check("Копия боя ходит так же (газ, огонь, засада, хор)", ok)

@@ -1,0 +1,41 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk_choir"]
+script = ExtResource("2_attack")
+title = "Хор Венца"
+anim = "Attack2"
+shape = 3
+attack_range = 2
+damage = 0
+ally_block = 3
+ally_damage = 2
+
+[sub_resource type="Resource" id="atk_beam"]
+script = ExtResource("2_attack")
+title = "Луч Венца"
+shape = 1
+attack_range = 5
+damage = 5
+pierce = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "choir_singer"
+title = "Певчая Венца"
+description = "Её песню слышат даже мёртвые. Особенно мёртвые."
+max_hp = 32
+move_range = 2
+damage = 5
+attack = 1
+attack_range = 5
+color = Color(0.42, 0.42, 0.4, 1)
+size = 1.1
+is_elite = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_choir"), SubResource("atk_beam")])
+keep_distance = 3
+turn_block = 2
+bog_damage = 6
+cult = true

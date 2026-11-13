@@ -13,7 +13,7 @@ enum Attack {
 
 # Характер: NORMAL — как все; HUNTER — идёт к самому раненому герою; GUARD — держится рядом
 # со стрелком или шаманом (см. scripts/battle/enemy_ai.gd)
-enum AiStyle { NORMAL, HUNTER, GUARD }
+enum AiStyle { NORMAL, HUNTER, GUARD, AMBUSH }
 
 @export var id: String = ""
 @export var title: String = ""
@@ -59,6 +59,10 @@ enum AiStyle { NORMAL, HUNTER, GUARD }
 @export var swamp_on_hit: bool = false  # топляк: удар превращает клетки вокруг него в трясину и подмешивает в руку «Болотную тину»
 @export var living_shield: bool = false # корягач: перехватывает одиночные дальние атаки и заклинания по врагам рядом с ним
 @export var fire_weak: bool = false   # в огне теряет блок и получает двойной урон от огня
+@export var shell: bool = false       # «Панцирь» (скальник): урон от карт вдвое меньше, если враг не в «клещах»
+@export var ambush: int = 0           # «Засада» (скрытень): удар из камыша сильнее на столько
+@export var cult: bool = false        # из Культа Пустого Венца (получает венец павшего послушника)
+@export var bequest: int = 0          # «Наследие венца» (послушник): погибая, отдаёт ближайшему культисту +столько к удару навсегда
 
 var _basic: EnemyAttackData   # удар простого врага, собранный из полей выше
 
@@ -88,6 +92,8 @@ func traits() -> PackedStringArray:
 		t.append("Охотник: идёт к самому раненому герою")
 	elif ai_style == AiStyle.GUARD:
 		t.append("Телохранитель: держится рядом со стрелком или шаманом")
+	elif ai_style == AiStyle.AMBUSH:
+		t.append("Засадник: ждёт в камыше, пока герой не подойдёт")
 	if bog_walker:
 		t.append("ходит по трясине")
 	if wet_trail:
@@ -106,4 +112,12 @@ func traits() -> PackedStringArray:
 		t.append("не тонет: трясина ранит на %d" % bog_damage)
 	if fire_weak:
 		t.append("боится огня: в огне нет блока, урон от огня ×2")
+	if shell:
+		t.append("Панцирь: урон от карт вдвое меньше, кроме удара в клещах")
+	if ambush > 0:
+		t.append("удар из камыша +%d" % ambush)
+	if bequest > 0:
+		t.append("погибая, отдаёт венец ближайшему культисту: его удары +%d" % bequest)
+	if move_range <= 0:
+		t.append("не двигается")
 	return t

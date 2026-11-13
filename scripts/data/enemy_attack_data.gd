@@ -21,6 +21,7 @@ extends Resource
 @export var ally_damage: int = 0    # зов: на столько сильнее их следующий удар
 @export var poison: int = 0         # отравляет цель на столько раундов (яд ранит в конце раунда мимо блока)
 @export var gas_cloud: bool = false  # клетки удара становятся ядовитым газом (там, где сухо или лужа)
+@export var ignite: bool = false     # поджигает клетки удара: горят земля, бочки, деревья и камыш
 @export var summon: EnemyData       # призыв: кто появляется на свободных клетках рядом (удар формы «зов»)
 @export var summon_count: int = 0   # сколько их появляется (меньше, если рядом нет места)
 
@@ -67,4 +68,6 @@ func describe() -> String:
 		parts.append("яд на %d раунда" % poison)
 	if gas_cloud:
 		parts.append("клетки удара становятся газом")
+	if ignite:
+		parts.append("поджигает клетки удара (бочки, деревья, камыш)")
 	return "%s: %s" % [title, ", ".join(parts)]

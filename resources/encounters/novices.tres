@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_novice.tres" id="2_novice"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="3_cultist"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "novices"
+title = "Послушники"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_novice"), ExtResource("2_novice"), ExtResource("3_cultist"), ExtResource("3_cultist")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("2_novice")])
+max_row = 1
