@@ -23,8 +23,8 @@ def build_mesh():
     wood = k.mat("Torch_Wood", (0.36, 0.27, 0.19), rough=0.95)
     rope = k.mat("Torch_Rope", (0.55, 0.47, 0.33), rough=1.0)
     clay = k.mat("Torch_Clay", (0.50, 0.38, 0.27), rough=0.85)
-    flame = k.mat("Torch_Flame", (0.95, 0.32, 0.06), rough=0.5, emit=3.0)    # огонь — оранжевый
-    flame_c = k.mat("Torch_FlameCore", (1.0, 0.48, 0.12), rough=0.5, emit=3.2)
+    flame = k.mat("Torch_Flame", (0.9, 0.24, 0.03), rough=0.5, emit=2.0)    # огонь — оранжевый
+    flame_c = k.mat("Torch_FlameCore", (1.0, 0.4, 0.08), rough=0.5, emit=2.2)
     g.body(M)
     # Капюшон поверх головы и плеч, хвост капюшона на своей кости
     k.sphere("Hood", 0.19, (0, 0.01, 0.91), hood, "Head", scale=(1.12, 1.12, 1.0), segs=8, rings=4)
