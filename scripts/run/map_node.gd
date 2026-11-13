@@ -2,7 +2,7 @@ class_name MapNode
 extends RefCounted
 # Одна точка на карте забега: бой, событие, лавка, привал, элитный бой или босс.
 
-enum Type { BATTLE, EVENT, SHOP, REST, BOSS, ELITE }
+enum Type { BATTLE, EVENT, SHOP, REST, BOSS, ELITE, LAIR }
 
 var type: Type = Type.BATTLE
 var row: int = 0              # ряд снизу вверх: 0 — старт, последний — босс
@@ -25,4 +25,6 @@ func type_name() -> String:
 			return "БОСС"
 		Type.ELITE:
 			return "Элита"
+		Type.LAIR:
+			return "Логово духа"
 	return "?"

@@ -15,6 +15,7 @@ const NODE_LOOK: Dictionary[int, Array] = {
 	MapNode.Type.SHOP: ["shop", Color(0.47, 0.4, 0.14), "Лавка: купить карту или убрать лишнюю из колоды."],
 	MapNode.Type.REST: ["rest", Color(0.2, 0.43, 0.27), "Привал: оба героя лечатся."],
 	MapNode.Type.BOSS: ["boss", Color(0.5, 0.15, 0.17), "Босс: последний бой акта."],
+	MapNode.Type.LAIR: ["orb", Color(0.2, 0.42, 0.55), "Логово духа: победи духа — и он присоединится к герою."],
 }
 
 var _area: Control                          # область, где рисуются точки и дорожки
@@ -52,7 +53,7 @@ func _ready() -> void:
 	var legend := HBoxContainer.new()
 	legend.alignment = BoxContainer.ALIGNMENT_CENTER
 	legend.add_theme_constant_override("separation", 20)
-	for type: int in [MapNode.Type.BATTLE, MapNode.Type.ELITE, MapNode.Type.EVENT, MapNode.Type.SHOP, MapNode.Type.REST, MapNode.Type.BOSS]:
+	for type: int in [MapNode.Type.BATTLE, MapNode.Type.ELITE, MapNode.Type.LAIR, MapNode.Type.EVENT, MapNode.Type.SHOP, MapNode.Type.REST, MapNode.Type.BOSS]:
 		var look: Array = NODE_LOOK[type]
 		var title: String = (look[2] as String).get_slice(":", 0)
 		legend.add_child(UiKit.chip(look[0], title, (look[1] as Color).lightened(0.55), look[2], 14, 18))

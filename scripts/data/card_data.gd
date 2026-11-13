@@ -110,3 +110,12 @@ enum Role { NONE, MOVE, SETUP, LINK, FINISH }
 @export var ally_block: int = 0         # второй герой получает столько блока
 @export var move_distance: int = 0      # на сколько клеток «Перенос» сдвигает стихию или бочку
 @export var discount_next: int = 0      # следующая карта героя дешевле на столько
+
+@export_group("Духи (этап 3)")
+@export var chain_pull: int = 0         # +притягивание при выполненной Цепи
+@export var rune_charges: int = 0       # на сколько ударов руна (0 — обычное число)
+@export var bonus_amount: int = 0       # число для особого действия (блок, радиус…)
+@export var block_per_hit: int = 3      # «блок за каждого задетого»
+@export var chain_jumps: bool = false   # перескоки молнии: +1 за каждые 2 звена Цепи
+@export var no_falloff: bool = false    # перескоки молнии не слабеют
+@export var is_call: bool = false       # Зов духа: раз в бой, не уходит в сброс, в Цепь не идёт

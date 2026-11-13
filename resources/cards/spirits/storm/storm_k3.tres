@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_k3+1"
+icon = "whirl"
+title = "Гром и сталь+I"
+description = "6 клеток вокруг: 4 урона молнией +1 за звено (мокрым +3)."
+shape = 10
+element = 4
+cost = 2
+cast_range = 0
+damage = 4
+per_link_damage = 1
+card_set = "s_storm"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_k3+2"
+icon = "whirl"
+title = "Гром и сталь+II"
+description = "6 клеток вокруг: 3 молнией +1 за звено. Потом +2 шага и +2 натиска."
+shape = 10
+element = 4
+cost = 2
+cast_range = 0
+damage = 3
+per_link_damage = 1
+bonus_moves = 2
+momentum_gain = 2
+card_set = "s_storm"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_k3"
+icon = "whirl"
+title = "Гром и сталь"
+description = "6 клеток вокруг: 3 урона молнией +1 за звено Цепи (мокрым +3)."
+shape = 10
+element = 4
+cost = 2
+cast_range = 0
+damage = 3
+per_link_damage = 1
+card_set = "s_storm"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

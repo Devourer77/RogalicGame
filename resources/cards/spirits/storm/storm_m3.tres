@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_m3+1"
+icon = "chain"
+title = "Цепная молния+I"
+description = "5 урона до 5, перескок: 2 прыжка +1 за каждые 2 звена, без ослабления. Мокрым +3."
+shape = 1
+element = 4
+cost = 2
+cast_range = 5
+damage = 5
+special = "chain"
+chain_jumps = true
+no_falloff = true
+card_set = "s_storm"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_m3+2"
+icon = "chain"
+title = "Цепная молния+II"
+description = "5 урона +1 за заряд каждой цели, перескок: 2 прыжка +1 за 2 звена. Тратит заряд."
+shape = 1
+element = 4
+cost = 2
+cast_range = 5
+damage = 5
+special = "chain"
+chain_jumps = true
+charge_bonus = 1
+card_set = "s_storm"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_m3"
+icon = "chain"
+title = "Цепная молния"
+description = "5 урона до 5, перескок на ближайших в 2 клетках: 2 прыжка +1 за каждые 2 звена Цепи, каждый −1. Мокрым +3."
+shape = 1
+element = 4
+cost = 2
+cast_range = 5
+damage = 5
+special = "chain"
+chain_jumps = true
+card_set = "s_storm"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

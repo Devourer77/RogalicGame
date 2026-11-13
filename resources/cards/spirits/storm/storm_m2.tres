@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_m2+1"
+icon = "spark"
+title = "Искра молнии+I"
+description = "3 урона молнией до 6 (мокрым +3), +1 заряд."
+shape = 1
+element = 4
+cost = 0
+cast_range = 6
+damage = 3
+charge_gain = 1
+card_set = "s_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 2
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_m2+2"
+icon = "spark"
+title = "Искра молнии+II"
+description = "2 урона молнией до 5, перескок на соседних врагов. +1 заряд."
+shape = 1
+element = 4
+cost = 0
+cast_range = 5
+damage = 2
+charge_gain = 1
+special = "chain"
+card_set = "s_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 2
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_m2"
+icon = "spark"
+title = "Искра молнии"
+description = "2 урона молнией до 5 (мокрым +3), +1 заряд."
+shape = 1
+element = 4
+cost = 0
+cast_range = 5
+damage = 2
+charge_gain = 1
+card_set = "s_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 2
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

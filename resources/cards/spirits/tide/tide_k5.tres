@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "tide_k5+1"
+icon = "chain"
+title = "Тянущая вода+I"
+description = "Враг до 4 притягивается к рыцарю на 3 и мокнет.\nЦепь 2: ещё 4 урона."
+shape = 1
+element = 2
+cost = 0
+cast_range = 4
+pull = 3
+chain_need = 2
+chain_damage = 4
+card_set = "s_tide"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "tide_k5+2"
+icon = "chain"
+title = "Тянущая вода+II"
+description = "Враг до 6 притягивается к рыцарю на 3 и мокнет.\nЦепь 2: ещё 4 урона."
+shape = 1
+element = 2
+cast_range = 6
+pull = 3
+chain_need = 2
+chain_damage = 4
+card_set = "s_tide"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "tide_k5"
+icon = "chain"
+title = "Тянущая вода"
+description = "Враг до 4 притягивается к рыцарю на 3 и мокнет.\nЦепь 2: ещё 4 урона."
+shape = 1
+element = 2
+cast_range = 4
+pull = 3
+chain_need = 2
+chain_damage = 4
+card_set = "s_tide"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

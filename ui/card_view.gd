@@ -28,6 +28,10 @@ const SETS: Dictionary[String, Array] = {
 	"k_onslaught": ["Разгон", Color("8a6a3a")],
 	"k_warden": ["Страж", Color("73818d")],
 	"k_rage": ["Ярость", Color("7a6a52")],
+	# Духи и смешанные пары
+	"s_tide": ["Омутник", Color("4f8fc0")],
+	"s_storm": ["Грозовик", Color("b8ad6a")],
+	"x_tide_storm": ["Гроза над омутом", Color("6f9f9a")],
 }
 # Роли карт (значок-подпись рядом с архетипом)
 const ROLE_NAMES: Array[String] = ["", "Ход", "Заготовка", "Связка", "Развязка"]

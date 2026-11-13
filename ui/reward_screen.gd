@@ -27,6 +27,9 @@ func _ready() -> void:
 	head.add_child(gold)
 	column.add_child(head)
 	column.add_child(UiKit.party_bar())
+	if Run.tamed_spirit != null:
+		_build_spirit_choice(column, Run.tamed_spirit)
+		return
 	column.add_child(UiKit.make_text("Выбери одно на весь отряд: карту Магу, карту Рыцарю или улучшение карты.", 15, UiKit.TEXT_DIM))
 
 	var row := HBoxContainer.new()
@@ -196,6 +199,79 @@ func _finish(chosen: Button, list: Array[Button]) -> void:
 
 func _update_next() -> void:
 	_next_button.disabled = not _picked or not _bonus_done or not _relic_done
+
+
+# ---------- Логово: покорённый дух выбирает героя ----------
+
+func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
+	var panel: PanelContainer = UiKit.make_panel(Color(UiKit.PANEL, 0.8), sp.color)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	panel.add_child(box)
+	var title := HBoxContainer.new()
+	title.alignment = BoxContainer.ALIGNMENT_CENTER
+	title.add_theme_constant_override("separation", 8)
+	title.add_child(UiKit.icon_rect(sp.icon, 28, sp.color))
+	title.add_child(UiKit.make_title("Покорён: " + sp.title, 28, sp.color.lightened(0.3)))
+	box.add_child(title)
+	box.add_child(UiKit.make_text(sp.description, 14, UiKit.TEXT_DIM, 520))
+	box.add_child(UiKit.make_text("Пассив: " + sp.passive_text, 15, UiKit.TEXT, 520))
+	if sp.call_card != null:
+		box.add_child(UiKit.make_text("Зов (раз в бой): " + sp.call_card.description, 15, UiKit.TEXT, 520))
+	box.add_child(UiKit.make_text("К кому пойдёт дух? Его три карты сразу войдут в колоду героя.", 15, UiKit.BRASS, 520))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	box.add_child(row)
+	var buttons: Array[Button] = []
+	for rh in Run.party:
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 6)
+		var cards := HBoxContainer.new()
+		cards.add_theme_constant_override("separation", 6)
+		var cl: Array[CardData] = sp.cards_for(rh.data.id)
+		for i in mini(3, cl.size()):
+			var cb: Button = CardView.make_button(cl[i], rh.data.color)
+			cb.mouse_filter = Control.MOUSE_FILTER_PASS
+			var holder := Control.new()
+			holder.custom_minimum_size = CardView.CARD_SIZE * 0.7
+			cb.pivot_offset = Vector2.ZERO
+			cb.scale = Vector2(0.7, 0.7)
+			holder.add_child(cb)
+			cards.add_child(holder)
+		col.add_child(cards)
+		var free: bool = Run.can_take_spirit(rh)
+		var b: Button = UiKit.make_button(("Отдать: " + rh.data.title) if free else (rh.data.title + ": слоты заняты"), func() -> void: pass)
+		b.disabled = not free
+		b.pressed.connect(func() -> void:
+			if _picked:
+				return
+			Sfx.play("magic", 0.05)
+			Run.add_spirit(rh, sp)
+			_note.text = "%s теперь с духом «%s»" % [rh.data.title, sp.title]
+			for x in buttons: x.disabled = true
+			_picked = true
+			_update_next())
+		buttons.append(b)
+		col.add_child(b)
+		row.add_child(col)
+	var no: Button = UiKit.make_button("Отпустить духа", func() -> void:
+		if _picked:
+			return
+		for x in buttons: x.disabled = true
+		_note.text = "Дух ушёл в туман"
+		_picked = true
+		_update_next())
+	buttons.append(no)
+	box.add_child(no)
+	column.add_child(panel)
+	_note = UiKit.make_label(" ", 14, UiKit.BRASS.lightened(0.2))
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_note)
+	_next_button = UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE), "", true)
+	_next_button.disabled = true
+	column.add_child(_next_button)
 
 
 # ---------- Реликвия после элиты ----------

@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_k1+1"
+icon = "rune_storm"
+title = "Руна бури+I"
+description = "Руна на 3 удара: удары рыцаря — молния (мокрым +3)."
+shape = 0
+cost = 0
+cast_range = 0
+special = "rune_storm"
+card_set = "s_storm"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["storm"])
+spirit_slot = 1
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_k1+2"
+icon = "rune_storm"
+title = "Руна бури+II"
+description = "Руна на 5 ударов: удары рыцаря — молния (мокрым +3)."
+shape = 0
+cast_range = 0
+special = "rune_storm"
+rune_charges = 5
+card_set = "s_storm"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["storm"])
+spirit_slot = 1
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_k1"
+icon = "rune_storm"
+title = "Руна бури"
+description = "Руна на 3 удара: удары рыцаря — молния (мокрым +3)."
+shape = 0
+cast_range = 0
+special = "rune_storm"
+card_set = "s_storm"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["storm"])
+spirit_slot = 1
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

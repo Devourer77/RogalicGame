@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_tide_storm_m1+1"
+icon = "flood"
+title = "Половодье с грозой+I"
+description = "Круг 1 до 5 — лужи, сразу молния по всей воде: 4 урона +1 за звено."
+shape = 3
+cost = 2
+cast_range = 5
+special = "storm_flood"
+bonus_amount = 4
+per_link_damage = 1
+card_set = "x_tide_storm"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "storm"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_tide_storm_m1+2"
+icon = "flood"
+title = "Половодье с грозой+II"
+description = "Круг 1 до 5 — лужи и молния по воде: 3 урона +1 за звено.\nЦепь 3: стоит 1."
+shape = 3
+cost = 2
+cast_range = 5
+special = "storm_flood"
+bonus_amount = 3
+per_link_damage = 1
+chain_need = 3
+chain_cost = 1
+card_set = "x_tide_storm"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "storm"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_tide_storm_m1"
+icon = "flood"
+title = "Половодье с грозой"
+description = "Круг 1 до 5 — лужи, сразу молния по всей воде: 3 урона +1 за звено (мокрым +3)."
+shape = 3
+cost = 2
+cast_range = 5
+special = "storm_flood"
+bonus_amount = 3
+per_link_damage = 1
+card_set = "x_tide_storm"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["tide", "storm"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

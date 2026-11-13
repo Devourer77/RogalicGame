@@ -1,0 +1,66 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_k6+1"
+icon = "leap"
+title = "Небесный клинок+I"
+description = "Прыжок до 3: 10 урона молнией +2 за звено по соседям."
+shape = 9
+element = 4
+cost = 2
+cast_range = 3
+damage = 10
+per_link_damage = 2
+is_rare = true
+card_set = "s_storm"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_k6+2"
+icon = "leap"
+title = "Небесный клинок+II"
+description = "Прыжок до 3: 8 урона молнией +2 за звено по соседям.\nЦепь 4: стоит 1."
+shape = 9
+element = 4
+cost = 2
+cast_range = 3
+damage = 8
+per_link_damage = 2
+chain_need = 4
+chain_cost = 1
+is_rare = true
+card_set = "s_storm"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_k6"
+icon = "leap"
+title = "Небесный клинок"
+description = "Прыжок до 3: 8 урона молнией +2 за звено Цепи по соседям."
+shape = 9
+element = 4
+cost = 2
+cast_range = 3
+damage = 8
+per_link_damage = 2
+is_rare = true
+card_set = "s_storm"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["storm"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

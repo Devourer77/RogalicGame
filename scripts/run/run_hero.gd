@@ -5,6 +5,7 @@ extends RefCounted
 var data: HeroData
 var hp: int = 0
 var deck: Array[CardData] = []
+var spirits: Array[SpiritData] = []   # прирученные духи (до Run.SPIRIT_SLOTS)
 
 
 func _init(hero_data: HeroData) -> void:

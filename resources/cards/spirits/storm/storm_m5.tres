@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_m5+1"
+icon = "bolt"
+title = "Разряд в воду+I"
+description = "Лужа или топь до 6: молния по всей воде, 4 урона каждому (мокрым +3)."
+shape = 1
+element = 4
+cast_range = 6
+damage = 4
+special = "water_target"
+card_set = "s_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_m5+2"
+icon = "bolt"
+title = "Разряд в воду+II"
+description = "Лужа или топь до 6: молния по всей воде, 3 урона.\nЦепь 2: стоит 0."
+shape = 1
+element = 4
+cast_range = 6
+damage = 3
+special = "water_target"
+chain_need = 2
+chain_cost = 0
+card_set = "s_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_m5"
+icon = "bolt"
+title = "Разряд в воду"
+description = "Лужа или топь до 6: молния по всей воде, 3 урона каждому в ней (мокрым +3)."
+shape = 1
+element = 4
+cast_range = 6
+damage = 3
+special = "water_target"
+card_set = "s_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

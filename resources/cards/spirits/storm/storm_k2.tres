@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_k2+1"
+icon = "bolt"
+title = "Громовой удар+I"
+description = "4 урона молнией вплотную.\nЦепь 2: +2."
+shape = 1
+element = 4
+cost = 0
+damage = 4
+chain_need = 2
+chain_damage = 2
+card_set = "s_storm"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 2
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_k2+2"
+icon = "bolt"
+title = "Громовой удар+II"
+description = "3 урона молнией вплотную, перескок на соседних.\nЦепь 2: +2."
+shape = 1
+element = 4
+cost = 0
+damage = 3
+chain_need = 2
+chain_damage = 2
+special = "chain"
+card_set = "s_storm"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 2
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_k2"
+icon = "bolt"
+title = "Громовой удар"
+description = "3 урона молнией вплотную.\nЦепь 2: +2."
+shape = 1
+element = 4
+cost = 0
+damage = 3
+chain_need = 2
+chain_damage = 2
+card_set = "s_storm"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["storm"])
+spirit_slot = 2
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -57,6 +57,7 @@ enum AiStyle { NORMAL, HUNTER, GUARD, AMBUSH }
 @export var wood_armor: bool = false  # «Древесная броня» (корягач): −50% от одиночной физической атаки; огонь сжигает её навсегда
 @export var feeds_toad: bool = false  # пращник: если жаба далеко от героев — бьёт по ней (+1 раздувание) и толкает к героям
 @export var swamp_on_hit: bool = false  # топляк: удар превращает клетки вокруг него в трясину и подмешивает в руку «Болотную тину»
+@export var tamable: bool = false      # дух в логове: на 0 HP не гибнет, а покоряется — бой выигран
 @export var living_shield: bool = false # корягач: перехватывает одиночные дальние атаки и заклинания по врагам рядом с ним
 @export var fire_weak: bool = false   # в огне теряет блок и получает двойной урон от огня
 @export var shell: bool = false       # «Панцирь» (скальник): урон от карт вдвое меньше, если враг не в «клещах»

@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_tide_storm_m2+1"
+icon = "spark"
+title = "Грозовая капель+I"
+description = "2 урона молнией каждому мокрому врагу в 5 клетках (+3 мокрым)."
+shape = 0
+cost = 0
+cast_range = 0
+special = "drizzle"
+bonus_amount = 2
+card_set = "x_tide_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["tide", "storm"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_tide_storm_m2+2"
+icon = "spark"
+title = "Грозовая капель+II"
+description = "1 урон молнией каждому мокрому врагу в 5 клетках (+3). +1 заряд за каждого."
+shape = 0
+cost = 0
+cast_range = 0
+special = "drizzle"
+bonus_amount = 1
+card_set = "x_tide_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["tide", "storm"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_tide_storm_m2"
+icon = "spark"
+title = "Грозовая капель"
+description = "1 урон молнией каждому мокрому врагу в 5 клетках (с бонусом мокрым — 4)."
+shape = 0
+cost = 0
+cast_range = 0
+special = "drizzle"
+bonus_amount = 1
+card_set = "x_tide_storm"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["tide", "storm"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

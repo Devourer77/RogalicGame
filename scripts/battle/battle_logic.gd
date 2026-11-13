@@ -215,6 +215,7 @@ var _prev_owner: String = ""       # чья карта была сыграна �
 var _ignite_ok: bool = false       # «Токсичный розжиг»: цель стояла на болоте/газе или была отравлена
 var _aether: bool = false          # «Перегрузка эфира» действует до конца хода
 var ctx := TurnContext.new()       # что отряд сделал в этот ход
+var _calls: Dictionary = {}        # герой -> карты Зова его духов (в руку в начале боя)
 var _cur_chain: int = -1           # Цепь в момент розыгрыша текущей карты (-1 — карта не разыгрывается)
 var _mana_penalty: Dictionary = {}  # номер героя -> штраф к мане на следующий ход (после сильного перегрева)
 var turn: int = 0
@@ -250,6 +251,10 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		h.hp = rh.hp
 		h.cell = _cell(start_x + i, height - 2)
 		h.draw_pile = rh.deck.duplicate()
+		for sp: SpiritData in rh.spirits:
+			h.spirits.append(sp.id)
+			if sp.call_card != null:
+				_calls[h] = (_calls.get(h, []) as Array) + [sp.call_card]
 		if rh.data.id == "mage" and charms.has("charm_amulet"):
 			h.charge = 1   # «Ладанка ученика»: бой начинается с 1 зарядом
 		_shuffle(h.draw_pile)
@@ -1007,6 +1012,9 @@ func _special_target_ok(special: String, c: Vector2i) -> bool:
 		"spread":
 			var st: int = tile_at(c)
 			return st == Tile.FIRE or st == Tile.WATER or st == Tile.GAS or st == Tile.SWAMP
+		"water_target":
+			var wt: int = tile_at(c)
+			return wt == Tile.WATER or wt == Tile.SWAMP
 		"swap_any":
 			var su: BattleUnit = unit_at(c)
 			return su != null and su.is_alive() and (su.is_hero or not _is_heavy(su))
@@ -1116,7 +1124,7 @@ func chain_met(card: CardData) -> bool:
 # Урон карты с учётом Цепи (без ярости, заряда и натиска) — для текста и превью
 func card_base_damage(card: CardData) -> int:
 	if card.damage <= 0:
-		return 0
+		return card.chain_damage if chain_met(card) else 0   # урон только при Цепи («Тянущая вода»)
 	var dmg: int = card.damage + card.per_link_damage * chain_value()
 	if chain_met(card):
 		dmg += card.chain_damage
@@ -1136,8 +1144,8 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_flint_spent[h] = true   # «Огниво ордена» — только на первую карту в бою
 	h.hand.remove_at(index)
 	_forget_kept(h, index)
-	if card.special != "slime":
-		h.discard_pile.append(card)   # «Тина» сгорает навсегда, остальные идут в сброс
+	if card.special != "slime" and not card.is_call:
+		h.discard_pile.append(card)   # Зов духа тоже не уходит в сброс — он раз в бой   # «Тина» сгорает навсегда, остальные идут в сброс
 	message.emit("%s: %s" % [h.title, card.title])
 	var as_spell: bool = is_spell_card(h, card)
 	var as_attack: bool = is_attack_card(h, card)
@@ -1213,6 +1221,8 @@ func scrap_card(h: BattleUnit, index: int) -> bool:
 	if is_over or not h.is_alive() or index < 0 or index >= h.hand.size():
 		return false
 	var card: CardData = h.hand[index]
+	if card.is_call:
+		return false   # Зов духа «в ноги» не сбросить
 	h.hand.remove_at(index)
 	_forget_kept(h, index)
 	h.discard_pile.append(card)
@@ -1237,6 +1247,13 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 	# Молния (или удар рыцаря с «Руной бури») бьёт по мокрым сильнее
 	_lightning_now = card.element == CardData.Element.LIGHTNING \
 			or (card.damage > 0 and h.rune == "storm" and h.rune_hits > 0)
+	if h.next_lightning and card.damage > 0:
+		_lightning_now = true   # «Буревой разбег»: этот удар — молния
+		h.next_lightning = false
+	if card.special == "wet_steel":
+		var ws: BattleUnit = unit_at(target)
+		if ws != null and is_wet(ws):
+			_lightning_now = true   # «Мокрая сталь»: по мокрому — молнией
 	if card.element == CardData.Element.LIGHTNING:
 		hit_cells = _spread_through_water(area)
 	var dir: Vector2i = HexMath.direction_to(h.cell, target)
@@ -1245,6 +1262,9 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 
 	# Ярость, заряд и натиск, накопленные до этой карты, усиливают её урон и сгорают
 	var damage: int = card_base_damage(card)
+	if damage > 0 and _lightning_now and h.lightning_bonus > 0:
+		damage += h.lightning_bonus   # «Грозовой заряд»
+		h.lightning_bonus = 0
 	if damage > 0:
 		damage += _spend_bonuses(h, card)
 		damage += _special_damage_bonus(h, card)
@@ -1255,7 +1275,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 	# Цепная молния: заранее находим, куда она перескочит (чтобы показать вспышку)
 	var chain: Array[BattleUnit] = []
 	if card.special == "chain" and damage > 0:
-		chain = _chain_targets(hit_cells)
+		chain = _chain_targets(hit_cells, CHAIN_JUMPS + (chain_value() / 2 if card.chain_jumps else 0))
 		for u in chain:
 			if not hit_cells.has(u.cell):
 				hit_cells.append(u.cell)
@@ -1288,7 +1308,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 						h.rage += 1
 			if damage > 0:
 				if card.special == "chain":
-					_chain_damage(chain, damage, card.pierce_block)
+					_chain_damage(chain, damage, card.pierce_block, not card.no_falloff)
 				else:
 					_hit_cells(card, damage, hit_cells, from)
 					_shock_cells.clear()
@@ -1302,7 +1322,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 				for c in area:
 					var bu: BattleUnit = unit_at(c)
 					if bu != null and not bu.is_hero:
-						h.block += 3
+						h.block += card.block_per_hit
 			if push > 0 and card.special != "bell" and card.special != "boot_barrel":
 				var targets: Array[BattleUnit] = []
 				for c in area:
@@ -1315,7 +1335,8 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 					if u.is_alive():
 						_push(u, HexMath.direction_to(from, u.cell), push)
 			# Притягивание к герою: сначала ближних, чтобы они не мешали дальним
-			if card.pull > 0:
+			var pull_n: int = card.pull + (card.chain_pull if chain_met(card) else 0)
+			if pull_n > 0:
 				var pulled: Array[BattleUnit] = []
 				for c in area:
 					var pu: BattleUnit = unit_at(c)
@@ -1324,7 +1345,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 				pulled.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
 					return HexMath.distance(a.cell, from) < HexMath.distance(b.cell, from))
 				for pu in pulled:
-					_pull_toward(pu, _pull_anchor(h, card), card.pull)
+					_pull_toward(pu, _pull_anchor(h, card), pull_n)
 			# Ветер раздувает огонь: горящие клетки линии поджигают следующую по ветру
 			if card.special == "gust":
 				_fan_fire(area, dir, from)
@@ -1473,7 +1494,7 @@ func _pass_through_charge(h: BattleUnit, card: CardData, dir: Vector2i, damage: 
 
 
 # Цепная молния: от первой цели перескакивает на ближайших врагов (до CHAIN_JUMPS раз)
-func _chain_targets(cells: Array[Vector2i]) -> Array[BattleUnit]:
+func _chain_targets(cells: Array[Vector2i], jumps: int = CHAIN_JUMPS) -> Array[BattleUnit]:
 	var chain: Array[BattleUnit] = []
 	for c in cells:
 		var u: BattleUnit = unit_at(c)
@@ -1482,7 +1503,7 @@ func _chain_targets(cells: Array[Vector2i]) -> Array[BattleUnit]:
 			break
 	if chain.is_empty():
 		return chain
-	for j in CHAIN_JUMPS:
+	for j in jumps:
 		var last: BattleUnit = chain[chain.size() - 1]
 		var best: BattleUnit = null
 		var best_dist: int = CHAIN_RADIUS + 1
@@ -1497,9 +1518,9 @@ func _chain_targets(cells: Array[Vector2i]) -> Array[BattleUnit]:
 	return chain
 
 
-func _chain_damage(chain: Array[BattleUnit], damage: int, pierce: bool) -> void:
+func _chain_damage(chain: Array[BattleUnit], damage: int, pierce: bool, falloff: bool = true) -> void:
 	for i in chain.size():
-		_card_damage(chain[i], maxi(1, damage - i), pierce)   # каждый прыжок слабее на 1
+		_card_damage(chain[i], maxi(1, damage - (i if falloff else 0)), pierce)   # каждый прыжок слабее на 1
 
 
 # Особые действия карт (поле, объекты, состояния героя)
@@ -1513,10 +1534,10 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 			message.emit("Перегрузка! Заряд: %d" % h.charge)
 		"unstoppable":
 			h.unstoppable = true
-		"rune_fire", "rune_storm", "rune_rot":
+		"rune_fire", "rune_storm", "rune_rot", "rune_tide":
 			# Руна на оружие: одна активная, новая заменяет старую
 			h.rune = card.special.trim_prefix("rune_")
-			h.rune_hits = RUNE_HITS
+			h.rune_hits = card.rune_charges if card.rune_charges > 0 else RUNE_HITS
 			message.emit("%s: руна на клинке (%d удара)" % [h.title, RUNE_HITS])
 		"rune_trap":
 			if _can_build(target):
@@ -1820,6 +1841,146 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				if n != target and _can_build(n):
 					_set_object(n, Obj.STAKES, Vector2i.ZERO)
 					break
+		# --- Духи: Омутник и Грозовик (этап 3) ---
+		"flood_swamp":
+			# «Разлив»: лужи; где лужа уже была — топь
+			for c in area:
+				if not is_inside(c) or rocks.has(c) or _is_obstacle(c):
+					continue
+				if tile_at(c) == Tile.WATER:
+					_set_tile(c, Tile.SWAMP)
+				else:
+					_apply_element(c, CardData.Element.WATER, h.cell)
+				var fu: BattleUnit = unit_at(c)
+				if fu != null:
+					_set_wet(fu, WET_TURNS)
+		"wave_wet":
+			# «Волна»: враги в лужах вокруг мага — урон и толчок от него
+			var wave_dmg: int = card.bonus_amount + card.per_link_damage * chain_value()
+			var hit: Array[BattleUnit] = []
+			for e in living_enemies():
+				if HexMath.distance(h.cell, e.cell) <= 5 and tile_at(e.cell) == Tile.WATER:
+					hit.append(e)
+			hit.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
+				return HexMath.distance(a.cell, h.cell) > HexMath.distance(b.cell, h.cell))
+			for e in hit:
+				_card_damage(e, wave_dmg, false)
+				if e.is_alive():
+					_push(e, HexMath.direction_to(h.cell, e.cell), 1)
+				h.block += card.block_per_hit if card.upgrade_level == 2 else 0
+		"flow_steps":
+			# «Течение»: +1 шаг за каждую лужу в 2 клетках (до 3)
+			var pools: int = 0
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				if tile_at(c) == Tile.WATER and HexMath.distance(h.cell, c) <= 2:
+					pools += 1
+			var gain: int = mini(3, pools)
+			h.moves_left += gain
+			if card.bonus_amount > 0:
+				for other in living_heroes():
+					if other != h:
+						other.moves_left += gain
+		"bubble":
+			var bt: BattleUnit = unit_at(target)
+			if bt == null or not bt.is_hero:
+				bt = h
+			if tile_at(bt.cell) == Tile.WATER:
+				bt.block += card.bonus_amount
+			if card.upgrade_level == 2:
+				bt.poison = 0
+				if tile_at(bt.cell) == Tile.FIRE:
+					_set_tile(bt.cell, Tile.NONE)
+			status_changed.emit(bt, snapshot(bt))
+		"whirlpool":
+			# «Водоворот»: враги в 2 клетках тянутся к центру и мокнут, центр — трясина на 2 раунда
+			var around: Array[BattleUnit] = []
+			for e in living_enemies():
+				if HexMath.distance(target, e.cell) <= 2:
+					around.append(e)
+			around.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
+				return HexMath.distance(a.cell, target) < HexMath.distance(b.cell, target))
+			for e in around:
+				if card.bonus_amount > 0:
+					_card_damage(e, card.bonus_amount, false)
+				_pull_toward(e, target, 2)
+				_set_wet(e, WET_TURNS)
+			if unit_at(target) == null and object_at(target) == Obj.NONE and not rocks.has(target):
+				_set_tile(target, Tile.NONE)
+				_set_object(target, Obj.BOG, Vector2i.ZERO)
+				obj_timers[target] = 2
+		"tide_trail":
+			# «Удар прилива»: позади рыцаря остаются лужи
+			for c in area:
+				if unit_at(c) == null or unit_at(c) == h:
+					_apply_element(c, CardData.Element.WATER, h.cell)
+			var tu: BattleUnit = unit_at(target)
+			if tu != null and not tu.is_hero:
+				_set_wet(tu, WET_TURNS)
+		"stand_water":
+			if card.upgrade_level == 2 and tile_at(h.cell) == Tile.NONE:
+				_set_tile(h.cell, Tile.WATER)
+			if tile_at(h.cell) == Tile.WATER:
+				h.block += card.bonus_amount
+				h.taunt = true
+		"ninth_wave":
+			# «Девятый вал»: все в 2 клетках — урон, толчок, мокнут
+			var push_n: int = card.push + (card.chain_push if chain_met(card) else 0)
+			var near_w: Array[BattleUnit] = []
+			for e in living_enemies():
+				if HexMath.distance(h.cell, e.cell) <= 2:
+					near_w.append(e)
+			near_w.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
+				return HexMath.distance(a.cell, h.cell) > HexMath.distance(b.cell, h.cell))
+			for e in near_w:
+				_card_damage(e, card.bonus_amount, false)
+				if e.is_alive():
+					_push(e, HexMath.direction_to(h.cell, e.cell), push_n)
+					_set_wet(e, WET_TURNS)
+					if card.upgrade_level == 2 and tile_at(e.cell) == Tile.NONE:
+						_set_tile(e.cell, Tile.WATER)
+		"storm_prime":
+			h.lightning_bonus = 2
+		"next_lightning":
+			h.next_lightning = true
+		"bolt_step":
+			# «Шаг молнии»: маг встаёт на дальнюю свободную клетку линии
+			var land: Vector2i = NO_CELL
+			for c in area:
+				if not is_blocked(c) and unit_at(c) == null and object_at(c) == Obj.NONE:
+					land = c
+			if land != NO_CELL:
+				var path_b: Array[Vector2i] = [h.cell, land]
+				h.cell = land
+				unit_moved.emit(h, path_b)
+				_walked(h, [land] as Array[Vector2i])
+		"storm_flood":
+			# «Половодье с грозой»: лужи, сразу молния по всей воде
+			for c in area:
+				_apply_element(c, CardData.Element.WATER, h.cell)
+			var sf_dmg: int = card.bonus_amount + card.per_link_damage * chain_value()
+			_lightning_now = true
+			for c in _spread_through_water(area):
+				var su2: BattleUnit = unit_at(c)
+				if su2 != null and not su2.is_hero:
+					_card_damage(su2, sf_dmg, false)
+		"drizzle":
+			# «Грозовая капель»: молния по каждому мокрому врагу в 5 клетках
+			_lightning_now = true
+			for e in living_enemies():
+				if HexMath.distance(h.cell, e.cell) <= 5 and is_wet(e):
+					_card_damage(e, card.bonus_amount, false)
+					if card.upgrade_level == 2:
+						h.charge = mini(maxi(MAX_CHARGE, h.charge), h.charge + 1)
+		"shock_wave":
+			# «Шоковая волна»: враги в лужах вокруг рыцаря
+			var radius: int = 3 + (1 if card.upgrade_level == 1 else 0)
+			var sw_dmg: int = card.bonus_amount + card.per_link_damage * chain_value()
+			_lightning_now = true
+			for e in living_enemies():
+				if HexMath.distance(h.cell, e.cell) <= radius and tile_at(e.cell) == Tile.WATER:
+					_card_damage(e, sw_dmg, false)
+					if e.is_alive() and card.upgrade_level == 2:
+						_push(e, HexMath.direction_to(h.cell, e.cell), 1)
 		"boot":
 			# «Пинок»: бочку не взрывает, а откатывает
 			if object_at(target) == Obj.BARREL:
@@ -2953,6 +3114,8 @@ func _start_heroes_turn() -> void:
 			if charms.has("charm_horn") and h.hero_data.id == "knight":
 				h.block += 4        # «Рог дозорного»: рыцарь начинает бой с 4 блока
 		_discards_left[h] = DISCARDS_PER_TURN
+		if h.spirits.has("tide") and tile_at(h.cell) == Tile.WATER:
+			h.block += 3   # пассив Омутника: стоишь в луже — +3 блока
 		h.outpost = false
 		h.momentum = 0
 		if h.entangled > 0:
@@ -2965,6 +3128,9 @@ func _start_heroes_turn() -> void:
 		if DRAW_MODE == DrawMode.DISCARD_ALL or turn == 1:
 			var extra: int = 1 if turn == 1 and charms.has("charm_shard") and h.hero_data.id == "mage" else 0
 			_draw_cards(h, HAND_SIZE + extra)   # «Осколок ученика»: на 1 карту больше в 1-м раунде
+			if turn == 1:
+				for call: CardData in _calls.get(h, []):
+					h.hand.append(call)   # Зов духа — раз в бой, сверх руки
 	# У врагов с циклом ударов в новом раунде другой удар — обновляем надписи
 	for e in living_enemies():
 		if e.data.cycle.size() > 1:
@@ -3065,7 +3231,11 @@ func _end_turn_draw_count(h: BattleUnit) -> int:
 		DrawMode.PLUS_2:
 			return 2
 		DrawMode.KEEP_REFILL:
-			return maxi(0, HAND_SIZE - h.hand.size())
+			var calls: int = 0
+			for c in h.hand:
+				if c.is_call:
+					calls += 1
+			return maxi(0, HAND_SIZE - (h.hand.size() - calls))
 		DrawMode.KEEP_2:
 			# Всегда пополняем руку как минимум до HAND_SIZE (5 карт),
 			# а если удержано 2–3 карты — добираем полные TURN_DRAW (до лимита MAX_HAND)
@@ -3289,6 +3459,14 @@ func _outpost_strike(e: BattleUnit) -> bool:
 
 
 # Проверка конца боя. Бой проигран, только если пали все герои.
+# В логове: дух повержен — значит покорён
+func _spirit_tamed() -> bool:
+	for e in enemies:
+		if e.data != null and e.data.tamable and not e.is_alive():
+			return true
+	return false
+
+
 func _check_end() -> bool:
 	if is_over:
 		return true
@@ -3296,6 +3474,10 @@ func _check_end() -> bool:
 		is_over = true
 		won = false
 		message.emit("Отряд пал…")
+	elif _spirit_tamed():
+		is_over = true
+		won = true
+		message.emit("Дух покорён! Твари разбегаются")
 	elif objective == Objective.BREAKTHROUGH and _broke_through():
 		is_over = true
 		won = true
@@ -3661,6 +3843,8 @@ func _set_wet(u: BattleUnit, turns: int) -> void:
 
 # Урон карты героя по врагу: молния по мокрому сильнее; запоминаем задетых для рун
 func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
+	if _cur_hero != null and amount > 0 and _cur_hero.spirits.has("storm") and tile_at(u.cell) == Tile.WATER:
+		amount += 2   # пассив Грозовика: враг в луже получает больше
 	if _lightning_now and is_wet(u):
 		amount += WET_SHOCK_BONUS
 		reaction.emit(u.cell, "shock")
@@ -3690,6 +3874,9 @@ func _apply_weapon_rune(h: BattleUnit, card: CardData, from: Vector2i) -> void:
 				_apply_element(e.cell, CardData.Element.FIRE, from)
 			"rot":
 				_set_poison(e, POISON_TURNS)
+			"tide":
+				_set_wet(e, WET_TURNS)
+				_push(e, HexMath.direction_to(h.cell, e.cell), 1)
 	h.rune_hits -= 1
 	if h.rune_hits <= 0:
 		h.rune = ""
@@ -3805,8 +3992,8 @@ func _keeps() -> bool:
 func _discard_unkept(h: BattleUnit) -> void:
 	var stay: Array[CardData] = []
 	for i in h.hand.size():
-		if h.is_alive() and h.kept.has(i):
-			stay.append(h.hand[i])
+		if h.is_alive() and (h.kept.has(i) or h.hand[i].is_call):
+			stay.append(h.hand[i])   # удержанные и Зов духа остаются
 		else:
 			h.discard_pile.append(h.hand[i])
 	h.hand = stay

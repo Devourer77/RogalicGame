@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "storm_m4+1"
+icon = "bolt"
+title = "Шаг молнии+I"
+description = "Линия 4: 3 урона молнией каждому, маг встаёт в конец линии."
+shape = 2
+element = 4
+cost = 0
+cast_range = 4
+damage = 3
+special = "bolt_step"
+card_set = "s_storm"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["storm"])
+spirit_slot = 4
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "storm_m4+2"
+icon = "bolt"
+title = "Шаг молнии+II"
+description = "Линия 6: 3 урона молнией каждому, маг встаёт в конец линии."
+shape = 2
+element = 4
+cast_range = 6
+damage = 3
+special = "bolt_step"
+card_set = "s_storm"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["storm"])
+spirit_slot = 4
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_m4"
+icon = "bolt"
+title = "Шаг молнии"
+description = "Линия 4: 3 урона молнией каждому, маг встаёт в конец линии."
+shape = 2
+element = 4
+cast_range = 4
+damage = 3
+special = "bolt_step"
+card_set = "s_storm"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["storm"])
+spirit_slot = 4
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

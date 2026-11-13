@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[resource]
+script = ExtResource("1_card")
+id = "storm_call"
+icon = "bolt"
+title = "Зов: Удар грома"
+description = "Зов духа (раз в бой): 4 урона молнией до 5; в луже — по всей луже."
+shape = 1
+element = 4
+cost = 0
+cast_range = 5
+damage = 4
+is_call = true
+chain_add = -1
+scrap_moves = 0
+card_set = "s_storm"

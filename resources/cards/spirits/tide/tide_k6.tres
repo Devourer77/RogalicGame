@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "tide_k6+1"
+icon = "wave"
+title = "Девятый вал+I"
+description = "Все враги в 2 клетках: 6 урона, толчок 2, мокнут.\nЦепь 4: толчок 3."
+shape = 0
+cost = 2
+cast_range = 0
+special = "ninth_wave"
+bonus_amount = 6
+push = 2
+chain_need = 4
+chain_push = 1
+is_rare = true
+card_set = "s_tide"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["tide"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "tide_k6+2"
+icon = "wave"
+title = "Девятый вал+II"
+description = "Все в 2 клетках: 4 урона, толчок 2, мокнут, под ними лужи.\nЦепь 4: толчок 3."
+shape = 0
+cost = 2
+cast_range = 0
+special = "ninth_wave"
+bonus_amount = 4
+push = 2
+chain_need = 4
+chain_push = 1
+is_rare = true
+card_set = "s_tide"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["tide"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "tide_k6"
+icon = "wave"
+title = "Девятый вал"
+description = "Все враги в 2 клетках: 4 урона, толчок 2, мокнут.\nЦепь 4: толчок 3."
+shape = 0
+cost = 2
+cast_range = 0
+special = "ninth_wave"
+bonus_amount = 4
+push = 2
+chain_need = 4
+chain_push = 1
+is_rare = true
+card_set = "s_tide"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["tide"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

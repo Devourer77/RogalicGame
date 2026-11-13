@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SpiritData" load_steps=17 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spirit_data.gd" id="1_spirit"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_call.tres" id="c1"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_m1.tres" id="c2"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_m2.tres" id="c3"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_m3.tres" id="c4"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_m4.tres" id="c5"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_m5.tres" id="c6"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_m6.tres" id="c7"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_k1.tres" id="c8"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_k2.tres" id="c9"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_k3.tres" id="c10"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_k4.tres" id="c11"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_k5.tres" id="c12"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/storm/storm_k6.tres" id="c13"]
+[ext_resource type="Resource" path="res://resources/enemies/spirit_storm.tres" id="c14"]
+
+[resource]
+script = ExtResource("1_spirit")
+id = "storm"
+title = "Грозовик"
+description = "Гроза без неба. Злится, что ей некуда упасть."
+passive_text = "удары героя по врагу в луже +2 урона."
+color = Color(0.9, 0.86, 0.55, 1)
+icon = "bolt"
+call_card = ExtResource("c1")
+mage_cards = Array[ExtResource("2_card")]([ExtResource("c2"), ExtResource("c3"), ExtResource("c4"), ExtResource("c5"), ExtResource("c6"), ExtResource("c7")])
+knight_cards = Array[ExtResource("2_card")]([ExtResource("c8"), ExtResource("c9"), ExtResource("c10"), ExtResource("c11"), ExtResource("c12"), ExtResource("c13")])
+mixed_cards = Array[ExtResource("2_card")]([])
+enemy = ExtResource("c14")

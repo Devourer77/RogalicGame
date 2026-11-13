@@ -27,6 +27,11 @@ const OBJECTIVE_GOLD: int = 15        # доплата золотом за бо�
 const MAX_RELICS: int = 4             # больше порченых реликвий за забег не взять (обереги не в счёт)
 const RELIC_CHOICES: int = 3          # из скольких выбирать после элиты
 const RELIC_DIR: String = "res://resources/relics/"
+const SPIRIT_DIR: String = "res://resources/spirits/"
+const SPIRIT_IDS: Array[String] = ["tide", "storm"]   # обычные духи, которые встречаются в логове
+const SPIRIT_SLOTS: int = 2                            # духов на героя
+const LAIR_ROW: int = 2                                # ряд карты с логовом духа (одна точка)
+const SPIRIT_CARD_WEIGHT: float = 2.0                  # карты своих духов и смешанные выпадают чаще
 const SLIME_CARD: String = "res://resources/cards/swamp_slime.tres"
 const START_GOLD: int = 30
 const REST_HEAL_PERCENT: float = 0.3
@@ -83,6 +88,8 @@ var gold: int = 0
 var map: Array[MapNode] = []
 var current: MapNode = null              # где герой сейчас (null — ещё не вышел)
 var pending_enemies: Array[EnemyData] = []  # враги для ближайшего боя
+var pending_spirit: SpiritData = null      # дух в логове (бой за него)
+var tamed_spirit: SpiritData = null        # дух, покорённый в последнем бою (ждёт выбора героя)
 var pending_arena: String = ""               # арена ближайшего боя (ключ из BattleLogic.ARENAS)
 var pending_objective: int = 0               # цель ближайшего боя (BattleLogic.Objective)
 var pending_encounter: EncounterData = null  # отряд ближайшего боя (его название видно в начале боя)
@@ -282,6 +289,15 @@ func enter_node(n: MapNode) -> void:
 			pending_arena = _encounter_arena(false)
 			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
+		MapNode.Type.LAIR:
+			pending_spirit = _roll_lair_spirit()
+			pending_enemies = _make_encounter(n.row, false)
+			pending_enemies.resize(mini(pending_enemies.size(), 2))   # дух и пара тварей
+			if pending_spirit != null:
+				pending_enemies.push_front(pending_spirit.enemy)
+			pending_arena = _encounter_arena(false)
+			pending_objective = BattleLogic.Objective.KILL_ALL
+			goto(BATTLE_SCENE)
 		MapNode.Type.BOSS:
 			pending_enemies = _make_encounter(n.row, true)
 			pending_arena = _encounter_arena(true)
@@ -357,6 +373,7 @@ func _generate_map() -> void:
 			if side >= 0 and side < MAP_COLS and rng.randf() < 0.6:
 				n.next.append(side)
 	_place_optional_elite()
+	_place_lair()
 
 
 # Необязательная элита: одна точка в ряду OPTIONAL_ELITE_ROW. Чтобы её всегда можно было
@@ -376,6 +393,14 @@ func _place_optional_elite() -> void:
 				others = true
 		if not others:
 			n.next.append(col + 1 if col + 1 < MAP_COLS else col - 1)
+
+
+# Логово духа: одна точка в ряду LAIR_ROW (обычный бой рядом всегда есть)
+func _place_lair() -> void:
+	var col: int = rng.randi_range(0, MAP_COLS - 1)
+	var node: MapNode = find_map_node(LAIR_ROW, col)
+	if node != null and node.type != MapNode.Type.ELITE:
+		node.type = MapNode.Type.LAIR
 
 
 func _roll_node_type(row: int) -> MapNode.Type:
@@ -477,6 +502,10 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 			candle_used = true
 		party[i].hp = maxi(wake_hp, hp_left[i])
 	last_battle_big = false
+	tamed_spirit = null
+	if current != null and current.type == MapNode.Type.LAIR:
+		tamed_spirit = pending_spirit
+		pending_spirit = null
 	if current != null and current.type == MapNode.Type.ELITE:
 		elite_kills += 1
 		last_battle_big = true
@@ -609,12 +638,14 @@ func roll_cards(rh: RunHero, count: int, no_rare: bool = false) -> Array[CardDat
 	var weights: Dictionary[String, float] = set_weights(rh)
 	var pool: Array[CardData] = []
 	var locked: Dictionary = Meta.locked_card_ids()   # редкие, ещё не открытые в хабе
-	for c in rh.data.card_pool:
+	for c in rh.data.card_pool + spirit_reward_cards(rh):
 		if locked.has(c.id):
 			continue
 		if c.is_rare and (no_rare or rng.randf() > 0.4):
 			continue
 		pool.append(c)
+	for c in spirit_reward_cards(rh):
+		weights[c.card_set] = maxf(weights.get(c.card_set, 1.0), SPIRIT_CARD_WEIGHT)
 	var result: Array[CardData] = []
 	while result.size() < count and not pool.is_empty():
 		# Выбор с весами: чем больше вес, тем больше шанс
@@ -645,6 +676,69 @@ func set_weights(rh: RunHero) -> Dictionary[String, float]:
 		if key != "" and counts[key] > 0:
 			weights[key] = minf(SET_WEIGHT_MAX, 1.0 + SET_WEIGHT_STEP * counts[key])
 	return weights
+
+
+# ---------- Духи (тз-духи.md) ----------
+
+func spirit_data(id: String) -> SpiritData:
+	var path: String = SPIRIT_DIR + id + ".tres"
+	return load(path) as SpiritData if ResourceLoader.exists(path) else null
+
+
+# Есть ли дух у кого-то в отряде
+func party_has_spirit(id: String) -> bool:
+	for rh in party:
+		for sp in rh.spirits:
+			if sp.id == id:
+				return true
+	return false
+
+
+# Случайный обычный дух, которого ещё нет в отряде (null — все уже есть)
+func _roll_lair_spirit() -> SpiritData:
+	var free: Array[SpiritData] = []
+	for id in SPIRIT_IDS:
+		var sp: SpiritData = spirit_data(id)
+		if sp != null and not party_has_spirit(id):
+			free.append(sp)
+	if free.is_empty():
+		return null
+	return free[rng.randi_range(0, free.size() - 1)]
+
+
+func can_take_spirit(rh: RunHero) -> bool:
+	return rh.spirits.size() < SPIRIT_SLOTS
+
+
+# Дух приходит к герою: его первые три карты сразу в колоду
+func add_spirit(rh: RunHero, sp: SpiritData) -> bool:
+	if sp == null or not can_take_spirit(rh) or party_has_spirit(sp.id):
+		return false
+	rh.spirits.append(sp)
+	var cards: Array[CardData] = sp.cards_for(rh.data.id)
+	for i in mini(3, cards.size()):
+		rh.deck.append(cards[i])
+	return true
+
+
+# Карты духов, которые могут выпасть герою в награде: Д4–Д6 своих духов и смешанные открытых пар
+func spirit_reward_cards(rh: RunHero) -> Array[CardData]:
+	var result: Array[CardData] = []
+	for sp in rh.spirits:
+		var cards: Array[CardData] = sp.cards_for(rh.data.id)
+		for i in range(3, cards.size()):
+			result.append(cards[i])
+	for other in party:
+		for sp in other.spirits:
+			for c in sp.mixed_cards:
+				if c.owner_hero != rh.data.id:
+					continue
+				var open: bool = true
+				for sid in c.spirit_ids:
+					open = open and party_has_spirit(sid)
+				if open:
+					result.append(c)
+	return result
 
 
 # ---------- Улучшения карт (тз-карты.md, раздел 4) ----------

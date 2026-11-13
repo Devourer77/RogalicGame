@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "tide_k2+1"
+icon = "slash"
+title = "Брызги+I"
+description = "Дуга: 3 урона, клетки дуги становятся лужами.\nЦепь 2: +2."
+shape = 5
+element = 2
+cost = 0
+damage = 3
+chain_need = 2
+chain_damage = 2
+card_set = "s_tide"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide"])
+spirit_slot = 2
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "tide_k2+2"
+icon = "slash"
+title = "Брызги+II"
+description = "Дуга: 2 урона, лужи. Блок 2 за каждого задетого.\nЦепь 2: +2."
+shape = 5
+element = 2
+cost = 0
+damage = 2
+chain_need = 2
+chain_damage = 2
+special = "block_per_enemy"
+block_per_hit = 2
+card_set = "s_tide"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide"])
+spirit_slot = 2
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "tide_k2"
+icon = "slash"
+title = "Брызги"
+description = "Дуга: 2 урона, клетки дуги становятся лужами.\nЦепь 2: +2."
+shape = 5
+element = 2
+cost = 0
+damage = 2
+chain_need = 2
+chain_damage = 2
+card_set = "s_tide"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["tide"])
+spirit_slot = 2
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")
