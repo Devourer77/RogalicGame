@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_cover+1"
+icon = "cover"
+title = "Прикрыть+I"
+description = "Блок 11 союзнику до 4 (или себе)."
+shape = 7
+cast_range = 4
+block = 11
+card_set = "k_warden"
+owner_hero = "knight"
+role = 2
+archetype = "warden"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_cover+2"
+icon = "cover"
+title = "Прикрыть+II"
+description = "Рыцарь встаёт рядом с союзником до 4. Союзнику блок 8."
+shape = 7
+cast_range = 4
+block = 8
+special = "leap_to_ally"
+card_set = "k_warden"
+owner_hero = "knight"
+role = 2
+archetype = "warden"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_cover"
+icon = "cover"
+title = "Прикрыть"
+description = "Блок 8 союзнику до 4 (или себе)."
+shape = 7
+cast_range = 4
+block = 8
+card_set = "k_warden"
+owner_hero = "knight"
+role = 2
+archetype = "warden"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

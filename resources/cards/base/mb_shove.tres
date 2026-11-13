@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mb_shove+1"
+icon = "push"
+title = "Толчок+I"
+description = "2 урона до 2, толчок 3."
+shape = 1
+cast_range = 2
+damage = 2
+push = 3
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 2
+archetype = "kinetic"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mb_shove+2"
+icon = "push"
+title = "Толчок+II"
+description = "2 урона до 2, толчок 2.\nЦепь 1: стоит 0."
+shape = 1
+cast_range = 2
+damage = 2
+push = 2
+chain_need = 1
+chain_cost = 0
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 2
+archetype = "kinetic"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mb_shove"
+icon = "push"
+title = "Толчок"
+description = "2 урона до 2, толчок 2."
+shape = 1
+cast_range = 2
+damage = 2
+push = 2
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 2
+archetype = "kinetic"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -161,9 +161,11 @@ func _vow_of_silence() -> void:
 		var l := fresh(["goblin_shaman", "wolf"], ["vow_of_silence"] if with_vow else [])
 		var m: BattleUnit = l.heroes[0]; var w: BattleUnit = l.enemies[1]
 		w.cell = m.cell + Vector2i(0, -2); w.hp = 3
-		var hand: Array[CardData] = [load("res://resources/cards/m_spark.tres")]
+		var hand: Array[CardData] = [load("res://resources/cards/m_spark.tres"), load("res://resources/cards/m_spark.tres")]
 		m.hand = hand; m.mana = 5
 		l.play_card(m, 0, w.cell)
+		w.hp = 3
+		if w.is_alive(): l.play_card(m, 0, w.cell)   # шаман срабатывает на второе Заклинание
 		if with_vow:
 			check("Заклинание мага не лечит врагов шаманом", w.hp == 1)
 		else:

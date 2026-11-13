@@ -480,7 +480,7 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 		dir = HexMath.direction_to(from_cell, cells[0])
 	var is_mage: bool = caster.is_hero and caster.hero_data != null and caster.hero_data.id == "mage"
 	var cast_sound: String = "card_play"
-	if card.id == "k_bell":
+	if card.id == "k_bell" or card.id.begins_with("kb_bell"):
 		cast_sound = "bell"
 	elif card.element == CardData.Element.FIRE:
 		cast_sound = "fire"
@@ -502,9 +502,9 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 		# Рыцарь: Attack (удары), Block (щит и провокация)
 		if (card.block > 0 or card.taunt) and view.has_anim("Block"):
 			await view.play_block()
-		elif is_mage and card.id in ["meteor", "lightning", "dash"] and view.has_anim("CastSky"):
+		elif is_mage and (card.id in ["meteor", "lightning", "dash"] or card.id.begins_with("mb_dash")) and view.has_anim("CastSky"):
 			await view.play_cast_sky(dir)
-		elif is_mage and card.id != "strike" and view.has_anim("Cast"):
+		elif is_mage and card.id != "strike" and not card.id.begins_with("mb_staff") and view.has_anim("Cast"):
 			await view.play_cast(dir)
 		elif card.damage > 0 and view.has_anim("Attack") and dir != Vector2i.ZERO:
 			await view.play_attack(dir)

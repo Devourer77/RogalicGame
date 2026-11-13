@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_sword+1"
+icon = "sword"
+title = "Удар мечом+I"
+description = "8 урона вплотную.\nЦепь 2: +2."
+shape = 1
+damage = 8
+chain_need = 2
+chain_damage = 2
+card_set = "k_onslaught"
+owner_hero = "knight"
+role = 3
+archetype = "onslaught"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_sword+2"
+icon = "sword"
+title = "Удар мечом+II"
+description = "4 урона вплотную.\nЦепь 2: +2."
+shape = 1
+cost = 0
+damage = 4
+chain_need = 2
+chain_damage = 2
+card_set = "k_onslaught"
+owner_hero = "knight"
+role = 3
+archetype = "onslaught"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_sword"
+icon = "sword"
+title = "Удар мечом"
+description = "6 урона вплотную.\nЦепь 2: +2."
+shape = 1
+damage = 6
+chain_need = 2
+chain_damage = 2
+card_set = "k_onslaught"
+owner_hero = "knight"
+role = 3
+archetype = "onslaught"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

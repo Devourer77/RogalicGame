@@ -13,4 +13,4 @@ hero_id = "mage"
 costs = Array[int]([20, 35])
 effect = "unlock_cards"
 value = 0
-unlock_card_ids = Array[String](["m_overload,m_bog_maw", "meteor,m_rift"])
+unlock_card_ids = Array[String](["mb_echo", "mb_lesson,mb_overload"])

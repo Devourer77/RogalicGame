@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_warcry+1"
+icon = "horn"
+title = "Боевой клич+I"
+description = "+3 ярости, добор 1."
+shape = 0
+cost = 0
+cast_range = 0
+rage_gain = 3
+draw = 1
+card_set = "k_rage"
+owner_hero = "knight"
+role = 3
+archetype = "rage"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_warcry+2"
+icon = "horn"
+title = "Боевой клич+II"
+description = "+2 ярости, добор 1. Союзнику блок 4."
+shape = 0
+cost = 0
+cast_range = 0
+rage_gain = 2
+draw = 1
+ally_block = 4
+card_set = "k_rage"
+owner_hero = "knight"
+role = 3
+archetype = "rage"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_warcry"
+icon = "horn"
+title = "Боевой клич"
+description = "+2 ярости, добор 1."
+shape = 0
+cost = 0
+cast_range = 0
+rage_gain = 2
+draw = 1
+card_set = "k_rage"
+owner_hero = "knight"
+role = 3
+archetype = "rage"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

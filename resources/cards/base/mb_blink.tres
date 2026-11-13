@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mb_blink+1"
+icon = "leap"
+title = "Скачок+I"
+description = "Маг переносится на клетку до 3 сквозь преграды и трясину."
+shape = 9
+cost = 0
+cast_range = 3
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 1
+archetype = "kinetic"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mb_blink+2"
+icon = "leap"
+title = "Скачок+II"
+description = "Маг переносится на клетку до 3 сквозь преграды.\nЦепь 2: до 5 и +1 заряд."
+shape = 9
+cast_range = 3
+chain_need = 2
+chain_range = 2
+chain_charge = 1
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 1
+archetype = "kinetic"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mb_blink"
+icon = "leap"
+title = "Скачок"
+description = "Маг переносится на клетку до 3 сквозь преграды и трясину."
+shape = 9
+cast_range = 3
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 1
+archetype = "kinetic"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

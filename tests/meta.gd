@@ -72,10 +72,10 @@ func _init() -> void:
 	# Закрытые карты: пока не куплены «Забытые формулы»
 	var m3: Node = _fresh()
 	m3.echoes = 1000
-	_check(m3.is_card_locked("meteor") and m3.is_card_locked("m_overload"), "редкие карты Мага закрыты")
-	_check(not m3.is_card_locked("lightning"), "одна редкая карта открыта сразу")
+	_check(m3.is_card_locked("mb_echo") and m3.is_card_locked("mb_overload"), "редкие карты Мага закрыты")
+	_check(not m3.is_card_locked("mb_staff"), "обычные карты открыты сразу")
 	m3.buy("mage_formulas")
-	_check(not m3.is_card_locked("m_overload") and m3.is_card_locked("meteor"), "ступень I открывает две карты")
+	_check(not m3.is_card_locked("mb_echo") and m3.is_card_locked("mb_overload"), "ступень I открывает первую редкую карту")
 	m3.buy("mage_formulas")
 	_check(not m3.is_card_locked("meteor"), "ступень II открывает остальные")
 

@@ -21,7 +21,16 @@ const SETS: Dictionary[String, Array] = {
 	"warden": ["Страж топей", Color("73818d")],
 	"runes": ["Руны Стражи", Color("8f8a6c")],
 	"redesign": ["Тактика отряда", Color("9a8550")],
+	# Новая система карт: архетипы базовых пулов (тз-карты.md)
+	"m_charge": ["Заряд", Color("3a4a8c")],
+	"m_kinetic": ["Перестановка", Color("4d5f9e")],
+	"m_flow": ["Направление", Color("2f6f86")],
+	"k_onslaught": ["Разгон", Color("8a6a3a")],
+	"k_warden": ["Страж", Color("73818d")],
+	"k_rage": ["Ярость", Color("7a6a52")],
 }
+# Роли карт (значок-подпись рядом с архетипом)
+const ROLE_NAMES: Array[String] = ["", "Ход", "Заготовка", "Связка", "Развязка"]
 const BASIC_COLOR := Color("8d8c8a")
 
 # Рамки героев: [основной цвет, цвет уголков]
@@ -408,7 +417,10 @@ static func describe(card: CardData, cost: int = -1) -> String:
 
 static func set_name(card: CardData) -> String:
 	if SETS.has(card.card_set):
-		return SETS[card.card_set][0]
+		var n: String = SETS[card.card_set][0]
+		if card.role != CardData.Role.NONE:
+			n += " · " + ROLE_NAMES[card.role]
+		return n
 	return "Базовая"
 
 

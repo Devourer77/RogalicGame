@@ -26,6 +26,7 @@ var charge: int = 0           # заряд мага: копится между �
 var momentum: int = 0         # натиск рыцаря: +1 за каждую пройденную клетку, сгорает после удара
 var discount: int = 0         # следующая карта дешевле на столько маны
 var overloaded: bool = false  # «Перегрузка»: не потратил заряд до конца хода — урон себе
+var unstoppable_chain: bool = false  # «Неудержимый» II: убийства ещё и добавляют звенья Цепи
 var unstoppable: bool = false # «Неудержимый»: убийства в этот ход возвращают ману и шаги
 var outpost: bool = false     # «Застава»: враги, подошедшие вплотную, получают урон
 var entangled: int = 0        # «Опутан»: сколько ходов ещё действует (нет шагов; бить и играть карты можно)
@@ -74,6 +75,7 @@ func copy() -> BattleUnit:
 	u.discount = discount
 	u.overloaded = overloaded
 	u.unstoppable = unstoppable
+	u.unstoppable_chain = unstoppable_chain
 	u.outpost = outpost
 	u.entangled = entangled
 	u.wet = wet

@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_unstoppable+1"
+icon = "unstoppable"
+title = "Неудержимый+I"
+description = "До конца хода каждое убийство рыцаря даёт 1 ману и 2 шага."
+shape = 0
+cost = 0
+cast_range = 0
+special = "unstoppable"
+is_rare = true
+card_set = "k_onslaught"
+owner_hero = "knight"
+role = 3
+archetype = "onslaught"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_unstoppable+2"
+icon = "unstoppable"
+title = "Неудержимый+II"
+description = "До конца хода каждое убийство рыцаря даёт 1 ману, 2 шага и +1 к Цепи."
+shape = 0
+cast_range = 0
+special = "unstoppable_chain"
+is_rare = true
+card_set = "k_onslaught"
+owner_hero = "knight"
+role = 3
+archetype = "onslaught"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_unstoppable"
+icon = "unstoppable"
+title = "Неудержимый"
+description = "До конца хода каждое убийство рыцаря даёт 1 ману и 2 шага."
+shape = 0
+cast_range = 0
+special = "unstoppable"
+is_rare = true
+card_set = "k_onslaught"
+owner_hero = "knight"
+role = 3
+archetype = "onslaught"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

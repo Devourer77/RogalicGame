@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_whirl+1"
+icon = "whirl"
+title = "Вихрь стали+I"
+description = "6 клеток вокруг: 6 урона, +1 ярость за каждого задетого.\nЦепь 3: +3."
+shape = 10
+cost = 2
+cast_range = 0
+damage = 6
+special = "whirl_rage"
+chain_need = 3
+chain_damage = 3
+is_rare = true
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_whirl+2"
+icon = "whirl"
+title = "Вихрь стали+II"
+description = "6 клеток вокруг: 5 урона, +1 ярость за каждого. Потом +2 шага.\nЦепь 3: +3."
+shape = 10
+cost = 2
+cast_range = 0
+damage = 5
+special = "whirl_rage"
+chain_need = 3
+chain_damage = 3
+bonus_moves = 2
+is_rare = true
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_whirl"
+icon = "whirl"
+title = "Вихрь стали"
+description = "6 клеток вокруг: 5 урона, +1 ярость за каждого задетого.\nЦепь 3: +3."
+shape = 10
+cost = 2
+cast_range = 0
+damage = 5
+special = "whirl_rage"
+chain_need = 3
+chain_damage = 3
+is_rare = true
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

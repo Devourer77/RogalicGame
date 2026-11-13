@@ -13,4 +13,4 @@ hero_id = "knight"
 costs = Array[int]([20, 35])
 effect = "unlock_cards"
 value = 0
-unlock_card_ids = Array[String](["k_berserk,k_whirl", "k_bastion,k_unstoppable"])
+unlock_card_ids = Array[String](["kb_whirl", "kb_unstoppable,kb_bell"])

@@ -34,6 +34,8 @@ var _hand_box: HBoxContainer
 var _hint_panel: PanelContainer
 var _hint: Label
 var _end_button: Button
+var _chain_label: Label   # «Цепь N» — сколько карт отряд сыграл за ход
+var _last_chain: int = 0
 var _speed_button: Button
 var _discard_button: Button
 var _end_tween: Tween
@@ -189,6 +191,23 @@ func _build_end_button() -> void:
 	Sfx.bind_button(_end_button, "turn")
 	_end_button.pressed.connect(end_turn_pressed.emit)
 	_root.add_child(_end_button)
+	# Цепь — над кнопкой «Конец хода», крупно, латунью
+	_chain_label = Label.new()
+	_chain_label.add_theme_font_override("font", UiKit.font_bold())
+	_chain_label.add_theme_font_size_override("font_size", 26)
+	_chain_label.add_theme_color_override("font_color", Color("d7b46a"))
+	_chain_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_chain_label.add_theme_constant_override("outline_size", 6)
+	_chain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_chain_label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	_chain_label.offset_left = -204
+	_chain_label.offset_right = -14
+	_chain_label.offset_top = -112
+	_chain_label.offset_bottom = -76
+	_chain_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	_chain_label.tooltip_text = "Цепь: сколько карт отряд сыграл в этот ход.\nКарты с «Цепь N» и «+X за звено» становятся сильнее."
+	_chain_label.pivot_offset = Vector2(190, 18)
+	_root.add_child(_chain_label)
 
 
 # Памятка по цветам клеток и кнопка справки — слева снизу
@@ -430,6 +449,14 @@ func _refresh_objective(logic: BattleLogic) -> void:
 # selected — номер выбранной карты (-1 — нет), busy — идут анимации.
 func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) -> void:
 	_round_label.text = "Раунд %d" % maxi(logic.turn, 1)
+	var chain: int = logic.chain_value()
+	_chain_label.text = "Цепь %d" % chain
+	_chain_label.modulate.a = 1.0 if chain > 0 else 0.45
+	if chain > _last_chain:
+		# каждое новое звено — короткая вспышка
+		_chain_label.scale = Vector2(1.25, 1.25)
+		create_tween().tween_property(_chain_label, "scale", Vector2.ONE, 0.25)
+	_last_chain = chain
 	_arena_label.text = ("·  " + logic.arena_title()) if logic.arena_title() != "" else ""
 	_refresh_objective(logic)
 	_refresh_relics()

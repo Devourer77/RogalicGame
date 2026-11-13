@@ -15,6 +15,9 @@ var attack_cards: Dictionary = {}        # герой -> сколько карт
 var spells_played: int = 0               # сколько «Заклинаний» сыграл отряд
 var last_action: Action = Action.NONE    # что отряд сделал последним
 var last_card_owner: String = ""         # чья карта сыграна последней (для «резонанса» героев)
+var chain: int = 0                       # Цепь: сколько карт отряд сыграл за ход (общая на двоих)
+var spells_this_turn: int = 0            # сколько Заклинаний сыграно в этот ход (для шамана)
+var last_mage_card: CardData = null      # последняя карта мага в этот ход (для «Эха»)
 
 
 func reset() -> void:
@@ -26,6 +29,9 @@ func reset() -> void:
 	spells_played = 0
 	last_action = Action.NONE
 	last_card_owner = ""
+	chain = 0
+	spells_this_turn = 0
+	last_mage_card = null
 
 
 # Герой прошёл по клеткам path (первая клетка — где он стоял). Шаг в другую сторону
@@ -46,6 +52,7 @@ func note_move(hero: String, path: Array[Vector2i]) -> void:
 # Герой сыграл карту основным способом. Сыгранная карта «гасит» его разгон.
 func note_card(hero: String, is_attack: bool, is_spell: bool) -> void:
 	cards_played[hero] = played(hero) + 1
+	chain += 1
 	if is_attack:
 		attack_cards[hero] = attacks(hero) + 1
 		last_action = Action.ATTACK
@@ -84,3 +91,20 @@ func played(hero: String) -> int:
 
 func attacks(hero: String) -> int:
 	return attack_cards.get(hero, 0)
+
+
+# Копия контекста — для прогноза и превью на копии боя
+func copy() -> TurnContext:
+	var c := TurnContext.new()
+	c.hex_moved = hex_moved.duplicate()
+	c.straight_moved = straight_moved.duplicate()
+	c._straight_dir = _straight_dir.duplicate()
+	c.cards_played = cards_played.duplicate()
+	c.attack_cards = attack_cards.duplicate()
+	c.spells_played = spells_played
+	c.last_action = last_action
+	c.last_card_owner = last_card_owner
+	c.chain = chain
+	c.spells_this_turn = spells_this_turn
+	c.last_mage_card = last_mage_card
+	return c

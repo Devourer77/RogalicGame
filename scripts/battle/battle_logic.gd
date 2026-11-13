@@ -53,7 +53,7 @@ const CRUST_TURNS: int = 2       # сколько раундов держитс�
 
 const HAND_SIZE: int = 5        # сколько карт каждый герой берёт в начале боя
 const MAX_HAND: int = 7
-const MAX_OVERHEAT: int = 2        # на сколько каждый герой может уйти в минус по мане (перегрев)
+const MAX_OVERHEAT: int = 0        # на сколько каждый герой может уйти в минус по мане (перегрев)
 const OVERHEAT_MANA_PENALTY: int = 1   # при перегреве от 2: так меньше маны в следующий ход
 const OVERHEAT_PENALTY_FROM: int = 2
 
@@ -66,9 +66,10 @@ const OVERHEAT_PENALTY_FROM: int = 2
 # Чтобы сменить режим, поменяй значение DRAW_MODE ниже.
 const DISCARDS_PER_TURN: int = 1   # сколько карт за ход герой может сбросить из руки
 
-enum DrawMode { DISCARD_ALL, REFILL_5, PLUS_3, PLUS_2, KEEP_2 }
-const DRAW_MODE: DrawMode = DrawMode.KEEP_2
-const KEEP_LIMIT: int = 3          # сколько карт герой может удержать на следующий ход (режим KEEP_2)
+#  KEEP_REFILL — как KEEP_2, но после сброса рука добирается до HAND_SIZE (новая система карт)
+enum DrawMode { DISCARD_ALL, REFILL_5, PLUS_3, PLUS_2, KEEP_2, KEEP_REFILL }
+const DRAW_MODE: DrawMode = DrawMode.KEEP_REFILL
+const KEEP_LIMIT: int = 2          # сколько карт герой может удержать на следующий ход (режим KEEP_2)
 const TURN_DRAW: int = 3           # сколько карт герой добирает в конце хода (режим KEEP_2); рука не больше MAX_HAND
 const BUMP_DAMAGE: int = 4      # урон, если толкнутый врезался в препятствие
 const STEAM_DAMAGE: int = 3        # урон от парового взрыва (огонь на луже)
@@ -92,6 +93,7 @@ const HOLD_LINE_STEPS: int = 1    # «Стойка стража»: стольк�
 const TOAD_FUSE_HP: int = 4         # жаба с таким HP или меньше «тлеет»: прыгает к героям и взрывается
 const TOAD_FUSE_STACKS: int = 2     # …или с таким числом стаков «Раздувания»
 const TOAD_LEAP_BONUS: int = 1      # тлеющая жаба прыгает на столько клеток дальше обычного шага
+const SHAMAN_EVERY: int = 2         # «Поглощение магии» срабатывает на каждое второе Заклинание за ход
 const SHAMAN_HEAL: int = 3          # «Поглощение магии»: лечение всех врагов за каждое Заклинание
 const SHAMAN_BLOCK: int = 3         # …и блок самому шаману
 const WOOD_ARMOR_DIVISOR: int = 2   # «Древесная броня» режет одиночную физическую атаку вдвое
@@ -213,6 +215,7 @@ var _prev_owner: String = ""       # чья карта была сыграна �
 var _ignite_ok: bool = false       # «Токсичный розжиг»: цель стояла на болоте/газе или была отравлена
 var _aether: bool = false          # «Перегрузка эфира» действует до конца хода
 var ctx := TurnContext.new()       # что отряд сделал в этот ход
+var _cur_chain: int = -1           # Цепь в момент розыгрыша текущей карты (-1 — карта не разыгрывается)
 var _mana_penalty: Dictionary = {}  # номер героя -> штраф к мане на следующий ход (после сильного перегрева)
 var turn: int = 0
 var is_over: bool = false
@@ -901,7 +904,10 @@ func can_play(h: BattleUnit, index: int) -> bool:
 # Сколько маны реально стоит карта (с учётом скидки «Сосредоточения»)
 func card_cost(h: BattleUnit, index: int) -> int:
 	var card: CardData = h.hand[index]
-	var cost: int = card.cost - h.discount
+	var cost: int = card.cost
+	if chain_met(card) and card.chain_cost >= 0:
+		cost = mini(cost, card.chain_cost)
+	cost -= h.discount
 	match card.special:
 		"steel_ring":
 			# дешевле, если вокруг ≥ 2 врагов или Рыцарь стоит в трясине
@@ -963,7 +969,7 @@ func get_card_targets(h: BattleUnit, index: int) -> Array[Vector2i]:
 			# Прыжок: любая свободная проходимая клетка в пределах дальности, сквозь преграды
 			for c: Vector2i in HexMath.rect_cells(width, height):
 				var dist: int = HexMath.distance(h.cell, c)
-				if dist >= 1 and dist <= card.cast_range and not is_blocked(c):
+				if dist >= 1 and dist <= card.cast_range + (card.chain_range if chain_met(card) else 0) and not is_blocked(c):
 					result.append(c)
 		CardData.Shape.FELL:
 			# Клетки рядом с соседним деревом: в сторону выбранной клетки оно и упадёт
@@ -998,6 +1004,12 @@ func _special_target_ok(special: String, c: Vector2i) -> bool:
 			return object_at(c) == Obj.BARREL
 		"transfer":
 			return object_at(c) == Obj.BARREL or (tile_at(c) != Tile.NONE and not _is_obstacle(c))
+		"spread":
+			var st: int = tile_at(c)
+			return st == Tile.FIRE or st == Tile.WATER or st == Tile.GAS or st == Tile.SWAMP
+		"swap_any":
+			var su: BattleUnit = unit_at(c)
+			return su != null and su.is_alive() and (su.is_hero or not _is_heavy(su))
 		"drain":
 			var o: int = object_at(c)
 			return o == Obj.BOG or o == Obj.PLANKS or o == Obj.BRIDGE or tile_at(c) == Tile.WATER
@@ -1091,6 +1103,26 @@ func get_card_area(h: BattleUnit, index: int, target: Vector2i) -> Array[Vector2
 	return inside
 
 
+# Цепь: сколько карт отряд уже сыграл в этот ход до текущей карты
+func chain_value() -> int:
+	return _cur_chain if _cur_chain >= 0 else ctx.chain
+
+
+# Выполнено ли у карты условие «Цепь N»
+func chain_met(card: CardData) -> bool:
+	return card.chain_need > 0 and chain_value() >= card.chain_need
+
+
+# Урон карты с учётом Цепи (без ярости, заряда и натиска) — для текста и превью
+func card_base_damage(card: CardData) -> int:
+	if card.damage <= 0:
+		return 0
+	var dmg: int = card.damage + card.per_link_damage * chain_value()
+	if chain_met(card):
+		dmg += card.chain_damage
+	return dmg
+
+
 func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	if not can_play(h, index):
 		return false
@@ -1115,7 +1147,10 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_ignite_ok = card.special == "toxic_ignition" and _ignitable(target)
 	_cur_retain = int(h.retain_turns.get(card, 0))
 	h.retain_turns.erase(card)
+	_cur_chain = ctx.chain
 	ctx.note_card(h.hero_data.id, as_attack, as_spell)
+	if h.hero_data.id == "mage" and not card.is_rare and card.special != "echo":
+		ctx.last_mage_card = card
 	card_played.emit(h, card, false)
 	if as_spell and not (h.hero_data.id == "mage" and has_relic("vow_of_silence")):
 		_absorb_magic()
@@ -1123,13 +1158,26 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_cur_hero = h
 	_cur_attack = as_attack
 	_cur_spell = as_spell
+	if card.special == "charge_to_chain" and h.charge > 0:
+		# «Последний урок» II: заряд превращается в звенья Цепи
+		_cur_chain += h.charge
+		ctx.chain += h.charge
+		h.charge = 0
+	var alive_before: Array[BattleUnit] = living_enemies()
 	_resolve_card(h, card, area, target)
+	if card.kill_mana > 0:
+		for e in alive_before:
+			if not e.is_alive():
+				h.mana += card.kill_mana
+		status_changed.emit(h, snapshot(h))
+	ctx.chain += card.chain_add
 	if as_spell and card.damage > 0 and card.special != "prism":
 		_fire_prism(card)
 	_cur_card = null
 	_cur_hero = null
 	_cur_attack = false
 	_cur_spell = false
+	_cur_chain = -1
 	_check_end()
 	return true
 
@@ -1145,6 +1193,9 @@ func is_attack_card(h: BattleUnit, card: CardData) -> bool:
 
 # «Поглощение магии»: каждое сыгранное Заклинание лечит врагов и даёт шаману блок
 func _absorb_magic() -> void:
+	ctx.spells_this_turn += 1
+	if ctx.spells_this_turn % SHAMAN_EVERY != 0:
+		return
 	for e in living_enemies():
 		if e.data.absorbs_magic:
 			for o in living_enemies():
@@ -1193,7 +1244,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 	var alive_before: Array[BattleUnit] = living_enemies()
 
 	# Ярость, заряд и натиск, накопленные до этой карты, усиливают её урон и сгорают
-	var damage: int = card.damage
+	var damage: int = card_base_damage(card)
 	if damage > 0:
 		damage += _spend_bonuses(h, card)
 		damage += _special_damage_bonus(h, card)
@@ -1246,7 +1297,13 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 				for c in hit_cells:
 					_apply_element(c, card.element, from)
 			# Толчок от героя: сначала самых дальних, чтобы они не мешали ближним
-			if card.push > 0:
+			var push: int = card.push + (card.chain_push if chain_met(card) else 0)
+			if card.special == "block_per_enemy":
+				for c in area:
+					var bu: BattleUnit = unit_at(c)
+					if bu != null and not bu.is_hero:
+						h.block += 3
+			if push > 0 and card.special != "bell" and card.special != "boot_barrel":
 				var targets: Array[BattleUnit] = []
 				for c in area:
 					var u: BattleUnit = unit_at(c)
@@ -1256,7 +1313,18 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 					return HexMath.distance(a.cell, from) > HexMath.distance(b.cell, from))
 				for u in targets:
 					if u.is_alive():
-						_push(u, HexMath.direction_to(from, u.cell), card.push)
+						_push(u, HexMath.direction_to(from, u.cell), push)
+			# Притягивание к герою: сначала ближних, чтобы они не мешали дальним
+			if card.pull > 0:
+				var pulled: Array[BattleUnit] = []
+				for c in area:
+					var pu: BattleUnit = unit_at(c)
+					if pu != null and not pu.is_hero:
+						pulled.append(pu)
+				pulled.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
+					return HexMath.distance(a.cell, from) < HexMath.distance(b.cell, from))
+				for pu in pulled:
+					_pull_toward(pu, _pull_anchor(h, card), card.pull)
 			# Ветер раздувает огонь: горящие клетки линии поджигают следующую по ветру
 			if card.special == "gust":
 				_fan_fire(area, dir, from)
@@ -1286,14 +1354,23 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 		message.emit("%s вызывает врагов на себя" % h.title)
 	if card.rage_gain > 0:
 		h.rage += card.rage_gain
-	if card.charge_gain > 0:
-		h.charge = mini(maxi(MAX_CHARGE, h.charge), h.charge + card.charge_gain)
+	var charge_gain: int = card.charge_gain + (card.chain_charge if chain_met(card) else 0)
+	if charge_gain > 0:
+		h.charge = mini(maxi(MAX_CHARGE, h.charge), h.charge + charge_gain)
+	if card.ally_block > 0:
+		for other in living_heroes():
+			if other != h:
+				other.block += card.ally_block
+				status_changed.emit(other, snapshot(other))
+	if card.discount_next > 0:
+		h.discount = card.discount_next
 	if card.momentum_gain > 0:
 		h.momentum = mini(MAX_MOMENTUM, h.momentum + card.momentum_gain)
 	if card.bonus_moves > 0:
 		h.moves_left += card.bonus_moves
-	if card.draw > 0:
-		_draw_cards(h, card.draw)
+	var draw: int = card.draw + (card.chain_draw if chain_met(card) else 0)
+	if draw > 0:
+		_draw_cards(h, draw)
 	status_changed.emit(h, snapshot(h))
 
 	# «Неудержимый»: за каждое убийство этой картой — мана и шаги обратно
@@ -1305,6 +1382,8 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 		if kills > 0:
 			h.mana += kills
 			h.moves_left += 2 * kills
+			if h.unstoppable_chain:
+				ctx.chain += kills
 			message.emit("Неудержимый: +%d маны, +%d шагов" % [kills, 2 * kills])
 
 
@@ -1317,11 +1396,11 @@ func _hit_cells(card: CardData, damage: int, cells: Array[Vector2i], from: Vecto
 		var u: BattleUnit = unit_at(c)
 		if u != null and not u.is_hero:
 			var dealt: int = damage
-			if card.special == "execute" and u.hp * 2 <= u.max_hp:
-				dealt = damage - card.damage + EXECUTE_DAMAGE
+			if card.special == "execute" and (u.hp * 2 <= u.max_hp or chain_met(card)):
+				dealt = damage - card.damage + card.execute_damage
 				message.emit("Добивание!")
 			_card_damage(u, dealt, card.pierce_block)
-		elif _is_breakable(c) and card.special != "pierce":
+		elif _is_breakable(c) and card.special != "pierce" and not (card.special == "boot" and object_at(c) == Obj.BARREL):
 			_hit_object(c, from)
 		if object_at(c) == Obj.RUNE and card.special != "pierce":
 			_trigger_rune(c)   # удар по клетке подрывает сторожевую руну
@@ -1477,7 +1556,16 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				if is_inside(c) and not rocks.has(c) and object_at(c) == Obj.NONE and tile_at(c) != Tile.FIRE:
 					_set_object(c, Obj.REEDS, Vector2i.ZERO)
 		"transfer":
-			var dest: Vector2i = target + dir
+			var dest: Vector2i = target + dir * maxi(1, card.move_distance)
+			if card.move_distance > 1:
+				# не дальше первой преграды на пути
+				var step_to: Vector2i = target
+				for i in range(1, card.move_distance + 1):
+					var nxt: Vector2i = target + dir * i
+					if not is_inside(nxt) or _is_obstacle(nxt) or object_at(nxt) != Obj.NONE:
+						break
+					step_to = nxt
+				dest = step_to
 			if object_at(target) == Obj.BARREL:
 				if is_inside(dest) and not is_blocked(dest) and object_at(dest) == Obj.NONE:
 					_move_object(target, dest)
@@ -1655,7 +1743,112 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 			message.emit("Звон Колокола Стражи!")
 			for e in near:
 				if e.is_alive():
-					_push(e, HexMath.direction_to(h.cell, e.cell), 1)
+					_push(e, HexMath.direction_to(h.cell, e.cell), maxi(1, card.push))
+		# --- Новая система карт (тз-карты.md) ---
+		"unstoppable_chain":
+			h.unstoppable = true
+			h.unstoppable_chain = true
+		"spark_ignite":
+			# «Искра осколка» II: поджигает газ, бочку или камыш в клетке цели
+			if tile_at(target) == Tile.GAS:
+				_explode_gas(target)
+			if object_at(target) == Obj.REEDS:
+				_burn_reeds(target)
+			elif object_at(target) == Obj.BARREL:
+				_explode_barrel(target)
+		"swap_any":
+			var other: BattleUnit = unit_at(target)
+			if other != null and other != h and other.is_alive():
+				var a: Vector2i = h.cell
+				var b: Vector2i = other.cell
+				h.cell = b
+				other.cell = a
+				unit_moved.emit(h, [a, b] as Array[Vector2i])
+				unit_moved.emit(other, [b, a] as Array[Vector2i])
+				_walked(h, [b] as Array[Vector2i])
+				_walked(other, [a] as Array[Vector2i])
+		"spread":
+			# «Разнести»: стихия клетки растекается на 6 соседних
+			var t: int = tile_at(target)
+			for n: Vector2i in HexMath.neighbors(target):
+				if not is_inside(n) or rocks.has(n):
+					continue
+				match t:
+					Tile.FIRE:
+						_apply_element(n, CardData.Element.FIRE, h.cell)
+					Tile.WATER:
+						_apply_element(n, CardData.Element.WATER, h.cell)
+					Tile.GAS, Tile.SWAMP:
+						if not _is_obstacle(n) and tile_at(n) == Tile.NONE:
+							_set_tile(n, t)
+		"echo":
+			# «Эхо»: последняя карта мага в этот ход возвращается из сброса в руку, дешевле
+			var last: CardData = ctx.last_mage_card
+			if last != null and h.discard_pile.has(last):
+				h.discard_pile.erase(last)
+				h.hand.append(last)
+				h.discount = maxi(h.discount, 1)
+				message.emit("Эхо: «%s» снова в руке" % last.title)
+		"pull_near":
+			# «Вызов» II: враги в 2 клетках подтягиваются к рыцарю на 1
+			var near2: Array[BattleUnit] = []
+			for e in living_enemies():
+				var dist: int = HexMath.distance(h.cell, e.cell)
+				if dist >= 2 and dist <= 2:
+					near2.append(e)
+			for e in near2:
+				_pull_toward(e, h.cell, 1)
+		"leap_to_ally":
+			# «Прикрыть» II: рыцарь встаёт рядом с союзником
+			var ally: BattleUnit = unit_at(target)
+			if ally != null and ally.is_hero and ally != h and HexMath.distance(h.cell, ally.cell) > 1:
+				var best: Vector2i = NO_CELL
+				for n: Vector2i in HexMath.neighbors(ally.cell):
+					if is_inside(n) and not is_blocked(n) and unit_at(n) == null:
+						if best == NO_CELL or HexMath.distance(h.cell, n) < HexMath.distance(h.cell, best):
+							best = n
+				if best != NO_CELL:
+					var path: Array[Vector2i] = [h.cell, best]
+					h.cell = best
+					unit_moved.emit(h, path)
+					_break_planks_behind(path)
+					_walked(h, [best] as Array[Vector2i])
+		"stakes2":
+			if _can_build(target):
+				_set_object(target, Obj.STAKES, Vector2i.ZERO)
+			for n: Vector2i in HexMath.neighbors(h.cell):
+				if n != target and _can_build(n):
+					_set_object(n, Obj.STAKES, Vector2i.ZERO)
+					break
+		"boot":
+			# «Пинок»: бочку не взрывает, а откатывает
+			if object_at(target) == Obj.BARREL:
+				_roll_barrel(target, dir)
+
+
+# Тяжёлый враг: огр, корягач и боссы — их нельзя менять местами
+func _is_heavy(u: BattleUnit) -> bool:
+	return u.data != null and (HEAVY_IDS.has(u.data.id) or u.data.is_boss)
+
+
+# Куда притягивает карта: к герою (или к союзнику — у «Притяжения» II)
+func _pull_anchor(h: BattleUnit, card: CardData) -> Vector2i:
+	if card.special == "pull_to_ally":
+		for other in living_heroes():
+			if other != h:
+				return other.cell
+	return h.cell
+
+
+# Притянуть юнита к клетке anchor на distance клеток, но не вплотную в саму клетку.
+# По пути срабатывает всё, что и при толчке (трясина, газ, огонь, мостки).
+func _pull_toward(u: BattleUnit, anchor: Vector2i, distance: int) -> void:
+	if not u.is_alive():
+		return
+	var gap: int = HexMath.distance(u.cell, anchor) - 1
+	var steps: int = mini(distance, gap)
+	if steps > 0:
+		_push(u, HexMath.direction_to(u.cell, anchor), steps)
 
 
 # Перемещает объект с клетки на клетку (бочку откатили, перенесли)
@@ -2703,7 +2896,7 @@ func discards_left(h: BattleUnit) -> int:
 
 # Можно ли сбросить карту: в режиме «сброс всей руки» сброс не нужен
 func can_discard(h: BattleUnit, index: int) -> bool:
-	return DRAW_MODE != DrawMode.DISCARD_ALL and DRAW_MODE != DrawMode.KEEP_2 and not is_over and h.is_alive() \
+	return DRAW_MODE != DrawMode.DISCARD_ALL and not _keeps() and not is_over and h.is_alive() \
 		and discards_left(h) > 0 and index >= 0 and index < h.hand.size()
 
 
@@ -2808,9 +3001,10 @@ func end_turn() -> void:
 		if DRAW_MODE == DrawMode.DISCARD_ALL:
 			h.discard_pile.append_array(h.hand)
 			h.hand.clear()
-		elif DRAW_MODE == DrawMode.KEEP_2:
+		elif _keeps():
 			_discard_unkept(h)
 		h.unstoppable = false
+		h.unstoppable_chain = false
 		# «Перегрузка»: заряд не потрачен — бьёт по самому магу
 		if h.is_alive() and h.overloaded and h.charge > 0:
 			message.emit("Перегрузка бьёт по %s!" % h.title)
@@ -2870,6 +3064,8 @@ func _end_turn_draw_count(h: BattleUnit) -> int:
 			return 3
 		DrawMode.PLUS_2:
 			return 2
+		DrawMode.KEEP_REFILL:
+			return maxi(0, HAND_SIZE - h.hand.size())
 		DrawMode.KEEP_2:
 			# Всегда пополняем руку как минимум до HAND_SIZE (5 карт),
 			# а если удержано 2–3 карты — добираем полные TURN_DRAW (до лимита MAX_HAND)
@@ -3143,6 +3339,7 @@ func clone() -> BattleLogic:
 	c.ritual_power = ritual_power
 	c.water_row = water_row
 	c._next_id = _next_id
+	c.ctx = ctx.copy()
 	return c
 
 
@@ -3569,7 +3766,7 @@ func keep_limit(h: BattleUnit) -> int:
 
 
 func can_keep(h: BattleUnit, index: int) -> bool:
-	return DRAW_MODE == DrawMode.KEEP_2 and not is_over and h.is_alive() \
+	return _keeps() and not is_over and h.is_alive() \
 			and index >= 0 and index < h.hand.size()
 
 
@@ -3597,6 +3794,11 @@ func _forget_kept(h: BattleUnit, index: int) -> void:
 		elif k > index:
 			updated.append(k - 1)
 	h.kept = updated
+
+
+# Режим с удержанием карт (KEEP_2 или KEEP_REFILL)
+func _keeps() -> bool:
+	return DRAW_MODE == DrawMode.KEEP_2 or DRAW_MODE == DrawMode.KEEP_REFILL
 
 
 # Конец хода в режиме KEEP_2: в сброс уходит всё, кроме отмеченных карт

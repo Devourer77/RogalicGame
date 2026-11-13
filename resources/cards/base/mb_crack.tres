@@ -1,0 +1,51 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mb_crack+1"
+icon = "tree"
+title = "Надлом+I"
+description = "Клетка до 5: дерево падает от мага, бочка взрывается, лёд раскалывается. Врагу 3 урона."
+shape = 1
+cost = 0
+cast_range = 5
+damage = 3
+card_set = "m_flow"
+owner_hero = "mage"
+role = 2
+archetype = "flow"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mb_crack+2"
+icon = "tree"
+title = "Надлом+II"
+description = "Клетка до 5: дерево падает, бочка взрывается, лёд раскалывается. Врагу 3 урона. +2 заряда."
+shape = 1
+cast_range = 5
+damage = 3
+charge_gain = 2
+card_set = "m_flow"
+owner_hero = "mage"
+role = 2
+archetype = "flow"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mb_crack"
+icon = "tree"
+title = "Надлом"
+description = "Клетка до 5: дерево падает от мага, бочка взрывается, лёд раскалывается. Врагу 3 урона."
+shape = 1
+cast_range = 5
+damage = 3
+card_set = "m_flow"
+owner_hero = "mage"
+role = 2
+archetype = "flow"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

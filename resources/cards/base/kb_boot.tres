@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_boot+1"
+icon = "boot"
+title = "Пинок+I"
+description = "Соседний враг: 1 урон, толчок 3. Бочка катится до 4 и взрывается при ударе."
+shape = 1
+cost = 0
+damage = 1
+push = 3
+special = "boot"
+card_set = "k_warden"
+owner_hero = "knight"
+role = 3
+archetype = "warden"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_boot+2"
+icon = "boot"
+title = "Пинок+II"
+description = "Соседний враг: 3 урона, толчок 2. Бочка катится до 4 и взрывается при ударе."
+shape = 1
+cost = 0
+damage = 3
+push = 2
+special = "boot"
+card_set = "k_warden"
+owner_hero = "knight"
+role = 3
+archetype = "warden"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_boot"
+icon = "boot"
+title = "Пинок"
+description = "Соседний враг: 1 урон, толчок 2. Бочка катится до 4 и взрывается при ударе."
+shape = 1
+cost = 0
+damage = 1
+push = 2
+special = "boot"
+card_set = "k_warden"
+owner_hero = "knight"
+role = 3
+archetype = "warden"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

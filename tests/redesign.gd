@@ -53,7 +53,7 @@ func _initialize() -> void:
 	for i in mage.hand.size():
 		if l.card_cost(mage, i) == 1:
 			cheap = i
-	if cheap >= 0:
+	if cheap >= 0 and BattleLogic.MAX_OVERHEAT > 0:
 		check("карта за 1 при мане 0 играется (перегрев)", l.can_play(mage, cheap))
 	mage.mana = -BattleLogic.MAX_OVERHEAT
 	var any_playable: bool = false
@@ -193,8 +193,10 @@ func _passives() -> void:
 	var m2: BattleUnit = l2.heroes[0]
 	m2.mana = 10
 	m2.hand = [load("res://resources/cards/m_spark.tres")] as Array[CardData]
+	m2.hand.append(load("res://resources/cards/m_spark.tres"))   # шаман срабатывает на каждое второе Заклинание
 	var cards: Array[Vector2i] = l2.get_card_targets(m2, 0)
 	var ok: bool = cards.size() > 0 and l2.play_card(m2, 0, cards[0])
+	ok = ok and l2.play_card(m2, 0, l2.get_card_targets(m2, 0)[0])
 	check("Шаман: Заклинание Мага вылечило шамана на %d" % BattleLogic.SHAMAN_HEAL, ok and sh.hp >= 3 + BattleLogic.SHAMAN_HEAL)
 
 	# Сброс «в ноги» шамана не лечит
@@ -321,11 +323,12 @@ func _new_cards() -> void:
 	m7.hand = [card("mage_thermal_vent")] as Array[CardData]
 	m7.mana = 1
 	check("Вентиляция без перегрева нельзя", not l7.can_play(m7, 0))
-	m7.mana = -2
-	check("Вентиляция при перегреве можно", l7.can_play(m7, 0))
-	l7.play_card(m7, 0, m7.cell)
-	check("Вентиляция сняла перегрев", m7.mana == 0)
-	check("Вентиляция дала блок 8 Магу", m7.block >= 8)
+	if BattleLogic.MAX_OVERHEAT > 0:   # перегрев выключен в новой системе карт
+		m7.mana = -2
+		check("Вентиляция при перегреве можно", l7.can_play(m7, 0))
+		l7.play_card(m7, 0, m7.cell)
+		check("Вентиляция сняла перегрев", m7.mana == 0)
+		check("Вентиляция дала блок 8 Магу", m7.block >= 8)
 
 	# Эфир: −2 маны и добор
 	var l8 := fresh()

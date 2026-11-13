@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mb_discharge+1"
+icon = "bolt"
+title = "Разрядка+I"
+description = "Цель до 5: 6 урона +2 за каждый заряд. Тратит весь заряд."
+shape = 1
+cost = 2
+cast_range = 5
+damage = 6
+charge_bonus = 2
+card_set = "m_charge"
+owner_hero = "mage"
+role = 4
+archetype = "charge"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mb_discharge+2"
+icon = "bolt"
+title = "Разрядка+II"
+description = "Цель до 5: 4 урона +2 за каждый заряд и +1 за звено Цепи. Тратит заряд."
+shape = 1
+cost = 2
+cast_range = 5
+damage = 4
+charge_bonus = 2
+per_link_damage = 1
+card_set = "m_charge"
+owner_hero = "mage"
+role = 4
+archetype = "charge"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mb_discharge"
+icon = "bolt"
+title = "Разрядка"
+description = "Цель до 5: 4 урона +2 за каждый заряд. Тратит весь заряд."
+shape = 1
+cost = 2
+cast_range = 5
+damage = 4
+charge_bonus = 2
+card_set = "m_charge"
+owner_hero = "mage"
+role = 4
+archetype = "charge"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

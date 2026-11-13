@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_taunt+1"
+icon = "taunt"
+title = "Вызов+I"
+description = "Провокация, блок 8."
+shape = 0
+cast_range = 0
+block = 8
+taunt = true
+card_set = "k_warden"
+owner_hero = "knight"
+role = 2
+archetype = "warden"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_taunt+2"
+icon = "taunt"
+title = "Вызов+II"
+description = "Провокация, блок 5. Враги в 2 клетках подтягиваются на 1."
+shape = 0
+cast_range = 0
+block = 5
+taunt = true
+special = "pull_near"
+card_set = "k_warden"
+owner_hero = "knight"
+role = 2
+archetype = "warden"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_taunt"
+icon = "taunt"
+title = "Вызов"
+description = "Провокация, блок 5."
+shape = 0
+cast_range = 0
+block = 5
+taunt = true
+card_set = "k_warden"
+owner_hero = "knight"
+role = 2
+archetype = "warden"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

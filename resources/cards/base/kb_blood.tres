@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_blood+1"
+icon = "blood"
+title = "Кровавый удар+I"
+description = "5 урона вплотную +3 за каждую ярость. Тратит всю ярость."
+shape = 1
+damage = 5
+rage_bonus = 3
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_blood+2"
+icon = "blood"
+title = "Кровавый удар+II"
+description = "5 урона вплотную +3 за ярость и +1 за звено Цепи. Тратит ярость."
+shape = 1
+cost = 2
+damage = 5
+rage_bonus = 3
+per_link_damage = 1
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_blood"
+icon = "blood"
+title = "Кровавый удар"
+description = "5 урона вплотную +3 за каждую ярость. Тратит всю ярость."
+shape = 1
+cost = 2
+damage = 5
+rage_bonus = 3
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

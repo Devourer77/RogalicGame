@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mb_echo+1"
+icon = "echo"
+title = "Эхо+I"
+description = "Последняя карта мага в этот ход (кроме ★) возвращается в руку и стоит на 1 меньше."
+shape = 0
+cost = 0
+cast_range = 0
+special = "echo"
+is_rare = true
+card_set = "m_flow"
+owner_hero = "mage"
+role = 3
+archetype = "flow"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mb_echo+2"
+icon = "echo"
+title = "Эхо+II"
+description = "Последняя карта мага в этот ход (кроме ★) возвращается в руку и стоит на 2 меньше."
+shape = 0
+cast_range = 0
+special = "echo"
+discount_next = 2
+is_rare = true
+card_set = "m_flow"
+owner_hero = "mage"
+role = 3
+archetype = "flow"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mb_echo"
+icon = "echo"
+title = "Эхо"
+description = "Последняя карта мага в этот ход (кроме ★) возвращается в руку и стоит на 1 меньше."
+shape = 0
+cast_range = 0
+special = "echo"
+is_rare = true
+card_set = "m_flow"
+owner_hero = "mage"
+role = 3
+archetype = "flow"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mb_staff+1"
+icon = "staff"
+title = "Удар посохом+I"
+description = "5 урона вплотную, толчок 1.\nЦепь 2: +3 урона."
+shape = 1
+cost = 0
+damage = 5
+push = 1
+chain_need = 2
+chain_damage = 3
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 3
+archetype = "kinetic"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mb_staff+2"
+icon = "staff"
+title = "Удар посохом+II"
+description = "3 урона вплотную, толчок 1.\nЦепь 2: +3 урона и +1 заряд."
+shape = 1
+cost = 0
+damage = 3
+push = 1
+chain_need = 2
+chain_damage = 3
+chain_charge = 1
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 3
+archetype = "kinetic"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mb_staff"
+icon = "staff"
+title = "Удар посохом"
+description = "3 урона вплотную, толчок 1.\nЦепь 2: +3 урона."
+shape = 1
+cost = 0
+damage = 3
+push = 1
+chain_need = 2
+chain_damage = 3
+card_set = "m_kinetic"
+owner_hero = "mage"
+role = 3
+archetype = "kinetic"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

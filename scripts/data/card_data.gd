@@ -72,3 +72,41 @@ enum Element {
 @export var scrap_moves: int = 1        # сброс «в ноги»: сколько шагов даёт (0 — не даёт)
 @export var scrap_block: int = 0        # сброс «в ноги»: сколько блока даёт
 @export var scrap_mana: int = 0         # сброс «в ноги»: сколько маны возвращает (манипуляция маной мага)
+
+# --- Новая система карт (тз-карты.md): роль, Цепь, архетип, духи, улучшения ---
+# Роль карты — значок в углу: Ход, Заготовка, Связка, Развязка
+enum Role { NONE, MOVE, SETUP, LINK, FINISH }
+
+@export_group("Цепь")
+@export var role: Role = Role.NONE
+# «Цепь N: …» — бонус, если до этой карты отряд уже сыграл в этот ход N карт (0 — бонуса нет)
+@export var chain_need: int = 0
+@export var chain_damage: int = 0       # +урон при выполненной Цепи
+@export var chain_cost: int = -1        # цена при выполненной Цепи (-1 — цена не меняется)
+@export var chain_push: int = 0         # +толчок при выполненной Цепи
+@export var chain_draw: int = 0         # +добор при выполненной Цепи
+@export var chain_charge: int = 0       # +заряд при выполненной Цепи
+@export var chain_range: int = 0        # +дальность при выполненной Цепи
+@export var per_link_damage: int = 0    # +урон за каждое звено Цепи
+@export var chain_add: int = 0          # сколько карта добавляет к Цепи сверх обычной единицы
+@export var pull: int = 0               # притягивает задетых врагов к герою на столько клеток
+@export var execute_damage: int = 12    # «Добивание»: урон по раненому врагу
+@export var kill_mana: int = 0          # убил этой картой — столько маны обратно
+
+@export_group("Происхождение")
+# Архетип базовой карты: "charge", "kinetic", "flow" (Маг), "onslaught", "warden", "rage" (Рыцарь)
+@export var archetype: String = ""
+# Духи карты: один — карта духа, два — смешанная карта пары, пусто — базовая
+@export var spirit_ids: Array[String] = []
+@export var spirit_slot: int = 0        # Д1–Д6 у карт духа: по нему карта меняется при передаче духа
+
+@export_group("Улучшения")
+# Улучшенные версии этой карты (ветка I «Сила» и ветка II «Приём»). У самих улучшенных — пусто.
+@export var upgrade_1: CardData
+@export var upgrade_2: CardData
+@export var upgrade_level: int = 0      # 0 — обычная карта, 1 или 2 — какая ветка улучшения
+
+@export_group("Особое (новые карты)")
+@export var ally_block: int = 0         # второй герой получает столько блока
+@export var move_distance: int = 0      # на сколько клеток «Перенос» сдвигает стихию или бочку
+@export var discount_next: int = 0      # следующая карта героя дешевле на столько

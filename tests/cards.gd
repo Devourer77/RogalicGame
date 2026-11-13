@@ -346,16 +346,16 @@ func _pools() -> void:
 	print("--- Наборы и награды ---")
 	var mage: HeroData = load("res://resources/heroes/mage.tres")
 	var knight: HeroData = load("res://resources/heroes/knight.tres")
-	check("У мага в пуле 34 карты (24 + 10 редизайна)", mage.card_pool.size() == 34)
-	check("У рыцаря в пуле 43 карты (32 + 10 редизайна + «Стойка стража»)", knight.card_pool.size() == 43)
+	check("У мага в пуле 17 базовых карт", mage.card_pool.size() == 17)
+	check("У рыцаря в пуле 18 базовых карт", knight.card_pool.size() == 18)
 	var rh: RunHero = run.party[0]
-	for i in 4: rh.deck.append(card("m_spark"))
+	for i in 4: rh.deck.append(load("res://resources/cards/base/mb_spark.tres"))
 	var storm := 0; var total := 0
 	for i in 300:
 		for c in run.roll_cards(rh, 3):
 			total += 1
-			if c.card_set == "storm": storm += 1
-	check("Собираешь «Бурю» — она выпадает чаще (%d из %d)" % [storm, total], float(storm) / total > 0.4)
+			if c.card_set == "m_charge": storm += 1
+	check("Собираешь «Заряд» — он выпадает чаще (%d из %d)" % [storm, total], float(storm) / total > 0.3)
 
 
 func _hand_draw() -> void:
@@ -368,7 +368,7 @@ func _hand_draw() -> void:
 	var kept: Array[CardData] = m.hand.duplicate()
 	var before: int = m.hand.size()
 	l.end_turn()
-	if mode == BattleLogic.DrawMode.KEEP_2:
+	if mode == BattleLogic.DrawMode.KEEP_2 or mode == BattleLogic.DrawMode.KEEP_REFILL:
 		check("KEEP_2: без отметок — новая рука не меньше %d карт" % BattleLogic.HAND_SIZE, m.hand.size() == BattleLogic.HAND_SIZE)
 	elif mode == BattleLogic.DrawMode.DISCARD_ALL:
 		check("DISCARD_ALL: новая рука из 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
@@ -407,7 +407,7 @@ func _discard() -> void:
 	print("--- Сброс карты ---")
 	var l := fresh(["ogre"]); var m: BattleUnit = l.heroes[0]
 	l.enemies[0].cell = C(11, 0)
-	if BattleLogic.DRAW_MODE == BattleLogic.DrawMode.DISCARD_ALL or BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2:
+	if BattleLogic.DRAW_MODE == BattleLogic.DrawMode.DISCARD_ALL or BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2 or BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_REFILL:
 		check("Сброс всей руки каждый ход: отдельный сброс не нужен", not l.can_discard(m, 0))
 		return
 	var n: int = m.hand.size(); var pile: int = m.discard_pile.size()

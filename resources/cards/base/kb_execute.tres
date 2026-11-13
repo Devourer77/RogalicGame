@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "kb_execute+1"
+icon = "axe"
+title = "Добивание+I"
+description = "5 урона вплотную; по врагу с половиной HP или меньше — 14.\nЦепь 4: всегда 14."
+shape = 1
+damage = 5
+special = "execute"
+chain_need = 4
+execute_damage = 14
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "kb_execute+2"
+icon = "axe"
+title = "Добивание+II"
+description = "5 урона вплотную; по раненому вдвое — 12. Убил — +1 мана.\nЦепь 4: всегда 12."
+shape = 1
+damage = 5
+special = "execute"
+chain_need = 4
+kill_mana = 1
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "kb_execute"
+icon = "axe"
+title = "Добивание"
+description = "5 урона вплотную; по врагу с половиной HP или меньше — 12.\nЦепь 4: всегда 12."
+shape = 1
+damage = 5
+special = "execute"
+chain_need = 4
+card_set = "k_rage"
+owner_hero = "knight"
+role = 4
+archetype = "rage"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

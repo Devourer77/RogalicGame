@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mb_lesson+1"
+icon = "rift"
+title = "Последний урок+I"
+description = "Линия 6: 4 урона +2 за звено Цепи, сквозь блок."
+shape = 2
+cost = 2
+cast_range = 6
+damage = 4
+per_link_damage = 2
+pierce_block = true
+is_rare = true
+card_set = "m_charge"
+owner_hero = "mage"
+role = 4
+archetype = "charge"
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mb_lesson+2"
+icon = "rift"
+title = "Последний урок+II"
+description = "Заряд становится звеньями Цепи. Линия 6: 3 урона +2 за звено, сквозь блок."
+shape = 2
+cost = 2
+cast_range = 6
+damage = 3
+per_link_damage = 2
+pierce_block = true
+special = "charge_to_chain"
+is_rare = true
+card_set = "m_charge"
+owner_hero = "mage"
+role = 4
+archetype = "charge"
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mb_lesson"
+icon = "rift"
+title = "Последний урок"
+description = "Линия 6: 3 урона +2 за звено Цепи, сквозь блок."
+shape = 2
+cost = 2
+cast_range = 6
+damage = 3
+per_link_damage = 2
+pierce_block = true
+is_rare = true
+card_set = "m_charge"
+owner_hero = "mage"
+role = 4
+archetype = "charge"
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")
