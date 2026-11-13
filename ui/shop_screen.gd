@@ -66,6 +66,13 @@ func _rebuild() -> void:
 	if Run.shop_removal_used:
 		remove.text = "Карта уже убрана"
 	_column.add_child(remove)
+	var upgrade: Button = UiKit.make_button("Улучшить карту  ·  %d" % Run.UPGRADE_PRICE, _start_upgrade, "star")
+	upgrade.custom_minimum_size.x = 320
+	upgrade.disabled = Run.shop_upgrade_used or Run.gold < Run.UPGRADE_PRICE
+	upgrade.tooltip_text = "У каждой карты две ветки: I «Сила» и II «Приём». Один раз за лавку."
+	if Run.shop_upgrade_used:
+		upgrade.text = "Карта уже улучшена"
+	_column.add_child(upgrade)
 	var leave: Button = UiKit.make_button("Уйти", Run.goto.bind(Run.MAP_SCENE), "", true)
 	leave.custom_minimum_size.x = 320
 	_column.add_child(leave)
@@ -98,6 +105,37 @@ func _remove_card(section: int, index: int) -> void:
 	Run.gold -= Run.REMOVE_CARD_PRICE
 	Run.party[section].deck.remove_at(index)
 	Run.shop_removal_used = true
+	_rebuild()
+
+
+# Улучшение: сначала выбрать карту, потом ветку
+func _start_upgrade() -> void:
+	var sections: Array[Dictionary] = []
+	for rh in Run.party:
+		sections.append({"title": rh.data.title, "color": rh.data.color, "cards": rh.deck})
+	DeckOverlay.open(self, "Какую карту улучшить?", sections,
+			"Нажми на карту, потом выбери ветку улучшения. Цена: %d золота." % Run.UPGRADE_PRICE,
+			_pick_upgrade_card, func(_section: int) -> bool: return true)
+
+
+func _pick_upgrade_card(section: int, index: int) -> void:
+	var rh: RunHero = Run.party[section]
+	var card: CardData = rh.deck[index]
+	if not Run.can_upgrade(card):
+		return
+	var choice: Array[CardData] = [card.upgrade_1, card.upgrade_2]
+	var sections: Array[Dictionary] = [{"title": "I «Сила»  ·  II «Приём»", "color": rh.data.color, "cards": choice}]
+	DeckOverlay.open(self, "Ветка улучшения: %s" % card.title, sections, "Выбор окончательный.",
+			func(_s: int, branch_index: int) -> void: _do_upgrade(rh, index, branch_index + 1))
+
+
+func _do_upgrade(rh: RunHero, index: int, branch: int) -> void:
+	if Run.shop_upgrade_used or Run.gold < Run.UPGRADE_PRICE or not Run.can_upgrade(rh.deck[index]):
+		return
+	Sfx.play("magic", 0.05)
+	Run.gold -= Run.UPGRADE_PRICE
+	Run.upgrade_card(rh, index, branch)
+	Run.shop_upgrade_used = true
 	_rebuild()
 
 

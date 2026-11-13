@@ -30,7 +30,10 @@ const RELIC_DIR: String = "res://resources/relics/"
 const SLIME_CARD: String = "res://resources/cards/swamp_slime.tres"
 const START_GOLD: int = 30
 const REST_HEAL_PERCENT: float = 0.3
-const REMOVE_CARD_PRICE: int = 60
+const REMOVE_CARD_PRICE: int = 40   # удаление в полтора раза дешевле прежнего (тз-карты.md)
+const UPGRADE_PRICE: int = 50       # улучшение карты в лавке
+const UPGRADE_CHOICES: int = 3      # сколько карт предлагают улучшить в награде
+const SKIP_HEAL: int = 3            # пропустил награду — каждому герою столько HP
 
 # Герои отряда: маг и рыцарь. Их карты и стартовые колоды — внутри этих ресурсов.
 const HEROES: Array[HeroData] = [
@@ -90,6 +93,7 @@ var _last_arena: String = ""                 # прошлая арена — ч�
 var last_gold_reward: int = 0
 var shop_stock: Array[Dictionary] = []   # {"hero": RunHero, "card": CardData}
 var shop_removal_used: bool = false
+var shop_upgrade_used: bool = false   # в этой лавке уже улучшили карту
 var last_run_won: bool = false
 var bell: int = 0                 # Звон (сложность) текущего забега
 var act: int = 1
@@ -289,6 +293,7 @@ func enter_node(n: MapNode) -> void:
 				for card in roll_cards(rh, 2):
 					shop_stock.append({"hero": rh, "card": card})
 			shop_removal_used = false
+			shop_upgrade_used = false
 			goto(SHOP_SCENE)
 		MapNode.Type.REST:
 			goto(REST_SCENE)
@@ -640,6 +645,60 @@ func set_weights(rh: RunHero) -> Dictionary[String, float]:
 		if key != "" and counts[key] > 0:
 			weights[key] = minf(SET_WEIGHT_MAX, 1.0 + SET_WEIGHT_STEP * counts[key])
 	return weights
+
+
+# ---------- Улучшения карт (тз-карты.md, раздел 4) ----------
+
+# Можно ли улучшить карту: у неё есть ветки и она ещё не улучшена
+static func can_upgrade(card: CardData) -> bool:
+	return card != null and card.upgrade_level == 0 and card.upgrade_1 != null and card.upgrade_2 != null
+
+
+# Номера карт колоды героя, которые можно улучшить
+func upgradable(rh: RunHero) -> Array[int]:
+	var result: Array[int] = []
+	for i in rh.deck.size():
+		if can_upgrade(rh.deck[i]):
+			result.append(i)
+	return result
+
+
+# Случайные карты отряда для награды «Улучшение»: [{"hero": RunHero, "index": int}]
+# Одинаковые карты одного героя предлагаются один раз.
+func roll_upgrades(count: int) -> Array[Dictionary]:
+	var all: Array[Dictionary] = []
+	for rh in party:
+		var seen: Dictionary = {}
+		for i in upgradable(rh):
+			if seen.has(rh.deck[i].id):
+				continue
+			seen[rh.deck[i].id] = true
+			all.append({"hero": rh, "index": i})
+	var result: Array[Dictionary] = []
+	while result.size() < count and not all.is_empty():
+		result.append(all.pop_at(rng.randi_range(0, all.size() - 1)))
+	return result
+
+
+# Улучшить карту колоды: branch 1 — ветка I «Сила», 2 — ветка II «Приём»
+func upgrade_card(rh: RunHero, index: int, branch: int) -> void:
+	var card: CardData = rh.deck[index]
+	if not can_upgrade(card):
+		return
+	rh.deck[index] = card.upgrade_1 if branch == 1 else card.upgrade_2
+
+
+# Только редкие карты героя (награда за элиту)
+func roll_rare_cards(rh: RunHero, count: int) -> Array[CardData]:
+	var rares: Array[CardData] = []
+	var locked: Dictionary = Meta.locked_card_ids()
+	for c in rh.data.card_pool:
+		if c.is_rare and not locked.has(c.id) and not rh.deck.has(c):
+			rares.append(c)
+	var result: Array[CardData] = []
+	while result.size() < count and not rares.is_empty():
+		result.append(rares.pop_at(rng.randi_range(0, rares.size() - 1)))
+	return result
 
 
 func random_rare_card(hero_data: HeroData) -> CardData:
