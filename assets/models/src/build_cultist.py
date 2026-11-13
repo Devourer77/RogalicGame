@@ -1,378 +1,297 @@
-# Строит low-poly культиста со скелетом и анимациями и экспортирует в .glb.
-# Масштаб: 1 единица = 1 метр, рост ~1.68 м (с посохом ~1.78 м).
-# Смотрит в -Y (после экспорта в glTF это +Z).
-import bpy
-import bmesh
+# Культист Пустого Венца (~1.7 м). Высокий, худой, сутулый. Длинная рваная ряса пепельно-серого и
+# угольно-чёрного цвета, глубокий капюшон — лица нет, только тьма. Над капюшоном парит пустое кольцо-венец
+# костяного цвета. Тёмный железный посох, с конца на цепи свисает клетка-фонарь с бледным светом:
+# из неё он бьёт линией. Никакого фиолетового (цвет Мага), красного и золота.
+# Смотрит в -Y (после экспорта в glTF это +Z, как у остальных персонажей).
+#
+# Анимации: Idle, Walk, Attack (луч из фонаря), Hit, Death.
+# Запуск: python3 build_cultist.py out/cultist.glb out/cultist.blend (нужен модуль bpy)
+import os
+import sys
 import math
-from mathutils import Vector, Matrix
 
-SCENE_NAME = "Cultist"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import char_kit as k
+from char_kit import Pose, wave, track, track3, pulse
 
-
-# ---------- Материалы ----------
-
-def mat(name, color, metallic=0.0, rough=0.8, emission=None, emission_strength=2.8):
-    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
-    m.use_nodes = True
-    bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
-    bsdf.inputs["Base Color"].default_value = (*color, 1.0)
-    bsdf.inputs["Metallic"].default_value = metallic
-    bsdf.inputs["Roughness"].default_value = rough
-    if emission:
-        bsdf.inputs["Emission Color"].default_value = (*emission, 1.0)
-        bsdf.inputs["Emission Strength"].default_value = emission_strength
-    m.diffuse_color = (*color, 1.0)
-    return m
-
-
-# ---------- Примитивы через bmesh ----------
-
-PARTS = []
-
-
-def _finish(bm, name, material, bone, matrix=None):
-    if matrix is not None:
-        bmesh.ops.transform(bm, matrix=matrix, verts=bm.verts)
-    me = bpy.data.meshes.new(name)
-    bm.to_mesh(me)
-    bm.free()
-    for p in me.polygons:
-        p.use_smooth = False
-    me.materials.append(material)
-    ob = bpy.data.objects.new(name, me)
-    bpy.context.scene.collection.objects.link(ob)
-    vg = ob.vertex_groups.new(name=bone)
-    vg.add([v.index for v in me.vertices], 1.0, "REPLACE")
-    PARTS.append(ob)
-    return ob
-
-
-def _rot(r):
-    return (Matrix.Rotation(math.radians(r[2]), 4, "Z")
-            @ Matrix.Rotation(math.radians(r[1]), 4, "Y")
-            @ Matrix.Rotation(math.radians(r[0]), 4, "X"))
-
-
-def box(name, size, loc, material, bone, rot=(0, 0, 0)):
-    bm = bmesh.new()
-    bmesh.ops.create_cube(bm, size=1.0)
-    m = Matrix.Translation(loc) @ _rot(rot) @ Matrix.Diagonal((*size, 1.0))
-    return _finish(bm, name, material, bone, m)
-
-
-def cyl(name, r1, r2, z0, z1, material, bone, segs=8, loc=(0, 0), scale_y=1.0, rot=(0, 0, 0)):
-    bm = bmesh.new()
-    depth = z1 - z0
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r1, radius2=r2, depth=depth)
-    m = Matrix.Translation((loc[0], loc[1], (z0 + z1) / 2)) @ _rot(rot) @ Matrix.Diagonal((1, scale_y, 1, 1))
-    return _finish(bm, name, material, bone, m)
-
-
-def limb(name, a, b, r1, r2, material, bone, segs=6):
-    a, b = Vector(a), Vector(b)
-    d = b - a
-    bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r1, radius2=r2, depth=d.length)
-    q = Vector((0, 0, 1)).rotation_difference(d.normalized())
-    m = Matrix.Translation((a + b) / 2) @ q.to_matrix().to_4x4()
-    return _finish(bm, name, material, bone, m)
-
-
-def prism(name, points_xz, thickness, loc, material, bone, rot=(0, 0, 0)):
-    bm = bmesh.new()
-    verts = [bm.verts.new((x, -thickness / 2, z)) for x, z in points_xz]
-    face = bm.faces.new(verts)
-    res = bmesh.ops.extrude_face_region(bm, geom=[face])
-    moved = [v for v in res["geom"] if isinstance(v, bmesh.types.BMVert)]
-    bmesh.ops.translate(bm, verts=moved, vec=(0, thickness, 0))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
-    m = Matrix.Translation(loc) @ _rot(rot)
-    return _finish(bm, name, material, bone, m)
+NAME = "Cultist"
+SIDES = (("R", -1), ("L", 1))
+ROBE = [("RobeF", (0, -0.2), (1, 0, 0), (0, -0.25, 1)), ("RobeB", (0, 0.2), (1, 0, 0), (0, 0.25, 1)),
+        ("RobeL", (0.2, 0), (0, 1, 0), (0.25, 0, 1)), ("RobeR", (-0.2, 0), (0, 1, 0), (-0.25, 0, 1))]
+HAND_R = (-0.29, -0.09, 0.88)    # правая кисть в покое: посох проходит сквозь кулак
+_D = (0.38, -0.86, 0.34)         # направление посоха: вперёд, влево и вверх
+STAFF_A = tuple(HAND_R[i] - 0.55 * _D[i] for i in range(3))   # нижний конец (сзади-справа)
+STAFF_B = tuple(HAND_R[i] + 0.95 * _D[i] for i in range(3))   # верхний конец с крюком
 
 
 # ---------- Модель ----------
 
 def build_mesh():
-    robe = mat("Cultist_Robe", (0.26, 0.08, 0.42), rough=0.82)
-    dark = mat("Cultist_Dark", (0.07, 0.04, 0.11), rough=0.88)
-    crimson = mat("Cultist_Crimson", (0.42, 0.07, 0.11), rough=0.8)
-    gold = mat("Cultist_Gold", (0.74, 0.50, 0.16), metallic=0.82, rough=0.36)
-    void = mat("Cultist_Void", (0.01, 0.01, 0.02), rough=1.0)
-    magic = mat("Cultist_Magic", (0.85, 0.22, 1.0), rough=0.2, emission=(0.82, 0.18, 1.0), emission_strength=3.5)
-    wood = mat("Cultist_Wood", (0.22, 0.11, 0.05), rough=0.8)
-    iron = mat("Cultist_Iron", (0.36, 0.34, 0.40), metallic=0.78, rough=0.4)
+    robe = k.mat("Cultist_Robe", (0.40, 0.40, 0.38), rough=0.95)       # пепельно-серая ряса
+    under = k.mat("Cultist_Under", (0.19, 0.19, 0.19), rough=0.95)     # угольно-чёрная нижняя ряса
+    hood_in = k.mat("Cultist_Void", (0.02, 0.02, 0.025), rough=1.0)    # тьма под капюшоном
+    bone = k.mat("Cultist_Bone", (0.84, 0.82, 0.74), rough=0.6)        # костяной белый
+    skin = k.mat("Cultist_Hand", (0.56, 0.54, 0.50), rough=0.8)        # серые худые кисти
+    iron = k.mat("Cultist_Iron", (0.24, 0.24, 0.26), metallic=0.6, rough=0.55)
+    glow = k.mat("Cultist_Glow", (0.92, 0.94, 0.90), rough=0.3, emit=2.4)
+    crown = k.mat("Cultist_Crown", (0.88, 0.86, 0.78), rough=0.5, emit=0.25)
 
-    # Нижняя часть мантии в пол со складками (кость Hips)
-    cyl("RobeSkirt", 0.34, 0.155, 0.01, 0.86, robe, "Hips", segs=10, scale_y=0.85)
-    for angle_deg in (-60, -30, 30, 60, 140, 180, 220):
-        rad = math.radians(angle_deg)
-        fx, fy = math.sin(rad) * 0.25, -math.cos(rad) * 0.21
-        tx, ty = math.sin(rad) * 0.12, -math.cos(rad) * 0.10
-        limb(f"RobeFold_{angle_deg}", (fx, fy, 0.01), (tx, ty, 0.78), 0.072, 0.022, robe, "Hips", segs=4)
+    # Нижняя ряса (чёрная) до земли и верхняя (серая) покороче, с рваным краем
+    k.barrel("UnderRobe", 0.3, 0.17, 0.02, 0.92, under, "Hips", segs=9, sy=0.85)
+    k.barrel("Torso", 0.2, 0.17, 0.92, 1.42, robe, "Chest", segs=8, sy=0.8)
+    k.barrel("Belt", 0.19, 0.19, 0.94, 1.0, under, "Spine", segs=8, sy=0.8)
+    # Полы верхней рясы — на своих костях (колышутся), рваный край зубцами
+    for name, (x, y), u, v in ROBE:
+        w = 0.2 if name in ("RobeF", "RobeB") else 0.16
+        teeth = [(-w, 0), (w, 0), (w * 1.1, -0.55), (w * 0.6, -0.42), (w * 0.3, -0.62), (-w * 0.1, -0.45),
+                 (-w * 0.5, -0.66), (-w * 0.8, -0.48), (-w * 1.1, -0.58)]
+        k.plate(name, teeth, 0.025, (x, y, 0.96), u, v, robe, name)
+    # Наплечная пелерина
+    k.barrel("Mantle", 0.27, 0.15, 1.22, 1.46, robe, "Chest", segs=8, sy=0.85)
+    # Капюшон: большой, островерхий, лицо — пустота
+    k.sphere("Hood", 0.16, (0, 0.02, 1.58), robe, "Head", scale=(1.0, 1.1, 1.15), segs=8, rings=5)
+    k.limb("HoodTip", (0, 0.06, 1.68), (0, 0.18, 1.82), 0.09, 0.01, robe, "Head", segs=6)
+    k.sphere("Void", 0.11, (0, -0.07, 1.56), hood_in, "Head", scale=(0.9, 0.6, 1.1), segs=7, rings=4)
+    k.barrel("HoodRim", 0.14, 0.12, 1.43, 1.47, bone, "Head", segs=8, loc=(0, -0.02), sy=0.9)
+    # Пустой венец — кольцо над капюшоном на своей кости (парит и покачивается)
+    n = 14
+    for i in range(n):
+        a0, a1 = math.tau * i / n, math.tau * (i + 1) / n
+        p0 = (0.15 * math.cos(a0), 0.02 + 0.15 * math.sin(a0), 1.95)
+        p1 = (0.15 * math.cos(a1), 0.02 + 0.15 * math.sin(a1), 1.95)
+        k.limb(f"Crown{i}", p0, p1, 0.016, 0.016, crown, "Crown", segs=4)
 
-    # Пояс, золотой ромб-пряжка и длинная ритуальная лента-стола спереди (наклон -12° вдоль юбки!)
-    cyl("Belt", 0.168, 0.168, 0.82, 0.89, dark, "Hips", segs=8, scale_y=0.84)
-    box("BeltDiamond", (0.075, 0.03, 0.075), (0, -0.152, 0.855), gold, "Hips", rot=(0, 45, 0))
-    stole_outer = [(-0.072, 0.0), (0.072, 0.0), (0.092, -0.52), (0.0, -0.64), (-0.092, -0.52)]
-    stole_inner = [(-0.050, 0.0), (0.050, 0.0), (0.065, -0.50), (0.0, -0.59), (-0.065, -0.50)]
-    prism("StoleCrimson", stole_outer, 0.022, (0, -0.148, 0.83), crimson, "Hips", rot=(-12, 0, 0))
-    prism("StoleDark", stole_inner, 0.026, (0, -0.152, 0.83), dark, "Hips", rot=(-12, 0, 0))
+    # Руки: широкие рукава с костяными манжетами, худые кисти
+    for side, s in SIDES:
+        k.limb(f"Sleeve.{side}", (0.2 * s, 0, 1.4), (0.27 * s, -0.04, 1.16), 0.07, 0.08, robe, f"UpperArm.{side}", segs=6)
+        k.limb(f"Cuff.{side}", (0.27 * s, -0.04, 1.16), (0.29 * s, -0.08, 0.94), 0.08, 0.11, robe, f"ForeArm.{side}", segs=6)
+        k.barrel(f"CuffBone.{side}", 0.11, 0.11, 0.93, 0.97, bone, f"ForeArm.{side}", segs=7, loc=(0.29 * s, -0.08))
+        k.sphere(f"Hand.{side}", 0.045, (0.29 * s, -0.09, 0.88), skin, f"Hand.{side}", scale=(0.8, 1.0, 1.2), segs=5, rings=3)
+        k.limb(f"Fingers.{side}", (0.29 * s, -0.1, 0.86), (0.29 * s, -0.13, 0.8), 0.03, 0.015, skin, f"Hand.{side}", segs=4)
+        # Ступни чуть видны из-под рясы
+        k.box(f"Foot.{side}", (0.09, 0.18, 0.06), (0.1 * s, -0.12, 0.03), under, f"Foot.{side}")
 
-    # Торс и грудь (Spine, Chest)
-    cyl("Torso", 0.15, 0.185, 0.85, 1.15, robe, "Spine", segs=8, scale_y=0.78)
-    cyl("Chest", 0.185, 0.165, 1.15, 1.30, robe, "Chest", segs=8, scale_y=0.78)
-
-    # Ритуальное оплечье (коническая пелерина на плечах с золотым и багровым кантом)
-    cyl("MantleCrimson", 0.30, 0.16, 1.13, 1.29, crimson, "Chest", segs=8, scale_y=0.78)
-    cyl("MantleGold", 0.292, 0.156, 1.15, 1.295, gold, "Chest", segs=8, scale_y=0.79)
-    cyl("MantleDark", 0.282, 0.152, 1.17, 1.30, dark, "Chest", segs=8, scale_y=0.80)
-    # Треугольный мыс оплечья спереди на груди (прилегает к корпусу)
-    tip_gold = [(-0.14, 0.0), (0.14, 0.0), (0.0, -0.18)]
-    tip_dark = [(-0.10, 0.0), (0.10, 0.0), (0.0, -0.13)]
-    prism("MantleTipGold", tip_gold, 0.022, (0, -0.152, 1.14), gold, "Chest", rot=(-6, 0, 0))
-    prism("MantleTipDark", tip_dark, 0.026, (0, -0.155, 1.14), dark, "Chest", rot=(-6, 0, 0))
-
-    # Высокий стоячий воротник вокруг шеи
-    cyl("CollarGold", 0.135, 0.175, 1.28, 1.37, gold, "Chest", segs=8, scale_y=0.85)
-    cyl("CollarInner", 0.125, 0.162, 1.285, 1.372, dark, "Chest", segs=8, scale_y=0.84)
-
-    # Левая рука (опущена сбоку) и правая рука (выдвинута вперёд-вправо, держит посох)
-    # Левая рука
-    limb("UpperArm.L", (0.22, 0, 1.23), (0.26, 0.02, 1.00), 0.065, 0.075, robe, "UpperArm.L")
-    limb("ForeArm.L", (0.26, 0.02, 1.00), (0.28, -0.06, 0.77), 0.075, 0.115, robe, "ForeArm.L", segs=6)
-    limb("SleeveTrimGold.L", (0.276, -0.045, 0.81), (0.28, -0.06, 0.765), 0.11, 0.12, gold, "ForeArm.L", segs=6)
-    box("Hand.L", (0.075, 0.085, 0.08), (0.28, -0.07, 0.72), dark, "Hand.L")
-
-    # Правая рука (держит вертикальный посох справа-спереди на x=-0.32, y=-0.16)
-    limb("UpperArm.R", (-0.22, 0, 1.23), (-0.27, -0.05, 1.02), 0.065, 0.075, robe, "UpperArm.R")
-    limb("ForeArm.R", (-0.27, -0.05, 1.02), (-0.31, -0.15, 0.88), 0.075, 0.112, robe, "ForeArm.R", segs=6)
-    limb("SleeveTrimGold.R", (-0.30, -0.13, 0.91), (-0.31, -0.15, 0.875), 0.108, 0.118, gold, "ForeArm.R", segs=6)
-    box("Hand.R", (0.08, 0.09, 0.08), (-0.32, -0.16, 0.86), dark, "Hand.R")
-
-    # Остроконечный капюшон, чёрная тень внутри и светящиеся фиолетовые глаза (Head)
-    limb("HoodBase", (0, 0, 1.33), (0, 0.01, 1.50), 0.135, 0.155, robe, "Head", segs=8)
-    limb("HoodMid", (0, 0.01, 1.48), (0, 0.05, 1.63), 0.152, 0.068, robe, "Head", segs=8)
-    limb("HoodTip", (0, 0.05, 1.62), (0, 0.13, 1.70), 0.066, 0.010, robe, "Head", segs=6)
-    hood_open = [(-0.085, -0.075), (0.0, 0.095), (0.085, -0.075)]
-    prism("FaceVoid", hood_open, 0.045, (0, -0.122, 1.44), void, "Head", rot=(-6, 0, 0))
-    for side, s in (("R", -1), ("L", 1)):
-        box(f"Eye.{side}", (0.036, 0.02, 0.018), (0.036 * s, -0.145, 1.445), magic, "Head", rot=(0, 0, -14 * s))
-
-    # Посох с рогатым полумесяцем и парящим кристаллом в правой руке (Hand.R)
-    sx, sy = -0.32, -0.16
-    limb("StaffShaft", (sx, sy, 0.02), (sx, sy, 1.38), 0.022, 0.026, wood, "Hand.R", segs=6)
-    limb("StaffSpike", (sx, sy, 0.04), (sx, sy, 0.00), 0.026, 0.006, iron, "Hand.R", segs=6)
-    cyl("StaffCollar", 0.032, 0.048, 1.35, 1.43, gold, "Hand.R", segs=6, loc=(sx, sy))
-
-    for side, s in (("R", -1), ("L", 1)):
-        limb(f"StaffSubHorn.{side}", (sx, sy, 1.38), (sx + 0.09 * s, sy, 1.32), 0.024, 0.006, gold, "Hand.R", segs=5)
-        p0 = (sx, sy, 1.42)
-        p1 = (sx + 0.12 * s, sy, 1.48)
-        p2 = (sx + 0.15 * s, sy, 1.62)
-        p3 = (sx + 0.07 * s, sy, 1.75)
-        limb(f"Crescent1.{side}", p0, p1, 0.034, 0.030, gold, "Hand.R", segs=5)
-        limb(f"Crescent2.{side}", p1, p2, 0.030, 0.024, gold, "Hand.R", segs=5)
-        limb(f"Crescent3.{side}", p2, p3, 0.024, 0.005, gold, "Hand.R", segs=5)
-
-    limb("CrystalTop", (sx, sy, 1.58), (sx, sy, 1.69), 0.048, 0.004, magic, "Hand.R", segs=6)
-    limb("CrystalBot", (sx, sy, 1.58), (sx, sy, 1.47), 0.048, 0.004, magic, "Hand.R", segs=6)
-
-    bpy.ops.object.select_all(action="DESELECT")
-    for ob in PARTS:
-        ob.select_set(True)
-    bpy.context.view_layer.objects.active = PARTS[0]
-    bpy.ops.object.join()
-    body = bpy.context.view_layer.objects.active
-    body.name = "CultistMesh"
-    body.data.name = "CultistMesh"
-    return body
+    # Посох (кость Weapon): тёмное железо, крюк наверху, цепь с клеткой-фонарём (кости Chain, Lantern)
+    k.limb("Staff", STAFF_A, STAFF_B, 0.022, 0.02, iron, "Weapon", segs=6)
+    hook = (STAFF_B[0] + 0.02, STAFF_B[1] - 0.06, STAFF_B[2] + 0.06)
+    k.limb("StaffHook", STAFF_B, hook, 0.02, 0.014, iron, "Weapon", segs=5)
+    k.limb("StaffHook2", hook, (hook[0], hook[1] - 0.02, hook[2] - 0.05), 0.014, 0.01, iron, "Weapon", segs=4)
+    top = (hook[0], hook[1] - 0.02, hook[2] - 0.05)
+    for i in range(4):
+        z = top[2] - 0.04 - i * 0.055
+        k.box(f"Link{i}", (0.014, 0.035 if i % 2 else 0.012, 0.05), (top[0], top[1], z), iron, "Chain")
+    lz = top[2] - 0.34
+    k.box("CageTop", (0.11, 0.11, 0.03), (top[0], top[1], lz + 0.1), iron, "Lantern")
+    k.box("CageBottom", (0.12, 0.12, 0.03), (top[0], top[1], lz - 0.08), iron, "Lantern")
+    k.limb("CageRing", (top[0], top[1], lz + 0.115), (top[0], top[1], lz + 0.15), 0.025, 0.012, iron, "Lantern", segs=5)
+    for i in range(6):
+        a = math.tau * i / 6
+        bx, by = top[0] + 0.06 * math.cos(a), top[1] + 0.06 * math.sin(a)
+        k.limb(f"Bar{i}", (bx, by, lz - 0.07), (bx, by, lz + 0.09), 0.008, 0.008, iron, "Lantern", segs=3)
+    k.sphere("Flame", 0.062, (top[0], top[1], lz + 0.01), glow, "Glow", scale=(0.8, 0.8, 1.2), segs=6, rings=4)
+    return k.join_parts("CultistMesh")
 
 
 # ---------- Скелет ----------
 
+_hook = (STAFF_B[0] + 0.02, STAFF_B[1] - 0.08, STAFF_B[2] + 0.01)
 BONES = {
-    "Root": ((0, 0, 0), (0, 0, 0.25), None),
-    "Hips": ((0, 0, 0.82), (0, 0, 0.90), "Root"),
-    "Spine": ((0, 0, 0.90), (0, 0, 1.15), "Hips"),
-    "Chest": ((0, 0, 1.15), (0, 0, 1.32), "Spine"),
-    "Head": ((0, 0, 1.32), (0, 0, 1.62), "Chest"),
-    "UpperArm.L": ((0.22, 0, 1.23), (0.26, 0.02, 1.00), "Chest"),
-    "ForeArm.L": ((0.26, 0.02, 1.00), (0.28, -0.06, 0.77), "UpperArm.L"),
-    "Hand.L": ((0.28, -0.06, 0.77), (0.28, -0.08, 0.68), "ForeArm.L"),
-    "UpperArm.R": ((-0.22, 0, 1.23), (-0.27, -0.05, 1.02), "Chest"),
-    "ForeArm.R": ((-0.27, -0.05, 1.02), (-0.31, -0.15, 0.88), "UpperArm.R"),
-    "Hand.R": ((-0.31, -0.15, 0.88), (-0.32, -0.16, 0.78), "ForeArm.R"),
+    "Root": ((0, 0, 0), (0, 0, 0.15), None),
+    "Hips": ((0, 0, 0.88), (0, 0, 0.98), "Root"),
+    "Spine": ((0, 0, 0.98), (0, 0, 1.18), "Hips"),
+    "Chest": ((0, 0, 1.18), (0, 0, 1.42), "Spine"),
+    "Head": ((0, 0, 1.42), (0, 0, 1.75), "Chest"),
+    "Crown": ((0, 0.02, 1.9), (0, 0.02, 2.0), "Head"),
+    "Weapon": (HAND_R, (HAND_R[0], HAND_R[1] - 0.2, HAND_R[2]), "Hand.R"),
+    "Chain": (_hook, (_hook[0], _hook[1], _hook[2] - 0.22), "Weapon"),
+    "Lantern": ((_hook[0], _hook[1], _hook[2] - 0.22), (_hook[0], _hook[1], _hook[2] - 0.44), "Chain"),
+    "Glow": ((_hook[0], _hook[1], _hook[2] - 0.34), (_hook[0], _hook[1], _hook[2] - 0.24), "Lantern"),
 }
-
-
-def build_armature():
-    arm_data = bpy.data.armatures.new("CultistRig")
-    rig = bpy.data.objects.new("Cultist", arm_data)
-    bpy.context.scene.collection.objects.link(rig)
-    bpy.context.view_layer.objects.active = rig
-    bpy.ops.object.mode_set(mode="EDIT")
-    for name, (h, t, parent) in BONES.items():
-        b = arm_data.edit_bones.new(name)
-        b.head, b.tail = h, t
-        b.roll = 0.0
-    for name, (h, t, parent) in BONES.items():
-        if parent:
-            arm_data.edit_bones[name].parent = arm_data.edit_bones[parent]
-            arm_data.edit_bones[name].use_connect = False
-    bpy.ops.object.mode_set(mode="OBJECT")
-    for pb in rig.pose.bones:
-        pb.rotation_mode = "XYZ"
-    return rig
+for name, (x, y), u, v in ROBE:
+    BONES[name] = ((x, y, 0.96), (x * 1.2, y * 1.2, 0.4), "Hips")
+for side, s in SIDES:
+    BONES.update({
+        f"UpperArm.{side}": ((0.2 * s, 0, 1.4), (0.27 * s, -0.04, 1.16), "Chest"),
+        f"ForeArm.{side}": ((0.27 * s, -0.04, 1.16), (0.29 * s, -0.08, 0.94), f"UpperArm.{side}"),
+        f"Hand.{side}": ((0.29 * s, -0.08, 0.94), (0.29 * s, -0.1, 0.82), f"ForeArm.{side}"),
+        f"Thigh.{side}": ((0.1 * s, 0, 0.88), (0.1 * s, 0, 0.46), "Hips"),
+        f"Shin.{side}": ((0.1 * s, 0, 0.46), (0.1 * s, 0, 0.08), f"Thigh.{side}"),
+        f"Foot.{side}": ((0.1 * s, 0, 0.08), (0.1 * s, -0.16, 0.03), f"Shin.{side}"),
+    })
 
 
 # ---------- Анимации ----------
-
-def key(rig, frame, pose, loc=None):
-    for pb in rig.pose.bones:
-        r = pose.get(pb.name, (0, 0, 0))
-        pb.rotation_euler = tuple(math.radians(a) for a in r)
-        pb.keyframe_insert("rotation_euler", frame=frame)
-        if pb.name in ("Root", "Hips"):
-            wx, wy, wz = (loc or {}).get(pb.name, (0, 0, 0))
-            pb.location = (wx, wz, -wy)
-            pb.keyframe_insert("location", frame=frame)
-
-
-def new_action(rig, name):
-    act = bpy.data.actions.new(name)
-    act.use_fake_user = True
-    if rig.animation_data is None:
-        rig.animation_data_create()
-    rig.animation_data.action = act
-    return act
-
-
-def finish_action(rig, act, frames, cyclic=False):
-    act.frame_range = (0, frames)
-    act.use_frame_range = True
-    act.use_cyclic = cyclic
-    track = rig.animation_data.nla_tracks.new()
-    track.name = act.name
-    track.strips.new(act.name, 0, act)
-    track.mute = True
-    rig.animation_data.action = None
-
-
-# Стойка культиста: посох в правой руке стоит вертикально сбоку-спереди
+# Посох в модели уже стоит наискосок у груди, поэтому в стойке руки почти не поворачиваются:
+# правая держит посох, левая открыта ладонью вперёд, голова склонена набок — «поёт».
 STANCE = {
-    "Spine": (2, 0, 0), "Chest": (2, 0, 0), "Head": (-3, 0, 0),
-    "UpperArm.R": (0, 0, 0), "ForeArm.R": (0, 0, 0), "Hand.R": (0, 0, 0),
-    "UpperArm.L": (0, 0, 0), "ForeArm.L": (0, 0, 0), "Hand.L": (0, 0, 0),
+    "Spine": (10, -6, 0), "Chest": (12, -4, 0), "Head": (6, 10, 12),
+    "UpperArm.R": (-10, 0, 0), "ForeArm.R": (-20, 0, 0),
+    "UpperArm.L": (-40, 0, -24), "ForeArm.L": (-36, 0, 0), "Hand.L": (-20, 0, 0),
+    "Thigh.L": (-12, 0, 0), "Shin.L": (14, 0, 0), "Thigh.R": (6, 0, 0), "Shin.R": (8, 0, 0),
+    "RobeF": (-6, 0, 0), "RobeB": (4, 0, 0),
 }
 
 
-def pose(**changes):
-    p = dict(STANCE)
-    for k, v in changes.items():
-        p[k.replace("_R", ".R").replace("_L", ".L")] = v
+def stance():
+    return Pose(STANCE, {"Hips": (0, 0, -0.02)})
+
+
+def robe(p, fwd=0.0, side=0.0):
+    """Полы рясы: fwd — колышутся вперёд-назад, side — вбок."""
+    p.add("RobeF", x=-fwd)
+    p.add("RobeB", x=fwd)
+    p.add("RobeL", z=-side)
+    p.add("RobeR", z=-side)
+    return p
+
+
+def idle(t):
+    """Покой (3 сек): покачивается, будто поёт, голова плавно клонится из стороны в сторону, венец парит,
+    фонарь качается на цепи и мерцает, левая рука медленно водит по воздуху."""
+    p = stance()
+    breath = wave(t, 2)
+    sway = wave(t, 1)
+    p.move("Hips", x=0.015 * sway, z=-0.01 * (breath * 0.5 + 0.5))
+    p.add("Spine", z=3 * sway, x=2 * breath)
+    p.add("Chest", z=2 * wave(t, 1, -0.1))
+    tilt = track(t, [(0, 12), (0.4, 12), (0.55, -10), (0.85, -10), (1, 12)])
+    p.add("Head", z=tilt - 12, y=4 * wave(t, 1, 0.2))
+    p.move("Crown", z=0.0)
+    p.add("Crown", x=6 * wave(t, 1, 0.1), z=6 * wave(t, 1, 0.35))
+    p.add("Chain", x=8 * wave(t, 1, 0.15), z=6 * wave(t, 1, -0.1))
+    p.add("Lantern", x=6 * wave(t, 1, -0.05))
+    p.size("Glow", 1.0 + 0.12 * wave(t, 5) + 0.2 * pulse(t, 0.62, 0.06))
+    p.add("UpperArm.L", x=-8 * wave(t, 1, 0.3), z=6 * sway)
+    p.add("Hand.L", x=10 * wave(t, 1, 0.4))
+    robe(p, fwd=3 * wave(t, 1, -0.2), side=3 * wave(t, 1, 0.1))
+    return p
+
+
+def walk(t):
+    """Ход (0.8 сек): скользит, сутулясь; ряса колышется, фонарь мотается, венец отстаёт."""
+    p = stance()
+    a = wave(t, 1)
+    bounce = wave(t, 2, 0.1)
+    p.move("Hips", z=-0.02 + 0.012 * bounce, x=0.015 * a)
+    p.add("Hips", y=6 * a)
+    p.set("Thigh.R", -24 * a, 0, 0)
+    p.set("Thigh.L", 24 * a, 0, 0)
+    p.set("Shin.R", 10 + 24 * max(0.0, wave(t, 1, 0.25)), 0, 0)
+    p.set("Shin.L", 10 + 24 * max(0.0, -wave(t, 1, 0.25)), 0, 0)
+    p.add("Spine", x=6)
+    p.add("Head", x=-4 * bounce)
+    p.add("UpperArm.L", x=-10 * a)
+    p.add("Chain", x=16 + 8 * wave(t, 2, -0.15), z=6 * a)
+    p.add("Lantern", x=10 * wave(t, 2, -0.3))
+    p.add("Crown", x=-8 + 4 * wave(t, 2, -0.3))
+    robe(p, fwd=10 + 8 * abs(a), side=8 * a)
+    return p
+
+
+def attack(t):
+    """Луч из фонаря (0.8 сек): отводит посох к себе, фонарь гаснет → выбрасывает посох вперёд, фонарь взлетает
+    на цепи и вспыхивает (к 0.4 сек) → свет угасает, возврат. Венец вспыхивает и подпрыгивает вместе со светом."""
+    p = stance()
+    K = [0.0, 0.25, 0.45, 0.62, 1.0]
+
+    def tr(keys):
+        return track(t, list(zip(K, keys)))
+
+    p.add("UpperArm.R", x=tr([0, 20, -50, -40, 0]), z=tr([0, 10, -6, -4, 0]))
+    p.add("ForeArm.R", x=tr([0, -30, 10, 4, 0]))
+    p.add("Hand.R", x=tr([0, 10, -16, -10, 0]))
+    p.add("UpperArm.L", x=tr([0, 20, -60, -50, 0]), z=tr([0, -10, 10, 6, 0]))
+    p.add("Hand.L", x=tr([0, 20, -40, -30, 0]))
+    p.add("Spine", x=tr([0, -14, 16, 10, 0]))
+    p.add("Chest", x=tr([0, -8, 10, 6, 0]))
+    p.add("Head", x=tr([0, -20, 10, 6, 0]), z=tr([0, -12, 0, 0, 0]))
+    p.move("Root", y=tr([0, 0.05, -0.1, -0.08, 0]))
+    p.add("Chain", x=tr([0, 20, -60, -40, 0]))
+    p.add("Lantern", x=tr([0, 10, -30, -20, 0]))
+    p.size("Glow", tr([1, 0.5, 2.6, 1.6, 1]))
+    p.move("Crown", z=0.0)
+    p.add("Crown", x=tr([0, -6, 4, 2, 0]))
+    p.size("Crown", tr([1, 0.97, 1.08, 1.04, 1]))
+    robe(p, fwd=tr([0, -10, 20, 14, 0]))
+    return p
+
+
+def hit(t):
+    """Получил удар (0.47 сек): отшатнулся, голова запрокинута позже корпуса, фонарь мотается, венец сбился."""
+    p = stance()
+    snap = track(t, [(0, 0), (0.18, 1), (0.45, 0.35), (1, 0)])
+    whip = track(t, [(0, 0), (0.2, 0.4), (0.34, 1), (0.56, -0.3), (0.8, 0.1), (1, 0)])
+    p.move("Root", y=0.1 * snap)
+    p.add("Spine", x=-20 * snap, y=10 * snap)
+    p.add("Chest", x=-10 * snap)
+    p.add("Head", x=-26 * whip, z=-14 * whip)
+    p.add("UpperArm.L", x=30 * snap, z=-30 * snap)
+    p.add("UpperArm.R", x=14 * snap)
+    p.add("Chain", x=40 * whip, z=-20 * whip)
+    p.add("Lantern", x=-20 * whip)
+    p.add("Crown", x=-20 * whip, z=16 * whip)
+    p.size("Glow", 1.0 - 0.4 * snap)
+    robe(p, fwd=-20 * whip)
+    return p
+
+
+def death(t):
+    """Гибель (1.3 сек): выронил посох, рухнул на колени, свет в фонаре гаснет, венец падает и тускнеет,
+    тело заваливается вперёд и словно «сдувается» под рясой."""
+    p = stance()
+    K = [0.0, 0.2, 0.45, 0.72, 1.0]
+
+    def tr(keys):
+        return track(t, list(zip(K, keys)))
+
+    p.add("Spine", x=tr([0, -16, 24, 40, 44]))
+    p.add("Chest", x=tr([0, -10, 16, 24, 26]))
+    p.add("Head", x=tr([0, -26, 30, 40, 40]), z=tr([0, 10, -6, -16, -16]))
+    p.add("Thigh.L", x=tr([0, 0, -80, -70, -70]))
+    p.add("Shin.L", x=tr([0, 0, 120, 110, 110]))
+    p.add("Thigh.R", x=tr([0, 0, -86, -76, -76]))
+    p.add("Shin.R", x=tr([0, 0, 126, 116, 116]))
+    p.move("Hips", z=tr([-0.02, 0.0, -0.4, -0.5, -0.52]))
+    p.move("Root", y=tr([0, 0.06, 0.0, -0.1, -0.12]))
+    p.add("UpperArm.R", x=tr([0, 30, 60, 70, 70]), z=tr([0, 20, 30, 30, 30]))
+    p.add("Weapon", x=tr([0, 0, -40, -70, -80]), z=tr([0, 10, 40, 60, 60]))
+    p.add("Chain", x=tr([0, 30, 60, 50, 40]))
+    p.size("Glow", tr([1, 1.4, 0.5, 0.1, 0.05]))
+    p.move("Crown", z=0.0)
+    p.add("Crown", x=tr([0, -30, 40, 80, 90]))
+    p.size("Crown", tr([1, 1, 0.9, 0.8, 0.8]))
+    p.add("UpperArm.L", x=tr([0, 20, -30, -40, -40]))
+    spasm = pulse(t, 0.86, 0.05)
+    p.add("Hand.L", x=-30 * spasm)
+    robe(p, fwd=tr([0, -10, 30, 50, 54]), side=tr([0, 0, 10, 14, 14]))
     return p
 
 
 def build_actions(rig):
-    # Idle: зловещее парение/дыхание (60 кадров)
-    act = new_action(rig, "Idle")
-    for f, k in ((0, 0.0), (30, 1.0), (60, 0.0)):
-        key(rig, f, pose(Spine=(2 + 2 * k, 0, 0), Chest=(2 + 2 * k, 0, 0), Head=(-3 - 3 * k, 0, 0),
-                         UpperArm_R=(-4 * k, 0, 0), Hand_R=(4 * k, 0, 0),
-                         UpperArm_L=(-5 * k, 0, 0)),
-            {"Hips": (0, 0, 0.02 * k)})
-    finish_action(rig, act, 60, cyclic=True)
-
-    # Walk: плавное скольжение мантии (20 кадров)
-    act = new_action(rig, "Walk")
-    for f, s in ((0, 1), (10, -1), (20, 1)):
-        key(rig, f, pose(Spine=(6, 4 * s, 2 * s), Chest=(4, -4 * s, 0),
-                         UpperArm_R=(6 * s, 0, 0), Hand_R=(-6 * s, 0, 0),
-                         UpperArm_L=(-10 * s, 0, 0)),
-            {"Hips": (0, 0, 0.015)})
-    for f, s in ((5, 1), (15, -1)):
-        key(rig, f, pose(Spine=(6, 0, 0), Chest=(4, 0, 0)),
-            {"Hips": (0, 0, 0.035)})
-    finish_action(rig, act, 20, cyclic=True)
-
-    # Attack: вскидывает посох вперёд, направляя кристалл на линию удара (24 кадра)
-    act = new_action(rig, "Attack")
-    key(rig, 0, pose())
-    key(rig, 7, pose(Spine=(-8, 12, 0), Chest=(-6, 8, 0), Head=(-8, -10, 0),
-                     UpperArm_R=(-75, 0, 18), ForeArm_R=(-35, 0, 0), Hand_R=(30, 0, -15),
-                     UpperArm_L=(-55, 0, -20), ForeArm_L=(-40, 0, 0)))
-    key(rig, 12, pose(Spine=(12, -10, 0), Chest=(8, -8, 0), Head=(-12, 8, 0),
-                      UpperArm_R=(-85, 0, 5), ForeArm_R=(-10, 0, 0), Hand_R=(15, 0, -5),
-                      UpperArm_L=(-80, 0, -15), ForeArm_L=(-15, 0, 0)),
-        {"Root": (0, -0.08, 0)})
-    key(rig, 17, pose(Spine=(10, -8, 0), Chest=(6, -6, 0),
-                      UpperArm_R=(-80, 0, 6), ForeArm_R=(-12, 0, 0), Hand_R=(18, 0, -5),
-                      UpperArm_L=(-70, 0, -15)),
-        {"Root": (0, -0.06, 0)})
-    key(rig, 24, pose())
-    finish_action(rig, act, 24)
-
-    # Hit: отшатнулся назад (14 кадров)
-    act = new_action(rig, "Hit")
-    key(rig, 0, pose())
-    key(rig, 3, pose(Spine=(-16, 0, 0), Chest=(-10, 0, 0), Head=(-14, 0, 0),
-                     UpperArm_R=(0, 0, 25), UpperArm_L=(5, 0, -25)),
-        {"Root": (0, 0.07, 0)})
-    key(rig, 14, pose())
-    finish_action(rig, act, 14)
-
-    # Death: оседает и падает на спину (36 кадров)
-    act = new_action(rig, "Death")
-    key(rig, 0, pose())
-    key(rig, 12, pose(Spine=(22, 0, 0), Chest=(15, 0, 0), Head=(20, 0, 0),
-                      UpperArm_R=(10, 0, 25), UpperArm_L=(10, 0, -25)),
-        {"Hips": (0, 0, -0.25)})
-    for f, ang, z in ((24, -42, 0.0), (36, -88, 0.14)):
-        p = pose(Spine=(-6, 0, 0), Head=(-10, 0, 0),
-                 UpperArm_R=(-65, 0, 45), Hand_R=(0, 0, 0), UpperArm_L=(-60, 0, -45))
-        p["Root"] = (ang, 0, 0)
-        key(rig, f, p, {"Root": (0, 0, z)})
-    finish_action(rig, act, 36)
+    scaled = ("Glow", "Crown")
+    k.bake(rig, "Idle", 90, idle, cyclic=True, scale_bones=scaled)
+    k.bake(rig, "Walk", 24, walk, cyclic=True, scale_bones=scaled)
+    k.bake(rig, "Attack", 24, attack, scale_bones=scaled)
+    k.bake(rig, "Hit", 14, hit, scale_bones=scaled)
+    k.bake(rig, "Death", 40, death, scale_bones=scaled)
 
 
 # ---------- Сборка и экспорт ----------
 
 def build(glb_path, blend_path=None):
-    scene = bpy.context.scene
-    for obj in list(scene.objects):
-        bpy.data.objects.remove(obj, do_unlink=True)
-    scene.name = SCENE_NAME
-    scene.render.fps = 30
-    scene.frame_start = 0
-    scene.frame_end = 60
-    PARTS.clear()
-    return _build_in_scene(scene, glb_path, blend_path)
-
-
-def _build_in_scene(scene, glb_path, blend_path):
+    k.start_scene(NAME)
     body = build_mesh()
-    rig = build_armature()
+    rig = k.build_armature(NAME, BONES)
     body.parent = rig
-    mod = body.modifiers.new("Armature", "ARMATURE")
-    mod.object = rig
     build_actions(rig)
-    actions = [t.strips[0].action for t in rig.animation_data.nla_tracks]
+    k.export(rig, body, glb_path, blend_path)
+    print("%s: треугольников %d" % (NAME, sum(len(p.vertices) - 2 for p in body.data.polygons)))
+    return rig, body
 
-    bpy.ops.object.select_all(action="DESELECT")
-    rig.select_set(True)
-    body.select_set(True)
-    bpy.context.view_layer.objects.active = rig
-    bpy.ops.export_scene.gltf(
-        filepath=glb_path, export_format="GLB", use_selection=True,
-        export_animations=True, export_animation_mode="NLA_TRACKS",
-        export_force_sampling=True, export_frame_range=False,
-        export_def_bones=False, export_apply=False,
-    )
-    for pb in rig.pose.bones:
-        pb.rotation_euler = (0, 0, 0)
-        pb.location = (0, 0, 0)
-    rig.animation_data.action = bpy.data.actions["Idle"]
-    if blend_path:
-        datablocks = {scene, rig, body, rig.data, body.data} | set(actions) | set(body.data.materials)
-        bpy.data.libraries.write(blend_path, datablocks, fake_user=True, compress=True)
-    return scene, rig, body
+
+if __name__ == "__main__":
+    here = os.path.dirname(os.path.abspath(__file__))
+    args = [a for a in sys.argv[1:] if a.endswith((".glb", ".blend"))]
+    glb = args[0] if args else os.path.join(here, "..", "cultist.glb")
+    blend = args[1] if len(args) > 1 else os.path.join(here, "cultist.blend")
+    build(glb, blend)
