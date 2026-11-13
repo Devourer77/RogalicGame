@@ -10,8 +10,8 @@ SIDES = (("R", -1), ("L", 1))
 def materials(prefix):
     """Общие материалы гоблинов. Кожа светлее, чем в палитре мира, — иначе сливается с плитами."""
     return {
-        "skin": k.mat(prefix + "_Skin", (0.50, 0.60, 0.40), rough=0.85),
-        "dark": k.mat(prefix + "_DarkSkin", (0.34, 0.43, 0.28), rough=0.9),
+        "skin": k.mat(prefix + "_Skin", (0.47, 0.53, 0.42), rough=0.85),
+        "dark": k.mat(prefix + "_DarkSkin", (0.33, 0.38, 0.29), rough=0.9),
         "leather": k.mat(prefix + "_Leather", (0.29, 0.21, 0.145), rough=0.9),
         "tooth": k.mat(prefix + "_Tooth", (0.82, 0.78, 0.64), rough=0.6),
         "rift": k.mat(prefix + "_Rift", (0.25, 0.85, 0.75), rough=0.4, emit=1.1),   # трещины Раскола и глаза

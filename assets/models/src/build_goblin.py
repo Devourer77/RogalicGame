@@ -18,10 +18,10 @@ NAME = "Goblin"
 # ---------- Модель ----------
 
 def build_mesh():
-    skin = k.mat("Goblin_Skin", (0.50, 0.60, 0.40), rough=0.85)          # серо-зелёная кожа
-    dark = k.mat("Goblin_DarkSkin", (0.34, 0.43, 0.28), rough=0.9)
+    skin = k.mat("Goblin_Skin", (0.47, 0.53, 0.42), rough=0.85)          # серо-зелёная кожа
+    dark = k.mat("Goblin_DarkSkin", (0.33, 0.38, 0.29), rough=0.9)
     leather = k.mat("Goblin_Leather", (0.27, 0.20, 0.14), rough=0.9)
-    rag = k.mat("Goblin_Rag", (0.60, 0.47, 0.28), rough=0.95)            # лохмотья
+    rag = k.mat("Goblin_Rag", (0.50, 0.44, 0.34), rough=0.95)            # лохмотья
     iron = k.mat("Goblin_RustIron", (0.40, 0.31, 0.26), metallic=0.5, rough=0.65)
     edge = k.mat("Goblin_Edge", (0.62, 0.62, 0.60), metallic=0.7, rough=0.4)   # заточенная кромка
     brass = k.mat("Goblin_Brass", (0.55, 0.45, 0.20), metallic=0.6, rough=0.5)

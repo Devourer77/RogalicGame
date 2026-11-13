@@ -17,11 +17,11 @@ SCALED = ("Body", "Sac", "Tongue")   # кости, у которых в аним
 
 
 def build_mesh():
-    back = k.mat("Toad_Back", (0.36, 0.50, 0.28), rough=0.8)             # болотно-оливковая спина
-    dark = k.mat("Toad_Dark", (0.24, 0.35, 0.20), rough=0.85)
-    throat = k.mat("Toad_Throat", (0.66, 0.82, 0.44), rough=0.6)         # светлое салатовое горло
+    back = k.mat("Toad_Back", (0.38, 0.44, 0.30), rough=0.8)             # болотно-оливковая спина
+    dark = k.mat("Toad_Dark", (0.26, 0.31, 0.21), rough=0.85)
+    throat = k.mat("Toad_Throat", (0.60, 0.66, 0.46), rough=0.6)         # бледное оливковое горло
     mouth = k.mat("Toad_Mouth", (0.20, 0.13, 0.17), rough=0.7)
-    tongue = k.mat("Toad_Tongue", (0.58, 0.52, 0.72), rough=0.5)         # бледно-сиреневый язык (без красного)
+    tongue = k.mat("Toad_Tongue", (0.58, 0.64, 0.54), rough=0.5)         # бледно-серо-зелёный язык (лиловый — цвет Мага)
     wart = k.mat("Toad_Wart", (0.20, 0.50, 0.50), rough=0.35, emit=0.25) # кристаллы Раскола на спине
     rift = k.mat("Toad_Rift", (0.25, 0.85, 0.75), rough=0.4, emit=1.2)
 
