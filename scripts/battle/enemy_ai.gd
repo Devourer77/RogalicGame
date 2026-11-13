@@ -82,6 +82,13 @@ static func _decide(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 	var ctx: Dictionary = _context(l, e)
 	var result: Dictionary = {"cell": e.cell, "dir": Vector2i.ZERO, "reason": "", "notable": false}
 
+	if atk.shape == EnemyData.Attack.AURA and atk.is_summon_only():
+		# Призыв: подходим к героям как обычно, подмога встанет вокруг на новом месте
+		var approach: Dictionary = _best_approach(l, e, options, [] as Array[BattleUnit], l.living_heroes(), ctx)
+		result["cell"] = approach["cell"]
+		result["reason"] = "Призовёт: %s ×%d" % [atk.summon.title.to_lower(), atk.summon_count]
+		return result
+
 	if atk.shape == EnemyData.Attack.AURA:
 		var aura: Dictionary = _best_aura(l, e, atk, options, ctx)
 		result["cell"] = aura["cell"]

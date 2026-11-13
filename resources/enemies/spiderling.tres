@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "spiderling"
+title = "Паучонок"
+description = "Вылупился минуту назад. Уже голоден."
+max_hp = 4
+move_range = 3
+damage = 2
+attack = 0
+attack_range = 1
+color = Color(0.52, 0.5, 0.42, 1)
+attack_title = "Укус"
+size = 0.55

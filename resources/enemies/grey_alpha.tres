@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk_rend"]
+script = ExtResource("2_attack")
+title = "Рвущий укус"
+damage = 6
+push = 1
+
+[sub_resource type="Resource" id="atk_howl"]
+script = ExtResource("2_attack")
+title = "Вой"
+anim = "Attack2"
+shape = 3
+attack_range = 2
+damage = 0
+ally_block = 3
+ally_damage = 2
+
+[resource]
+script = ExtResource("1_enemy")
+id = "grey_alpha"
+title = "Седой вожак"
+description = "Вожаку не нужен голод. Ему нужна стая."
+max_hp = 40
+move_range = 4
+damage = 6
+attack = 0
+attack_range = 1
+color = Color(0.76, 0.76, 0.72, 1)
+size = 1.15
+is_elite = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_howl"), SubResource("atk_rend")])
+ai_style = 1
+bog_damage = 6

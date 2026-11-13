@@ -381,24 +381,21 @@ func _run_changes() -> void:
 		if (load("res://resources/enemies/%s.tres" % id) as EnemyData).model == null: models_ok = false
 	check("У всех пяти новых врагов подключена модель", models_ok)
 	print("--- Забег ---")
-	var shamans_ok := true; var treants_ok := true; var seen: Dictionary = {}
+	# Подробно отряды, элиты и боссы проверяет tests/encounters.gd; здесь — старые правила
+	var shamans_ok := true; var elites_ok := true
 	for s in range(1, 201):
 		run.start_new_run(s)
 		for row in 6:
 			var enc: Array[EnemyData] = run._make_encounter(row, false)
 			var sh := 0
 			for d in enc:
-				seen[d.id] = true
 				if d.id == "goblin_shaman": sh += 1
-				if d.is_elite: treants_ok = false
+				if d.is_elite or d.is_boss: elites_ok = false
 			if sh > 1: shamans_ok = false
-			if enc.size() != 4 + row / 2: treants_ok = false
+			if enc.size() != 4 + row / 2: elites_ok = false
 		var elite: Array[EnemyData] = run._make_encounter(5, false, true)
-		if elite.size() != 4 or elite[0].id != "mossy_treant": treants_ok = false
+		if elite.size() < 4 or not elite[0].is_elite: elites_ok = false
 		for n in run.row_nodes(run.MAP_ROWS - 3):
-			if n.type != MapNode.Type.ELITE: treants_ok = false
-		for n in run.map:
-			if n.type == MapNode.Type.ELITE and n.row != run.MAP_ROWS - 3: treants_ok = false
-	check("В обычных боях встречаются все 7 видов врагов", seen.size() == 7)
+			if n.type != MapNode.Type.ELITE: elites_ok = false
 	check("Шаман — не больше одного на бой", shamans_ok)
-	check("Корягач — только в элитном бою (ряд перед привалом), с тремя спутниками", treants_ok)
+	check("Элита — только в элитном бою, со свитой (3–4); ряд перед привалом — весь элитный", elites_ok)

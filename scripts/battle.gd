@@ -103,7 +103,11 @@ func _ready() -> void:
 	hud.speed_toggled.connect(_apply_speed)
 	hud.discard_toggled.connect(_on_discard_toggled)
 
-	hud.show_arena(logic.arena_title())
+	# В начале боя — название арены и отряда врагов: «Старая гать · Стая»
+	var start_title: String = logic.arena_title()
+	if Run.pending_encounter != null and Run.pending_encounter.title != "":
+		start_title += ("  ·  " if start_title != "" else "") + Run.pending_encounter.title
+	hud.show_arena(start_title)
 	_battle_start_ms = Time.get_ticks_msec()
 	for h in logic.heroes:
 		_start_hp.append(h.hp)

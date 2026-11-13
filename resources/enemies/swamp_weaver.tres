@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk_web"]
+script = ExtResource("2_attack")
+title = "Плевок паутиной"
+shape = 1
+attack_range = 3
+damage = 2
+first_only = true
+entangle = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "swamp_weaver"
+title = "Болотный ткач"
+description = "Плетёт сеть между мёртвыми деревьями. Ждёт, пока кто-то перестанет дёргаться."
+max_hp = 9
+move_range = 3
+damage = 2
+attack = 1
+attack_range = 3
+color = Color(0.46, 0.43, 0.36, 1)
+attack_title = "Плевок паутиной"
+size = 0.8
+first_only = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_web")])
+keep_distance = 2

@@ -167,6 +167,7 @@ const ARENAS: Dictionary[String, String] = {
 }
 const ARENA_POOL: Array[String] = ["gat", "grove", "reeds", "camp", "ruins"]   # обычные бои
 const BOSS_ARENA: String = "lair"
+const SUMMON_ENEMY_CAP: int = 10  # призыв не работает, если врагов на поле уже столько
 const MIN_ENEMY_CELLS: int = 12  # сколько свободных клеток оставить врагам в верхних рядах
 
 const ENEMY_ROWS: int = 4        # враги появляются в стольких рядах…
@@ -2953,6 +2954,10 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 			u.entangled = maxi(u.entangled, atk.entangle)
 			message.emit("%s опутан" % u.title)
 			status_changed.emit(u, snapshot(u))
+		if atk.poison > 0:
+			_set_poison(u, atk.poison)
+	if atk.gas_cloud:
+		_gas_cloud(cells)
 	if e.data.swamp_on_hit:
 		_make_swamp_around(e, victims)
 	if atk.push > 0:
@@ -2974,14 +2979,60 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 
 # «Зов»: враги в круге радиусом 2 вокруг (и сам зовущий) получают блок, их следующий удар сильнее
 func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
-	var cells: Array[Vector2i] = _aura_cells(e.cell, atk.attack_range)
-	enemy_buffed.emit(e, cells)
 	message.emit("%s: %s" % [e.title, atk.title])
-	for ally in living_enemies():
-		if cells.has(ally.cell):
-			ally.block += atk.ally_block
-			ally.bonus_damage = maxi(ally.bonus_damage, atk.ally_damage)
-			status_changed.emit(ally, snapshot(ally))
+	if not atk.is_summon_only():
+		var cells: Array[Vector2i] = _aura_cells(e.cell, atk.attack_range)
+		enemy_buffed.emit(e, cells)
+		for ally in living_enemies():
+			if cells.has(ally.cell):
+				ally.block += atk.ally_block
+				ally.bonus_damage = maxi(ally.bonus_damage, atk.ally_damage)
+				status_changed.emit(ally, snapshot(ally))
+	if atk.summon != null and atk.summon_count > 0:
+		_summon_around(e, atk.summon, atk.summon_count)
+
+
+# Призыв (кладка Прядильщицы, жабы Матери Трясины): новые враги встают на свободные
+# соседние клетки по порядку сторон — без случайности, чтобы прогноз совпадал с ходом.
+func summon_cells(e: BattleUnit, count: int) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	if living_enemies().size() >= SUMMON_ENEMY_CAP:
+		return result
+	count = mini(count, SUMMON_ENEMY_CAP - living_enemies().size())
+	for c in HexMath.neighbors(e.cell):
+		if result.size() >= count:
+			break
+		# Свободная клетка без преград и объектов; лужа и трясина-тропа годятся, огонь и газ — нет
+		if is_inside(c) and not rocks.has(c) and not objects.has(c) and unit_at(c) == null \
+				and tile_at(c) != Tile.FIRE and tile_at(c) != Tile.GAS:
+			result.append(c)
+	return result
+
+
+func _summon_around(e: BattleUnit, enemy_data: EnemyData, count: int) -> void:
+	var cells: Array[Vector2i] = summon_cells(e, count)
+	if cells.is_empty():
+		return
+	for c in cells:
+		var u := _new_unit(enemy_data.title)
+		u.data = enemy_data
+		u.hp = enemy_data.max_hp
+		u.max_hp = enemy_data.max_hp
+		u.block = enemy_data.start_block
+		u.cell = c
+		enemies.append(u)
+		unit_spawned.emit(u)
+	message.emit("%s зовёт подмогу: %s ×%d" % [e.title, enemy_data.title.to_lower(), cells.size()])
+
+
+# Газовая отрыжка: клетки удара (сухие или с лужей, без объектов) становятся газом
+func _gas_cloud(cells: Array[Vector2i]) -> void:
+	for c in cells:
+		if not is_inside(c) or rocks.has(c) or object_at(c) != Obj.NONE:
+			continue
+		var t: int = tile_at(c)
+		if t == Tile.NONE or t == Tile.WATER:
+			_set_tile(c, Tile.GAS)
 
 
 # Круг из сот радиусом radius вокруг клетки (центр и все клетки не дальше radius шагов)

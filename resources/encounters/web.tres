@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/swamp_weaver.tres" id="2_weaver"]
+[ext_resource type="Resource" path="res://resources/enemies/wolf.tres" id="3_wolf"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin.tres" id="4_goblin"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "web"
+title = "Паутина"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_weaver"), ExtResource("2_weaver"), ExtResource("3_wolf"), ExtResource("3_wolf")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("3_wolf"), ExtResource("4_goblin")])
+min_row = 2
+max_row = 3

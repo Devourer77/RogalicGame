@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/drowned_walker.tres" id="2_walker"]
+[ext_resource type="Resource" path="res://resources/enemies/bloated_toad.tres" id="3_toad"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin_slinger.tres" id="4_slinger"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin.tres" id="5_goblin"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "rising_bog"
+title = "Топь поднимается"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_walker"), ExtResource("2_walker"), ExtResource("3_toad"), ExtResource("3_toad"), ExtResource("4_slinger")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("5_goblin")])
+min_row = 4

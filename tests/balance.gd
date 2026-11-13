@@ -6,6 +6,7 @@ extends SceneTree
 # Запуск (из папки проекта):
 #   godot --headless --path . -s tests/balance.gd            — 200 боёв на каждую строку
 #   godot --headless --path . -s tests/balance.gd -- 50      — быстрый прогон, 50 боёв
+#   godot --headless --path . -s tests/balance.gd -- 40 big    — только элиты и боссы
 #   godot --headless --path . -s tests/balance.gd -- 100 relics — ряд 3 без реликвий и с каждой по очереди
 # Результат печатается в окно Output / консоль и пишется в user://balance.txt
 # (в Godot: Проект → Открыть папку данных проекта).
@@ -43,13 +44,18 @@ func _initialize() -> void:
 	var configs: Array[Dictionary] = []
 	for r in FIRST_ROWS:
 		configs.append({"name": "ряд %d" % r, "row": r, "boss": false, "elite": false})
-	configs.append({"name": "элита", "row": ELITE_ROW, "boss": false, "elite": true})
-	configs.append({"name": "босс", "row": BOSS_ROW, "boss": true, "elite": false})
+	# Каждая элита и каждый босс из пулов акта — своей строкой
+	for enc: EncounterData in run.ELITE_POOL:
+		configs.append({"name": enc.title.left(9), "row": ELITE_ROW, "boss": false, "elite": true, "encounter": enc})
+	for enc: EncounterData in run.BOSS_POOL:
+		configs.append({"name": enc.title.left(9), "row": BOSS_ROW, "boss": true, "elite": false, "encounter": enc})
 	# Бои с особой целью (ряд 3). Бот целей не понимает и просто дерётся — строка показывает,
 	# насколько цель усложняет обычную драку (ритуал призывает, вода замедляет и т. д.)
 	configs.append({"name": "ритуал", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RITUAL})
 	configs.append({"name": "прорыв", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.BREAKTHROUGH})
 	configs.append({"name": "вода", "row": 3, "boss": false, "elite": false, "objective": BattleLogic.Objective.RISING_WATER})
+	if args.has("big"):   # только элиты и боссы: -- 40 big
+		configs = configs.filter(func(c: Dictionary) -> bool: return c.has("encounter"))
 	if args.has("relics"):
 		configs.clear()
 		configs.append({"name": "без", "row": 3, "boss": false, "elite": false})
@@ -99,8 +105,14 @@ func _initialize() -> void:
 func _play_battle(run: Node, seed_value: int, cfg: Dictionary) -> Dictionary:
 	run.start_new_run(seed_value)
 	bot_rng.seed = seed_value
+	if cfg.has("encounter"):
+		# Строка про конкретную элиту или босса: подменяем выбор забега
+		if cfg["boss"]:
+			run.run_boss = cfg["encounter"]
+		else:
+			run.run_elites = [cfg["encounter"], cfg["encounter"]] as Array[EncounterData]
 	var enemies: Array[EnemyData] = run._make_encounter(cfg["row"], cfg["boss"], cfg["elite"])
-	var arena: String = run.pick_arena(cfg["boss"])
+	var arena: String = run._encounter_arena(cfg["boss"])
 	var objective: int = cfg.get("objective", BattleLogic.Objective.KILL_ALL)
 	if objective == BattleLogic.Objective.RITUAL:
 		var has_caster: bool = false

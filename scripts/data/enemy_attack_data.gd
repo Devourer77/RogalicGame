@@ -19,6 +19,15 @@ extends Resource
 @export var puddle: bool = false    # клетка под целью становится лужей
 @export var ally_block: int = 0     # зов: столько блока получают враги рядом
 @export var ally_damage: int = 0    # зов: на столько сильнее их следующий удар
+@export var poison: int = 0         # отравляет цель на столько раундов (яд ранит в конце раунда мимо блока)
+@export var gas_cloud: bool = false  # клетки удара становятся ядовитым газом (там, где сухо или лужа)
+@export var summon: EnemyData       # призыв: кто появляется на свободных клетках рядом (удар формы «зов»)
+@export var summon_count: int = 0   # сколько их появляется (меньше, если рядом нет места)
+
+
+# Удар-призыв: не бьёт и не усиливает, только зовёт подмогу
+func is_summon_only() -> bool:
+	return summon != null and summon_count > 0 and ally_block <= 0 and ally_damage <= 0
 
 
 # Описание удара одной строкой — для подсказки при наведении на врага
@@ -32,7 +41,14 @@ func describe() -> String:
 		2:
 			parts.append("%d урона по трём клеткам перед собой" % damage)
 		3:
-			parts.append("врагам в %d клетках: +%d блока, следующий удар +%d" % [attack_range, ally_block, ally_damage])
+			if ally_block > 0 and ally_damage > 0:
+				parts.append("врагам в %d клетках: +%d блока, следующий удар +%d" % [attack_range, ally_block, ally_damage])
+			elif ally_damage > 0:
+				parts.append("врагам в %d клетках: следующий удар +%d" % [attack_range, ally_damage])
+			elif ally_block > 0:
+				parts.append("врагам в %d клетках: +%d блока" % [attack_range, ally_block])
+			if summon != null and summon_count > 0:
+				parts.append("зовёт: %s ×%d рядом" % [summon.title.to_lower(), summon_count])
 		4:
 			parts.append("%d урона по 6 клеткам вокруг себя" % damage)
 	if first_only:
@@ -47,4 +63,8 @@ func describe() -> String:
 		parts.append("опутывает (ход без шагов)")
 	if puddle:
 		parts.append("оставляет лужу под целью")
+	if poison > 0:
+		parts.append("яд на %d раунда" % poison)
+	if gas_cloud:
+		parts.append("клетки удара становятся газом")
 	return "%s: %s" % [title, ", ".join(parts)]

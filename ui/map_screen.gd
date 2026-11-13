@@ -77,6 +77,10 @@ func _make_node_button(n: MapNode) -> Button:
 	b.disabled = not is_available
 	b.focus_mode = Control.FOCUS_NONE
 	b.tooltip_text = look[2]
+	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
+		b.tooltip_text = "Босс: %s — последний бой акта.\n%s" % [Run.run_boss.title, _boss_hint(Run.run_boss)]
+	elif n.type == MapNode.Type.ELITE and n.row < Run.MAP_ROWS - 3:
+		b.tooltip_text += "\nНеобязательная: можно обойти. Награда — реликвия на выбор."
 	if is_current:
 		b.tooltip_text += "\nВы здесь."
 	elif n.visited:
@@ -101,6 +105,15 @@ func _make_node_button(n: MapNode) -> Button:
 	var picture: TextureRect = UiKit.icon_rect(look[0], icon_size, Color(1, 1, 1, 0.95))
 	picture.position = Vector2.ONE * (size - icon_size) / 2.0
 	b.add_child(picture)
+
+	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
+		# Имя босса под его точкой: виден с начала забега, чтобы собирать колоду под него
+		var boss_label: Label = UiKit.make_label(Run.run_boss.title, 15, UiKit.BRASS.lightened(0.3))
+		boss_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		boss_label.size = Vector2(220, size)
+		boss_label.position = Vector2(size + 10, 0)   # справа от точки босса
+		boss_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(boss_label)
 
 	if is_available:
 		var tween: Tween = b.create_tween().set_loops()
@@ -140,6 +153,13 @@ func _draw_links() -> void:
 				color = UiKit.BRASS.lightened(0.35)
 				width = 3.0
 			_area.draw_line(_node_center(n), _node_center(target), color, width, true)
+
+
+# Одна строка о боссе для подсказки: его строка лора из подсказки в бою
+func _boss_hint(enc: EncounterData) -> String:
+	if enc.core.is_empty():
+		return ""
+	return enc.core[0].description
 
 
 func _show_deck(rh: RunHero) -> void:

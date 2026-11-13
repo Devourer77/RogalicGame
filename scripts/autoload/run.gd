@@ -38,20 +38,31 @@ const HEROES: Array[HeroData] = [
 	preload("res://resources/heroes/knight.tres"),
 ]
 
-const NORMAL_ENEMIES: Array[EnemyData] = [
-	preload("res://resources/enemies/goblin.tres"),
-	preload("res://resources/enemies/wolf.tres"),
-	preload("res://resources/enemies/cultist.tres"),
-	preload("res://resources/enemies/goblin_slinger.tres"),
-	preload("res://resources/enemies/bloated_toad.tres"),
-	preload("res://resources/enemies/drowned_walker.tres"),
-	preload("res://resources/enemies/goblin_shaman.tres"),
+# Отряды врагов акта (resources/encounters): обычные бои, элиты и боссы.
+# Обычный бой берёт отряд своей ступени (ряды 0–1, 2–3, 4+), за забег отряд не повторяется.
+const ENCOUNTERS: Array[EncounterData] = [
+	preload("res://resources/encounters/gang.tres"),
+	preload("res://resources/encounters/pack.tres"),
+	preload("res://resources/encounters/choir.tres"),
+	preload("res://resources/encounters/gas_ambush.tres"),
+	preload("res://resources/encounters/shaman_guard.tres"),
+	preload("res://resources/encounters/web.tres"),
+	preload("res://resources/encounters/rift_mix.tres"),
+	preload("res://resources/encounters/drivers.tres"),
+	preload("res://resources/encounters/rising_bog.tres"),
 ]
-# Элитный враг акта: встречается один раз, в последнем бою перед привалом и боссом
-const ELITE_ENEMY: EnemyData = preload("res://resources/enemies/mossy_treant.tres")
-const ELITE_GUARDS: int = 3   # сколько обычных врагов сопровождает элитного
-const BOSS_ENEMY: EnemyData = preload("res://resources/enemies/ogre.tres")
-const BOSS_GUARD: EnemyData = preload("res://resources/enemies/goblin.tres")
+# Пулы элит и боссов акта: в начале забега выбираются ELITES_PER_RUN разных элит и один босс
+const ELITE_POOL: Array[EncounterData] = [
+	preload("res://resources/encounters/elite_treant.tres"),
+	preload("res://resources/encounters/elite_queen.tres"),
+	preload("res://resources/encounters/elite_alpha.tres"),
+]
+const BOSS_POOL: Array[EncounterData] = [
+	preload("res://resources/encounters/boss_ogre.tres"),
+	preload("res://resources/encounters/boss_mother.tres"),
+]
+const ELITES_PER_RUN: int = 2        # необязательная элита на развилке + обязательная перед привалом
+const OPTIONAL_ELITE_ROW: int = 3    # ряд карты с необязательной элитой (одна точка из трёх)
 
 var is_active: bool = false
 var seed_value: int = 0
@@ -65,6 +76,10 @@ var current: MapNode = null              # где герой сейчас (null 
 var pending_enemies: Array[EnemyData] = []  # враги для ближайшего боя
 var pending_arena: String = ""               # арена ближайшего боя (ключ из BattleLogic.ARENAS)
 var pending_objective: int = 0               # цель ближайшего боя (BattleLogic.Objective)
+var pending_encounter: EncounterData = null  # отряд ближайшего боя (его название видно в начале боя)
+var run_elites: Array[EncounterData] = []    # элиты этого забега: [на развилке, перед привалом]
+var run_boss: EncounterData = null           # босс этого забега (виден на карте с самого начала)
+var used_encounters: Array[String] = []      # какие обычные отряды уже были (не повторяются)
 var _last_arena: String = ""                 # прошлая арена — чтобы не повторялась подряд
 var last_gold_reward: int = 0
 var shop_stock: Array[Dictionary] = []   # {"hero": RunHero, "card": CardData}
@@ -135,6 +150,9 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	fast_enemies = false
 	current = null
 	pending_enemies.clear()
+	pending_encounter = null
+	used_encounters.clear()
+	_pick_act_bosses()
 	_generate_map()
 	is_active = true
 	print("Новый забег, сид: ", seed_value)
@@ -246,17 +264,17 @@ func enter_node(n: MapNode) -> void:
 	match n.type:
 		MapNode.Type.BATTLE:
 			pending_enemies = _make_encounter(n.row, false)
-			pending_arena = pick_arena(false)
+			pending_arena = _encounter_arena(false)
 			pending_objective = pick_objective(n.row, pending_enemies, pending_arena)
 			goto(BATTLE_SCENE)
 		MapNode.Type.ELITE:
 			pending_enemies = _make_encounter(n.row, false, true)
-			pending_arena = pick_arena(false)
+			pending_arena = _encounter_arena(false)
 			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
 		MapNode.Type.BOSS:
 			pending_enemies = _make_encounter(n.row, true)
-			pending_arena = pick_arena(true)
+			pending_arena = _encounter_arena(true)
 			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
 		MapNode.Type.SHOP:
@@ -288,9 +306,18 @@ func pick_objective(row: int, enemies: Array[EnemyData], arena: String) -> int:
 	return options[rng.randi_range(0, options.size() - 1)]
 
 
+# Арена отряда, если у него своя (у боссов, у Прядильщицы), иначе — обычный выбор
+func _encounter_arena(is_boss: bool) -> String:
+	if pending_encounter != null and pending_encounter.arena != "":
+		return pending_encounter.arena
+	return pick_arena(is_boss)
+
+
 # Выбирает арену для боя: у босса своя, обычные не повторяются два раза подряд
 func pick_arena(is_boss: bool) -> String:
 	if is_boss:
+		if run_boss != null and run_boss.arena != "":
+			return run_boss.arena
 		return BattleLogic.BOSS_ARENA
 	var options: Array[String] = BattleLogic.ARENA_POOL.duplicate()
 	options.erase(_last_arena)
@@ -318,6 +345,26 @@ func _generate_map() -> void:
 			var side: int = n.col + (1 if rng.randf() < 0.5 else -1)
 			if side >= 0 and side < MAP_COLS and rng.randf() < 0.6:
 				n.next.append(side)
+	_place_optional_elite()
+
+
+# Необязательная элита: одна точка в ряду OPTIONAL_ELITE_ROW. Чтобы её всегда можно было
+# обойти, из точки под ней обязательно есть дорожка вбок.
+func _place_optional_elite() -> void:
+	if OPTIONAL_ELITE_ROW <= 0 or OPTIONAL_ELITE_ROW >= MAP_ROWS - 3:
+		return
+	var col: int = rng.randi_range(0, MAP_COLS - 1)
+	var node: MapNode = find_map_node(OPTIONAL_ELITE_ROW, col)
+	if node == null:
+		return
+	node.type = MapNode.Type.ELITE
+	for n in row_nodes(OPTIONAL_ELITE_ROW - 1):
+		var others: bool = false
+		for c in n.next:
+			if c != col:
+				others = true
+		if not others:
+			n.next.append(col + 1 if col + 1 < MAP_COLS else col - 1)
 
 
 func _roll_node_type(row: int) -> MapNode.Type:
@@ -339,35 +386,69 @@ func _roll_node_type(row: int) -> MapNode.Type:
 	return MapNode.Type.REST
 
 
-# Враги для боя: чем выше по карте, тем их больше (отряд из двух героев — врагов тоже больше)
+# Элиты и босс этого забега — один раз, в начале (через общий генератор забега)
+func _pick_act_bosses() -> void:
+	var elites: Array[EncounterData] = ELITE_POOL.duplicate()
+	run_elites.clear()
+	for i in mini(ELITES_PER_RUN, elites.size()):
+		run_elites.append(elites.pop_at(rng.randi_range(0, elites.size() - 1)))
+	run_boss = BOSS_POOL[rng.randi_range(0, BOSS_POOL.size() - 1)]
+
+
+# Элита для точки на этом ряду: перед привалом — последняя из выбранных, на развилке — первая
+func elite_for_row(row: int) -> EncounterData:
+	if run_elites.is_empty():
+		_pick_act_bosses()
+	return run_elites[-1] if row >= MAP_ROWS - 3 else run_elites[0]
+
+
+# Обычный отряд для ряда: своей ступени и ещё не встреченный в этом забеге
+func _pick_encounter(row: int) -> EncounterData:
+	var options: Array[EncounterData] = []
+	for enc in ENCOUNTERS:
+		if enc.fits_row(row) and not used_encounters.has(enc.id):
+			options.append(enc)
+	if options.is_empty():   # все отряды ступени уже были — можно повторить
+		for enc in ENCOUNTERS:
+			if enc.fits_row(row):
+				options.append(enc)
+	if options.is_empty():
+		options = ENCOUNTERS.duplicate()
+	var picked: EncounterData = options[rng.randi_range(0, options.size() - 1)]
+	used_encounters.append(picked.id)
+	return picked
+
+
+# Враги для боя: ядро отряда целиком, а до 4 + ряд/2 (отряд из двух героев — врагов тоже
+# больше) — добор из списка отряда. У элиты и босса — ровно их состав.
 func _make_encounter(row: int, boss: bool, elite: bool = false) -> Array[EnemyData]:
+	if run_boss == null:
+		_pick_act_bosses()
+	var enc: EncounterData = run_boss if boss else (elite_for_row(row) if elite else _pick_encounter(row))
+	pending_encounter = enc
 	var result: Array[EnemyData] = []
-	if boss:
-		result.append(_tougher(BOSS_ENEMY, 1.25) if bell >= 5 else BOSS_ENEMY)
-		result.append(BOSS_GUARD)
-		result.append(BOSS_GUARD)
-		result.append(NORMAL_ENEMIES[2])   # и культист
-		result.append(NORMAL_ENEMIES[1])   # и волк
-		return result
-	var count: int = 4 + floori(row / 2.0)
-	if bell >= 1 and not elite:
-		count += 1   # Звон 1: в обычном бою на врага больше
-	if elite:
-		result.append(_tougher(ELITE_ENEMY, 1.25) if bell >= 5 else ELITE_ENEMY)
-		count = ELITE_GUARDS
-	for i in count:
-		result.append(_roll_enemy(result))
+	for i in enc.core.size():
+		var d: EnemyData = enc.core[i]
+		if i == 0 and enc.kind != EncounterData.Kind.NORMAL and bell >= 5:
+			d = _tougher(d, 1.25)   # Звон 5: элита и босс крепче
+		result.append(d)
+	if enc.kind == EncounterData.Kind.NORMAL:
+		var count: int = maxi(result.size(), 4 + floori(row / 2.0))
+		if bell >= 1:
+			count += 1   # Звон 1: в обычном бою на врага больше
+		while result.size() < count:
+			result.append(_roll_filler(enc, result))
 	return result
 
 
-# Случайный обычный враг. Некоторых (шаман) в одном бою не больше max_per_battle:
-# если лимит выбран — бросаем кубик ещё раз.
-func _roll_enemy(taken: Array[EnemyData]) -> EnemyData:
+# Случайный враг из добора отряда. Некоторых (шаман) в одном бою не больше max_per_battle.
+func _roll_filler(enc: EncounterData, taken: Array[EnemyData]) -> EnemyData:
+	var pool: Array[EnemyData] = enc.filler if not enc.filler.is_empty() else enc.core
 	for attempt in 10:
-		var e: EnemyData = NORMAL_ENEMIES[rng.randi_range(0, NORMAL_ENEMIES.size() - 1)]
+		var e: EnemyData = pool[rng.randi_range(0, pool.size() - 1)]
 		if e.max_per_battle <= 0 or taken.count(e) < e.max_per_battle:
 			return e
-	return NORMAL_ENEMIES[0]
+	return pool[0]
 
 
 # ---------- Бой и награды ----------

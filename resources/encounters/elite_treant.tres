@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/mossy_treant.tres" id="2_treant"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin_shaman.tres" id="3_shaman"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin_slinger.tres" id="4_slinger"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin.tres" id="5_goblin"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "elite_treant"
+title = "Мшистый корягач"
+kind = 1
+core = Array[ExtResource("1_enemy")]([ExtResource("2_treant"), ExtResource("3_shaman"), ExtResource("4_slinger"), ExtResource("5_goblin")])

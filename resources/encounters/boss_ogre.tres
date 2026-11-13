@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/ogre.tres" id="2_ogre"]
+[ext_resource type="Resource" path="res://resources/enemies/goblin.tres" id="3_goblin"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="4_cultist"]
+[ext_resource type="Resource" path="res://resources/enemies/wolf.tres" id="5_wolf"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "boss_ogre"
+title = "Огр"
+kind = 2
+core = Array[ExtResource("1_enemy")]([ExtResource("2_ogre"), ExtResource("3_goblin"), ExtResource("3_goblin"), ExtResource("4_cultist"), ExtResource("5_wolf")])
+arena = "lair"

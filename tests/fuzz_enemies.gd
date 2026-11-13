@@ -90,7 +90,11 @@ func _initialize() -> void:
 					if b.fire_timers[c] <= 0: b._set_tile(c, BattleLogic.Tile.NONE)
 				b._tick_objects()
 				if not b._check_end(): b._start_heroes_turn()
-	print("виды врагов в боях: %d из 9" % seen.size())
+	# Видов всего: файлы в resources/enemies (паучонок — только от кладки, в начале боя его нет)
+	var total: int = 0
+	for f in DirAccess.get_files_at("res://resources/enemies"):
+		if f.ends_with(".tres") and f != "spiderling.tres": total += 1
+	print("виды врагов в боях: %d из %d" % [seen.size(), total])
 	print("сыграно карт: %d, ходов врагов: %d" % [played, enemy_turns])
 	print("расхождений полного состояния: %d, расхождений маршрутов: %d, кто-то стоит в трясине: %d" % [mismatches, route_mismatches, hero_bog_deaths])
 	quit(1 if mismatches + route_mismatches + hero_bog_deaths > 0 else 0)
