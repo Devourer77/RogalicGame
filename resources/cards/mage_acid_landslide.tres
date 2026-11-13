@@ -6,10 +6,10 @@
 script = ExtResource("1_card")
 id = "mage_acid_landslide"
 title = "Кислотный оползень"
-description = "4 урона по линии из 3 клеток, клетки становятся трясиной, враги сдвигаются на 1. После карты Рыцаря — ещё яд."
+description = "4 урона по линии из 4 клеток, клетки становятся трясиной, враги сдвигаются на 1. После карты Рыцаря — ещё яд."
 cost = 1
 shape = 2
-cast_range = 3
+cast_range = 4
 damage = 4
 card_set = "redesign"
 special = "acid"

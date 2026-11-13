@@ -50,7 +50,10 @@ func _physics_process(delta: float) -> void:
 
 	if dir != Vector3.ZERO:
 		_turn_to(dir, delta)
+		var prev_step: int = int(_walk_time / PI)
 		_walk_time += delta * 9.0
+		if is_active and int(_walk_time / PI) > prev_step:
+			Sfx.play("step", 0.1, -6.0)
 		_mesh_root.position.y = absf(sin(_walk_time)) * 0.06   # лёгкое покачивание вместо анимации ходьбы
 	elif not _seated:
 		_walk_time = 0.0

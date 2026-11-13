@@ -190,6 +190,8 @@ static func _on_hover(b: Button, inside: bool) -> void:
 	if not is_instance_valid(b) or not b.is_inside_tree():
 		return
 	var big: bool = inside and not b.disabled
+	if big:
+		Sfx.play("ui_hover", 0.05)
 	b.z_index = 2 if big else 0
 	var tween: Tween = b.create_tween()
 	tween.tween_property(b, "scale", Vector2.ONE * (1.07 if big else 1.0), 0.08)

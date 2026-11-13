@@ -161,6 +161,7 @@ func _seat_path(hero_id: String) -> Array[Vector3]:
 
 # Tab: следующий герой. Камера перелетает за 0,4 с; быстрые нажатия просто отменяют прошлый перелёт.
 func switch_hero() -> void:
+	Sfx.play("ui_click", 0.05)
 	var next: HubHero = heroes[(heroes.find(active) + 1) % heroes.size()]
 	_set_active(next, true)
 
@@ -248,6 +249,7 @@ func _use() -> void:
 		return
 	var only: String = _near.get("hero_only", "")
 	if only != "" and only != active.hero_id:
+		Sfx.play("card_cancel", 0.05)
 		hud.say(_near["deny"])   # строка-отказ: панель не открывается
 		return
 	_open_point_panel(_near)
@@ -264,6 +266,12 @@ func _open_point_panel(point: Dictionary) -> void:
 		hud.say(lines[active.hero_id])
 	if point["id"] == "barracks":
 		_swing_door(true)
+	elif point["id"] == "bell":
+		Sfx.play("bell", 0.03)
+	elif point["id"] == "campfire":
+		Sfx.play("fire", 0.06)
+	else:
+		Sfx.play("ui_click", 0.05)
 	var panel: HubPanel = _make_panel(point["id"])
 	panel.closed.connect(_on_panel_closed)
 
@@ -303,6 +311,7 @@ func _on_panel_closed() -> void:
 func _swing_door(open: bool) -> void:
 	if _door_hinge == null:
 		return
+	Sfx.play("door", 0.05)
 	if _door_tween != null and _door_tween.is_valid():
 		_door_tween.kill()
 	_door_tween = create_tween()
@@ -364,6 +373,7 @@ func refresh_world() -> void:
 func _swing_bell() -> void:
 	if _bell_pivot == null:
 		return
+	Sfx.play("bell", 0.03)
 	var tween: Tween = create_tween()
 	for angle in [6.0, -6.0, 3.0, 0.0]:
 		tween.tween_property(_bell_pivot, "rotation:z", deg_to_rad(angle), 0.18).set_trans(Tween.TRANS_SINE)

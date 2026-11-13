@@ -46,6 +46,7 @@ func _ready() -> void:
 func _pick(rh: RunHero, card: CardData, chosen: Button, buttons: Array[Button]) -> void:
 	if _chosen.has(rh):
 		return
+	Sfx.play("card_select", 0.05)
 	Run.add_card(rh, card)
 	_chosen[rh] = true
 	for b in buttons:

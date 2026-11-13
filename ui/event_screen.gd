@@ -109,22 +109,26 @@ func _choose(action: String) -> void:
 	var result: String = ""
 	match action:
 		"altar":
+			Sfx.play("hit", 0.06)
 			var rh: RunHero = Run.random_hero()
 			rh.lose_hp(6)
 			var card: CardData = Run.random_rare_card(rh.data)
 			Run.add_card(rh, card)
 			result = "Руны гаснут. %s теряет 6 HP, но узнаёт новый приём: %s." % [rh.data.title, card.title]
 		"drink":
+			Sfx.play("heal", 0.04)
 			for rh in Run.party:
 				Run.heal_hero(rh, 10)
 			result = "Вода прохладная и придаёт сил. +10 HP каждому."
 		"coin":
+			Sfx.play("coin", 0.05)
 			Run.gold -= 15
 			var rh: RunHero = Run.random_hero()
 			var card: CardData = Run.roll_cards(rh, 1)[0]
 			Run.add_card(rh, card)
 			result = "Монета тонет, а %s вдруг вспоминает приём: %s." % [rh.data.title, card.title]
 		"idol":
+			Sfx.play("magic", 0.05)
 			var offer: Array[RelicData] = Run.roll_relics(1)
 			if offer.is_empty() or not Run.can_take_relic():
 				result = "Амулет рассыпается в руках. Видно, больше идолу дать нечего."
@@ -133,13 +137,16 @@ func _choose(action: String) -> void:
 				result = "Ты надеваешь амулет: «%s».\n+ %s\n− %s" % [offer[0].title, offer[0].plus_text, offer[0].minus_text]
 		"chest":
 			if Run.rng.randf() < 0.5:
+				Sfx.play("coin", 0.05)
 				Run.gold += 40
 				result = "Внутри — золото! +40 золота."
 			else:
+				Sfx.play("hit", 0.06)
 				var rh: RunHero = Run.random_hero()
 				rh.lose_hp(6)
 				result = "Ловушка! Иглы впиваются в руку. %s теряет 6 HP." % rh.data.title
 		"cache_chest":
+			Sfx.play("magic", 0.05)
 			_hero("knight").lose_hp(6)
 			var closed: Array[RelicData] = Meta.closed_charms()
 			var charm: RelicData = closed[Run.rng.randi_range(0, closed.size() - 1)]
@@ -149,6 +156,7 @@ func _choose(action: String) -> void:
 					"Оберег «%s»: %s\nОткрыт на Полке трофеев." % [charm.title, charm.desc])
 			return
 		"cache_notes":
+			Sfx.play("magic", 0.05)
 			_hero("mage").lose_hp(4)
 			Run.event_echoes += 6
 			_show_result("Размокшие листы рассыпаются в пальцах, но последние строки ученик успевает запомнить — и они звучат знакомо, будто писал кто-то из вас.",

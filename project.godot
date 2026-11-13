@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 Meta="*res://scripts/autoload/meta.gd"
 Run="*res://scripts/autoload/run.gd"
+Sfx="*res://scripts/autoload/sfx.gd"
 
 [display]
 

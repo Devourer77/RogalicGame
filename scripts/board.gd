@@ -640,6 +640,7 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 				burst(cell, COLOR_GAS_LIGHT, roundi(34 * IMPACT_FX_SCALE), 5.0 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)   # зелёная вспышка газа
 				burst(cell, Color(1.0, 0.6, 0.15), roundi(20 * IMPACT_FX_SCALE), 3.5 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)
 			BattleLogic.Obj.ICE_BLOCK:
+				Sfx.play("ice", 0.07)
 				burst(cell, Color(0.8, 0.95, 1.0), 16, 2.5, 1.0)          # осколки льда
 				await _sink(node)
 			_:

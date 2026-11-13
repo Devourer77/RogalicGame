@@ -75,5 +75,6 @@ func _make_row(u: MetaUpgradeData) -> Control:
 		if buy.disabled:
 			buy.tooltip_text = "Не хватает Отзвуков"
 		buy.pressed.connect(Meta.buy.bind(u.id))
+		Sfx.bind_button(buy, "coin")
 		row.add_child(buy)
 	return panel

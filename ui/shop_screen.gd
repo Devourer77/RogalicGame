@@ -76,6 +76,7 @@ func _buy(item: Dictionary) -> void:
 	var price: int = Run.card_price(card)
 	if Run.gold < price:
 		return
+	Sfx.play("coin", 0.05)
 	Run.gold -= price
 	Run.add_card(item["hero"] as RunHero, card)   # заодно запишет карту в Запас Караульни
 	Run.shop_stock.erase(item)
@@ -93,6 +94,7 @@ func _start_removal() -> void:
 
 
 func _remove_card(section: int, index: int) -> void:
+	Sfx.play("coin", 0.05)
 	Run.gold -= Run.REMOVE_CARD_PRICE
 	Run.party[section].deck.remove_at(index)
 	Run.shop_removal_used = true

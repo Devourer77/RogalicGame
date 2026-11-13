@@ -78,6 +78,7 @@ func _make_tile(c: RelicData) -> Button:
 		box.add_child(state)
 		b.tooltip_text = "%s\n%s\n\nНажми, чтобы %s." % [c.title, c.desc, "снять" if picked else "взять в забег"]
 		b.pressed.connect(Meta.toggle_charm.bind(c.id))
+		Sfx.bind_button(b, "ui_click")
 		if picked:
 			recolor_button(b, UiKit.BRASS.lightened(0.2), 3)
 	elif c.buyable:
@@ -88,6 +89,7 @@ func _make_tile(c: RelicData) -> Button:
 		b.modulate = Color(1, 1, 1, 0.8 if afford else 0.55)
 		b.tooltip_text = "%s\n%s\n\nПод тканью. Открыть за %d Отзвуков." % [c.title, c.desc, c.unlock_cost]
 		b.pressed.connect(Meta.buy_charm.bind(c.id))
+		Sfx.bind_button(b, "coin" if afford else "card_cancel")
 	else:
 		var hint: Label = UiKit.make_label("Ещё не найден", 13, UiKit.TEXT_DIM)
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

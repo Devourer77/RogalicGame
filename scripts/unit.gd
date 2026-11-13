@@ -75,6 +75,7 @@ func follow_path(path: Array[Vector2i]) -> void:
 	_play_loop("Walk", WALK_SPEED)
 	for i in range(1, path.size()):
 		face_dir(path[i] - path[i - 1])
+		Sfx.play("step", 0.1)
 		var tween: Tween = create_tween()
 		tween.tween_property(self, "position", board.grid_to_world(path[i]), MOVE_TIME_PER_CELL)
 		await tween.finished
@@ -95,12 +96,14 @@ func face_dir(dir: Vector2i) -> void:
 # Толчок: быстро «отлетает» по пути, а если врезался — трясётся
 func play_push(path: Array[Vector2i], bumped: bool) -> void:
 	if path.size() > 1:
+		Sfx.play("push", 0.08)
 		var tween: Tween = create_tween()
 		tween.tween_property(self, "position", board.grid_to_world(path[path.size() - 1]),
 				PUSH_TIME_PER_CELL * (path.size() - 1)).set_ease(Tween.EASE_OUT)
 		await tween.finished
 	cell = path[path.size() - 1]
 	if bumped:
+		Sfx.play("hit", 0.08)
 		await _shake()
 
 

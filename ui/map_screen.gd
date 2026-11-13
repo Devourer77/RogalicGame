@@ -111,6 +111,7 @@ func _make_node_button(n: MapNode) -> Button:
 	elif not is_current:
 		b.modulate = Color(1, 1, 1, 0.78)   # ещё впереди — видно, но не отвлекает
 	b.pressed.connect(Run.enter_node.bind(n))
+	Sfx.bind_button(b, "step")
 	return b
 
 

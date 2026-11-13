@@ -308,6 +308,7 @@ func _on_unit_damaged(unit: BattleUnit, _amount: int, state: Dictionary) -> void
 	var view: Unit = _views[unit]
 	var info: Dictionary = _plate_info(unit, state)
 	_queue(func() -> void:
+		Sfx.play("hit", 0.08)
 		view.set_status(info)
 		await view.play_hit()
 	)
@@ -316,9 +317,15 @@ func _on_unit_damaged(unit: BattleUnit, _amount: int, state: Dictionary) -> void
 func _on_unit_died(unit: BattleUnit) -> void:
 	var view: Unit = _views[unit]
 	if logic.object_at(unit.cell) == BattleLogic.Obj.BOG:
-		_queue(func() -> void: await view.play_sink())   # утонул в трясине
+		_queue(func() -> void:
+			Sfx.play("water", 0.08)
+			await view.play_sink()
+		)   # утонул в трясине
 	else:
-		_queue(func() -> void: await view.play_death())
+		_queue(func() -> void:
+			Sfx.play("death", 0.06)
+			await view.play_death()
+		)
 
 
 # Враг появился посреди боя (ритуал, подкрепление): фигурка возникает в очереди анимаций
@@ -372,7 +379,15 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 	elif kind == "pincer":
 		color = COLOR_PINCER
 	var cells: Array[Vector2i] = [cell]
+	var sound: String = "fire"
+	if kind == "freeze" or kind == "shatter":
+		sound = "ice"
+	elif kind == "shock":
+		sound = "lightning"
+	elif kind == "pincer":
+		sound = "hit"
 	_queue(func() -> void:
+		Sfx.play(sound, 0.07)
 		board.show_cells("flash", cells, color)
 		await get_tree().create_timer(0.2).timeout
 		board.clear_layer("flash")
@@ -401,7 +416,10 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 				victims.append(c)
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
-		if kind != "gas":
+		if kind == "gas":
+			Sfx.play("water", 0.08)
+		else:
+			Sfx.play("explosion" if kind == "explosion" or kind == "tree" else "magic", 0.06)
 			_shake(SHAKE_POWER_EXPLOSION if kind == "explosion" else SHAKE_POWER_TREE)
 			for c in victims:
 				_floating_number(c, "-%d" % damage)
@@ -457,7 +475,23 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 	if not cells.is_empty():
 		dir = HexMath.direction_to(from_cell, cells[0])
 	var is_mage: bool = caster.is_hero and caster.hero_data != null and caster.hero_data.id == "mage"
+	var cast_sound: String = "card_play"
+	if card.id == "k_bell":
+		cast_sound = "bell"
+	elif card.element == CardData.Element.FIRE:
+		cast_sound = "fire"
+	elif card.element == CardData.Element.ICE:
+		cast_sound = "ice"
+	elif card.element == CardData.Element.LIGHTNING:
+		cast_sound = "lightning"
+	elif card.element == CardData.Element.WATER:
+		cast_sound = "water"
+	elif card.block > 0 or card.taunt or card.hold_line:
+		cast_sound = "block"
+	elif is_mage:
+		cast_sound = "magic"
 	_queue(func() -> void:
+		Sfx.play(cast_sound, 0.06)
 		view.face_dir(dir)
 		# Выбираем анимацию героя под тип карты:
 		# Маг: CastSky (Метеор, Молния, Рывок), Cast (направленные заклинания), Block (Щит), Attack (Удар посохом)
@@ -484,6 +518,7 @@ func _on_enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i])
 	var view: Unit = _views[unit]
 	var anim_name: String = logic.enemy_attack(unit).anim   # у ударов из цикла может быть своя анимация
 	_queue(func() -> void:
+		Sfx.play("card_play", 0.08)
 		board.show_cells("flash", cells, COLOR_INTENT)
 		await view.play_attack(dir, anim_name)
 		board.clear_layer("flash")
@@ -494,6 +529,7 @@ func _on_enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i])
 func _on_enemy_buffed(unit: BattleUnit, cells: Array[Vector2i]) -> void:
 	var view: Unit = _views[unit]
 	_queue(func() -> void:
+		Sfx.play("magic", 0.06)
 		board.show_cells("flash", cells, COLOR_BUFF)
 		await view.play_cast(Vector2i.ZERO)
 		await get_tree().create_timer(0.25).timeout
@@ -669,23 +705,27 @@ func _on_card_pressed(index: int) -> void:
 	if _scrapping:
 		var sh: BattleUnit = _active
 		_scrapping = false
+		Sfx.play("card_cancel", 0.05)
 		_do(func() -> void: logic.scrap_card(sh, index))
 		return
 	if _discarding:
 		var h: BattleUnit = _active
 		_discarding = false
+		Sfx.play("card_cancel", 0.05)
 		_do(func() -> void: logic.discard_card(h, index))
 		return
 	if _selected_card == index:
 		_cancel_card()
 		return
 	if not logic.can_play(_active, index):
+		Sfx.play("card_cancel", 0.05)
 		return
 	var card: CardData = _active.hand[index]
 	if card.shape == CardData.Shape.SELF or card.shape == CardData.Shape.AROUND:
 		var h: BattleUnit = _active
 		_do(func() -> void: logic.play_card(h, index, h.cell))
 		return
+	Sfx.play("card_select", 0.05)
 	_selected_card = index
 	_mode = Mode.AIMING
 	board.clear_layer("move")
@@ -697,14 +737,17 @@ func _on_card_pressed(index: int) -> void:
 func _cancel_card() -> void:
 	if _discarding:
 		_discarding = false
+		Sfx.play("card_cancel", 0.05)
 		_enter_idle()
 		return
 	if _mode == Mode.AIMING:
+		Sfx.play("card_cancel", 0.05)
 		_enter_idle()
 
 
 func _on_end_turn_pressed() -> void:
 	if _mode != Mode.BUSY:
+		Sfx.play("turn", 0.03)
 		_do(logic.end_turn)
 
 
@@ -821,6 +864,7 @@ func _finish_battle() -> void:
 	board.clear_layer("intent")
 	board.clear_layer("buff")
 	board.clear_layer("routes")
+	Sfx.play("victory" if logic.won else "defeat", 0.0)
 	hud.show_banner("Победа!" if logic.won else "Поражение…")
 	await get_tree().create_timer(1.5).timeout
 	var hp_left: Array[int] = []
@@ -899,6 +943,7 @@ func _zoom_camera(direction: float) -> void:
 func _on_card_keep_toggled(index: int) -> void:
 	if _mode == Mode.BUSY or _active == null or logic.is_over:
 		return
+	Sfx.play("ui_click", 0.05)
 	if not logic.toggle_keep(_active, index) and logic.can_keep(_active, index):
 		hud.add_log("Удержать можно не больше %d карт" % BattleLogic.KEEP_LIMIT)
 	hud.refresh(logic, _active, _selected_card, false)

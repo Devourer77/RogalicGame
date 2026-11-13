@@ -109,5 +109,6 @@ static func mini_card(card: CardData, owner_color: Color, factor: float, on_clic
 	b.position = Vector2.ZERO
 	if on_click.is_valid():
 		b.pressed.connect(on_click)
+		Sfx.bind_button(b, "card_select")
 	holder.add_child(b)
 	return holder

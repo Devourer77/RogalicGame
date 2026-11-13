@@ -43,12 +43,14 @@ func _make_bell_button(bell: int) -> Button:
 	if is_open:
 		b.tooltip_text = "Звон %d. Отзвуки: +%d%%." % [bell, roundi(Meta.BELL_ECHO_BONUS * bell * 100.0)]
 		b.pressed.connect(Meta.choose_bell.bind(bell))
+		Sfx.bind_button(b, "bell")
 		if chosen:
 			recolor_button(b, UiKit.BRASS.lightened(0.2), 3)
 	else:
 		b.tooltip_text = "Закрыт. Пройди забег до конца на Звоне %d." % (bell - 1)
 		b.modulate = Color(1, 1, 1, 0.5)
 		b.pressed.connect(_show_detail.bind(bell))   # нажатие на закрытый просто показывает условие
+		Sfx.bind_button(b, "card_cancel")
 	b.mouse_entered.connect(_show_detail.bind(bell))
 	b.mouse_exited.connect(_show_detail.bind(Meta.bell_chosen))
 	return b

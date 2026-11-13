@@ -772,6 +772,39 @@ func _line_cells(from: Vector2i, dir: Vector2i, length: int, pierce: bool = fals
 	return cells
 
 
+# Свободная линия на сотах: летит от from через target под любым углом на длину до length.
+# Если target лежит на одном из 6 лучей — идёт строго по нему; если между лучами —
+# проводит прямую через HexMath.line_draw, чтобы легко попадать по врагам в любом ряду.
+func _aimed_line_cells(from: Vector2i, target: Vector2i, length: int, pierce: bool = false) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	if from == target or length <= 0:
+		return cells
+	var sdir: Vector2i = HexMath.straight_dir(from, target)
+	if sdir != Vector2i.ZERO:
+		return _line_cells(from, sdir, length, pierce)
+	var dist: int = HexMath.distance(from, target)
+	if dist <= 0:
+		return cells
+	var delta: Vector2i = target - from
+	var far: Vector2i = from + Vector2i(roundi(float(delta.x) * float(length) / float(dist)),
+			roundi(float(delta.y) * float(length) / float(dist)))
+	var raw: Array[Vector2i] = HexMath.line_draw(from, far)
+	for i in range(1, mini(raw.size(), length + 1)):
+		var c: Vector2i = raw[i]
+		if pierce:
+			if not is_inside(c) or rocks.has(c):
+				break
+			cells.append(c)
+			continue
+		var b: String = _line_blocker(c)
+		if b == "stop":
+			break
+		cells.append(c)
+		if b == "hit":
+			break
+	return cells
+
+
 # Все клетки, куда юнит дойдёт за steps шагов, и путь до каждой.
 # Поиск в ширину (BFS): сначала соседние клетки, потом их соседи и так далее,
 # поэтому до каждой клетки находится самый короткий путь.
@@ -893,9 +926,13 @@ func get_card_targets(h: BattleUnit, index: int) -> Array[Vector2i]:
 		CardData.Shape.SELF, CardData.Shape.AROUND:
 			result.append(h.cell)
 		CardData.Shape.LINE:
-			# Линия: любая клетка в одной из 6 сторон, до первой преграды
-			for d: Vector2i in HexMath.DIRS:
-				result.append_array(_line_cells(h.cell, d, card.cast_range, pierce))
+			# Свободная линия на сотах: можно навести на любую клетку в радиусе дальности,
+			# до которой доходит луч от героя (без закрывающих преград на пути)
+			for c: Vector2i in HexMath.rect_cells(width, height):
+				var dist: int = HexMath.distance(h.cell, c)
+				if dist >= 1 and dist <= card.cast_range:
+					if _aimed_line_cells(h.cell, c, card.cast_range, pierce).has(c):
+						result.append(c)
 		CardData.Shape.ARC:
 			# Дуга: выбираем соседнюю клетку — в ту сторону и замах
 			for d: Vector2i in HexMath.DIRS:
@@ -1014,7 +1051,7 @@ func get_card_area(h: BattleUnit, index: int, target: Vector2i) -> Array[Vector2
 		CardData.Shape.SINGLE, CardData.Shape.ALLY:
 			cells.append(target)
 		CardData.Shape.LINE:
-			cells = _line_cells(h.cell, d, card.cast_range, card.special == "pierce")
+			cells = _aimed_line_cells(h.cell, target, card.cast_range, card.special == "pierce")
 		CardData.Shape.CROSS:
 			cells = HexMath.cluster(target)
 		CardData.Shape.SQUARE:
@@ -1571,7 +1608,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 		"vent":
 			_thermal_vent(h)
 		"astral":
-			_astral_beam(h, card, dir)
+			_astral_beam(h, card, area)
 		"swap":
 			var other: BattleUnit = unit_at(target)
 			if other != null and other.is_hero and other != h:
@@ -2500,9 +2537,8 @@ func _thermal_vent(h: BattleUnit) -> void:
 
 
 # «Астральный луч»: каждая цель на линии усиливает луч на +4; Рыцарь на линии не ранится, а получает блок
-func _astral_beam(h: BattleUnit, card: CardData, dir: Vector2i) -> void:
+func _astral_beam(h: BattleUnit, card: CardData, cells: Array[Vector2i]) -> void:
 	var bonus: int = 0
-	var cells: Array[Vector2i] = _line_cells(h.cell, dir, card.cast_range, true)
 	effect_cells.emit(cells, "explosion")
 	for c in cells:
 		var u: BattleUnit = unit_at(c)
@@ -2806,7 +2842,9 @@ func _end_turn_draw_count(h: BattleUnit) -> int:
 		DrawMode.PLUS_2:
 			return 2
 		DrawMode.KEEP_2:
-			return TURN_DRAW
+			# Всегда пополняем руку как минимум до HAND_SIZE (5 карт),
+			# а если удержано 2–3 карты — добираем полные TURN_DRAW (до лимита MAX_HAND)
+			return maxi(TURN_DRAW, HAND_SIZE - h.hand.size())
 	return 0
 
 

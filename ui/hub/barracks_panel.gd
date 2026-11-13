@@ -225,6 +225,7 @@ func _filter_button(text: String, key: String, color: Color) -> Button:
 	if _filter == key:
 		recolor_button(b, color.lightened(0.2), 2)
 	b.pressed.connect(_set_filter.bind(key))
+	Sfx.bind_button(b, "ui_click")
 	return b
 
 

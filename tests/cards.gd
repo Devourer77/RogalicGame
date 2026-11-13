@@ -369,7 +369,7 @@ func _hand_draw() -> void:
 	var before: int = m.hand.size()
 	l.end_turn()
 	if mode == BattleLogic.DrawMode.KEEP_2:
-		check("KEEP_2: без отметок — новая рука из %d карт" % BattleLogic.TURN_DRAW, m.hand.size() == BattleLogic.TURN_DRAW)
+		check("KEEP_2: без отметок — новая рука не меньше %d карт" % BattleLogic.HAND_SIZE, m.hand.size() == BattleLogic.HAND_SIZE)
 	elif mode == BattleLogic.DrawMode.DISCARD_ALL:
 		check("DISCARD_ALL: новая рука из 5 карт", m.hand.size() == BattleLogic.HAND_SIZE)
 	else:
@@ -446,12 +446,21 @@ func _keep() -> void:
 	check("Отметки сброшены", not l.is_kept(m, 0) and not l.is_kept(m, 1))
 	l.toggle_keep(m, 0)
 	l.end_turn()
-	check("Одна удержанная + 3 новых", m.hand.size() == 1 + BattleLogic.TURN_DRAW and m.hand[0].id == "strike")
+	check("Одна удержанная — рука всё равно пополняется до 5", m.hand.size() == BattleLogic.HAND_SIZE and m.hand[0].id == "strike")
 	# Маленькая колода: сброс замешивается обратно
 	m.draw_pile.clear(); m.discard_pile.clear(); m.kept.clear()
 	give(m, ["strike", "guard", "wave"])
 	l.end_turn()
 	check("Колода кончилась — сброс замешан, рука из тех же 3 карт", m.hand.size() == 3)
+	# Линейные заклинания мага попадают по врагу между 6 осевыми лучами (например, ровно вверх C(2, 7))
+	l = fresh(["goblin"]); m = l.heroes[0]
+	var off_ray: Vector2i = C(2, 7)
+	l.enemies[0].cell = off_ray
+	give(m, ["ice_lance"])
+	var ghp0: int = l.enemies[0].hp
+	check("Ледяное копьё: цель между лучами сот доступна", l.get_card_targets(m, 0).has(off_ray))
+	l.play_card(m, 0, off_ray)
+	check("Ледяное копьё: враг между лучами ранен", l.enemies[0].hp == ghp0 - 4)
 	var k: BattleUnit = l.heroes[1]
 	l.toggle_keep(k, 0)
 	k.hp = 0

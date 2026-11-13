@@ -26,6 +26,7 @@ func _ready() -> void:
 
 
 func _rest() -> void:
+	Sfx.play("heal", 0.04)
 	var heal_share: float = Run.rest_percent()
 	Run.rest_used = true   # «Чистый бинт» действует только на первый привал
 	for rh in Run.party:

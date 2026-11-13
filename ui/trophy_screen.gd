@@ -52,5 +52,6 @@ func _select(charm: RelicData) -> void:
 func _take() -> void:
 	if _selected == null:
 		return
+	Sfx.play("coin", 0.05)
 	Meta.unlock_charm(_selected.id)   # сохраняется сразу
 	Run.game_over(true)

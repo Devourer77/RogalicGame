@@ -90,6 +90,7 @@ func _ready() -> void:
 func _take_card(rh: RunHero, card: CardData, chosen: Button, buttons: Array[Button], skip: Array[Button]) -> void:
 	if _done.has(rh):
 		return
+	Sfx.play("card_select", 0.05)
 	if Run.add_card(rh, card):
 		_notes[rh].text = "Записано в Караульню"
 	for b in buttons:
@@ -176,6 +177,7 @@ func _take_relic(r: RelicData, pressed: Button, buttons: Array[Button], refuse: 
 	if _relic_done:
 		return
 	if r != null:
+		Sfx.play("magic", 0.05)
 		Run.take_relic(r)
 	for b in buttons + refuse:
 		b.disabled = true

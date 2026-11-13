@@ -209,6 +209,7 @@ static func make_button(text: String, on_pressed: Callable, icon_name: String = 
 		b.icon = icon(icon_name)
 	if primary:
 		style_primary(b)
+	Sfx.bind_button(b)
 	b.pressed.connect(on_pressed)
 	return b
 
@@ -333,6 +334,7 @@ static func party_bar(on_deck: Callable = Callable()) -> Control:
 		deck.focus_mode = Control.FOCUS_NONE
 		deck.tooltip_text = "Колода героя «%s»:\n%s" % [rh.data.title, Run.deck_summary(rh)]
 		if on_deck.is_valid():
+			Sfx.bind_button(deck)
 			deck.pressed.connect(on_deck.bind(rh))
 			deck.tooltip_text += "\n\nНажми, чтобы посмотреть карты"
 		line.add_child(deck)

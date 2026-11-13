@@ -186,6 +186,7 @@ func _build_end_button() -> void:
 	_end_button.offset_right = -14
 	_end_button.offset_bottom = -14
 	_end_button.tooltip_text = "Закончить ход героев. Враги сделают ровно то, что показано на поле:\nжёлтые линии — куда пойдут, красные клетки — куда ударят."
+	Sfx.bind_button(_end_button, "turn")
 	_end_button.pressed.connect(end_turn_pressed.emit)
 	_root.add_child(_end_button)
 
@@ -203,6 +204,7 @@ func _build_speed_button() -> void:
 	_speed_button.offset_right = -214
 	_speed_button.offset_bottom = -14
 	_speed_button.tooltip_text = "Скорость хода врагов: обычная или в два раза быстрее. Клавиша F.\nМожно переключать и пока враги ходят."
+	Sfx.bind_button(_speed_button)
 	_speed_button.pressed.connect(toggle_speed_from_button)
 	_root.add_child(_speed_button)
 	_update_speed_button()
@@ -219,6 +221,7 @@ func _build_discard_button() -> void:
 	_discard_button.offset_top = -72
 	_discard_button.offset_right = -354
 	_discard_button.offset_bottom = -14
+	Sfx.bind_button(_discard_button)
 	_discard_button.pressed.connect(discard_toggled.emit)
 	_root.add_child(_discard_button)
 
@@ -268,6 +271,7 @@ func _build_legend() -> void:
 	help_button.add_theme_font_size_override("font_size", 13)
 	help_button.add_theme_constant_override("icon_max_width", 15)
 	help_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	Sfx.bind_button(help_button)
 	help_button.pressed.connect(toggle_help)
 	column.add_child(help_button)
 
@@ -307,8 +311,8 @@ func _build_help() -> void:
 		["mouse_l", "", "ЛКМ по карте, потом по клетке — сыграть карту"],
 		["mouse_r", "", "ПКМ или Esc — отменить выбранную карту"],
 		["", "1–7", "Сыграть карту по её номеру"],
-		["mouse_r", "", "ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до 2 карт"],
-		["hourglass", "", "В конце хода остальная рука уходит в сброс, герой берёт 5 новых карт"],
+		["mouse_r", "", "ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до %d карт" % BattleLogic.KEEP_LIMIT],
+		["hourglass", "", "В конце хода остальная рука уходит в сброс, рука пополняется минимум до %d карт" % BattleLogic.HAND_SIZE],
 		["drop", "", "Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит"],
 		["", "Tab", "Другой герой (или клик по герою, по его панели)"],
 		["target", "", "Наведи на врага — его удар, зона и особенности"],
@@ -677,6 +681,8 @@ func _selected_frame() -> StyleBoxFlat:
 func _slide_card(card: Button, y: float, zoom: float, z: int) -> void:
 	if not is_instance_valid(card) or not card.is_inside_tree():
 		return
+	if y < 0.0 and not card.disabled:
+		Sfx.play("ui_hover", 0.05)
 	card.z_index = z
 	var tween: Tween = card.create_tween().set_parallel(true)
 	tween.tween_property(card, "position:y", y, 0.09).set_ease(Tween.EASE_OUT)
