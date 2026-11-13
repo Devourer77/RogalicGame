@@ -92,7 +92,10 @@ static func _decide(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 	if atk.shape == EnemyData.Attack.AURA:
 		var aura: Dictionary = _best_aura(l, e, atk, options, ctx)
 		result["cell"] = aura["cell"]
-		result["reason"] = "Зов: усилит %s" % _count_allies(aura["allies"]) if aura["allies"] > 0 else "Зов: некого усилить"
+		if atk.attack_range <= 0:
+			result["reason"] = "Укрепляется: +%d блока" % atk.ally_block
+		else:
+			result["reason"] = "Зов: усилит %s" % _count_allies(aura["allies"]) if aura["allies"] > 0 else "Зов: некого усилить"
 		return result
 
 	var heroes: Array[BattleUnit] = l.living_heroes()

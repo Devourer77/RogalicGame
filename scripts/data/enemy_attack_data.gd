@@ -42,7 +42,9 @@ func describe() -> String:
 		2:
 			parts.append("%d урона по трём клеткам перед собой" % damage)
 		3:
-			if ally_block > 0 and ally_damage > 0:
+			if attack_range <= 0 and ally_block > 0:
+				parts.append("себе: +%d блока" % ally_block)
+			elif ally_block > 0 and ally_damage > 0:
 				parts.append("врагам в %d клетках: +%d блока, следующий удар +%d" % [attack_range, ally_block, ally_damage])
 			elif ally_damage > 0:
 				parts.append("врагам в %d клетках: следующий удар +%d" % [attack_range, ally_damage])
