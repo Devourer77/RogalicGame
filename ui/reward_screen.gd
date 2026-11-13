@@ -2,8 +2,11 @@ extends Control
 # Награда после боя (тз-карты.md, раздел 10): золото и ОДНА награда на весь отряд.
 # Три варианта на выбор: карта Магу (1 из 3), карта Рыцарю (1 из 3) или улучшение одной карты.
 # Пропуск — каждому герою немного HP.
-# После элиты карты — только редкие (★), сверху — ещё одно бесплатное улучшение и выбор порченой реликвии.
+# После элиты карты — только редкие (★). Награда элиты (ещё одно бесплатное улучшение и выбор
+# порченой реликвии) — вторым шагом на том же экране: всё сразу не помещается в окно 720 px по высоте.
 
+var _column: VBoxContainer                   # колонка экрана — во втором шаге её содержимое меняется
+var _elite: bool = false                     # бой был с элитой
 var _next_button: Button
 var _note: Label                             # подпись под выбором («Записано в Караульню»)
 var _picked: bool = false                    # главная награда выбрана (или пропущена)
@@ -11,13 +14,24 @@ var _all_buttons: Array[Button] = []         # кнопки главной на�
 var _bonus_done: bool = true                 # бесплатное улучшение после элиты (true — его нет)
 var _bonus_buttons: Array[Button] = []
 var _relic_done: bool = true                 # реликвия выбрана или отказались (true — выбора нет)
+var _refuse_relic: Button                    # «Без реликвии» — стоит в нижней строке рядом с «Дальше»
+
+const CARD_SCALE: float = 0.7                # карты на экране уменьшены, чтобы всё влезло в 720 px
 
 
 func _ready() -> void:
-	var column: VBoxContainer = UiKit.make_screen(self)
-	column.add_theme_constant_override("separation", 10)
-	var elite: bool = Run.current != null and Run.current.type == MapNode.Type.ELITE
+	_column = UiKit.make_screen(self)
+	_column.add_theme_constant_override("separation", 10)
+	_elite = Run.current != null and Run.current.type == MapNode.Type.ELITE
+	_build_head()
+	if Run.tamed_spirit != null:
+		_build_spirit_choice(_column, Run.tamed_spirit)
+		return
+	_build_main()
 
+
+# Шапка: «Победа!», золото и полоса отряда
+func _build_head() -> void:
 	var head := HBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 18)
@@ -25,11 +39,13 @@ func _ready() -> void:
 	var gold: HBoxContainer = UiKit.chip("coin", "+%d" % Run.last_gold_reward, UiKit.GOLD, "", 22, 24)
 	gold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(gold)
-	column.add_child(head)
-	column.add_child(UiKit.party_bar())
-	if Run.tamed_spirit != null:
-		_build_spirit_choice(column, Run.tamed_spirit)
-		return
+	_column.add_child(head)
+	_column.add_child(UiKit.party_bar())
+
+
+# Шаг 1: главная награда — карта одному из героев, улучшение или пропуск
+func _build_main() -> void:
+	var column: VBoxContainer = _column
 	column.add_child(UiKit.make_text("Выбери одно на весь отряд: карту Магу, карту Рыцарю или улучшение карты.", 15, UiKit.TEXT_DIM))
 
 	var row := HBoxContainer.new()
@@ -38,7 +54,7 @@ func _ready() -> void:
 	column.add_child(row)
 	# Карта каждому герою
 	for rh in Run.party:
-		var cards: Array[CardData] = Run.roll_rare_cards(rh, 3) if elite else Run.roll_cards(rh, Run.reward_card_count())
+		var cards: Array[CardData] = Run.roll_rare_cards(rh, 3) if _elite else Run.roll_cards(rh, Run.reward_card_count())
 		if cards.is_empty():
 			cards = Run.roll_cards(rh, 3)
 		var panel: PanelContainer = _panel("Карта: " + rh.data.title, rh.data.color)
@@ -52,29 +68,52 @@ func _ready() -> void:
 	if not ups.is_empty():
 		column.add_child(_upgrade_block("Или улучши одну карту — выбери ветку:", ups, _all_buttons, _take_upgrade))
 
-	if elite:
-		var bonus: Array[Dictionary] = Run.roll_upgrades(Run.UPGRADE_CHOICES)
-		if not bonus.is_empty():
-			_bonus_done = false
-			column.add_child(_upgrade_block("Награда элиты: ещё одно улучшение бесплатно", bonus, _bonus_buttons, _take_bonus))
-
-	_note = UiKit.make_label(" ", 13, UiKit.BRASS.lightened(0.2))
-	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(_note)
 	var skip: Button = UiKit.make_button("Пропустить (каждому +%d HP)" % Run.SKIP_HEAL, _skip)
-	skip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_all_buttons.append(skip)
-	column.add_child(skip)
+	# После элиты «Дальше» ведёт ко второму шагу, иначе — на карту
+	var go: Callable = _build_elite_step if _elite else Run.goto.bind(Run.MAP_SCENE)
+	_next_button = UiKit.make_button("Дальше: награда элиты" if _elite else "Дальше", go, "", true)
+	_next_button.disabled = true
+	column.add_child(_bottom_row(skip))
 
-	if elite and Run.can_take_relic():
+
+# Шаг 2 (только после элиты): бесплатное улучшение и порченая реликвия.
+# Улучшения тянутся заново — карта, улучшенная на шаге 1, сюда уже не попадёт.
+func _build_elite_step() -> void:
+	for child in _column.get_children():
+		_column.remove_child(child)
+		child.queue_free()
+	# Без большой шапки «Победа!» (золото уже показано на шаге 1) — иначе снова не влезает
+	_column.add_child(UiKit.party_bar())
+	var bonus: Array[Dictionary] = Run.roll_upgrades(Run.UPGRADE_CHOICES)
+	if not bonus.is_empty():
+		_bonus_done = false
+		_column.add_child(_upgrade_block("Награда элиты: ещё одно улучшение бесплатно", bonus, _bonus_buttons, _take_bonus))
+	if Run.can_take_relic():
 		var offer: Array[RelicData] = Run.roll_relics(Run.RELIC_CHOICES)
 		if not offer.is_empty():
 			_relic_done = false
-			column.add_child(_build_relic_choice(offer))
-
+			_column.add_child(_build_relic_choice(offer))
 	_next_button = UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE), "", true)
-	_next_button.disabled = true
-	column.add_child(_next_button)
+	_column.add_child(_bottom_row(_refuse_relic))
+	_update_next()
+
+
+# Нижняя строка: слева кнопка отказа (пропуск или «Без реликвии»), в центре подпись, справа «Дальше».
+# Одна строка вместо трёх — экономит место по высоте.
+func _bottom_row(left: Button) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 18)
+	if left != null:
+		row.add_child(left)
+	_note = UiKit.make_label(" ", 13, UiKit.BRASS.lightened(0.2))
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_note.custom_minimum_size.x = 260
+	_note.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(_note)
+	row.add_child(_next_button)
+	return row
 
 
 # Панель с заголовком; карты кладутся в её строку
@@ -104,9 +143,9 @@ func _card_row(panel: PanelContainer) -> HBoxContainer:
 func _card_button(card: CardData, color: Color, into: Container, list: Array[Button] = _all_buttons) -> Button:
 	var b: Button = CardView.make_button(card, color)
 	var holder := Control.new()
-	holder.custom_minimum_size = CardView.CARD_SIZE * 0.8
+	holder.custom_minimum_size = CardView.CARD_SIZE * CARD_SCALE
 	b.pivot_offset = Vector2.ZERO
-	b.scale = Vector2(0.8, 0.8)
+	b.scale = Vector2(CARD_SCALE, CARD_SCALE)
 	holder.add_child(b)
 	into.add_child(holder)
 	list.append(b)
@@ -165,6 +204,7 @@ func _take_bonus(rh: RunHero, index: int, branch: int, chosen: Button) -> void:
 		return
 	Sfx.play("magic", 0.05)
 	Run.upgrade_card(rh, index, branch)
+	_note.text = "Улучшено: %s" % rh.deck[index].title
 	_finish(chosen, _bonus_buttons)
 	_bonus_done = true
 	_update_next()
@@ -332,9 +372,8 @@ func _build_relic_choice(offer: Array[RelicData]) -> Control:
 		row.add_child(panel)
 	var no: Button = UiKit.make_button("Без реликвии", func() -> void: pass)
 	no.pressed.connect(_take_relic.bind(null, no, buttons, refuse))
-	no.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	refuse.append(no)
-	box.add_child(no)
+	_refuse_relic = no   # сама кнопка встанет в нижнюю строку (см. _bottom_row)
 	return box
 
 
