@@ -54,6 +54,7 @@ const PALISADE_INTACT_MODEL: PackedScene = preload("res://assets/models/hub/pali
 const PALISADE_DAMAGED_MODEL: PackedScene = preload("res://assets/models/hub/palisade_damaged.glb")
 const PALISADE_FALLEN_MODEL: PackedScene = preload("res://assets/models/hub/palisade_fallen.glb")
 const PALISADE_CORNER_MODEL: PackedScene = preload("res://assets/models/hub/palisade_corner.glb")
+const CHARMS_MODEL: PackedScene = preload("res://assets/models/hub/charms.glb")
 
 # Точки взаимодействия. pos — центр зоны на земле, radius — размер зоны (у больших построек больше
 # 1,8 м: герой не может встать вплотную), look — куда смотрит камера, hero_only — кто может открыть.
@@ -99,8 +100,8 @@ var _door_tween: Tween
 var _card_stacks: Array[Node3D] = []           # стопки карт на столе Караульни: мало / средне / много
 var _lantern_mats: Array[StandardMaterial3D] = []
 var _banner: Node3D
-var _shelf_items: Array[MeshInstance3D] = []
-var _shelf_mats: Array[StandardMaterial3D] = []
+var _shelf_slots: Array[Node3D] = []        # места на полке: в каждом оберег, ткань и меловой контур
+var _shelf_lights: Array[OmniLight3D] = []  # тёплый отсвет открытого оберега
 var _shrine_orbs: Array[MeshInstance3D] = []          # шар на каждом камне Святилища (по Run.ALL_SPIRIT_IDS)
 var _shrine_mats: Array[StandardMaterial3D] = []
 var _shrine_light: OmniLight3D
@@ -413,26 +414,18 @@ func refresh_world() -> void:
 	if _banner != null:
 		_banner.visible = Meta.first_boss_killed
 
-	# Полка трофеев: открытый светится, покупаемый под тканью, «только из пути» — меловой контур
-	for i in _shelf_items.size():
-		if i >= Meta.CHARMS.size():
-			break
+	# Полка трофеев: открытый оберег стоит и светится, покупаемый — под тканью с биркой,
+	# «только из пути» — меловой контур на доске
+	for i in _shelf_slots.size():
+		var slot: Node3D = _shelf_slots[i]
 		var c: RelicData = Meta.CHARMS[i]
-		var sm: StandardMaterial3D = _shelf_mats[i]
-		var item: MeshInstance3D = _shelf_items[i]
-		sm.emission_enabled = false
-		if Meta.is_charm_open(c.id):
-			item.scale = Vector3.ONE
-			sm.albedo_color = COL_BRASS.lightened(0.2)
-			sm.emission_enabled = true
-			sm.emission = COL_WARM
-			sm.emission_energy_multiplier = 1.2
-		elif c.buyable:
-			item.scale = Vector3(1.3, 0.5, 1.0)   # ткань
-			sm.albedo_color = Color(0.4, 0.42, 0.42)
-		else:
-			item.scale = Vector3(1.0, 1.0, 0.2)   # меловой контур
-			sm.albedo_color = Color(0.75, 0.75, 0.7, 0.9)
+		var open: bool = Meta.is_charm_open(c.id)
+		var charm: Node3D = slot.get_node_or_null(NodePath(c.id)) as Node3D
+		if charm != null:
+			charm.visible = open
+		(slot.get_node("Cloth") as Node3D).visible = not open and c.buyable
+		(slot.get_node("Chalk") as Node3D).visible = not open and not c.buyable
+		_shelf_lights[i].visible = open
 
 	# Святилище: шар покорённого духа светится его цветом, встреченного — тускло, неизвестного нет
 	var any_tamed: bool = false
@@ -766,19 +759,32 @@ func _build_notice_board() -> void:
 	_add_label("Доска дозора", c + Vector3(0.0, 2.8, 0.0))
 
 
-# Полка трофеев (обереги) — юго-восток. Десять мест в два яруса; обереги, ткань и меловые
-# контуры пока заглушки (их вид меняет refresh_world).
+# Полка трофеев (обереги) — юго-восток. Десять мест в два яруса по порядку Meta.CHARMS.
+# В каждом месте — копия charms.glb, где оставлены только свой оберег (узел с его id), ткань (Cloth)
+# и меловой контур (Chalk); какой из них виден, решает refresh_world.
 func _build_trophy_shelf() -> void:
 	var c: Vector3 = Vector3(8.5, 0.0, 5.0)
 	_place_model(TROPHY_SHELF_MODEL, "TrophyShelf", c)
 	_add_collider("TrophyShelfCol", c, Vector3(2.5, 1.8, 0.85))
-	for i in SHELF_SLOTS:
+	for i in mini(SHELF_SLOTS, Meta.CHARMS.size()):
 		var col: int = i % 5
 		var tier: int = i / 5
-		var pos: Vector3 = c + Vector3(-0.95 + 0.475 * float(col), 0.55 + 0.7 * float(tier), 0.15)
-		var item: StaticBody3D = _add_block("ShelfItem%d" % i, pos, Vector3(0.24, 0.24, 0.1), COL_BRASS, 0.0, false)
-		_shelf_items.append(item.get_child(0) as MeshInstance3D)
-		_shelf_mats.append((item.get_child(0) as MeshInstance3D).material_override as StandardMaterial3D)
+		# Полы ярусов в модели полки — на 0,53 и 1,23 м; оберег стоит ближе к краю полки
+		var pos: Vector3 = c + Vector3(-0.95 + 0.475 * float(col), 0.53 + 0.7 * float(tier), 0.05)
+		var slot: Node3D = _place_model(CHARMS_MODEL, "ShelfSlot%d" % i, pos)
+		var keep: Array[String] = [Meta.CHARMS[i].id, "Cloth", "Chalk"]
+		for child in slot.get_children():
+			if not keep.has(String(child.name)):
+				child.queue_free()
+		_shelf_slots.append(slot)
+		var glow := OmniLight3D.new()
+		glow.name = "ShelfGlow%d" % i
+		glow.light_color = Color(1.0, 0.8, 0.55)
+		glow.light_energy = 0.5
+		glow.omni_range = 0.7
+		glow.position = pos + Vector3(0.0, 0.25, 0.15)
+		add_child(glow)
+		_shelf_lights.append(glow)
 	_add_label("Полка трофеев", c + Vector3(0.0, 2.8, 0.0))
 
 

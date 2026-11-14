@@ -52,6 +52,21 @@ PALETTE: dict = {
 	"glass": ((0.25, 0.24, 0.2), 0.3, 0.0),            # стекло фонаря; игра зажигает его сама
 	"orb": ((0.2, 0.2, 0.2), 0.4, 0.0),                # шар духа; цвет задаёт игра
 	"cloth_grey": ((0.45, 0.46, 0.45), 1.0, 0.0),
+	# обереги
+	"leather": ((0.45, 0.27, 0.16), 0.9, 0.0),
+	"leather_dark": ((0.26, 0.16, 0.1), 0.9, 0.0),
+	"copper": ((0.66, 0.4, 0.24), 0.45, 0.7),
+	"patina": ((0.3, 0.48, 0.42), 0.8, 0.2),
+	"linen": ((0.86, 0.83, 0.74), 1.0, 0.0),
+	"herb": ((0.55, 0.62, 0.55), 1.0, 0.0),
+	"wood_dark": ((0.3, 0.21, 0.14), 0.9, 0.0),
+	"silver": ((0.72, 0.73, 0.75), 0.35, 0.9),
+	"whet": ((0.6, 0.61, 0.6), 0.95, 0.0),
+	"horn": ((0.86, 0.79, 0.64), 0.7, 0.0),
+	"flint": ((0.78, 0.77, 0.72), 0.8, 0.0),
+	"parchment": ((0.88, 0.77, 0.52), 0.9, 0.0),
+	"wax": ((0.62, 0.48, 0.12), 0.6, 0.0),            # тёмно-жёлтый воск, не красный
+	"chalk_white": ((0.82, 0.82, 0.78), 1.0, 0.0),
 }
 # Светящиеся материалы: (цвет, сила свечения)
 EMISSIVE: dict = {
@@ -999,6 +1014,213 @@ def build_palisade_corner() -> None:
 	_palisade("corner")
 
 
+# --- Обереги на Полке трофеев -------------------------------------------------------------
+# Один файл charms.glb: каждый оберег — свой объект с id из resources/relics/charm_*.tres,
+# плюс Cloth (покупаемый, ещё закрыт — под тканью с биркой) и Chalk (только из пути — меловой контур).
+# Все стоят в начале координат (origin — середина основания): игра ставит нужный объект в своё место.
+# Место на полке — 43 × 65 см; обереги чуть крупнее жизни (25–35 см), чтобы читались с камеры.
+
+def _ring(part: Part, cx: float, cy: float, z: float, r_out: float, r_in: float, h: float, mat: str,
+		segs: int = 10) -> None:
+	"""Плоское кольцо-«шайба» (свёрнутый ремень, шнур): внешняя стенка, верх, внутренняя стенка."""
+	part.lathe([(r_out, 0.0), (r_out, h), (r_in, h), (r_in, 0.0)], segs, mat, base=(cx, cy, z),
+		cap_top=False, cap_bottom=False)
+
+
+def _loop_x(part: Part, cx: float, cy: float, cz: float, r: float, w: float, mat: str, segs: int = 8) -> None:
+	"""Кольцо-обвязка вокруг оси X (шнур на свёртке)."""
+	part.lathe_axis([(r, -w / 2), (r, w / 2)], segs, mat, (cx, cy, cz), (1, 0, 0), cap_top=False, cap_bottom=False)
+
+
+def build_charms() -> None:
+	clear_scene()
+
+	# 1. Кошель дозорного: кожаный мешочек, стянутый ремешком, застёжка-колокольчик, монеты рядом
+	p = Part("charm_purse")
+	p.lathe([(0.0, 0.0), (0.12, 0.01), (0.15, 0.09), (0.13, 0.17), (0.075, 0.21), (0.085, 0.25), (0.11, 0.29)],
+		8, "leather", phase=0.5)
+	p.lathe([(0.11, 0.29), (0.0, 0.25)], 8, "leather_dark", cap_bottom=False, phase=0.5)   # тёмное горло
+	_ring(p, 0, 0, 0.2, 0.085, 0.07, 0.025, "leather_dark", 8)
+	p.sphere((0.06, -0.06, 0.18), 0.03, 6, 4, "brass")
+	for k, (cx, cy) in enumerate(((0.19, -0.1), (0.24, -0.04), (0.21, 0.03))):
+		p.lathe([(0.035, 0.0), (0.035, 0.009)], 7, "brass", base=(cx, cy, 0.009 * k * 0.5))
+	p.build()
+
+	# 2. Чистый бинт: льняной рулон на боку, обвязан шнуром, веточка трав, клинышек
+	p = Part("charm_bandage")
+	cz = 0.085
+	p.lathe_axis([(0.0, -0.14), (0.08, -0.14), (0.08, 0.14), (0.0, 0.14)], 9, "linen", (0, 0, cz), (1, 0, 0))
+	p.lathe_axis([(0.035, -0.142), (0.02, -0.142)], 9, "herb", (0, 0, cz), (1, 0, 0), cap_top=False, cap_bottom=False)
+	p.box((0.02, -0.11, 0.004), (0.22, 0.12, 0.008), "linen", rot_z=-6.0)            # свисающий конец
+	_loop_x(p, 0.0, 0, cz, 0.084, 0.025, "rope")
+	for k in range(3):
+		p.box((0.01 + 0.03 * k, 0.0, cz + 0.09), (0.012, 0.16, 0.012), "herb", rot_z=25.0 - 20 * k, rot_x=8.0)
+	p.box((0.0, 0.07, 0.015), (0.12, 0.05, 0.03), "wood_dark")                      # клинышек
+	p.build()
+
+	# 3. Медный бубенец: медный шар с прорезью на свёрнутом ремешке с пряжкой
+	p = Part("charm_bell")
+	_ring(p, 0, 0, 0.0, 0.17, 0.135, 0.04, "leather", 10)
+	p.box((0.0, -0.155, 0.022), (0.06, 0.02, 0.05), "brass")
+	p.sphere((0, 0, 0.15), 0.1, 10, 6, "copper")
+	p.lathe([(0.103, 0.14), (0.103, 0.16)], 10, "patina", cap_top=False, cap_bottom=False)
+	p.box((0.0, -0.095, 0.11), (0.02, 0.02, 0.06), "leather_dark")                  # прорезь
+	for dx, dz, w, h in ((-0.03, 0.29, 0.015, 0.06), (0.03, 0.29, 0.015, 0.06), (0.0, 0.32, 0.075, 0.015), (0.0, 0.26, 0.075, 0.015)):
+		p.box((dx, 0.0, dz), (w, 0.015, h), "iron")                                   # железное колечко
+	p.build()
+
+	# 4. Осколок ученика (Маг): тёмно-синий кристалл в серебряной проволоке на подставке
+	p = Part("charm_shard")
+	p.lathe([(0.1, 0.0), (0.1, 0.02)], 10, "violet")
+	p.lathe([(0.085, 0.02), (0.085, 0.045)], 10, "wood_dark", cap_bottom=False)
+	ring = [(0.06 * math.cos(2 * math.pi * k / 6), 0.06 * math.sin(2 * math.pi * k / 6), 0.2) for k in range(6)]
+	p.add(ring + [(0, 0, 0.4), (0, 0, 0.06)],
+		[(k, (k + 1) % 6, 6) for k in range(6)] + [((k + 1) % 6, k, 7) for k in range(6)], "crystal")
+	for k, z in enumerate((0.11, 0.17, 0.23, 0.29, 0.34)):
+		r = 0.065 if 0.14 < z < 0.27 else 0.045
+		p.lathe([(r, z), (r, z + 0.012)], 8, "silver", cap_top=False, cap_bottom=False, phase=k * 0.3)
+	for k in range(3):
+		a = 2 * math.pi * k / 3
+		p.log((0.06 * math.cos(a), 0.06 * math.sin(a), 0.04), (0.035 * math.cos(a), 0.035 * math.sin(a), 0.13),
+			0.008, 4, "silver")
+	p.build()
+
+	# 5. Точильный камень (Рыцарь): брусок в открытом ящичке с железными уголками и тряпицей
+	p = Part("charm_whetstone")
+	w, d, h, t = 0.32, 0.17, 0.09, 0.015
+	p.box((0, 0, t / 2), (w, d, t), "tex_wood")
+	for sy in (-1, 1):
+		p.box((0, sy * (d / 2 - t / 2), h / 2), (w, t, h), "tex_wood")
+	for sx in (-1, 1):
+		p.box((sx * (w / 2 - t / 2), 0, h / 2), (t, d, h), "tex_wood")
+	p.box((0, d / 2 + 0.03, h + 0.06), (w, t, 0.15), "tex_wood", rot_x=-20.0)          # откинутая крышка
+	for sx in (-1, 1):
+		for sy in (-1, 1):
+			p.box((sx * (w / 2 - 0.01), sy * (d / 2 - 0.01), h / 2), (0.03, 0.03, h + 0.005), "steel")
+	p.box((-0.03, 0, t + 0.035), (0.21, 0.09, 0.07), "whet")
+	p.box((-0.03, -0.046, t + 0.04), (0.035, 0.004, 0.035), "dark_stone")             # знак-колокол
+	p.box((0.11, 0.0, t + 0.02), (0.06, 0.11, 0.04), "mustard", rot_z=8.0)
+	p.build()
+
+	# 6. Свеча у колокола: толстая свеча с потёками в латунном подсвечнике с колечком
+	p = Part("charm_candle")
+	p.lathe([(0.0, 0.0), (0.14, 0.0), (0.15, 0.03), (0.13, 0.035)], 10, "brass", cap_bottom=False)
+	p.lathe([(0.06, 0.03), (0.055, 0.1), (0.07, 0.11)], 8, "brass", cap_bottom=False)
+	for dx, dz, w_, h_ in ((0.16, 0.06, 0.015, 0.05), (0.21, 0.06, 0.015, 0.05), (0.185, 0.085, 0.06, 0.015),
+			(0.185, 0.035, 0.06, 0.015)):
+		p.box((dx, 0, dz), (w_, 0.02, h_), "brass")                                     # колечко-ручка
+	p.lathe([(0.055, 0.11), (0.052, 0.28), (0.045, 0.29)], 8, "candle", cap_bottom=False)
+	for k in range(4):
+		a = 2 * math.pi * k / 4 + 0.3
+		p.box((0.055 * math.cos(a), 0.055 * math.sin(a), 0.24 - 0.02 * k), (0.025, 0.025, 0.07 + 0.02 * k), "candle",
+			rot_z=math.degrees(a))
+	tongue(p, 0, 0, 0.295, 0.02, 0.09, "flame")
+	p.build()
+
+	# 7. Ладанка ученика (Маг): тёмно-синий мешочек с фиолетовой вышивкой, шнур свёрнут вокруг
+	p = Part("charm_amulet")
+	p.lathe([(0.0, 0.0), (0.08, 0.01), (0.105, 0.08), (0.085, 0.15), (0.05, 0.18), (0.07, 0.22)], 8, "navy",
+		cap_top=False, phase=0.5)
+	p.lathe([(0.07, 0.22), (0.0, 0.19)], 8, "rune", cap_bottom=False, phase=0.5)     # свечение из горловины
+	_ring(p, 0, 0, 0.16, 0.06, 0.048, 0.02, "violet", 8)
+	for rot in (0.0, 60.0, -60.0):
+		p.box((0, -0.104, 0.085), (0.012, 0.008, 0.09), "violet", rot_y=rot)            # вышитая звёздочка
+	_ring(p, 0, 0, 0.0, 0.19, 0.165, 0.03, "violet", 12)
+	_ring(p, 0, 0, 0.0, 0.15, 0.13, 0.025, "navy", 10)
+	p.build()
+
+	# 8. Рог дозорного (Рыцарь): изогнутый рог с латунной оправой на подставке-рогатинах
+	p = Part("charm_horn")
+	pts = []
+	for k in range(7):
+		u = k / 6
+		x = -0.17 + 0.36 * u
+		z = 0.17 - 0.06 * math.sin(math.pi * u) + 0.06 * u * u
+		pts.append((x, 0.0, z))
+	for k in range(6):
+		r0 = 0.075 - 0.055 * k / 6
+		r1 = 0.075 - 0.055 * (k + 1) / 6
+		p.log(pts[k], pts[k + 1], r0, 7, "horn", r1=r1, cap_bottom=(k == 0))
+	p.lathe_axis([(0.082, -0.01), (0.082, 0.03)], 7, "brass", pts[0], (1, 0, -0.05), cap_top=False, cap_bottom=False)
+	p.lathe_axis([(0.065, 0.0), (0.0, 0.0)], 7, "leather_dark", (pts[0][0] - 0.005, 0, pts[0][2]), (-1, 0, 0),
+		cap_top=False, cap_bottom=False)                                                  # тёмный раструб
+	p.log(pts[6], (pts[6][0] + 0.05, 0, pts[6][2] + 0.005), 0.022, 6, "brass")            # мундштук
+	for sx in (-0.09, 0.09):
+		p.box((sx, 0, 0.055), (0.03, 0.06, 0.11), "tex_wood")
+		p.box((sx - 0.025, 0, 0.12), (0.02, 0.06, 0.05), "tex_wood")
+		p.box((sx + 0.025, 0, 0.12), (0.02, 0.06, 0.05), "tex_wood")
+	p.box((0, 0, 0.02), (0.22, 0.05, 0.03), "tex_wood")
+	p.box((0.0, -0.075, 0.12), (0.3, 0.008, 0.025), "leather", rot_y=12.0)              # ремень
+	p.box((0.13, -0.08, 0.05), (0.02, 0.008, 0.1), "leather")
+	p.box((0.13, -0.08, 0.0), (0.03, 0.02, 0.03), "mustard")                            # кисточка
+	p.build()
+
+	# 9. Огниво ордена (Маг): стальное кресало и кремень на цепочке, на синем платке, застывшие искры
+	p = Part("charm_flint")
+	p.box((0, 0, 0.005), (0.3, 0.3, 0.01), "navy")
+	for k in range(4):
+		a = math.radians(90 * k)
+		p.box((0.145 * math.cos(a), 0.145 * math.sin(a), 0.011), (0.3 if k % 2 else 0.012, 0.012 if k % 2 else 0.3, 0.004),
+			"violet")
+	arc = [(0.09 * math.cos(math.radians(a)), 0.09 * math.sin(math.radians(a)), 0.03) for a in range(40, 330, 48)]
+	for k in range(len(arc) - 1):
+		mat = "steel" if k < 3 else "wood_dark"
+		p.log(arc[k], arc[k + 1], 0.02, 5, mat)
+	for k in range(3, len(arc) - 1):
+		_mid = [(arc[k][i] + arc[k + 1][i]) / 2 for i in range(3)]
+		p.lathe_axis([(0.024, -0.01), (0.024, 0.01)], 5, "navy", _mid,
+			[arc[k + 1][i] - arc[k][i] for i in range(3)], cap_top=False, cap_bottom=False)
+	p.box((arc[-1][0], arc[-1][1], 0.03), (0.035, 0.035, 0.03), "brass")
+	for k in range(3):
+		p.box((0.07 + 0.025 * k, -0.06 + 0.02 * k, 0.02), (0.02, 0.008, 0.008), "iron", rot_z=40.0)
+	p.add([(0.15, -0.0, 0.012), (0.19, 0.02, 0.012), (0.17, 0.06, 0.012), (0.13, 0.04, 0.012), (0.16, 0.03, 0.045)],
+		[(0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4), (3, 2, 1, 0)], "flint")
+	for k, (sx, sy, sz) in enumerate(((0.12, 0.0, 0.12), (0.15, 0.04, 0.17), (0.1, 0.03, 0.2), (0.17, -0.02, 0.22))):
+		p.box((sx, sy, sz), (0.012, 0.012, 0.012), "fire", rot_z=30.0 * k, rot_x=45.0)
+	p.build()
+
+	# 10. Указ коменданта: свиток с тёмно-жёлтой лентой и печатью на подставке с вырезами
+	p = Part("charm_decree")
+	cz = 0.15
+	p.lathe_axis([(0.0, -0.17), (0.065, -0.17), (0.065, 0.17), (0.0, 0.17)], 9, "parchment", (0, 0, cz), (1, 0, 0))
+	p.lathe_axis([(0.04, -0.172), (0.02, -0.172)], 9, "leather_dark", (0, 0, cz), (1, 0, 0), cap_top=False,
+		cap_bottom=False)                                                                 # торец-завиток
+	_loop_x(p, 0.0, 0, cz, 0.068, 0.04, "wax")
+	p.lathe_axis([(0.0, 0.0), (0.04, 0.0), (0.04, 0.014), (0.0, 0.014)], 8, "wax", (0, -0.066, cz), (0, -1, 0))
+	bell_emblem(p, 0, -0.082, cz - 0.016, 0.035, "brass_dark")
+	for sx in (-1, 1):
+		p.box((0.012 * sx, -0.07, cz - 0.07), (0.018, 0.006, 0.08), "wax", rot_y=12.0 * sx)
+	for sx in (-0.12, 0.12):
+		p.box((sx, 0, 0.055), (0.03, 0.09, 0.11), "tex_wood")
+		p.box((sx, 0.03, 0.12), (0.03, 0.025, 0.05), "tex_wood")
+		p.box((sx, -0.03, 0.12), (0.03, 0.025, 0.05), "tex_wood")
+	for sy in (-0.03, 0.03):
+		p.box((0, sy, 0.025), (0.3, 0.025, 0.025), "tex_wood")
+	p.build()
+
+	# Ткань с биркой — над покупаемым, но ещё закрытым оберегом
+	p = Part("Cloth")
+	p.lathe([(0.15, 0.0), (0.14, 0.1), (0.11, 0.2), (0.05, 0.26), (0.0, 0.27)], 9, "cloth_grey", cap_bottom=False,
+		phase=0.3)
+	_ring(p, 0, 0, 0.17, 0.12, 0.11, 0.012, "rope", 9)
+	p.box((0.05, -0.135, 0.11), (0.05, 0.006, 0.07), "paper", rot_y=10.0)
+	p.box((0.06, -0.125, 0.16), (0.004, 0.004, 0.04), "rope")
+	p.build()
+
+	# Меловой контур — место оберега «только из пути»: неровная замкнутая линия на доске полки
+	p = Part("Chalk")
+	n = 14
+	verts = []
+	for k in range(n):
+		a = 2 * math.pi * k / n
+		r = 0.13 + jitter(k + 300, 0.02)
+		rx, ry = r * math.cos(a), r * 0.7 * math.sin(a)
+		verts += [(rx, ry, 0.003), (rx * 0.9, ry * 0.88, 0.003)]
+	faces = [(2 * k, 2 * ((k + 1) % n), 2 * ((k + 1) % n) + 1, 2 * k + 1) for k in range(n)]
+	p.add(verts, faces, "chalk_white")
+	p.build()
+
+
 BUILDERS: dict = {
 	"bell": build_bell,
 	"campfire": build_campfire,
@@ -1014,6 +1236,7 @@ BUILDERS: dict = {
 	"palisade_damaged": build_palisade_damaged,
 	"palisade_fallen": build_palisade_fallen,
 	"palisade_corner": build_palisade_corner,
+	"charms": build_charms,
 }
 
 
