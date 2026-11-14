@@ -38,7 +38,7 @@ const MATERIALS: Dictionary[String, String] = {
 	"mossy_treant": "wood", "swamp_weaver": "wood", "spiderling": "wood", "weaver_queen": "wood",
 	"drowned_walker": "water", "bog_mother": "water", "bloated_toad": "water", "spirit_tide": "water",
 	"sporeling": "spore", "reed_lurker": "reed",
-	"spirit_storm": "storm", "spirit_wind": "wind", "spirit_bog": "bog",
+	"spirit_storm": "storm", "spirit_wind": "wind", "spirit_bog": "bog", "spirit_fire": "embers",
 }
 
 const TEX_DIR: String = "res://assets/textures/vfx/"
