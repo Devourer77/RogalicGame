@@ -181,6 +181,15 @@ func play_death() -> void:
 	visible = false
 
 
+# Начать падение (анимация Death), не дожидаясь конца. Дальше фигурку растворяет VfxPlayer.
+# Возвращает false, если анимации смерти у модели нет.
+func start_death() -> bool:
+	if not has_anim("Death"):
+		return false
+	_anim.play("Death")
+	return true
+
+
 # Создаёт плашку над головой. height — высота над клеткой в метрах.
 # Плашка — 2D-узел (Control): он рисуется поверх 3D, а мы каждый кадр
 # ставим его в ту точку экрана, где у фигурки «макушка».

@@ -49,8 +49,16 @@ const SHAKE_POWER_EXPLOSION: float = 0.35  # сила тряски у взрыв
 const SHAKE_POWER_TREE: float = 0.2        # сила тряски у падения дерева
 const HITSTOP_TIME: float = 0.08           # стоп-кадр: на столько секунд игра почти замирает
 const HITSTOP_SCALE: float = 0.05          # …и идёт с такой скоростью (1.0 — без стоп-кадра)
-const ENV_NUMBER_SIZE: int = 110           # размер цифры урона от окружения (Label3D font_size)
-const COLOR_ENV_NUMBER := Color(1.0, 0.85, 0.4)
+const SHAKE_ENABLED: bool = true           # тряска камеры (потом — в настройки)
+const SHAKE_POWER_HERO_HIT: float = 0.06   # тряска, когда бьют героя
+const SHAKE_POWER_BIG_HIT: float = 0.15    # …сильный удар (от VfxPlayer.BIG_HIT) или добивание
+const SHAKE_POWER_BOSS: float = 0.3        # удар босса
+# Цвет огонька при покорении духа (по id духа)
+const SPIRIT_COLORS: Dictionary[String, Color] = {
+	"spirit_tide": Color(0.45, 0.75, 1.0), "spirit_storm": Color(0.95, 0.95, 0.6),
+	"spirit_wind": Color(0.72, 0.88, 0.76), "spirit_bog": Color(0.3, 0.5, 0.28),
+	"spirit_fire": Color(1.0, 0.6, 0.2),
+}
 
 # Камера: смотрит на центр поля под наклоном, Q/E — поворот на 90°, колесо — зум
 const CAM_PITCH_DEG: float = 60.0
@@ -82,6 +90,8 @@ var _cam_tween: Tween
 var _battle_start_ms: int = 0     # когда начался бой
 var _enemy_phase_ms: int = 0      # сколько всего длились ходы врагов (от «Конец хода» до конца анимаций)
 var _start_hp: Array[int] = []    # здоровье героев в начале боя
+var vfx: VfxPlayer                 # частицы, вспышки, цифры урона (scripts/vfx_player.gd)
+var _last_hp: Dictionary[BattleUnit, int] = {}   # здоровье юнита на прошлом событии — чтобы заметить лечение
 var _fire_forecast: Dictionary = {}   # прогноз огня: id юнита → урон в конце хода врагов
 var _enemy_phase_running: bool = false   # идёт ход врагов (на нём работает «Скорость ×2»)
 
@@ -96,6 +106,10 @@ func _ready() -> void:
 	if logic.arena_id == "cave":
 		_warm_cave_light()
 	_update_camera()
+	vfx = VfxPlayer.new()
+	vfx.name = "Vfx"
+	add_child(vfx)
+	vfx.warm_up()
 	_create_views()
 	_connect_logic()
 	hud.card_pressed.connect(_on_card_pressed)
@@ -135,6 +149,7 @@ func _make_enemy_view(e: BattleUnit) -> Unit:
 	view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
 	view.setup_label(1.4 * e.data.size + 0.55)
 	_views[e] = view
+	_last_hp[e] = e.hp
 	return view
 
 
@@ -150,6 +165,7 @@ func _create_views() -> void:
 		view.setup_label(2.0)
 		view.visible = h.is_alive()
 		_views[h] = view
+		_last_hp[h] = h.hp
 
 	for e in logic.enemies:
 		_make_enemy_view(e)
@@ -312,27 +328,83 @@ func _on_unit_pushed(unit: BattleUnit, path: Array[Vector2i], bumped: bool) -> v
 	_queue(func() -> void: await view.play_push(path, bumped))
 
 
-func _on_unit_damaged(unit: BattleUnit, _amount: int, state: Dictionary) -> void:
+func _on_unit_damaged(unit: BattleUnit, amount: int, state: Dictionary) -> void:
 	var view: Unit = _views[unit]
 	var info: Dictionary = _plate_info(unit, state)
+	_last_hp[unit] = state.get("hp", unit.hp)
+	# Что показать (собираем сейчас: к моменту анимации юнит может быть уже другим)
+	var source: String = state.get("source", "")
+	var absorbed: int = state.get("absorbed", 0)
+	var hit_info: Dictionary = {
+		"dealt": amount, "absorbed": absorbed, "source": source,
+		"element": state.get("element", -1),
+		"broke": absorbed > 0 and state.get("block", 0) == 0,
+		"killed": state.get("hp", 1) <= 0,
+		"material": VfxPlayer.material_of(unit.data.id if unit.data != null else "",
+				unit.hero_data.id if unit.hero_data != null else ""),
+	}
+	var height: float = _unit_height(unit)
+	var big: bool = amount >= VfxPlayer.BIG_HIT or hit_info["killed"]
+	# Урон «тиками» конца раунда (огонь, лава, яд, газ) — без тряски и стоп-кадра, иначе раунд дёргается
+	var tick: bool = source in ["fire", "lava", "poison", "gas"]
+	var is_hero: bool = unit.is_hero
+	if amount <= 0 and absorbed <= 0:
+		_queue(func() -> void: view.set_status(info))
+		return
 	_queue(func() -> void:
-		Sfx.play("hit", 0.08)
+		Sfx.play("block" if amount <= 0 else "hit", 0.08)
 		view.set_status(info)
+		vfx.hit(view, height, hit_info)
+		if not tick and amount > 0:
+			if big:
+				_shake(SHAKE_POWER_BIG_HIT)
+				await _hit_stop()
+			elif is_hero:
+				_shake(SHAKE_POWER_HERO_HIT)
 		await view.play_hit()
 	)
 
 
+# Рост фигурки в метрах — куда ставить искры и цифры
+func _unit_height(unit: BattleUnit) -> float:
+	if unit.is_hero:
+		return 1.65
+	return 1.4 * unit.data.size if unit.data != null else 1.4
+
+
 func _on_unit_died(unit: BattleUnit) -> void:
 	var view: Unit = _views[unit]
+	var height: float = _unit_height(unit)
 	if logic.object_at(unit.cell) == BattleLogic.Obj.BOG:
 		_queue(func() -> void:
 			Sfx.play("water", 0.08)
+			vfx.sink(view)
 			await view.play_sink()
 		)   # утонул в трясине
-	else:
+	elif unit.is_hero:
 		_queue(func() -> void:
 			Sfx.play("death", 0.06)
+			vfx.burst("dust", view.global_position + Vector3(0.0, 0.2, 0.0), 1.5)
 			await view.play_death()
+		)
+	elif unit.data != null and unit.data.tamable:
+		# Дух не гибнет, а покоряется: вспышка цвета его стихии
+		var color: Color = SPIRIT_COLORS.get(unit.data.id, VfxPlayer.C_RIFT)
+		_queue(func() -> void:
+			Sfx.play("death", 0.06)
+			vfx.death(view, height, "spirit", color)
+			await view.play_death()
+		)
+	else:
+		# Враг: падает (если есть анимация) и растворяется — твари бирюзой, Культ пеплом.
+		# Очередь ждёт только начало растворения, остальное доигрывает фоном.
+		var kind: String = "cult" if unit.data != null and unit.data.cult else "rift"
+		_queue(func() -> void:
+			Sfx.play("death", 0.06)
+			if view.start_death():
+				await get_tree().create_timer(0.35).timeout
+			vfx.death(view, height, kind)
+			await get_tree().create_timer(0.3).timeout
 		)
 
 
@@ -356,6 +428,17 @@ func _on_objective_changed() -> void:
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
 	var view: Unit = _views[unit]
 	var info: Dictionary = _plate_info(unit, state)
+	var hp: int = state.get("hp", unit.hp)
+	var healed: int = hp - _last_hp.get(unit, hp)
+	_last_hp[unit] = hp
+	# Лечение (шаман, карты, «Встань» после победы) — тёплые искры и «+N»
+	if healed > 0 and view.visible:
+		var height: float = _unit_height(unit)
+		_queue(func() -> void:
+			view.set_status(info)
+			vfx.heal(view, height, healed)
+		)
+		return
 	_queue(func() -> void: view.set_status(info))
 
 
@@ -404,24 +487,13 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 
 func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 	var color: Color = COLOR_TREE_FALL
-	var damage: int = BattleLogic.TREE_DAMAGE
 	if kind == "explosion":
 		color = COLOR_EXPLOSION
-		damage = BattleLogic.BARREL_DAMAGE
 	elif kind == "gas":
 		color = COLOR_GAS
-		damage = 0
 	elif kind == "rune":
 		color = COLOR_RUNE
-		damage = BattleLogic.RUNE_TRAP_DAMAGE
-	# Кто стоит в зоне удара — запоминаем сейчас: к моменту анимации юниты уже сдвинуться могут
-	var victims: Array[Vector2i] = []
-	if damage > 0:
-		for c in cells:
-			var hit_unit: BattleUnit = logic.unit_at(c)
-			# Руна рыцаря героев не ранит — цифру над ними не показываем
-			if hit_unit != null and not (kind == "rune" and hit_unit.is_hero):
-				victims.append(c)
+	# Цифры урона над задетыми теперь показывает сам урон (_on_unit_damaged → VfxPlayer)
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
 		if kind == "gas":
@@ -429,8 +501,6 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 		else:
 			Sfx.play("explosion" if kind == "explosion" or kind == "tree" else "magic", 0.06)
 			_shake(SHAKE_POWER_EXPLOSION if kind == "explosion" else SHAKE_POWER_TREE)
-			for c in victims:
-				_floating_number(c, "-%d" % damage)
 			await _hit_stop()
 		await get_tree().create_timer(0.25).timeout
 		board.clear_layer("flash")
@@ -439,6 +509,8 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 
 # Тряска камеры: смещаем «объектив» (h_offset / v_offset), поворот и зум камеры не трогаем
 func _shake(power: float) -> void:
+	if not SHAKE_ENABLED:
+		return
 	var tween: Tween = create_tween()
 	tween.tween_method(func(t: float) -> void:
 		var k: float = (1.0 - t) * power
@@ -455,25 +527,6 @@ func _hit_stop() -> void:
 	Engine.time_scale = HITSTOP_SCALE
 	await get_tree().create_timer(HITSTOP_TIME, true, false, true).timeout
 	_apply_speed()
-
-
-# Цифра урона над клеткой: всплывает вверх и тает
-func _floating_number(cell: Vector2i, text: String) -> void:
-	var label := Label3D.new()
-	label.text = text
-	label.font = UiKit.font_bold()
-	label.font_size = ENV_NUMBER_SIZE
-	label.pixel_size = 0.006
-	label.outline_size = 14
-	label.modulate = COLOR_ENV_NUMBER
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	label.position = board.grid_to_world(cell) + Vector3(0.0, 1.5, 0.0)
-	add_child(label)
-	var tween: Tween = create_tween()
-	tween.tween_property(label, "position:y", label.position.y + 0.9, 0.8)
-	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.8).set_delay(0.3)
-	tween.tween_callback(label.queue_free)
 
 
 func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -> void:
@@ -525,10 +578,13 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 func _on_enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i]) -> void:
 	var view: Unit = _views[unit]
 	var anim_name: String = logic.enemy_attack(unit).anim   # у ударов из цикла может быть своя анимация
+	var is_boss: bool = unit.data != null and unit.data.is_boss
 	_queue(func() -> void:
 		Sfx.play("card_play", 0.08)
 		board.show_cells("flash", cells, COLOR_INTENT)
 		await view.play_attack(dir, anim_name)
+		if is_boss:
+			_shake(SHAKE_POWER_BOSS)
 		board.clear_layer("flash")
 	)
 

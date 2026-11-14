@@ -213,6 +213,9 @@ var ritual_power: int = 0                      # «Ритуал»: +урон в�
 var water_row: int = -1                        # «Вода прибывает»: какой ряд зальёт следующим (-1 — ещё не началось)
 
 var _cur_card: CardData = null     # карта, эффекты которой считаются сейчас (для пассивок врагов)
+# Подсказка для эффектов (только для показа, на правила не влияет): откуда урон —
+# "poison", "fire", "lava", "gas", "steam", "bump"; пусто — удар картой или врагом
+var _dmg_source: String = ""
 var _cur_hero: BattleUnit = null   # кто её сыграл (для «Клещей»)
 var _cur_attack: bool = false      # она считается «Атакой»
 var _cur_spell: bool = false       # она считается «Заклинанием»
@@ -2711,7 +2714,7 @@ func _steam_burst(c: Vector2i, from: Vector2i, hero_card: bool) -> void:
 	if u == null or (hero_card and u.is_hero):
 		return
 	message.emit("Паровой взрыв!")
-	_damage(u, STEAM_DAMAGE * (2 if u.data != null and u.data.water_weak else 1))
+	_hint_damage(u, STEAM_DAMAGE * (2 if u.data != null and u.data.water_weak else 1), "steam")
 	if u.is_alive():
 		_push(u, HexMath.direction_to(from, c), 1)
 
@@ -2786,13 +2789,13 @@ func _explode_gas(c: Vector2i) -> void:
 	tile_changed.emit(c, Tile.NONE)
 	var u: BattleUnit = unit_at(c)
 	if u != null:
-		_damage(u, GAS_DAMAGE)
+		_hint_damage(u, GAS_DAMAGE, "gas")
 
 
 # Юнит попал в газ: урон и яд
 func _gas_hit(u: BattleUnit) -> void:
 	message.emit("%s дышит ядом" % u.title)
-	_damage(u, GAS_DAMAGE)
+	_hint_damage(u, GAS_DAMAGE, "gas")
 	if u.is_alive() and not (u.is_hero and has_relic("bog_pollen")):
 		_set_poison(u, GAS_POISON)
 
@@ -2860,14 +2863,21 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 		elif object_at(bump_cell) == Obj.STAKES:
 			bump_damage = STAKES_BUMP_DAMAGE
 			message.emit("%s насаживается на колья!" % unit.title)
-		_damage(unit, bump_damage)
+		_hint_damage(unit, bump_damage, "bump")
 		if other != null:
-			_damage(other, _bump_damage(other))
+			_hint_damage(other, _bump_damage(other), "bump")
 		elif _is_breakable(bump_cell):
 			_hit_object(bump_cell, unit.cell)
 
 
 # ignore_block — удар проходит сквозь блок («Разлом»)
+# Урон с подсказкой для эффектов, откуда он (см. _dmg_source)
+func _hint_damage(unit: BattleUnit, amount: int, source: String, ignore_block: bool = false) -> void:
+	_dmg_source = source
+	_damage(unit, amount, ignore_block)
+	_dmg_source = ""
+
+
 func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if amount <= 0 or not unit.is_alive():
 		return
@@ -2897,7 +2907,13 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	unit.block -= absorbed
 	var dealt: int = amount - absorbed
 	unit.hp = maxi(0, unit.hp - dealt)
-	unit_damaged.emit(unit, dealt, snapshot(unit))
+	var state: Dictionary = snapshot(unit)
+	# Для эффектов: сколько съел блок, откуда урон, какой стихией (на правила не влияет)
+	state["absorbed"] = absorbed
+	state["source"] = _dmg_source
+	state["element"] = _cur_card.element if _cur_card != null and _dmg_source == "" else -1
+	unit_damaged.emit(unit, dealt, state)
+	_dmg_source = ""   # взрывы и прочее, что случится от этого урона дальше, — уже не «яд» и не «огонь»
 	if absorbed > 0:
 		message.emit("%s: −%d HP (блок поглотил %d)" % [unit.title, dealt, absorbed])
 	else:
@@ -3629,7 +3645,7 @@ func end_turn() -> void:
 		var u: BattleUnit = unit_at(c)
 		if u != null and fire_damage_for(u) > 0:
 			message.emit("%s горит" % u.title)
-			_damage(u, fire_damage_for(u))
+			_hint_damage(u, fire_damage_for(u), "fire")
 		if not fire_timers.has(c):
 			continue
 		fire_timers[c] -= 1
@@ -3642,7 +3658,7 @@ func end_turn() -> void:
 			var lu: BattleUnit = unit_at(c)
 			if lu != null and not _fireproof(lu):
 				message.emit("%s жарится в лаве" % lu.title)
-				_damage(lu, LAVA_DAMAGE)
+				_hint_damage(lu, LAVA_DAMAGE, "lava")
 	_tick_statuses()
 	_tick_objects()
 	if _check_end():
@@ -4374,7 +4390,7 @@ func _tick_statuses() -> void:
 		if u.poison > 0:
 			u.poison -= 1
 			message.emit("%s страдает от яда" % u.title)
-			_damage(u, POISON_DAMAGE, true)
+			_hint_damage(u, POISON_DAMAGE, "poison", true)
 			if u.is_alive():
 				status_changed.emit(u, snapshot(u))
 		if not u.is_alive() or u.wet <= 0:
