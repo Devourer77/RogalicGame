@@ -164,6 +164,12 @@ func _build_atmosphere() -> void:
 			[Vector3(-hx - 4.0, 0.3, 0.0), Vector3(2.5, 0.3, hz + 3.0)],
 			[Vector3(hx + 4.0, 0.3, 0.0), Vector3(2.5, 0.3, hz + 3.0)]]:
 		_vfx.loop("mist_loop", self, side[0], 1.0, Color(0, 0, 0, 0), side[1])
+	# Шпиль-задник (прикреплён к камере): у вершины кружат бирюзовые искры Раскола
+	var spire: Node3D = camera.get_node_or_null("SpireBackdrop") as Node3D
+	if spire != null:
+		var sparks: GPUParticles3D = _vfx.loop("wisp_loop", spire, Vector3(0.0, 10.0, 0.0), 8.0,
+			VfxPlayer.C_RIFT, Vector3(1.2, 5.0, 1.2))
+		sparks.local_coords = true   # Шпиль едет вместе с камерой — искры тоже
 	# Святилище: над шаром покорённого духа поднимаются огоньки его цвета
 	for orb in _shrine_orbs:
 		var motes: GPUParticles3D = _vfx.loop("rise", self, orb.global_position, 0.35)
