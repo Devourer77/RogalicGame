@@ -19,6 +19,7 @@ enum Mode {
 	AIMING,  # выбрана карта: клик по полю — применить
 }
 
+const VIGNETTE_SHADER: Shader = preload("res://assets/shaders/vignette.gdshader")   # края экрана в сумраке
 const COLOR_MOVE := Color(0.3, 0.6, 1.0, 0.35)
 const COLOR_TARGET := Color(1.0, 0.9, 0.3, 0.3)
 const COLOR_AREA := Color(1.0, 0.5, 0.1, 0.6)
@@ -107,6 +108,7 @@ func _ready() -> void:
 	board.build(layout_seed, logic.arena_id, logic.ground)
 	if logic.arena_id == "cave":
 		_warm_cave_light()
+	_add_vignette()
 	_update_camera()
 	vfx = VfxPlayer.new()
 	vfx.name = "Vfx"
@@ -154,6 +156,7 @@ func _make_enemy_view(e: BattleUnit) -> Unit:
 	else:
 		view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
 	view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
+	vfx.add_rim(view)   # светлая кайма по контуру — фигурка отделяется от плит
 	view.setup_label(1.4 * e.data.size + 0.55)
 	_views[e] = view
 	_last_hp[e] = e.hp
@@ -170,6 +173,7 @@ func _create_views() -> void:
 		else:
 			view.add_child(_make_capsule_model(h.hero_data.color, 1.1, true))
 		view.face_dir(HexMath.FACE_UP)   # лицом к врагам
+		vfx.add_rim(view)   # светлая кайма по контуру
 		view.setup_label(2.0)
 		view.visible = h.is_alive()
 		_views[h] = view
@@ -1121,6 +1125,22 @@ func _on_card_keep_toggled(index: int) -> void:
 	if not logic.toggle_keep(_active, index) and logic.can_keep(_active, index):
 		hud.add_log("Удержать можно не больше %d карт" % BattleLogic.KEEP_LIMIT)
 	hud.refresh(logic, _active, _selected_card, false)
+
+
+# Затемнение по краям экрана (виньетка): взгляд держится в центре поля, края уходят в сумрак.
+# Слой ниже интерфейса (HUD — слой 1), мышь сквозь него проходит.
+func _add_vignette() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "Vignette"
+	layer.layer = 0
+	add_child(layer)
+	var rect := ColorRect.new()
+	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := ShaderMaterial.new()
+	mat.shader = VIGNETTE_SHADER
+	rect.material = mat
+	layer.add_child(rect)
 
 
 # Тлеющая пещера: вместо зелёного болотного тумана — тёплый тёмный воздух и рыжий свет

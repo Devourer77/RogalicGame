@@ -9,9 +9,15 @@ background_mode = 1
 background_color = Color(0.075, 0.105, 0.1, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.5, 0.62, 0.6, 1)
-ambient_light_energy = 0.6
+ambient_light_energy = 0.38
 tonemap_mode = 2
 tonemap_white = 1.4
+ssao_enabled = true
+ssao_radius = 0.8
+ssao_intensity = 2.2
+ssao_power = 1.6
+ssao_detail = 0.6
+ssao_light_affect = 0.35
 glow_enabled = true
 glow_intensity = 0.7
 glow_bloom = 0.06
@@ -22,8 +28,8 @@ fog_light_energy = 0.9
 fog_density = 0.016
 fog_sky_affect = 1.0
 adjustment_enabled = true
-adjustment_contrast = 1.06
-adjustment_saturation = 1.08
+adjustment_contrast = 1.14
+adjustment_saturation = 1.12
 
 [node name="Battle" type="Node3D"]
 script = ExtResource("2_battle")
@@ -34,9 +40,9 @@ environment = SubResource("Env_1")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 10, 0)
 light_color = Color(0.74, 0.86, 0.92, 1)
-light_energy = 1.05
+light_energy = 1.15
 shadow_enabled = true
-shadow_blur = 1.5
+shadow_blur = 1.2
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 0.573576, 0.819152, 0, -0.819152, 0.573576, 3.5, 9.8, 12.4)

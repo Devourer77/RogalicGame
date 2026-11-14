@@ -609,6 +609,12 @@ func _meshes(view: Node) -> Array[MeshInstance3D]:
 	return out
 
 
+# Включает фигурке постоянную светлую кайму по контуру (контровой свет из hit_flash.gdshader).
+# Звать после того, как модель добавлена в фигурку.
+func add_rim(view: Node3D) -> void:
+	_flash_material(view)
+
+
 # Светящийся слой поверх всех материалов фигурки (один на фигурку: вспышка урона, пульс жабы)
 func _flash_material(view: Node3D) -> ShaderMaterial:
 	if view.has_meta("flash_mat"):
