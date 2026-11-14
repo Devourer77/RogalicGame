@@ -1093,7 +1093,8 @@ func _special_target_ok(special: String, c: Vector2i) -> bool:
 			return wt == Tile.WATER or wt == Tile.SWAMP
 		"swap_any":
 			var su: BattleUnit = unit_at(c)
-			return su != null and su.is_alive() and (su.is_hero or not _is_heavy(su))
+			# не меняться с тем, кто стоит в трясине (топляк, пиявка): герой оказался бы в ней
+			return su != null and su.is_alive() and (su.is_hero or not _is_heavy(su)) and object_at(c) != Obj.BOG
 		"fire_step":
 			return tile_at(c) == Tile.FIRE and unit_at(c) == null and not _is_obstacle(c)
 		"scald":

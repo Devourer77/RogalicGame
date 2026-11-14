@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="Resource" path="res://resources/enemies/drowned_walker.tres" id="3_walker"]
+[ext_resource type="PackedScene" path="res://assets/models/drowned_captain.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_shield"]
+script = ExtResource("2_attack")
+title = "Удар щитом"
+damage = 5
+push = 2
+
+[sub_resource type="Resource" id="atk_halberd"]
+script = ExtResource("2_attack")
+title = "Алебарда"
+anim = "Attack2"
+shape = 1
+attack_range = 2
+damage = 6
+pierce = true
+
+[sub_resource type="Resource" id="atk_bell"]
+script = ExtResource("2_attack")
+title = "Колокол из-под воды"
+anim = "Attack3"
+shape = 3
+attack_range = 2
+damage = 0
+ally_block = 4
+summon = ExtResource("3_walker")
+summon_count = 2
+
+[resource]
+script = ExtResource("1_enemy")
+id = "drowned_captain"
+title = "Утопший капитан"
+description = "Он тоже остался, когда Стража ушла. Только не на берегу."
+max_hp = 65
+move_range = 2
+damage = 5
+attack = 0
+attack_range = 1
+color = Color(0.3, 0.32, 0.3, 1)
+attack_title = "Удар щитом"
+size = 1.2
+is_boss = true
+turn_block = 4
+bog_walker = true
+always_wet = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_shield"), SubResource("atk_halberd"), SubResource("atk_bell")])
+model = ExtResource("9_model")

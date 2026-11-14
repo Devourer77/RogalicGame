@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/drowned_captain.tres" id="2_captain"]
+[ext_resource type="Resource" path="res://resources/enemies/drowned_walker.tres" id="3_walker"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="4_cultist"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "boss_captain"
+title = "Утопший капитан"
+kind = 2
+core = Array[ExtResource("1_enemy")]([ExtResource("2_captain"), ExtResource("3_walker"), ExtResource("3_walker"), ExtResource("4_cultist")])
+arena = "camp"

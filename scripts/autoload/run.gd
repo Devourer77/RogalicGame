@@ -70,6 +70,7 @@ const ENCOUNTERS: Array[EncounterData] = [
 	preload("res://resources/encounters/stone_line.tres"),
 	preload("res://resources/encounters/bog_folk.tres"),   # пиявки (второй заход врагов)
 	preload("res://resources/encounters/drowned.tres"),
+	preload("res://resources/encounters/bombers.tres"),
 ]
 # Пулы элит и боссов акта: в начале забега выбираются ELITES_PER_RUN разных элит и один босс
 const ELITE_POOL: Array[EncounterData] = [
@@ -81,6 +82,7 @@ const ELITE_POOL: Array[EncounterData] = [
 const BOSS_POOL: Array[EncounterData] = [
 	preload("res://resources/encounters/boss_ogre.tres"),
 	preload("res://resources/encounters/boss_mother.tres"),
+	preload("res://resources/encounters/boss_captain.tres"),   # Утопший капитан (второй заход)
 ]
 const ELITES_PER_RUN: int = 2        # необязательная элита на развилке + обязательная перед привалом
 const OPTIONAL_ELITE_ROW: int = 3    # ряд карты с необязательной элитой (одна точка из трёх)
