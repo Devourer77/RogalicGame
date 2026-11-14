@@ -180,6 +180,65 @@ const PRESETS: Dictionary = {
 	"glints": {"tex": "glint", "color": C_MAGE, "energy": 2.5, "amount": 8, "life": 0.45,
 		"speed": [0.6, 1.8], "spread": 90.0, "gravity": 0.0, "damping": 2.0, "size": [0.18, 0.32],
 		"radius": 0.2, "add": true, "spin": 200.0},
+
+	# ---- Клетки и объекты (этап 3). *_loop — непрерывные, живут, пока есть клетка ----
+	# Поля: fade_in — частица появляется плавно; flat — лежит на земле (круги на воде);
+	# grow — растёт до конца жизни; color_mid — цвет в середине жизни.
+	# Язык пламени: из бело-жёлтого в оранжевый и в тёмный
+	"fire_loop": {"tex": "flame_sheet", "frames": 4, "color": Color(1.0, 0.72, 0.3), "energy": 1.7,
+		"color_mid": Color(1.0, 0.42, 0.08), "amount": 10, "life": 0.85, "speed": [0.25, 0.6], "dir": Vector3.UP,
+		"spread": 8.0, "gravity": 0.6, "damping": 0.5, "size": [0.55, 0.85], "radius": 0.28, "add": true,
+		"fade_in": true},
+	# Угольки поднимаются над огнём
+	"ember_loop": {"tex": "soft_dot", "color": Color(1.0, 0.6, 0.2), "energy": 3.0, "amount": 6, "life": 1.4,
+		"speed": [0.6, 1.2], "dir": Vector3.UP, "spread": 25.0, "gravity": 0.3, "damping": 0.4,
+		"size": [0.04, 0.08], "radius": 0.3, "add": true},
+	# Дым над огнём
+	"smoke_loop": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.16, 0.16, 0.17, 0.4), "amount": 3,
+		"life": 2.2, "speed": [0.3, 0.6], "dir": Vector3.UP, "spread": 15.0, "gravity": 0.2, "damping": 0.3,
+		"size": [0.5, 0.9], "radius": 0.2, "spin": 20.0, "fade_in": true, "grow": true},
+	# Круги на луже
+	"ripple_loop": {"tex": "ring", "color": Color(0.55, 0.8, 1.0, 0.45), "energy": 1.2, "amount": 2,
+		"life": 1.8, "speed": [0.0, 0.0], "gravity": 0.0, "size": [0.45, 0.75], "radius": 0.2, "add": true,
+		"flat": true, "grow": true},
+	# Блики на льду
+	"frost_loop": {"tex": "glint", "color": Color(0.85, 0.95, 1.0), "energy": 2.0, "amount": 3, "life": 1.3,
+		"speed": [0.0, 0.05], "gravity": 0.0, "size": [0.12, 0.22], "radius": 0.4, "add": true, "spin": 60.0,
+		"fade_in": true},
+	# Пузыри в топи и лаве
+	"bubble_loop": {"tex": "ring", "color": Color(0.35, 0.5, 0.28, 0.6), "amount": 3, "life": 1.0,
+		"speed": [0.0, 0.0], "gravity": 0.0, "size": [0.12, 0.25], "radius": 0.3, "flat": true, "grow": true},
+	# Ядовитые клубы газа: медленно клубятся над клеткой
+	"gas_loop": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.45, 0.85, 0.25, 0.22), "energy": 1.3,
+		"amount": 5, "life": 2.6, "speed": [0.05, 0.2], "dir": Vector3.UP, "spread": 60.0, "gravity": 0.05,
+		"damping": 0.2, "size": [0.6, 1.0], "radius": 0.3, "spin": 25.0, "fade_in": true},
+	# Пузыри и искры на лаве
+	"lava_loop": {"tex": "ring", "color": Color(1.0, 0.75, 0.3), "energy": 2.5, "amount": 3, "life": 0.9,
+		"speed": [0.0, 0.0], "gravity": 0.0, "size": [0.12, 0.24], "radius": 0.3, "flat": true, "grow": true,
+		"add": true},
+
+	# ---- Разовые события поля ----
+	# Огненный шар взрыва: крупные светящиеся клубы
+	"blast": {"tex": "smoke_sheet", "frames": 4, "color": Color(1.0, 0.75, 0.35), "energy": 3.0,
+		"color_mid": Color(1.0, 0.45, 0.1), "amount": 14, "life": 0.6, "speed": [1.5, 3.5], "dir": Vector3.UP,
+		"spread": 80.0, "gravity": 1.0, "damping": 3.5, "size": [0.9, 1.5], "radius": 0.35, "add": true,
+		"spin": 90.0},
+	# Зелёный газ после взрыва бочки
+	"gas_blast": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.5, 0.9, 0.3, 0.55), "energy": 1.4,
+		"amount": 10, "life": 1.3, "speed": [1.0, 2.5], "dir": Vector3.UP, "spread": 85.0, "gravity": 0.3,
+		"damping": 2.0, "size": [0.8, 1.3], "radius": 0.4, "spin": 40.0},
+	# Щепки (бочка, дерево, мостки)
+	"splinters": {"tex": "shard", "color": Color(0.42, 0.33, 0.22), "amount": 18, "life": 0.9,
+		"speed": [2.5, 5.0], "dir": Vector3.UP, "spread": 70.0, "gravity": -11.0, "size": [0.08, 0.16],
+		"radius": 0.25, "spin": 700.0},
+	# Ледяные осколки
+	"ice_shards": {"tex": "shard", "color": Color(0.8, 0.94, 1.0), "energy": 1.6, "amount": 24, "life": 0.8,
+		"speed": [2.5, 5.5], "dir": Vector3.UP, "spread": 75.0, "gravity": -10.0, "size": [0.12, 0.24],
+		"radius": 0.2, "spin": 600.0, "add": true},
+	# Иней: белые блики разлетаются по клетке (заморозка)
+	"frost_burst": {"tex": "glint", "color": Color(0.85, 0.95, 1.0), "energy": 2.5, "amount": 14,
+		"life": 0.6, "speed": [0.5, 1.5], "spread": 90.0, "gravity": 0.0, "damping": 2.0,
+		"size": [0.14, 0.26], "radius": 0.35, "add": true, "spin": 200.0},
 }
 
 var _process_cache: Dictionary = {}   # имя пресета → ParticleProcessMaterial
@@ -257,6 +316,29 @@ func trail(preset_name: String, follow: Node3D, color: Color) -> GPUParticles3D:
 	return parts
 
 
+# Непрерывный эффект на месте (огонь на клетке, круги на луже, газ). Живёт, пока жив parent.
+# at — точка относительно parent.
+func loop(preset_name: String, parent: Node3D, at: Vector3 = Vector3.ZERO, scale: float = 1.0) -> GPUParticles3D:
+	var p: Dictionary = PRESETS[preset_name]
+	var parts := GPUParticles3D.new()
+	var amount: int = p.get("amount", 8)
+	parts.amount = maxi(1, amount if FULL_EFFECTS else amount / 2)
+	parts.lifetime = p.get("life", 1.0)
+	parts.preprocess = parts.lifetime   # сразу «в разгаре», а не с пустого места
+	parts.randomness = 0.3
+	parts.fixed_fps = 0
+	parts.process_material = _process_for(preset_name)
+	parts.draw_pass_1 = _draw_for(preset_name)
+	parts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parts.visibility_aabb = AABB(Vector3(-2, -1, -2), Vector3(4, 5, 4))
+	parts.position = at
+	if scale != 1.0:
+		parts.scale = Vector3.ONE * scale
+	parent.add_child(parts)
+	parts.emitting = true
+	return parts
+
+
 func stop_trail(parts: GPUParticles3D) -> void:
 	if parts == null or not is_instance_valid(parts):
 		return
@@ -304,9 +386,13 @@ func _process_for(preset_name: String, tint: Color = Color(0, 0, 0, 0)) -> Parti
 		m.anim_speed_max = 1.0
 	# Размер: быстро вырастает и плавно уменьшается к концу жизни
 	var curve := Curve.new()
-	curve.add_point(Vector2(0.0, 0.4))
-	curve.add_point(Vector2(0.15, 1.0))
-	curve.add_point(Vector2(1.0, 0.25 if p.get("frames", 1) == 1 else 1.0))
+	if p.get("grow", false):
+		curve.add_point(Vector2(0.0, 0.25))
+		curve.add_point(Vector2(1.0, 1.0))
+	else:
+		curve.add_point(Vector2(0.0, 0.4))
+		curve.add_point(Vector2(0.15, 1.0))
+		curve.add_point(Vector2(1.0, 0.25 if p.get("frames", 1) == 1 else 1.0))
 	var curve_tex := CurveTexture.new()
 	curve_tex.curve = curve
 	m.scale_curve = curve_tex
@@ -315,10 +401,30 @@ func _process_for(preset_name: String, tint: Color = Color(0, 0, 0, 0)) -> Parti
 	var energy: float = p.get("energy", 1.0)
 	var start := Color(c.r * energy, c.g * energy, c.b * energy, c.a)
 	var finish: Color = p.get("color_end", Color(start.r, start.g, start.b, 0.0))
+	# Цвет по жизни частицы: точки (доля жизни → цвет), записываем сразу массивами
+	var offs: Array[float] = []
+	var cols: Array[Color] = []
+	if p.get("fade_in", false):
+		offs.append(0.0)
+		cols.append(Color(start.r, start.g, start.b, 0.0))
+		offs.append(0.18)
+		cols.append(start)
+	else:
+		offs.append(0.0)
+		cols.append(start)
+	if p.has("color_mid") and tint.a <= 0.0:
+		var mid: Color = p["color_mid"]
+		offs.append(0.5)
+		cols.append(Color(mid.r * energy, mid.g * energy, mid.b * energy, start.a * 0.85))
+		finish = Color(mid.r * energy * 0.4, mid.g * energy * 0.4, mid.b * energy * 0.4, 0.0)
+	else:
+		offs.append(0.6)
+		cols.append(Color(start.r, start.g, start.b, start.a * 0.8))
+	offs.append(1.0)
+	cols.append(finish)
 	var grad := Gradient.new()
-	grad.set_color(0, start)
-	grad.set_color(1, finish)
-	grad.add_point(0.6, Color(start.r, start.g, start.b, start.a * 0.8))
+	grad.offsets = PackedFloat32Array(offs)
+	grad.colors = PackedColorArray(cols)
 	var grad_tex := GradientTexture1D.new()
 	grad_tex.gradient = grad
 	grad_tex.use_hdr = true   # цвета ярче 1.0 — так их подхватывает свечение (glow)
@@ -327,10 +433,17 @@ func _process_for(preset_name: String, tint: Color = Color(0, 0, 0, 0)) -> Parti
 	return m
 
 
-func _draw_for(preset_name: String) -> QuadMesh:
+func _draw_for(preset_name: String) -> Mesh:
 	if _draw_cache.has(preset_name):
 		return _draw_cache[preset_name]
 	var p: Dictionary = PRESETS[preset_name]
+	if p.get("flat", false):
+		# Лежит на земле: плоскость «лицом вверх», не поворачивается к камере
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(1.0, 1.0)
+		plane.material = _make_draw_material(p)
+		_draw_cache[preset_name] = plane
+		return plane
 	var quad := QuadMesh.new()
 	quad.size = Vector2(1.0, 1.0)
 	if p.get("stretch", false):
@@ -351,8 +464,11 @@ func _make_draw_material(p: Dictionary) -> StandardMaterial3D:
 	if p.get("add", false):
 		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	# Искры смотрят на камеру, но вытянуты по скорости (Fixed Y + align_y в ParticleProcessMaterial)
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y if p.get("stretch", false) else BaseMaterial3D.BILLBOARD_PARTICLES
-	mat.billboard_keep_scale = true
+	if p.get("flat", false):
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_DISABLED
+	else:
+		mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y if p.get("stretch", false) else BaseMaterial3D.BILLBOARD_PARTICLES
+		mat.billboard_keep_scale = true
 	var frames: int = p.get("frames", 1)
 	if frames > 1:
 		mat.particles_anim_h_frames = frames
@@ -811,3 +927,120 @@ func dome(at: Vector3, color: Color, radius: float = 0.75, time: float = 0.55) -
 	tween.tween_interval(time * 0.4)
 	tween.tween_method(func(v: float) -> void: mat.set_shader_parameter("amount", v), 1.0, 0.0, time * 0.6)
 	tween.tween_callback(node.queue_free)
+
+
+# ---------- Клетки, объекты и реакции (этап 3) ----------
+
+const SCORCH_TIME: float = 12.0   # сколько секунд держится выжженное пятно после взрыва
+
+
+# Выжженное пятно на плитах (декаль — картинка, которая ложится на всё под ней). Потом тает.
+func scorch(at: Vector3, size: float = 1.8) -> void:
+	var decal := Decal.new()
+	decal.texture_albedo = load(TEX_DIR + "scorch.png")
+	decal.size = Vector3(size, 0.4, size)   # невысокая коробка: ложится на плиты, почти не пачкает фигурки
+	decal.position = at + Vector3(0.0, 0.05, 0.0)
+	decal.rotation.y = randf() * TAU
+	add_child(decal)
+	var tween: Tween = decal.create_tween()
+	tween.tween_interval(SCORCH_TIME)
+	tween.tween_property(decal, "modulate:a", 0.0, 2.0)
+	tween.tween_callback(decal.queue_free)
+
+
+# Взрыв (бочка, жаба, бомба): огненный шар, ударная волна, свет, пятно копоти.
+# center — середина взрыва, gas — бочка с газом (добавить зелёный дым и щепки).
+func explosion(center: Vector3, radius_cells: float = 1.0, gas: bool = false) -> void:
+	var k: float = 0.8 + 0.4 * radius_cells
+	burst("blast", center + Vector3(0, 0.4, 0), k)
+	burst("embers", center + Vector3(0, 0.6, 0), 1.6 * k)
+	burst("smoke", center + Vector3(0, 0.8, 0), 1.5 * k)
+	ring(center + Vector3(0, 0.06, 0), C_FIRE, 3.2 * k, 0.4, 2.5)
+	ring(center + Vector3(0, 0.06, 0), Color(1, 1, 1), 2.2 * k, 0.25, 1.5)
+	light_flash(center + Vector3(0, 1.0, 0), C_FIRE, 6.0, 7.0, 0.45)
+	if gas:
+		burst("gas_blast", center + Vector3(0, 0.5, 0), k)
+		burst("splinters", center + Vector3(0, 0.4, 0), k)
+	scorch(center, 1.6 * k)
+
+
+# Дерево упало: пыль и щепки по линии падения (по очереди от корня к макушке)
+func tree_fall(cells: Array[Vector3]) -> void:
+	for i in cells.size():
+		var at: Vector3 = cells[i]
+		var t: SceneTreeTimer = get_tree().create_timer(0.05 * i)
+		t.timeout.connect(func() -> void:
+			burst("dust", at + Vector3(0, 0.2, 0), 1.6)
+			burst("splinters", at + Vector3(0, 0.3, 0), 0.6)
+			ring(at + Vector3(0, 0.05, 0), Color(0.75, 0.7, 0.6), 1.6, 0.35, 0.8))
+
+
+# Облако газа выпущено на клетки
+func gas_cloud(cells: Array[Vector3]) -> void:
+	for at in cells:
+		burst("gas_blast", at + Vector3(0, 0.3, 0), 0.7)
+
+
+# Реакция стихий на клетке (kind — как в сигнале BattleLogic.reaction)
+func reaction(at: Vector3, kind: String) -> void:
+	var up: Vector3 = at + Vector3(0, 0.3, 0)
+	match kind:
+		"steam":
+			burst("steam_puff", up, 1.6)
+			ring(at + Vector3(0, 0.05, 0), Color(0.9, 0.95, 1.0), 2.0, 0.35, 1.5)
+		"freeze":
+			burst("frost_burst", up)
+			burst("ice_shards", up, 0.5)
+			ring(at + Vector3(0, 0.05, 0), Color(0.8, 0.94, 1.0), 1.6, 0.4, 2.0)
+		"shatter":
+			burst("ice_shards", up, 1.4)
+			burst("frost_burst", up, 0.8)
+			light_flash(up, Color(0.8, 0.94, 1.0), 2.0, 3.0, 0.2)
+		"lava":
+			burst("blast", up, 0.7)
+			burst("embers", up + Vector3(0, 0.3, 0), 1.4)
+			burst("smoke", up + Vector3(0, 0.5, 0), 1.0)
+			light_flash(up, C_FIRE, 3.0, 4.0, 0.3)
+		"crust":
+			burst("steam_puff", up, 1.2)
+			burst("smoke", up + Vector3(0, 0.3, 0), 0.8)
+		"shock":
+			burst("shock", up + Vector3(0, 0.5, 0), 1.2, 0, C_SHOCK)
+			light_flash(up, C_SHOCK, 2.0, 3.0, 0.15)
+		"pincer":
+			ring(at + Vector3(0, 0.06, 0), Color(0.95, 0.75, 0.35), 1.6, 0.3, 2.0)
+
+
+# Столкновение: толкнули в преграду или в другого
+func bump(at: Vector3, strong: bool = false) -> void:
+	var k: float = 1.4 if strong else 1.0
+	ring(at + Vector3(0, 0.06, 0), Color(0.9, 0.88, 0.8), 1.8 * k, 0.3, 1.6)
+	burst("dust", at + Vector3(0, 0.25, 0), 1.3 * k)
+	burst("sparks", at + Vector3(0, 0.7, 0), k)
+
+
+# Объект сломан: мостки (щепки и всплеск), камыш сгорел (огонь и пепел), глыба льда (осколки)
+func object_broken(at: Vector3, kind: String) -> void:
+	match kind:
+		"planks":
+			burst("splinters", at + Vector3(0, 0.2, 0), 0.8)
+			burst("splash", at + Vector3(0, 0.1, 0), 0.8)
+			ring(at + Vector3(0, 0.05, 0), Color(0.6, 0.8, 0.75), 1.4, 0.6, 0.9)
+		"reeds":
+			burst("fire_puff", at + Vector3(0, 0.3, 0), 1.2)
+			burst("ash", at + Vector3(0, 0.6, 0), 0.8)
+			burst("embers", at + Vector3(0, 0.6, 0), 1.2)
+		"ice":
+			burst("ice_shards", at + Vector3(0, 0.5, 0), 1.2)
+			burst("frost_burst", at + Vector3(0, 0.5, 0), 0.7)
+		"stakes":
+			burst("splinters", at + Vector3(0, 0.4, 0), 0.8)
+			burst("embers", at + Vector3(0, 0.6, 0), 0.8)
+
+
+# Мерцание света огня: свет «дышит», пока жив
+func flicker(light: OmniLight3D, base: float) -> void:
+	var tween: Tween = light.create_tween().set_loops()
+	tween.tween_property(light, "light_energy", base * 1.25, randf_range(0.08, 0.16))
+	tween.tween_property(light, "light_energy", base * 0.8, randf_range(0.08, 0.2))
+	tween.tween_property(light, "light_energy", base, randf_range(0.1, 0.2))

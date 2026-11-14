@@ -132,6 +132,47 @@ def ash() -> None:
 	save("ash", np.clip((0.7 - r) * 3.0 + (n - 0.5) * 1.2, 0, 1) * (r < 0.9))
 
 
+# 9. Язык пламени — лист 4×4 кадра: язык вытягивается вверх, колышется и тает.
+#    Внизу плотнее и ярче, вверху рвётся на отдельные «лоскуты».
+def flame_sheet() -> None:
+	cell = 128
+	sheet = np.zeros((cell * 4, cell * 4))
+	x, y = grid(cell)          # y: -1 сверху, 1 снизу
+	up = (1.0 - y) / 2.0       # 0 внизу, 1 вверху
+	n1 = fbm(cell, 41, octaves=4, base=3)
+	n2 = fbm(cell, 57, octaves=4, base=5)
+	for f in range(16):
+		t = f / 15.0
+		# Колыхание: язык гнётся вбок синусом по высоте, фаза меняется от кадра к кадру
+		sway = np.sin(up * 3.2 + t * 6.28) * 0.28 * up + (n1 - 0.5) * 0.25 * up
+		width = (0.62 - 0.55 * up) * (1.0 - 0.35 * t)   # к верху уже, к концу жизни тоньше
+		shape = np.clip(1.0 - np.abs(x - sway) / np.maximum(width, 0.02), 0.0, 1.0)
+		base = np.clip((0.98 - y) * 5.0, 0.0, 1.0)       # мягкий низ
+		top = np.clip(1.0 - up / (0.95 - 0.3 * t), 0.0, 1.0)
+		turb = np.roll(n1, int(t * 40), axis=0) * 0.6 + np.roll(n2, int(t * 70), axis=0) * 0.4
+		a = shape ** 0.7 * base * top
+		a = np.clip(a * (0.6 + turb) - (up * 0.55 + t * 0.25) * (1.0 - turb), 0.0, 1.0)
+		row, col = divmod(f, 4)
+		sheet[row * cell:(row + 1) * cell, col * cell:(col + 1) * cell] = np.clip(a * 1.5, 0, 1)
+	save("flame_sheet", sheet)
+
+
+# 10. Выжженное пятно для декали после взрыва — тёмное, с рваным краем (цветная картинка)
+def scorch() -> None:
+	size = 128
+	x, y = grid(size)
+	r = np.sqrt(x * x + y * y)
+	n = fbm(size, 71, octaves=5, base=4)
+	edge = r + (n - 0.5) * 0.45
+	a = np.clip((0.85 - edge) * 3.0, 0.0, 1.0) * 0.9
+	# Внутри темнее и с бурыми прожилками, к краю — копоть светлеет
+	dark = np.clip(0.06 + n * 0.12 + r * 0.08, 0, 1)
+	rgb = np.dstack([dark * 1.1, dark * 0.95, dark * 0.8])
+	img = np.dstack([(np.clip(rgb, 0, 1) * 255).astype(np.uint8), (a * 255).astype(np.uint8)])
+	Image.fromarray(img, "RGBA").save(os.path.join(OUT, "scorch.png"))
+	print("saved scorch")
+
+
 if __name__ == "__main__":
 	os.makedirs(OUT, exist_ok=True)
 	soft_dot()
@@ -142,3 +183,5 @@ if __name__ == "__main__":
 	shard()
 	drop()
 	ash()
+	flame_sheet()
+	scorch()

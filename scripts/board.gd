@@ -121,6 +121,9 @@ var _tile_mesh: CylinderMesh
 var _object_nodes: Dictionary[Vector2i, Node3D] = {}
 var _object_kinds: Dictionary[Vector2i, int] = {}
 var _arena: String = ""
+# Эффекты (частицы, свет). Сцена боя задаёт его до того, как ставит объекты и клетки.
+# Пусто — клетки рисуются по-старому, простыми формами.
+var vfx: VfxPlayer = null
 
 
 # Строит арену: берег и воду, плиты по виду покрытия, декор вокруг.
@@ -444,6 +447,8 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			puddle.scale = Vector3(1.0, 1.0, 0.8 + 0.2 * float(posmod(cell.x * 5 + cell.y * 3, 3)) / 2.0)
 			puddle.rotation.y = float(posmod(cell.x * 37 + cell.y * 91, 360))
 			root.add_child(puddle)
+			if vfx != null:
+				vfx.loop("ripple_loop", root, Vector3(0.0, 0.04, 0.0))   # круги на воде
 		BattleLogic.Tile.ICE:
 			var ice := MeshInstance3D.new()
 			var slab := CylinderMesh.new()   # шестигранная льдина по форме клетки
@@ -464,6 +469,8 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			ice.material_override = ice_mat
 			ice.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(ice)
+			if vfx != null:
+				vfx.loop("frost_loop", root, Vector3(0.0, 0.12, 0.0))   # блики инея
 		BattleLogic.Tile.SWAMP:
 			# Трясина: тёмная болотная жижа с зеленоватым отсветом
 			var mud := _flat_disc(0.42 * CELL_STEP, Color(0.17, 0.22, 0.12, 0.95), 0.02)
@@ -473,6 +480,8 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			mud_mat.emission = Color(0.2, 0.32, 0.1)
 			mud_mat.emission_energy_multiplier = 0.2
 			root.add_child(mud)
+			if vfx != null:
+				vfx.loop("bubble_loop", root, Vector3(0.0, 0.035, 0.0))   # пузыри
 		BattleLogic.Tile.GAS:
 			# Ядовитый газ: полупрозрачное ядовито-зелёное облако над клеткой
 			var cloud := _flat_disc(0.44 * CELL_STEP, Color(0.45, 0.85, 0.25, 0.45), 0.12)
@@ -481,6 +490,10 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			cloud_mat.emission = Color(0.4, 0.9, 0.2)
 			cloud_mat.emission_energy_multiplier = 0.6
 			root.add_child(cloud)
+			if vfx != null:
+				# Клубы газа над клеткой; плоский диск бледнее — клетку под газом видно
+				cloud_mat.albedo_color.a = 0.25
+				vfx.loop("gas_loop", root, Vector3(0.0, 0.45, 0.0))
 		BattleLogic.Tile.FIRE:
 			# Тлеющая земля, языки пламени из частиц и оранжевый свет
 			var embers := _flat_disc(0.42 * CELL_STEP, Color(1.0, 0.4, 0.08, 0.75), 0.03)
@@ -489,8 +502,15 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			e_mat.emission = Color(1.0, 0.35, 0.05)
 			e_mat.emission_energy_multiplier = 2.0
 			root.add_child(embers)
-			root.add_child(_make_flames())
-			_add_light(root, Vector3(0.0, 0.6, 0.0), Color(1.0, 0.55, 0.2), 1.6, 3.0)
+			var fire_light: OmniLight3D = _add_light(root, Vector3(0.0, 0.6, 0.0), Color(1.0, 0.55, 0.2), 1.6, 3.0)
+			if vfx != null:
+				# Живое пламя: языки огня (лист кадров), угольки, дым и мерцающий свет
+				vfx.loop("fire_loop", root, Vector3(0.0, 0.3, 0.0))
+				vfx.loop("ember_loop", root, Vector3(0.0, 0.4, 0.0))
+				vfx.loop("smoke_loop", root, Vector3(0.0, 0.9, 0.0))
+				vfx.flicker(fire_light, 1.6)
+			else:
+				root.add_child(_make_flames())
 	add_child(root)
 	_effects[cell] = root
 
@@ -671,16 +691,32 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 		match old_kind:
 			BattleLogic.Obj.TREE:
 				await _fall_tree(node, dir)
-				burst(cell + dir, Color(0.4, 0.37, 0.33), roundi(14 * IMPACT_FX_SCALE), 2.5 * IMPACT_FX_SCALE, 0.0, IMPACT_FX_SCALE)   # щепки
+				# Пыль и щепки по линии падения рисует VfxPlayer.tree_fall (сигнал effect_cells "tree")
+				if vfx == null:
+					burst(cell + dir, Color(0.4, 0.37, 0.33), roundi(14 * IMPACT_FX_SCALE), 2.5 * IMPACT_FX_SCALE, 0.0, IMPACT_FX_SCALE)   # щепки
 			BattleLogic.Obj.BARREL:
 				await _pop(node)
-				burst(cell, COLOR_GAS_LIGHT, roundi(34 * IMPACT_FX_SCALE), 5.0 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)   # зелёная вспышка газа
-				burst(cell, Color(1.0, 0.6, 0.15), roundi(20 * IMPACT_FX_SCALE), 3.5 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)
+				# Сам огненный взрыв рисует VfxPlayer.explosion (сигнал effect_cells "explosion"),
+				# здесь — то, что есть только у бочки: зелёный газ и щепки
+				if vfx != null:
+					vfx.burst("gas_blast", grid_to_world(cell) + Vector3(0.0, 0.5, 0.0))
+					vfx.burst("splinters", grid_to_world(cell) + Vector3(0.0, 0.4, 0.0))
+				else:
+					burst(cell, COLOR_GAS_LIGHT, roundi(34 * IMPACT_FX_SCALE), 5.0 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)   # зелёная вспышка газа
+					burst(cell, Color(1.0, 0.6, 0.15), roundi(20 * IMPACT_FX_SCALE), 3.5 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)
 			BattleLogic.Obj.ICE_BLOCK:
 				Sfx.play("ice", 0.07)
-				burst(cell, Color(0.8, 0.95, 1.0), 16, 2.5, 1.0)          # осколки льда
+				if vfx != null:
+					vfx.object_broken(grid_to_world(cell), "ice")
+				else:
+					burst(cell, Color(0.8, 0.95, 1.0), 16, 2.5, 1.0)          # осколки льда
 				await _sink(node)
 			_:
+				if vfx != null:
+					var broken: Dictionary = {BattleLogic.Obj.PLANKS: "planks", BattleLogic.Obj.REEDS: "reeds",
+						BattleLogic.Obj.STAKES: "stakes"}
+					if broken.has(old_kind):
+						vfx.object_broken(grid_to_world(cell), broken[old_kind])
 				await _sink(node)
 	if new_kind != BattleLogic.Obj.NONE:
 		add_object(cell, new_kind)
@@ -780,7 +816,11 @@ func _make_lava_node() -> Node3D:
 	root.add_child(_glow_slab(Vector3(0.98, 0.1, 0.98), Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05))
 	root.add_child(_glow_slab(Vector3(0.82, 0.14, 0.82), Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07))
 	root.add_child(_glow_slab(Vector3(0.4, 0.17, 0.4), Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6, 0.09))
-	_add_light(root, Vector3(0.0, 0.5, 0.0), Color(1.0, 0.6, 0.15), 0.8, 2.4)
+	var light: OmniLight3D = _add_light(root, Vector3(0.0, 0.5, 0.0), Color(1.0, 0.6, 0.15), 0.8, 2.4)
+	if vfx != null:
+		vfx.loop("lava_loop", root, Vector3(0.0, 0.17, 0.0))      # лопающиеся пузыри
+		vfx.loop("ember_loop", root, Vector3(0.0, 0.3, 0.0), 0.8) # искры
+		vfx.flicker(light, 0.8)
 	return root
 
 

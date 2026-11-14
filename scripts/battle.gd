@@ -110,6 +110,7 @@ func _ready() -> void:
 	vfx.name = "Vfx"
 	add_child(vfx)
 	vfx.warm_up()
+	board.vfx = vfx   # живой огонь, круги на воде, газ и т. п. на клетках
 	_create_views()
 	_connect_logic()
 	hud.card_pressed.connect(_on_card_pressed)
@@ -325,7 +326,11 @@ func _on_unit_moved(unit: BattleUnit, path: Array[Vector2i]) -> void:
 
 func _on_unit_pushed(unit: BattleUnit, path: Array[Vector2i], bumped: bool) -> void:
 	var view: Unit = _views[unit]
-	_queue(func() -> void: await view.play_push(path, bumped))
+	_queue(func() -> void:
+		await view.play_push(path, bumped)
+		if bumped:
+			vfx.bump(view.global_position)   # врезался: кольцо, пыль, искры
+	)
 
 
 func _on_unit_damaged(unit: BattleUnit, amount: int, state: Dictionary) -> void:
@@ -477,9 +482,11 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 		sound = "lightning"
 	elif kind == "pincer":
 		sound = "hit"
+	var at: Vector3 = board.grid_to_world(cell)
 	_queue(func() -> void:
 		Sfx.play(sound, 0.07)
 		board.show_cells("flash", cells, color)
+		vfx.reaction(at, kind)
 		await get_tree().create_timer(0.2).timeout
 		board.clear_layer("flash")
 	)
@@ -494,8 +501,12 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 	elif kind == "rune":
 		color = COLOR_RUNE
 	# Цифры урона над задетыми теперь показывает сам урон (_on_unit_damaged → VfxPlayer)
+	var world: Array[Vector3] = []
+	for c in cells:
+		world.append(board.grid_to_world(c))
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
+		_effect_vfx(kind, world)
 		if kind == "gas":
 			Sfx.play("water", 0.08)
 		else:
@@ -505,6 +516,30 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 		await get_tree().create_timer(0.25).timeout
 		board.clear_layer("flash")
 	)
+
+
+# Эффект на поле: взрыв, падение дерева, газ, руна (VfxPlayer)
+func _effect_vfx(kind: String, world: Array[Vector3]) -> void:
+	if world.is_empty():
+		return
+	match kind:
+		"explosion":
+			var center: Vector3 = Vector3.ZERO
+			for w in world:
+				center += w
+			center /= world.size()
+			var radius: float = 2.0 if world.size() > 7 else 1.0
+			if world.size() <= 1:
+				radius = 0.6
+			vfx.explosion(center, radius)
+		"tree":
+			vfx.tree_fall(world)
+		"gas":
+			vfx.gas_cloud(world)
+		"rune":
+			for w in world:
+				vfx.burst("glints", w + Vector3(0.0, 0.5, 0.0), 1.0, 0, VfxCards.TINTS["rage"])
+				vfx.ring(w + Vector3(0.0, 0.05, 0.0), VfxCards.TINTS["rage"], 1.3, 0.35, 1.8)
 
 
 # Тряска камеры: смещаем «объектив» (h_offset / v_offset), поворот и зум камеры не трогаем
