@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/sporeling.glb" id="9_model"]
 [ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
 
 [sub_resource type="Resource" id="atk_spores"]
@@ -33,3 +34,4 @@ color = Color(0.42, 0.5, 0.44, 1)
 attack_title = "Споры"
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_spores"), SubResource("atk_grow")])
 fire_weak = true
+model = ExtResource("9_model")

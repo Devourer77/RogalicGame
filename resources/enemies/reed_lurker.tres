@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/reed_lurker.glb" id="9_model"]
 
 [resource]
 script = ExtResource("1_enemy")
@@ -16,3 +17,4 @@ color = Color(0.5, 0.52, 0.36, 1)
 attack_title = "Удар из засады"
 ai_style = 3
 ambush = 3
+model = ExtResource("9_model")

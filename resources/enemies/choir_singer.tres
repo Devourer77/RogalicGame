@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/choir_singer.glb" id="9_model"]
 [ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
 
 [sub_resource type="Resource" id="atk_choir"]
@@ -32,10 +33,11 @@ damage = 5
 attack = 1
 attack_range = 5
 color = Color(0.42, 0.42, 0.4, 1)
-size = 1.1
+size = 1.12
 is_elite = true
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_choir"), SubResource("atk_beam")])
 keep_distance = 3
 turn_block = 2
 bog_damage = 6
 cult = true
+model = ExtResource("9_model")
