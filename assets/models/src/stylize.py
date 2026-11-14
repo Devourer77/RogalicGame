@@ -183,7 +183,7 @@ def _bake_material(info, mode, edge_radius, min_z, max_z, emit_max, image):
     # 3. Свет сверху: грани, смотрящие вверх, чуть светлее
     geo = N.new("ShaderNodeNewGeometry")
     sep_n = N.new("ShaderNodeSeparateXYZ")
-    L.new(geo.outputs["True Normal"], sep_n.inputs["Vector"])   # мировая нормаль; модель стоит в начале координат
+    L.new(geo.outputs["Normal"], sep_n.inputs["Vector"])   # сглаженная нормаль: у гладких моделей свет без ступенек
     top = N.new("ShaderNodeMapRange")
     top.inputs["From Min"].default_value = -1.0
     top.inputs["From Max"].default_value = 1.0
@@ -207,7 +207,7 @@ def _bake_material(info, mode, edge_radius, min_z, max_z, emit_max, image):
     dot = N.new("ShaderNodeVectorMath")
     dot.operation = "DOT_PRODUCT"
     L.new(bev.outputs["Normal"], dot.inputs[0])
-    L.new(geo.outputs["True Normal"], dot.inputs[1])
+    L.new(geo.outputs["Normal"], dot.inputs[1])
     edge = N.new("ShaderNodeMapRange")
     edge.clamp = True
     edge.inputs["From Min"].default_value = 0.995

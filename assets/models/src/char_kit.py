@@ -35,12 +35,44 @@ def mat(name, color, metallic=0.0, rough=0.8, emit=0.0, alpha=1.0):
     return m
 
 
+# ---------- Форма моделей ----------
+# SHAPE — насколько гладкие модели (можно задать переменной окружения CHAR_SHAPE):
+#   "low"    — как было: гранёные фигуры, плоское освещение граней;
+#   "soft"   — у круглых фигур (руки, ноги, торс, головы) вдвое больше сторон, освещение сглажено
+#              по углу: тело плавное, а рёбра брони, клинков и брусков остаются чёткими (~×2 треугольников);
+#   "smooth" — как soft, плюс подразделение: круглые фигуры скругляются в «игрушку», у жёстких деталей
+#              (бруски, пластины, трещины) рёбра помечены жёсткими и не расплываются (~×4 треугольников).
+import os as _os
+SHAPE = _os.environ.get("CHAR_SHAPE", "low")
+SMOOTH_ANGLE = 40.0   # грани с углом меньше этого освещаются плавно (soft, smooth)
+
+
+BOX_CREASE = 0.7      # smooth: бруски (голова, кулак, ступня) скругляются чуть-чуть, форма остаётся
+
+
+def _segs(n, minimum):
+    """Число сторон круглой фигуры с учётом SHAPE. В smooth сторон не добавляем: скругляет подразделение."""
+    if SHAPE in ("low", "smooth") or n <= 4:   # 3–4 стороны — задуманная угловатая форма (ступня, клык)
+        return n
+    return max(n * 2, minimum)
+
+
 # ---------- Фигуры (каждая целиком привязана к одной кости) ----------
 
 PARTS = []
 
 
-def _finish(bm, name, material, bone, matrix=None):
+def _finish(bm, name, material, bone, matrix=None, hard=0.0, rim=False):
+    """Для SHAPE = smooth: hard — насколько жёсткие все рёбра детали (1 — не скругляются, брусок 0.7);
+    rim=True — у цилиндра жёсткие только края торцов: бока круглые, а длина и плоские торцы
+    (щит, браслет) не съёживаются."""
+    if SHAPE == "smooth" and (hard > 0 or rim):
+        layer = bm.edges.layers.float.get("crease_edge") or bm.edges.layers.float.new("crease_edge")
+        for e in bm.edges:
+            if hard > 0:
+                e[layer] = hard
+            elif any(len(f.verts) > 4 for f in e.link_faces):   # ребро торца (торец — многоугольник)
+                e[layer] = 1.0
     if matrix is not None:
         bmesh.ops.transform(bm, matrix=matrix, verts=bm.verts)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
@@ -49,6 +81,7 @@ def _finish(bm, name, material, bone, matrix=None):
     bm.free()
     for p in me.polygons:
         p.use_smooth = False
+
     me.materials.append(material)
     ob = bpy.data.objects.new(name, me)
     bpy.context.scene.collection.objects.link(ob)
@@ -67,7 +100,8 @@ def _rot(r):
 def box(name, size, loc, material, bone, rot=(0, 0, 0)):
     bm = bmesh.new()
     bmesh.ops.create_cube(bm, size=1.0)
-    return _finish(bm, name, material, bone, Matrix.Translation(loc) @ _rot(rot) @ Matrix.Diagonal((*size, 1.0)))
+    return _finish(bm, name, material, bone, Matrix.Translation(loc) @ _rot(rot) @ Matrix.Diagonal((*size, 1.0)),
+                   hard=BOX_CREASE)
 
 
 def limb(name, a, b, r1, r2, material, bone, segs=6):
@@ -75,22 +109,26 @@ def limb(name, a, b, r1, r2, material, bone, segs=6):
     a, b = Vector(a), Vector(b)
     d = b - a
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r1, radius2=max(r2, 0.0005), depth=d.length)
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=_segs(segs, 10), radius1=r1, radius2=max(r2, 0.0005),
+                          depth=d.length)
     q = Vector((0, 0, 1)).rotation_difference(d.normalized())
-    return _finish(bm, name, material, bone, Matrix.Translation((a + b) / 2) @ q.to_matrix().to_4x4())
+    return _finish(bm, name, material, bone, Matrix.Translation((a + b) / 2) @ q.to_matrix().to_4x4(),
+                   hard=1.0 if segs <= 4 else 0.0, rim=True)
 
 
 def barrel(name, r1, r2, z0, z1, material, bone, segs=8, loc=(0, 0), sy=1.0):
     """Вертикальный «бочонок» (торс, шлем): радиус r1 внизу, r2 вверху, sy сплющивает спереди-сзади."""
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, segments=segs, radius1=r1, radius2=max(r2, 0.0005), depth=z1 - z0)
+    bmesh.ops.create_cone(bm, cap_ends=True, segments=_segs(segs, 12), radius1=r1, radius2=max(r2, 0.0005),
+                          depth=z1 - z0)
     return _finish(bm, name, material, bone,
-                   Matrix.Translation((loc[0], loc[1], (z0 + z1) / 2)) @ Matrix.Diagonal((1, sy, 1, 1)))
+                   Matrix.Translation((loc[0], loc[1], (z0 + z1) / 2)) @ Matrix.Diagonal((1, sy, 1, 1)),
+                   hard=1.0 if segs <= 4 else 0.0, rim=True)
 
 
 def sphere(name, r, loc, material, bone, scale=(1, 1, 1), segs=8, rings=5, rot=(0, 0, 0)):
     bm = bmesh.new()
-    bmesh.ops.create_uvsphere(bm, u_segments=segs, v_segments=rings, radius=r)
+    bmesh.ops.create_uvsphere(bm, u_segments=_segs(segs, 12), v_segments=_segs(rings, 7), radius=r)
     return _finish(bm, name, material, bone, Matrix.Translation(loc) @ _rot(rot) @ Matrix.Diagonal((*scale, 1)))
 
 
@@ -108,7 +146,7 @@ def plate(name, points, thickness, origin, ax_u, ax_v, material, bone):
     for i in range(cnt):
         j = (i + 1) % cnt
         bm.faces.new([front[j], front[i], back[i], back[j]])
-    return _finish(bm, name, material, bone)
+    return _finish(bm, name, material, bone, hard=1.0)
 
 
 def crack(name, points, origin, ax_u, ax_v, material, bone, width=0.012, depth=0.012):
@@ -123,7 +161,7 @@ def crack(name, points, origin, ax_u, ax_v, material, bone, width=0.012, depth=0
         bmesh.ops.create_cube(bm, size=1.0)
         q = Vector((0, 0, 1)).rotation_difference(d.normalized())
         m = Matrix.Translation((a + b) / 2) @ q.to_matrix().to_4x4() @ Matrix.Diagonal((width, depth, d.length + width, 1))
-        _finish(bm, f"{name}{i}", material, bone, m)
+        _finish(bm, f"{name}{i}", material, bone, m, hard=1.0)
 
 
 def join_parts(name):
@@ -281,6 +319,26 @@ def start_scene(scene_name):
     return scene
 
 
+def apply_shape(body):
+    """Сглаживание по SHAPE: подразделение (smooth) и плавное освещение по углу (soft, smooth)."""
+    if SHAPE == "low":
+        return
+    for o in bpy.context.view_layer.objects:
+        o.select_set(False)
+    body.select_set(True)
+    bpy.context.view_layer.objects.active = body
+    if SHAPE == "smooth":
+        mod = body.modifiers.new("Subdiv", "SUBSURF")
+        mod.levels = 1
+        mod.render_levels = 1
+        mod.use_creases = True
+        mod.boundary_smooth = "PRESERVE_CORNERS"
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.ops.object.shade_smooth_by_angle(angle=math.radians(SMOOTH_ANGLE), keep_sharp_edges=True)
+    for mod in [m for m in body.modifiers if m.type == "NODES"]:   # в новых Blender это модификатор — применяем
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+
+
 def export(rig, body, glb_path, blend_path=None, tex_size=None):
     # Стилизация (тени в складках, светлые рёбра, градиент) запекается в текстуру до привязки
     # к скелету, пока тело в позе покоя. Отключить — stylize.STYLIZE = False.
@@ -290,6 +348,7 @@ def export(rig, body, glb_path, blend_path=None, tex_size=None):
     if tex_size is None:   # герои и боссы крупнее и видны в хабе — им 1024, остальным 512
         name = os.path.splitext(os.path.basename(glb_path))[0]
         tex_size = stylize.SIZE_BIG if name in stylize.BIG_CHARACTERS else stylize.SIZE_UNIT
+    apply_shape(body)
     stylize.stylize(body, os.path.join(os.path.dirname(os.path.abspath(__file__)), "baked"), tex_size)
     body.parent = rig
     mod = body.modifiers.new("Armature", "ARMATURE")
