@@ -37,7 +37,7 @@ const MATERIALS: Dictionary[String, String] = {
 	"rock_crawler": "stone", "ogre": "stone",
 	"mossy_treant": "wood", "swamp_weaver": "wood", "spiderling": "wood", "weaver_queen": "wood",
 	"drowned_walker": "water", "bog_mother": "water", "bloated_toad": "water", "spirit_tide": "water",
-	"sporeling": "spore", "reed_lurker": "reed",
+	"sporeling": "spore", "reed_lurker": "reed", "leech": "water", "drowned_captain": "block",
 	"spirit_storm": "storm", "spirit_wind": "wind", "spirit_bog": "bog", "spirit_fire": "embers",
 }
 
