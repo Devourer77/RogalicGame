@@ -26,6 +26,9 @@ signal card_played(caster: BattleUnit, card: CardData, is_scrap: bool)   # дл�
 signal overheated(hero: BattleUnit, stacks: int)   # в конце хода мана героя была в минусе
 signal unit_spawned(unit: BattleUnit)   # посреди боя появился новый враг (ритуал, подкрепление)
 signal objective_changed()              # цель боя обновилась (счётчик ритуала, прибывающая вода)
+# Подсказка для эффектов (только показ, на правила не влияет): "absorb" — шаман поглощает магию
+# героя other; "armor_burnt" — у корягача сгорела броня; "bequest" — unit принял венец от павшего other
+signal fx_hint(kind: String, unit: BattleUnit, other: BattleUnit)
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
 # SWAMP — проходимая трясина (вход отнимает шаг, проводит молнию); GAS — ядовитый газ (взрывается от огня)
@@ -1295,6 +1298,7 @@ func _absorb_magic() -> void:
 		return
 	for e in living_enemies():
 		if e.data.absorbs_magic:
+			fx_hint.emit("absorb", e, _cur_hero)
 			for o in living_enemies():
 				o.hp = mini(o.max_hp, o.hp + SHAMAN_HEAL)
 				status_changed.emit(o, snapshot(o))
@@ -2894,6 +2898,7 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if unit.data != null and unit.data.wood_armor and _cur_card != null and not unit.armor_burnt:
 		if _cur_card.element == CardData.Element.FIRE:
 			unit.armor_burnt = true
+			fx_hint.emit("armor_burnt", unit, null)
 			message.emit("%s: древесная броня сгорела" % unit.title)
 		elif _cur_attack and _cur_card.shape == CardData.Shape.SINGLE:
 			amount = maxi(1, amount / WOOD_ARMOR_DIVISOR)
@@ -2958,6 +2963,7 @@ func _pass_crown(unit: BattleUnit) -> void:
 	if heir == null:
 		return
 	heir.crown_power += unit.data.bequest
+	fx_hint.emit("bequest", heir, unit)
 	message.emit("%s принимает венец: удары +%d" % [heir.title, unit.data.bequest])
 	enemy_buffed.emit(heir, [heir.cell] as Array[Vector2i])
 	status_changed.emit(heir, snapshot(heir))

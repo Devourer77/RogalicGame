@@ -749,8 +749,7 @@ func death(view: Node3D, height: float, kind: String, spirit_color: Color = C_RI
 		dissolve(view, C_ASH * 1.3, height)
 		burst("ash", at)
 	elif kind == "spirit":
-		burst("rift_motes", at, 1.2, 0, spirit_color)
-		light_flash(at, spirit_color, 3.0, 4.0, 0.5)
+		tame(view, height, spirit_color)
 	else:
 		dissolve(view, C_RIFT, height)
 		burst("rift_motes", at)
@@ -1224,3 +1223,157 @@ func _set_inflation_pulse(view: Node3D, stacks: int) -> void:
 	tween.tween_method(pulse, 0.0, peak, 0.45).set_trans(Tween.TRANS_SINE)
 	tween.tween_method(pulse, peak, 0.0, 0.45).set_trans(Tween.TRANS_SINE)
 	view.set_meta("pulse_tween", tween)
+
+
+# ---------- Враги и духи (этап 5) ----------
+
+const C_RITUAL := Color(0.85, 0.88, 0.8)    # ритуал — бледный мёртвый свет
+
+
+# Призыв: в земле открывается бирюзовый разрыв, из него поднимаются огоньки
+func summon(at: Vector3) -> void:
+	var ground: Vector3 = at + Vector3(0.0, 0.06, 0.0)
+	var side: Vector3 = _camera_right() * 0.55
+	lightning(ground - side, ground + side, C_RIFT, 0.06, 7)   # трещина по земле
+	ring(ground, C_RIFT, 1.8, 0.45, 2.5)
+	burst("rift_motes", at + Vector3(0.0, 0.2, 0.0), 1.0)
+	light_flash(at + Vector3(0.0, 0.6, 0.0), C_RIFT, 2.5, 3.5, 0.4)
+
+
+# Круг ритуала под ритуалистом: бледный свет, к призыву ярче и шире.
+# progress: 0 — только начался, 1 — призыв в этом раунде; < 0 — убрать круг.
+func set_ritual(view: Node3D, progress: float) -> void:
+	var holder: Node3D = view.get_node_or_null("Auras")
+	if holder == null:
+		holder = Node3D.new()
+		holder.name = "Auras"
+		view.add_child(holder)
+	var node: Node3D = holder.get_node_or_null("ritual")
+	if progress < 0.0:
+		if node != null:
+			_fade_aura(node)
+		return
+	if node == null:
+		node = Node3D.new()
+		node.name = "ritual"
+		holder.add_child(node)
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(1.0, 1.0)
+		var circle := MeshInstance3D.new()
+		circle.name = "circle"
+		circle.mesh = plane
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+		mat.albedo_texture = load(TEX_DIR + "ring.png")
+		circle.material_override = mat
+		circle.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		circle.position.y = 0.07
+		node.add_child(circle)
+		var spin: Tween = circle.create_tween().set_loops()
+		spin.tween_property(circle, "rotation:y", TAU, 6.0).from(0.0)
+		var motes: GPUParticles3D = loop("rise", node, Vector3(0.0, 0.1, 0.0), 0.7)
+		motes.name = "motes"
+		motes.process_material = _process_for("rise", C_RITUAL)
+	var c: MeshInstance3D = node.get_node("circle")
+	var m: StandardMaterial3D = c.material_override
+	var e: float = 0.45 + 0.75 * progress   # бледный, к призыву — ярче (но не «прожектор»)
+	m.albedo_color = Color(C_RITUAL.r * e, C_RITUAL.g * e, C_RITUAL.b * e, 0.3 + 0.45 * progress)
+	var size: float = 1.3 + 0.7 * progress
+	c.create_tween().tween_property(c, "scale", Vector3(size, 1.0, size), 0.3)
+	var p: GPUParticles3D = node.get_node("motes")
+	p.amount_ratio = clampf(0.15 + 0.85 * progress, 0.1, 1.0)
+
+
+# Шаман поглощает магию: от героя к его осколку тянется струйка огоньков, шаман вспыхивает бирюзой.
+# Ждать через await (~0,5 с).
+func absorb(from: Vector3, shaman: Node3D, height: float) -> void:
+	var to: Vector3 = shaman.global_position + Vector3(0.0, height * 1.05, 0.0)
+	for i in 4:
+		var start: Vector3 = from + Vector3(randf_range(-0.2, 0.2), randf_range(-0.1, 0.2), randf_range(-0.2, 0.2))
+		projectile(start, to, C_MAGE.lerp(C_RIFT, 0.5), 0.22, 0.32, 0.6 + 0.2 * i)
+		await get_tree().create_timer(0.06).timeout
+	await get_tree().create_timer(0.28).timeout
+	flash(shaman, C_RIFT, 1.0)
+	burst("glints", to, 1.2, 0, C_RIFT)
+	ring(shaman.global_position + Vector3(0.0, 0.06, 0.0), C_RIFT, 1.8, 0.4, 2.0)
+	light_flash(to, C_RIFT, 2.0, 3.0, 0.3)
+
+
+# Наследие венца: бледный огонёк летит от павшего послушника к культисту, тот вспыхивает
+func bequest(from: Vector3, heir: Node3D, height: float) -> void:
+	var to: Vector3 = heir.global_position + Vector3(0.0, height + 0.1, 0.0)
+	await projectile(from + Vector3(0.0, 0.8, 0.0), to, C_ASH, 0.35, 0.45, 0.9)
+	flash(heir, C_ASH, 0.9)
+	burst("ash", to, 0.6)
+	ring(heir.global_position + Vector3(0.0, 0.06, 0.0), C_ASH, 1.6, 0.4, 1.6)
+
+
+# Броня корягача сгорела: кора отслаивается с угольками
+func armor_burn(view: Node3D, height: float) -> void:
+	var body: Vector3 = view.global_position + Vector3(0.0, height * 0.55, 0.0)
+	burst("splinters", body, 1.4, 0, Color(0.35, 0.27, 0.18))
+	burst("embers", body, 1.8)
+	burst("fire_puff", body, 0.8)
+	flash(view, C_FIRE, 1.0)
+	light_flash(body, C_FIRE, 2.5, 3.5, 0.35)
+
+
+# Покорение духа: бирюзовые трещины вспыхивают и гаснут, дух загорается чистым цветом стихии
+# и растворяется (уходит к герою)
+func tame(view: Node3D, height: float, color: Color) -> void:
+	var at: Vector3 = view.global_position + Vector3(0.0, height * 0.5, 0.0)
+	var mat: ShaderMaterial = _flash_material(view)
+	var tween: Tween = view.create_tween()
+	# Бирюза Раскола разгорается…
+	tween.tween_method(func(v: float) -> void:
+		mat.set_shader_parameter("flash_color", C_RIFT)
+		mat.set_shader_parameter("amount", v), 0.0, 1.0, 0.25)
+	# …и перетекает в чистый цвет стихии
+	tween.tween_method(func(v: float) -> void:
+		mat.set_shader_parameter("flash_color", C_RIFT.lerp(color, v))
+		mat.set_shader_parameter("amount", 1.0), 0.0, 1.0, 0.35)
+	tween.tween_callback(func() -> void:
+		burst("rise", at - Vector3(0.0, height * 0.4, 0.0), 1.6, 0, color)
+		burst("glints", at, 1.5, 0, color)
+		ring(view.global_position + Vector3(0.0, 0.06, 0.0), color, 3.0, 0.6, 2.5)
+		light_flash(at, color, 4.0, 5.0, 0.6)
+		dissolve(view, color, height))
+	burst("rift_motes", at, 1.0)   # последние искры Раскола уходят вверх
+
+
+# Огоньки прирученных духов у плеча героя: маленький шарик цвета стихии с хвостиком
+# облетает плечо. ids — id духов (tide, storm, wind, bog, fire), цвет берётся из их SpiritData.
+func add_companions(view: Node3D, ids: Array[String], height: float) -> void:
+	var holder: Node3D = view.get_node_or_null("Auras")
+	if holder == null:
+		holder = Node3D.new()
+		holder.name = "Auras"
+		view.add_child(holder)
+	for i in ids.size():
+		var id: String = ids[i]
+		if holder.has_node("spirit_" + id):
+			continue
+		var color: Color = C_HIT
+		var data_path: String = "res://resources/spirits/%s.tres" % id
+		if ResourceLoader.exists(data_path):
+			color = load(data_path).color
+		var pivot := Node3D.new()
+		pivot.name = "spirit_" + id
+		pivot.position = Vector3(0.0, height * 0.9, 0.0)
+		holder.add_child(pivot)
+		var core: MeshInstance3D = orb(color, 0.2, 2.6)
+		core.reparent(pivot, false)
+		core.position = Vector3(0.45, 0.0, 0.0)
+		var tr: GPUParticles3D = trail("trail", core, color)
+		tr.amount_ratio = 0.4
+		# Облёт плеча: у каждого духа своя фаза; лёгкое покачивание вверх-вниз
+		var phase: float = TAU * float(i) / maxf(1.0, ids.size())
+		pivot.rotation.y = phase
+		var spin: Tween = pivot.create_tween().set_loops()
+		spin.tween_property(pivot, "rotation:y", phase + TAU, 4.5).from(phase)
+		var bob: Tween = core.create_tween().set_loops()
+		bob.tween_property(core, "position:y", 0.12, 0.9).set_trans(Tween.TRANS_SINE)
+		bob.tween_property(core, "position:y", -0.08, 0.9).set_trans(Tween.TRANS_SINE)

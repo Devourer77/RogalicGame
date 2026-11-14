@@ -180,6 +180,9 @@ func _create_views() -> void:
 	for u: BattleUnit in _views:
 		_views[u].set_status(_plate_info(u, logic.snapshot(u)))
 		vfx.set_auras(_views[u], _unit_height(u), logic.snapshot(u))   # капли, яд, руна и т. п.
+		if u.is_hero and not u.spirits.is_empty():
+			vfx.add_companions(_views[u], u.spirits, _unit_height(u))   # огоньки прирученных духов у плеча
+	_update_ritual_circle()
 
 	# Кольцо выбора: плоский цилиндр, который «приклеиваем» к выбранному герою
 	_ring = MeshInstance3D.new()
@@ -307,6 +310,7 @@ func _connect_logic() -> void:
 	logic.message.connect(_on_message)
 	logic.unit_spawned.connect(_on_unit_spawned)
 	logic.objective_changed.connect(_on_objective_changed)
+	logic.fx_hint.connect(_on_fx_hint)
 
 
 func _queue(step: Callable) -> void:
@@ -422,7 +426,14 @@ func _on_unit_spawned(unit: BattleUnit) -> void:
 	var view: Unit = _make_enemy_view(unit)
 	view.visible = false
 	view.set_status(_plate_info(unit, logic.snapshot(unit)))
-	_queue(func() -> void: view.visible = true)
+	_queue(func() -> void:
+		# Призыв: бирюзовый разрыв в земле, враг поднимается из него
+		view.visible = true
+		vfx.summon(view.global_position)
+		view.scale = Vector3.ONE * 0.3
+		var tween: Tween = view.create_tween()
+		tween.tween_property(view, "scale", Vector3.ONE, 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	)
 
 
 # Цель боя обновилась: подсветка верхнего ряда («Прорыв») или ряда, который зальёт вода
@@ -430,6 +441,41 @@ func _on_objective_changed() -> void:
 	var cells: Array[Vector2i] = logic.objective_cells()
 	var color: Color = COLOR_OBJECTIVE_WATER if logic.objective == BattleLogic.Objective.RISING_WATER else COLOR_OBJECTIVE
 	_queue(func() -> void: board.show_cells("objective", cells, color))
+	_update_ritual_circle()
+
+
+# Круг ритуала под ритуалистом: ярче и шире с каждым раундом до призыва (VfxPlayer.set_ritual)
+func _update_ritual_circle() -> void:
+	if logic.objective != BattleLogic.Objective.RITUAL:
+		return
+	var caster: BattleUnit = null
+	for e in logic.enemies:
+		if e.id == logic.ritual_caster_id:
+			caster = e
+	if caster == null or not _views.has(caster):
+		return
+	var view: Unit = _views[caster]
+	var progress: float = -1.0
+	if caster.is_alive():
+		progress = clampf(1.0 - float(logic.ritual_timer - 1) / float(BattleLogic.RITUAL_TURNS - 1), 0.0, 1.0)
+	_queue(func() -> void: vfx.set_ritual(view, progress))
+
+
+# Подсказки логики для эффектов: шаман поглощает магию, сгорела броня корягача, послушник отдал венец
+func _on_fx_hint(kind: String, unit: BattleUnit, other: BattleUnit) -> void:
+	if not _views.has(unit):
+		return
+	var view: Unit = _views[unit]
+	var height: float = _unit_height(unit)
+	# Позиции — по клеткам логики: фигурки к этому моменту ещё могут догонять ход
+	var other_at: Vector3 = board.grid_to_world(other.cell) if other != null else view.global_position
+	match kind:
+		"absorb":
+			_queue(func() -> void: await vfx.absorb(other_at + Vector3(0.0, 1.1, 0.0), view, height))
+		"armor_burnt":
+			_queue(func() -> void: vfx.armor_burn(view, height))
+		"bequest":
+			_queue(func() -> void: await vfx.bequest(other_at, view, height))
 
 
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
