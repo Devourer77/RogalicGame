@@ -199,8 +199,14 @@ func _spawn_heroes() -> void:
 # там сядут будущие герои (шаман, некромант).
 func _seat_path(hero_id: String) -> Array[Vector3]:
 	var side: float = -1.0 if hero_id == "mage" else 1.0   # Seat1 — запад, Seat2 — восток
-	var path: Array[Vector3] = [Vector3(side * 3.0, 0.0, 3.0), Vector3(side * 3.0, 0.0, 4.5)]
+	var path: Array[Vector3] = [Vector3(side * 3.0, 0.0, 3.0), Vector3(side * 2.55, 0.0, 4.5)]
 	return path
+
+
+# Середина скамьи героя у костра: Seat1 — запад (маг), Seat2 — восток (рыцарь)
+func _seat_spot(hero_id: String) -> Vector3:
+	var side: float = -1.0 if hero_id == "mage" else 1.0
+	return FIRE_POS + Vector3(side * 1.8, 0.0, 0.0)
 
 
 # Tab: следующий герой. Камера перелетает за 0,4 с; быстрые нажатия просто отменяют прошлый перелёт.
@@ -241,7 +247,7 @@ func _send_to_rest(h: HubHero) -> void:
 			d.y = 0.0
 			if d.length() < PERSONAL_STAY_DISTANCE:
 				return
-	h.go_to(_seat_path(h.hero_id), FIRE_POS)
+	h.go_to(_seat_path(h.hero_id), FIRE_POS, _seat_spot(h.hero_id))
 
 
 func _hero_data(hero_id: String) -> HeroData:

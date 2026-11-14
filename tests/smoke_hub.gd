@@ -98,7 +98,7 @@ func _run() -> void:
 	_check(hub.active.can_move, "после перелёта камеры рыцарь снова ходит")
 	await _wait(3.0)
 	var mage: Node = hub.heroes[0]
-	var to_fire: float = (mage.global_position - Vector3(-3.0, 0.0, 4.5)).length()
+	var to_fire: float = (mage.global_position - Vector3(-1.8, 0.0, 4.5)).length()   # скамья мага
 	_check(to_fire < 1.5 or (mage.global_position - Vector3(-8.5, 0, 1.2)).length() < 3.0,
 			"неактивный маг дошёл к костру или стоит у своей точки (до места %.2f м)" % to_fire)
 

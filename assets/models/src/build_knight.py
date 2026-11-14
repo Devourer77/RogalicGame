@@ -312,6 +312,29 @@ def death(t):
     return p
 
 
+def sit(t):
+    """Сидит на скамье у костра (4 сек, цикл): меч воткнут остриём в землю перед правой ногой,
+    рука лежит на рукояти; щит прислонён к левой ноге. Тяжело дышит, смотрит в огонь, разминает шею.
+    Высота скамьи в хабе — 0,42 м (build_hub.py, build_campfire)."""
+    p = Pose({}, {})
+    breath = wave(t, 2)
+    p.move("Hips", z=-0.36, y=0.02)
+    for side, z, th in (("L", -9, 86), ("R", 9, 82)):
+        p.set(f"Thigh.{side}", -th, 0, z)
+        p.set(f"Shin.{side}", th, 0, 0)
+        p.set(f"Foot.{side}", 0, 0, 0)
+    p.set("TabardF", -78, 0, 0).set("TabardB", 6, 0, 0)
+    p.set("Spine", 18 + 1.5 * breath, 0, 0).set("Chest", 10 + 2.5 * wave(t, 2, -0.06), 0, 0)
+    # Разминает шею: наклон влево-вправо в середине цикла, остальное время смотрит в огонь
+    neck = pulse(t, 0.5, 0.14)
+    p.set("Head", 10 - 1.5 * breath, 10 * wave(t, 1, 0.2) * (1 - neck), 18 * neck * wave(t, 2))
+    p.set("Plume", -4 * breath, 0, -10 * neck * wave(t, 2, -0.1))
+    # Руки: правая на рукояти меча, воткнутого в землю; левая со щитом на колене
+    p.set("UpperArm.R", -40 - 2 * breath, 0, 14).set("ForeArm.R", -30, 0, 0).set("Weapon", -100, 0, 0)
+    p.set("UpperArm.L", -30 - 2 * breath, 0, -18).set("ForeArm.L", -40, 0, 0).set("Shield", 8, 0, 0)
+    return p
+
+
 def build_actions(rig):
     k.bake(rig, "Idle", 100, idle, cyclic=True)
     k.bake(rig, "Walk", 24, walk, cyclic=True)
@@ -319,6 +342,7 @@ def build_actions(rig):
     k.bake(rig, "Block", 20, block)
     k.bake(rig, "Hit", 15, hit)
     k.bake(rig, "Death", 45, death)
+    k.bake(rig, "Sit", 120, sit, cyclic=True)
 
 
 # ---------- Сборка и экспорт ----------

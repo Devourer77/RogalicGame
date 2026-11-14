@@ -472,9 +472,10 @@ def build_campfire() -> None:
 	for name, side in (("BenchWest", -1), ("BenchEast", 1)):
 		bench = Part(name)
 		x = 1.8 * side
-		bench.box((x, 0, 0.38), (0.42, 1.6, 0.14), "tex_wood", rot_z=jitter(side + 3, 3.0))
+		# Верх скамьи на 0,42 м — под эту высоту сделана анимация Sit у героев
+		bench.box((x, 0, 0.36), (0.42, 1.6, 0.12), "tex_wood", rot_z=jitter(side + 3, 3.0))
 		for y in (-0.55, 0.55):
-			bench.log((x, y, 0.0), (x, y, 0.31), 0.13, 6, "tex_wood", cap_bottom=False)
+			bench.log((x, y, 0.0), (x, y, 0.3), 0.13, 6, "tex_wood", cap_bottom=False)
 		bench.build(origin=(x, 0, 0))
 
 	stump = Part("SeatStump")

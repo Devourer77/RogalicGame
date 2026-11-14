@@ -379,6 +379,32 @@ def death(t):
     return p
 
 
+def sit(t):
+    """Сидит на скамье у костра (4 сек, цикл): ссутулился к огню, посох прислонён к плечу и упирается
+    в землю впереди, левая рука на колене. Дышит, клюёт носом, греет ладонь у огня, кристалл дремлет.
+    Высота скамьи в хабе — 0,42 м (build_hub.py, build_campfire)."""
+    p = MagePose({}, {})
+    breath = wave(t, 2)
+    p.move("Hips", z=-0.3, y=0.02)
+    p.legs(l=(84, 84), r=(78, 80))
+    p.set("Robe", -62, 0, 0).set("Stole", -50, 0, 0).set("Cloak", 8, 0, 0).set("HoodTip", 6, 0, 0)
+    p.set("Spine", 16 + 1.5 * breath, 0, 0).set("Chest", 10 + 2 * wave(t, 2, -0.07), 0, 0)
+    # Голова: смотрит в огонь, иногда клюёт носом и вздрагивает
+    nod = pulse(t, 0.55, 0.12)
+    p.set("Head", 14 + 16 * nod - 6 * pulse(t, 0.66, 0.03), 6 * wave(t, 1, 0.3), 0)
+    p.add("HoodTip", x=3 * breath + 10 * nod)
+    # Посох прислонён к правому плечу: верх уходит назад, низ стоит на земле впереди
+    p.staff_arm(22, 58, lean=-58, side=-6, out=10)
+    p.add("Staff", x=1.5 * breath)
+    crystal(p, t, spin=0.25, wobble=3)
+    # Левая рука лежит на колене; раз за цикл тянет ладонь к огню
+    warm = pulse(t, 0.25, 0.14)
+    p.left_arm(28 + 30 * warm, 52 - 30 * warm, out=8, twist=10 + 30 * warm)
+    p.set("Hand.L", -10 - 20 * warm, 0, 0)
+    p.add("Cloak", x=1.5 * wave(t, 1, -0.2))
+    return p
+
+
 def build_actions(rig):
     k.bake(rig, "Idle", 100, idle, cyclic=True)
     k.bake(rig, "Walk", 24, walk, cyclic=True)
@@ -388,6 +414,7 @@ def build_actions(rig):
     k.bake(rig, "Block", 20, block)
     k.bake(rig, "Hit", 15, hit)
     k.bake(rig, "Death", 45, death)
+    k.bake(rig, "Sit", 120, sit, cyclic=True)
 
 
 # ---------- Сборка и экспорт ----------

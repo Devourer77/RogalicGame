@@ -36,6 +36,9 @@ var _face_point: Vector3 = Vector3.ZERO
 var _seated: bool = false
 var _stuck_timer: float = 0.0
 var _stuck_last_dist: float = 0.0
+var _sit_on: Vector3 = Vector3.INF   # где сесть (середина скамьи); INF — сесть там, где пришёл
+var _sit_from: Vector3 = Vector3.INF # откуда пересели на скамью — сюда же встаём
+var _sit_tween: Tween
 
 
 func _ready() -> void:
@@ -127,9 +130,12 @@ func set_active(value: bool) -> void:
 
 # Идти по точкам пути (последняя — место у костра) и сесть лицом к face_point.
 # Промежуточные точки нужны, чтобы обойти постройки: герой идёт по прямой и сам обходить не умеет.
-func go_to(points: Array[Vector3], face_point: Vector3) -> void:
+# sit_on — середина скамьи: дойдя, герой пересаживается на неё (если у модели есть анимация Sit).
+func go_to(points: Array[Vector3], face_point: Vector3, sit_on: Vector3 = Vector3.INF) -> void:
 	if points.is_empty():
 		return
+	_stand_up()
+	_sit_on = sit_on
 	_path = points.duplicate()
 	_goal = _path[0]
 	_face_point = face_point
@@ -161,11 +167,19 @@ func _sit() -> void:
 	if d.length() > 0.01:
 		rotation.y = atan2(-d.x, -d.z)
 	if _anim != null:
-		# Анимации «сидеть» у моделей пока нет: герой стоит у огня и «дышит»
-		if _anim.has_animation("Sit"):
+		if _anim.has_animation("Sit") and _sit_on != Vector3.INF:
+			# Пересаживается на скамью. Скамья — препятствие, поэтому на время отключаем тело героя
+			_sit_from = global_position
+			_set_body_enabled(false)
+			var seat_dir: Vector3 = _face_point - _sit_on
+			seat_dir.y = 0.0
+			if seat_dir.length() > 0.01:
+				rotation.y = atan2(-seat_dir.x, -seat_dir.z)
+			_sit_tween = create_tween()
+			_sit_tween.tween_property(self, "global_position", _sit_on, 0.3)
 			_play_loop("Sit")
 		else:
-			_play_loop("Idle")
+			_play_loop("Idle")   # модели без Sit: стоит у огня и «дышит»
 		return
 	create_tween().tween_property(_mesh_root, "position:y", -SIT_DROP, 0.25)
 
@@ -175,6 +189,20 @@ func _stand_up() -> void:
 		_seated = false
 		if _anim == null:
 			create_tween().tween_property(_mesh_root, "position:y", 0.0, 0.2)
+	if _sit_from != Vector3.INF:
+		# Встаёт со скамьи туда, откуда сел, и снова становится препятствием
+		if _sit_tween != null:
+			_sit_tween.kill()
+		global_position = _sit_from
+		_sit_from = Vector3.INF
+		_set_body_enabled(true)
+		_play_loop("Idle")
+
+
+func _set_body_enabled(value: bool) -> void:
+	for child in get_children():
+		if child is CollisionShape3D:
+			(child as CollisionShape3D).set_deferred("disabled", not value)
 
 
 # Включает зацикленную анимацию, если она ещё не играет (плавный переход 0,15 с)
