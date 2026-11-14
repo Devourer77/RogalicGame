@@ -9,6 +9,7 @@ uniform vec4 albedo : source_color = vec4(1.0);
 uniform sampler2D albedo_texture : source_color, hint_default_white;
 uniform bool use_vertex_color = false;
 uniform vec3 emission_color : source_color = vec3(0.0);
+uniform sampler2D emission_texture : source_color, hint_default_white;   // свечение запечённой модели (stylize.py)
 uniform float emission_energy = 0.0;
 uniform float roughness : hint_range(0.0, 1.0) = 0.9;
 
@@ -59,5 +60,5 @@ void fragment() {
 	ALBEDO = base;
 	ROUGHNESS = roughness;
 	float edge = 1.0 - smoothstep(0.0, edge_width, v - cut);
-	EMISSION = emission_color * emission_energy + edge_color * edge * edge_energy * step(0.001, progress);
+	EMISSION = emission_color * texture(emission_texture, UV).rgb * emission_energy + edge_color * edge * edge_energy * step(0.001, progress);
 }

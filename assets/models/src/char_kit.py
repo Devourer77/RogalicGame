@@ -281,7 +281,16 @@ def start_scene(scene_name):
     return scene
 
 
-def export(rig, body, glb_path, blend_path=None):
+def export(rig, body, glb_path, blend_path=None, tex_size=None):
+    # Стилизация (тени в складках, светлые рёбра, градиент) запекается в текстуру до привязки
+    # к скелету, пока тело в позе покоя. Отключить — stylize.STYLIZE = False.
+    import os, sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import stylize
+    if tex_size is None:   # герои и боссы крупнее и видны в хабе — им 1024, остальным 512
+        name = os.path.splitext(os.path.basename(glb_path))[0]
+        tex_size = stylize.SIZE_BIG if name in stylize.BIG_CHARACTERS else stylize.SIZE_UNIT
+    stylize.stylize(body, os.path.join(os.path.dirname(os.path.abspath(__file__)), "baked"), tex_size)
     body.parent = rig
     mod = body.modifiers.new("Armature", "ARMATURE")
     mod.object = rig

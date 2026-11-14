@@ -5,6 +5,8 @@
 # Правила стиля (из claude/мир.md): low-poly, однотонные материалы, без красного,
 # 1 единица = 1 метр = 1 клетка, origin — в центре клетки на уровне земли.
 import bpy, bmesh, math, random, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import stylize   # запекание стилизации в текстуру (тени, кромки, градиент)
 from mathutils import Matrix, Vector, Euler
 
 
@@ -95,6 +97,30 @@ class Model:
         bmesh.ops.translate(self.bm, verts=r["verts"], vec=(0, 0, h / 2))
         self._place(r["verts"], pos, rot, self._slot(color, **kw))
 
+    def prism(self, pts, z0, z1, color, chamfer=0.0, **kw):
+        """Призма по многоугольнику pts (x, y против часовой) от z0 до z1, верхнее ребро скошено на chamfer."""
+        cx = sum(p[0] for p in pts) / len(pts)
+        cy = sum(p[1] for p in pts) / len(pts)
+        n = len(pts)
+
+        def inset(p, d):
+            dx, dy = cx - p[0], cy - p[1]
+            ln = math.hypot(dx, dy) or 1.0
+            return (p[0] + dx / ln * d, p[1] + dy / ln * d)
+
+        bot = [self.bm.verts.new((x, y, z0)) for x, y in pts]
+        mid = [self.bm.verts.new((x, y, z1 - chamfer)) for x, y in pts]
+        top = [self.bm.verts.new((*inset(p, chamfer * 1.3), z1)) for p in pts]
+        faces = [self.bm.faces.new(list(reversed(bot))), self.bm.faces.new(top)]
+        for i in range(n):
+            j = (i + 1) % n
+            faces.append(self.bm.faces.new((bot[i], bot[j], mid[j], mid[i])))
+            if chamfer > 0:
+                faces.append(self.bm.faces.new((mid[i], mid[j], top[j], top[i])))
+        slot = self._slot(color, **kw)
+        for f in faces:
+            f.material_index = slot
+
     def blob(self, r, pos, color, scale=(1, 1, 1), jit=0.12, rot=(0, 0, 0), **kw):
         """Неровный камень/кочка: икосфера со сдвинутыми вершинами."""
         res = bmesh.ops.create_icosphere(self.bm, subdivisions=1, radius=r)
@@ -181,11 +207,125 @@ def tile_planks(m):
               rot=(0, 90, m.rnd.uniform(-1.5, 1.5)), seg=6)
 
 
+# ======================= ШЕСТИУГОЛЬНЫЕ ПЛИТЫ (верх на высоте 0) =======================
+# Соты «острым углом вверх»: углы шестиугольника на ±Y в Blender (это ±Z в Godot).
+# Радиус = HexMath.HEX_SIZE × Board.TILE_GAP = 0.664 × 0.97. Толщина 0.2, как у призм в board.gd.
+HEX_R = 1.15 / math.sqrt(3) * 0.97
+BASALT = (0.21, 0.20, 0.20)
+BASALT_D = (0.15, 0.14, 0.14)
+PEAT = (0.27, 0.19, 0.13)
+PEAT_D = (0.20, 0.14, 0.10)
+
+
+def hex_pts(r, rot=0.0):
+    return [(r * math.cos(math.radians(90 + 60 * k + rot)), r * math.sin(math.radians(90 + 60 * k + rot))) for k in range(6)]
+
+
+def hex_base(m, color, top=0.0, chamfer=0.035):
+    m.prism(hex_pts(HEX_R), top - 0.2, top, color, chamfer=chamfer)
+
+
+@model
+def tile_hex_stone_a(m):
+    """Цельная каменная плита со скошенной кромкой, трещиной и сколом."""
+    hex_base(m, STONE)
+    m.box((0.46, 0.028, 0.012), (-0.08, 0.1, 0.0), STONE_D, rot=(0, 0, 24))
+    m.box((0.26, 0.028, 0.012), (0.18, -0.06, 0.0), STONE_D, rot=(0, 0, -38))
+    m.box((0.16, 0.16, 0.05), (0.36, 0.3, -0.015), STONE_D, rot=(0, 0, 30))
+
+
+@model
+def tile_hex_stone_b(m):
+    """Второй камень: плита потемнее, расколотая на два куска, с отбитым углом.
+    (Не «кубиком» из трёх ромбов — такая плита читалась как объёмный куб.)"""
+    c = hex_pts(HEX_R)
+    m.prism(c, -0.2, -0.05, STONE_D)
+    # раскол по линии между двумя противоположными сторонами, немного вбок
+    p1 = ((c[1][0] + c[2][0]) / 2 + 0.04, (c[1][1] + c[2][1]) / 2)
+    p2 = ((c[4][0] + c[5][0]) / 2 - 0.02, (c[4][1] + c[5][1]) / 2)
+    half_a = [p2, c[5], c[0], c[1], p1]
+    half_b = [p1, c[2], c[3], c[4], p2]
+    for pts, h, col in ((half_a, 0.0, (0.27, 0.30, 0.30)), (half_b, -0.012, (0.25, 0.28, 0.28))):
+        cx = sum(p[0] for p in pts) / len(pts)
+        cy = sum(p[1] for p in pts) / len(pts)
+        pts = [(cx + (x - cx) * 0.975, cy + (y - cy) * 0.975) for x, y in pts]   # щель раскола
+        m.prism(pts, -0.12, h, col, chamfer=0.03)
+    m.box((0.2, 0.025, 0.012), (0.12, 0.26, 0.0), STONE_D, rot=(0, 0, -20))
+    m.blob(0.07, (-0.3, -0.25, -0.01), MOSS, scale=(1.3, 1, 0.12))
+
+
+@model
+def tile_hex_moss(m):
+    """Плита, заросшая мхом, с пучками травы."""
+    hex_base(m, STONE_D)
+    m.blob(0.3, (-0.14, 0.14, -0.012), MOSS, scale=(1.1, 0.9, 0.09))
+    m.blob(0.22, (0.2, -0.18, -0.012), MOSS_L, scale=(1, 1.2, 0.09))
+    m.blob(0.13, (0.26, 0.28, -0.012), MOSS, scale=(1, 1, 0.1))
+    for x, y in [(-0.28, 0.26), (-0.22, 0.32), (0.32, -0.26)]:
+        m.cyl(0.02, 0, 0.14, (x, y, 0), MOSS_L, rot=(m.rnd.uniform(-15, 15), m.rnd.uniform(-15, 15), 0), seg=3)
+
+
+@model
+def tile_hex_mud(m):
+    """Грязь: тёмная земля, мокрые пятна, пара камешков. Ниже камня на 2 см."""
+    hex_base(m, MUD, top=-0.02, chamfer=0.05)
+    m.blob(0.27, (0.08, 0.1, -0.025), MUD_W, scale=(1.2, 0.9, 0.05), rough=0.35)
+    m.blob(0.15, (-0.24, -0.2, -0.025), MUD_W, scale=(1, 1.3, 0.06), rough=0.35)
+    m.blob(0.05, (-0.28, 0.24, -0.01), STONE_D, scale=(1, 1, 0.6))
+    m.blob(0.035, (0.3, -0.26, -0.012), STONE, scale=(1, 1, 0.6))
+    m.cyl(0.018, 0, 0.12, (0.32, 0.26, -0.02), REED_D, rot=(10, -8, 0), seg=3)
+
+
+@model
+def tile_hex_planks(m):
+    """Гать: брёвна поперёк, обрезаны по форме соты, под ними грязь."""
+    hex_base(m, MUD_W, top=-0.12, chamfer=0.0)
+    for i in range(6):
+        y = -0.48 + i * 0.192
+        half = HEX_R * math.sqrt(3) / 2   # полуширина соты на этой высоте
+        if abs(y) > HEX_R / 2:
+            half *= (HEX_R - abs(y)) / (HEX_R / 2)
+        ln = max(half * 2 - 0.06 - m.rnd.uniform(0, 0.05), 0.15)
+        col = [WOOD_ROT, WOOD_D, WOOD_ROT, WOOD_ROT, WOOD_D, WOOD_ROT][i]
+        m.cyl(0.092, 0.088, ln, (-ln / 2, y, -0.09), col, rot=(0, 90, m.rnd.uniform(-1.5, 1.5)), seg=6)
+
+
+@model
+def tile_hex_basalt(m):
+    """Тлеющая пещера: столбы базальта разной высоты."""
+    m.prism(hex_pts(HEX_R), -0.2, -0.05, BASALT_D)
+    m.prism(hex_pts(0.3, 10), -0.1, 0.0, BASALT, chamfer=0.025)
+    for k, h in zip(range(0, 6, 2), (-0.012, -0.004, -0.02)):
+        a = math.radians(90 + 60 * k + 30)
+        m.prism([(x + 0.37 * math.cos(a), y + 0.37 * math.sin(a)) for x, y in hex_pts(0.21, 20 * k)],
+                -0.1, h, [BASALT_D, BASALT, BASALT][k // 2], chamfer=0.02)
+
+
+@model
+def tile_hex_peat(m):
+    """Торф: бурая волокнистая земля с комьями (на нём снова вспыхивает огонь)."""
+    hex_base(m, PEAT, top=-0.01, chamfer=0.05)
+    for i in range(6):
+        a = math.radians(30 + 60 * i + m.rnd.uniform(-15, 15))
+        rr = m.rnd.uniform(0.15, 0.38)
+        m.blob(m.rnd.uniform(0.06, 0.1), (rr * math.cos(a), rr * math.sin(a), -0.015), PEAT_D if i % 2 else PEAT,
+               scale=(1.2, 1, 0.45), jit=0.3)
+    for i in range(4):
+        a = m.rnd.uniform(0, 6.28)
+        m.box((0.22, 0.012, 0.01), (0.2 * math.cos(a), 0.2 * math.sin(a), -0.008), PEAT_D, rot=(0, 0, math.degrees(a) + 70))
+
+
 # ======================= ОБЪЕКТЫ НА КЛЕТКАХ =======================
 
 def bog_base(m):
-    m.box((0.98, 0.98, 0.05), (0, 0, -0.005), BOG, rough=0.15)
-    m.box((1.0, 1.0, 0.16), (0, 0, -0.12), MUD_W)
+    """Основа трясины по форме соты: чёрная вода в грязевом бортике."""
+    m.prism(hex_pts(HEX_R - 0.035), -0.04, 0.02, BOG, rough=0.15)
+    m.prism(hex_pts(HEX_R), -0.2, 0.0, MUD_W, chamfer=0.03)
+
+
+def hex_half_height(x):
+    """Сколько места по Y у соты на расстоянии x от центра (доски не должны вылезать за край)."""
+    return max(HEX_R - abs(x) / math.sqrt(3), 0.0)
 
 
 @model
@@ -209,8 +349,8 @@ def obj_planks(m):
     m.box((0.24, 0.5, 0.045), (0.0, -0.2, 0.05), WOOD_D, rot=(3, 0, 3))
     m.box((0.24, 0.34, 0.045), (0.02, 0.3, 0.035), WOOD_D, rot=(-9, 4, -6))
     m.box((0.24, 0.92, 0.045), (0.3, 0, 0.05), WOOD_ROT, rot=(0, -3, 5))
-    m.cyl(0.04, 0.035, 0.22, (-0.44, -0.44, -0.05), WOOD_D)
-    m.cyl(0.04, 0.03, 0.16, (0.44, 0.44, -0.05), WOOD_D, rot=(8, 0, 0))
+    m.cyl(0.04, 0.035, 0.22, (-0.44, -0.28, -0.05), WOOD_D)
+    m.cyl(0.04, 0.03, 0.16, (0.44, 0.28, -0.05), WOOD_D, rot=(8, 0, 0))
 
 
 @model
@@ -218,14 +358,16 @@ def obj_bridge(m):
     """Крепкий настил рыцаря: свежие доски, поперечины, столбики по углам."""
     bog_base(m)
     for i in range(4):
-        m.box((0.225, 0.96, 0.06), (-0.345 + i * 0.23, 0, 0.06), WOOD_F if i % 2 == 0 else (0.46, 0.37, 0.25))
+        x = -0.345 + i * 0.23
+        ln = min(0.96, 2 * hex_half_height(abs(x) + 0.11) - 0.03)
+        m.box((0.225, ln, 0.06), (x, 0, 0.06), WOOD_F if i % 2 == 0 else (0.46, 0.37, 0.25))
     for y in (-0.32, 0.32):
         m.box((0.98, 0.09, 0.05), (0, y, 0.11), WOOD_ROT)
     for x in (-0.45, 0.45):
-        for y in (-0.45, 0.45):
+        for y in (-0.3, 0.3):
             m.cyl(0.045, 0.04, 0.3, (x, y, -0.05), WOOD_D)
-    m.box((0.05, 0.05, 0.03), (0.45, -0.32, 0.14), IRON)
-    m.box((0.05, 0.05, 0.03), (-0.45, 0.32, 0.14), IRON)
+    m.box((0.05, 0.05, 0.03), (0.45, -0.3, 0.14), IRON)
+    m.box((0.05, 0.05, 0.03), (-0.45, 0.3, 0.14), IRON)
 
 
 def dead_tree(m, lean, branches, height=1.9):
@@ -584,7 +726,11 @@ def decor_spire(m):
 
 # ======================= СБОРКА И ЭКСПОРТ =======================
 
-def build_all(out_dir, blend_path):
+BIG = {"decor_spire", "decor_tree_big", "decor_wall", "decor_arch", "decor_rock_big"}   # крупный декор — текстура 1024
+
+
+def build_all(out_dir, blend_path, only=None):
+    """only — список имён: собрать и выгрузить только эти модели (для проб)."""
     bpy.ops.wm.read_factory_settings(use_empty=True)
     os.makedirs(out_dir, exist_ok=True)
     report = []
@@ -594,6 +740,16 @@ def build_all(out_dir, blend_path):
         ob = m.finish()
         tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
         report.append((name, tris))
+        if only and name not in only:
+            ob.location = ((i % 8) * 3.0, (i // 8) * 4.0, 0)
+            continue
+        # Стилизация: тени в складках, светлые рёбра, градиент (stylize.py). Плитам хватит 256,
+        # крупному декору — 1024. Старые квадратные tile_* не используются — их не запекаем.
+        if not (name.startswith("tile_") and not name.startswith("tile_hex")):
+            size = 256 if name.startswith("tile_hex") else (1024 if name in BIG else 512)
+            stylize.stylize(ob, os.path.join(os.path.dirname(os.path.abspath(__file__)), "baked"), size,
+                            edge_radius=0.012 if name.startswith("tile_hex") else stylize.EDGE_RADIUS)
+        ob.hide_set(False)
         bpy.ops.object.select_all(action="DESELECT")
         ob.select_set(True)
         bpy.context.view_layer.objects.active = ob
@@ -608,4 +764,5 @@ def build_all(out_dir, blend_path):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    build_all(args[0] if args else "out", args[1] if len(args) > 1 else "")
+    build_all(args[0] if args else "out", args[1] if len(args) > 1 else "",
+              args[2].split(",") if len(args) > 2 else None)

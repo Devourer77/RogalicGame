@@ -13,6 +13,7 @@ extends Node3D
 # ---------- Ручки ----------
 const FULL_EFFECTS: bool = true          # false — «упрощённые»: частиц вдвое меньше
 const FLASH_TIME: float = 0.18           # сколько длится вспышка модели при уроне
+const STATUS_FADE_TIME: float = 0.5   # за сколько секунд проявляется/сходит слой состояния на модели
 const DISSOLVE_TIME: float = 0.9         # за сколько секунд павший враг растворяется
 const NUMBER_SIZE: int = 96              # размер цифры урона (font_size у Label3D)
 const NUMBER_BIG_SIZE: int = 132         # …у сильного удара
@@ -298,6 +299,7 @@ var _process_cache: Dictionary = {}   # имя пресета → ParticleProces
 var _draw_cache: Dictionary = {}      # имя пресета → QuadMesh с материалом
 var _flash_shader: Shader = preload("res://assets/shaders/vfx/hit_flash.gdshader")
 var _dissolve_shader: Shader = preload("res://assets/shaders/vfx/dissolve.gdshader")
+var _status_shader: Shader = preload("res://assets/shaders/unit_status.gdshader")
 var _ring_mat: StandardMaterial3D
 
 
@@ -613,6 +615,10 @@ func _flash_material(view: Node3D) -> ShaderMaterial:
 		return view.get_meta("flash_mat")
 	var mat := ShaderMaterial.new()
 	mat.shader = _flash_shader
+	# Вторым проходом — слой состояний на самой модели (мокрый, яд, тина), см. _set_status_layer
+	var status_mat := ShaderMaterial.new()
+	status_mat.shader = _status_shader
+	mat.next_pass = status_mat
 	view.set_meta("flash_mat", mat)
 	for m in _meshes(view):
 		m.material_overlay = mat
@@ -649,6 +655,8 @@ func dissolve(view: Node3D, edge: Color, height: float) -> void:
 				if b.emission_enabled:
 					sm.set_shader_parameter("emission_color", b.emission)
 					sm.set_shader_parameter("emission_energy", b.emission_energy_multiplier)
+					if b.emission_texture != null:
+						sm.set_shader_parameter("emission_texture", b.emission_texture)
 				sm.set_shader_parameter("roughness", b.roughness)
 			sm.set_shader_parameter("edge_color", edge)
 			sm.set_shader_parameter("base_y", view.global_position.y)
@@ -1172,6 +1180,25 @@ func set_auras(view: Node3D, height: float, state: Dictionary) -> void:
 		parts.amount_ratio = clampf(0.35 + 0.22 * state.get("rune_hits", 0), 0.35, 1.0)
 	# Раздувание жабы: мешок пульсирует бирюзой тем сильнее, чем больше стаков
 	_set_inflation_pulse(view, state.get("inflation", 0))
+	_set_status_layer(view, height, want)
+
+
+# Слой состояний на модели: плавно проявляет или убирает мокрую плёнку, прожилки яда и тину.
+func _set_status_layer(view: Node3D, height: float, want: Dictionary) -> void:
+	var status_mat: ShaderMaterial = _flash_material(view).next_pass as ShaderMaterial
+	if status_mat == null:
+		return
+	status_mat.set_shader_parameter("height", height)
+	var old: Tween = view.get_meta("status_tween") if view.has_meta("status_tween") else null
+	if old != null and old.is_valid():
+		old.kill()
+	var tween: Tween = view.create_tween().set_parallel(true)
+	for key: String in ["wet", "poison", "bound"]:
+		var target: float = 1.0 if want.get(key, false) else 0.0
+		var from: float = status_mat.get_shader_parameter(key) if status_mat.get_shader_parameter(key) != null else 0.0
+		tween.tween_method(func(v: float) -> void: status_mat.set_shader_parameter(key, v),
+				from, target, STATUS_FADE_TIME)
+	view.set_meta("status_tween", tween)
 
 
 func _build_aura(key: String, node: Node3D, height: float, state: Dictionary) -> void:

@@ -10,7 +10,7 @@ const TILE_GAP: float = 0.97       # доля клетки, которую за�
 const TILE_THICKNESS: float = 0.2  # толщина плиты
 
 # Цвета плит-заглушек (те же, что в assets/models/src/build_topi.py).
-# Пока нет шестиугольных моделей из Blender, плиты рисуются простыми шестигранными призмами.
+# Плиты — шестиугольные модели tile_hex_*.glb; если файла нет, рисуется простая призма этого цвета.
 const TILE_COLORS: Dictionary[int, Color] = {
 	BattleLogic.Ground.STONE: Color(0.30, 0.33, 0.33),
 	BattleLogic.Ground.MOSS: Color(0.25, 0.33, 0.18),
@@ -24,7 +24,18 @@ const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй отте�
 # Все модели топей собраны скриптом assets/models/src/build_topi.py
 const DIR: String = "res://assets/models/topi/"
 
-# (квадратные плиты tile_*.glb остались в проекте, но в бою не используются: нужны новые, шестиугольные)
+# Шестиугольные плиты по виду покрытия (build_topi.py, «tile_hex_*»). У камня два вида:
+# второй (кладка из трёх камней) ставится там, где раньше был второй оттенок.
+const TILE_MODELS: Dictionary[int, String] = {
+	BattleLogic.Ground.STONE: "tile_hex_stone_a",
+	BattleLogic.Ground.MOSS: "tile_hex_moss",
+	BattleLogic.Ground.MUD: "tile_hex_mud",
+	BattleLogic.Ground.PLANKS: "tile_hex_planks",
+	BattleLogic.Ground.BASALT: "tile_hex_basalt",
+	BattleLogic.Ground.PEAT: "tile_hex_peat",
+}
+const TILE_STONE_ALT_MODEL: String = "tile_hex_stone_b"
+# (квадратные плиты tile_*.glb от старой квадратной сетки не используются)
 
 # Объекты на клетках (ключ — BattleLogic.Obj)
 const OBJ_BOG: PackedScene = preload(DIR + "obj_bog.glb")
@@ -118,6 +129,7 @@ var _flat_materials: Dictionary[Color, StandardMaterial3D] = {}
 var _solid_materials: Dictionary[Color, StandardMaterial3D] = {}
 var _highlight_mesh: CylinderMesh
 var _tile_mesh: CylinderMesh
+var _hex_tile_meshes: Dictionary[String, Mesh] = {}
 var _object_nodes: Dictionary[Vector2i, Node3D] = {}
 var _object_kinds: Dictionary[Vector2i, int] = {}
 var _arena: String = ""
@@ -137,13 +149,26 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 	for cell: Vector2i in HexMath.rect_cells(width, height):
 		var kind: int = ground.get(cell, BattleLogic.Ground.STONE)
 		var color: Color = TILE_COLORS.get(kind, TILE_COLORS[BattleLogic.Ground.STONE])
+		var model_name: String = TILE_MODELS.get(kind, TILE_MODELS[BattleLogic.Ground.STONE])
 		if kind == BattleLogic.Ground.STONE and rng.randf() > 0.6:
 			color = TILE_STONE_ALT
+			model_name = TILE_STONE_ALT_MODEL
 		var tile := MeshInstance3D.new()
-		tile.mesh = _get_tile_mesh()
-		tile.material_override = _get_solid_material(color)
-		# плиты чуть неровные по высоте
-		tile.position = grid_to_world(cell) + Vector3(0.0, -TILE_THICKNESS / 2.0 - rng.randf() * 0.02, 0.0)
+		var tile_mesh: Mesh = _get_hex_tile_mesh(model_name)
+		var drop: float = rng.randf() * 0.02   # плиты чуть неровные по высоте
+		if tile_mesh != null:
+			tile.mesh = tile_mesh
+			# Поворот на 0/60/…/300° по клетке, чтобы одинаковые плиты не лежали «под копирку».
+			# Гать — только 0 или 180°: брёвна идут поперёк дороги.
+			var turns: int = posmod(cell.x * 7 + cell.y * 13, 6)
+			if kind == BattleLogic.Ground.PLANKS:
+				turns = (turns % 2) * 3
+			tile.rotation.y = deg_to_rad(60.0 * turns)
+			tile.position = grid_to_world(cell) + Vector3(0.0, -drop, 0.0)
+		else:
+			tile.mesh = _get_tile_mesh()
+			tile.material_override = _get_solid_material(color)
+			tile.position = grid_to_world(cell) + Vector3(0.0, -TILE_THICKNESS / 2.0 - drop, 0.0)
 		add_child(tile)
 
 	_build_decorations(rng)
@@ -653,6 +678,22 @@ func _get_highlight_mesh() -> CylinderMesh:
 
 
 # Шестигранная плита (общая для всех клеток поля)
+# Меш шестиугольной плиты из tile_hex_*.glb (один на вид, общий для всех клеток). null — файла нет.
+func _get_hex_tile_mesh(model_name: String) -> Mesh:
+	if _hex_tile_meshes.has(model_name):
+		return _hex_tile_meshes[model_name]
+	var mesh: Mesh = null
+	var path: String = DIR + model_name + ".glb"
+	if ResourceLoader.exists(path):
+		var scene: Node = (load(path) as PackedScene).instantiate()
+		var found: Array[Node] = scene.find_children("*", "MeshInstance3D", true, false)
+		if not found.is_empty():
+			mesh = (found[0] as MeshInstance3D).mesh
+		scene.free()
+	_hex_tile_meshes[model_name] = mesh
+	return mesh
+
+
 func _get_tile_mesh() -> CylinderMesh:
 	if _tile_mesh == null:
 		_tile_mesh = _hex_prism(HexMath.HEX_SIZE * TILE_GAP, TILE_THICKNESS)
@@ -853,12 +894,19 @@ func _glow_slab(size: Vector3, color: Color, glow: Color, energy: float, y: floa
 	return m
 
 
+# То же, что _glow_slab, но шестигранное — по форме соты. part — доля радиуса клетки.
+func _glow_hex(part: float, thickness: float, color: Color, glow: Color, energy: float, y: float) -> MeshInstance3D:
+	var m: MeshInstance3D = _glow_slab(Vector3.ONE, color, glow, energy, y)
+	m.mesh = _hex_prism(HexMath.HEX_SIZE * part, thickness)
+	return m
+
+
 # Лава: тёмный остывший бортик и густая оранжево-жёлтая масса с тёплым светом (красного нет)
 func _make_lava_node() -> Node3D:
 	var root := Node3D.new()
-	root.add_child(_glow_slab(Vector3(0.98, 0.1, 0.98), Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05))
-	root.add_child(_glow_slab(Vector3(0.82, 0.14, 0.82), Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07))
-	root.add_child(_glow_slab(Vector3(0.4, 0.17, 0.4), Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6, 0.09))
+	root.add_child(_glow_hex(0.97, 0.1, Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05))
+	root.add_child(_glow_hex(0.80, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07))
+	root.add_child(_glow_hex(0.40, 0.17, Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6, 0.09))
 	var light: OmniLight3D = _add_light(root, Vector3(0.0, 0.5, 0.0), Color(1.0, 0.6, 0.15), 0.8, 2.4)
 	if vfx != null:
 		vfx.loop("lava_loop", root, Vector3(0.0, 0.17, 0.0))      # лопающиеся пузыри
@@ -870,8 +918,8 @@ func _make_lava_node() -> Node3D:
 # Корка: тёмно-серая плита с оранжевыми трещинами
 func _make_crust_node(hash_value: int) -> Node3D:
 	var root := Node3D.new()
-	root.rotation.y = (hash_value % 4) * PI / 2.0
-	root.add_child(_glow_slab(Vector3(0.94, 0.12, 0.94), Color(0.25, 0.25, 0.27), Color(0.2, 0.1, 0.03), 0.2, 0.06))
+	root.rotation.y = (hash_value % 6) * PI / 3.0   # шаг 60°, чтобы сота не съезжала
+	root.add_child(_glow_hex(0.94, 0.12, Color(0.25, 0.25, 0.27), Color(0.2, 0.1, 0.03), 0.2, 0.06))
 	root.add_child(_glow_slab(Vector3(0.7, 0.13, 0.06), Color(0.3, 0.2, 0.1), Color(1.0, 0.5, 0.1), 1.2, 0.065))
 	var crack := _glow_slab(Vector3(0.06, 0.13, 0.55), Color(0.3, 0.2, 0.1), Color(1.0, 0.5, 0.1), 1.2, 0.065)
 	crack.position.x = 0.15

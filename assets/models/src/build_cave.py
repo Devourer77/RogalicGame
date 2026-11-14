@@ -72,6 +72,10 @@ def build_all(out_dir, blend_path):
         ob = m.finish()
         tris = sum(len(p.vertices) - 2 for p in ob.data.polygons)
         print("%-18s %4d tris" % (name, tris))
+        import stylize   # тени в складках, светлые рёбра, градиент (stylize.py); стену пещеры — крупнее
+        stylize.stylize(ob, os.path.join(os.path.dirname(os.path.abspath(__file__)), "baked"),
+                        1024 if name == "decor_cave_wall" else 512)
+        ob.hide_set(False)
         bpy.ops.object.select_all(action="DESELECT")
         ob.select_set(True)
         bpy.context.view_layer.objects.active = ob

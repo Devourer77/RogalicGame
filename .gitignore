@@ -4,3 +4,12 @@
 
 # Резервные копии Blender
 *.blend1
+assets/models/src/baked/
+# Картинки, которые Godot сам достаёт из стилизованных .glb при импорте (stylize.py)
+assets/models/**/*_albedo.png
+assets/models/**/*_orm.png
+assets/models/**/*_emission.png
+assets/models/**/*_albedo.png.import
+assets/models/**/*_orm.png.import
+assets/models/**/*_emission.png.import
+__pycache__/
