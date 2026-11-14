@@ -805,6 +805,7 @@ func _on_cell_clicked(cell: Vector2i) -> void:
 			if logic.get_card_targets(_active, _selected_card).has(cell):
 				var h: BattleUnit = _active
 				var index: int = _selected_card
+				hud.burst_hand_card(index, h.hand[index])   # карта рассыпается искрами
 				_do(func() -> void: logic.play_card(h, index, cell))
 			else:
 				_cancel_card()
@@ -891,6 +892,7 @@ func _on_card_pressed(index: int) -> void:
 	var card: CardData = _active.hand[index]
 	if card.shape == CardData.Shape.SELF or card.shape == CardData.Shape.AROUND:
 		var h: BattleUnit = _active
+		hud.burst_hand_card(index, card)   # карта рассыпается искрами
 		_do(func() -> void: logic.play_card(h, index, h.cell))
 		return
 	Sfx.play("card_select", 0.05)

@@ -88,6 +88,7 @@ func _buy(item: Dictionary) -> void:
 	Run.add_card(item["hero"] as RunHero, card)   # заодно запишет карту в Запас Караульни
 	Run.shop_stock.erase(item)
 	_rebuild()
+	UiFx.card_toast(self, card, (item["hero"] as RunHero).data.color, "Куплено")
 
 
 # Окно с колодами героев: нажми на карту, которую убрать. Меньше 5 карт оставить нельзя.
@@ -137,6 +138,7 @@ func _do_upgrade(rh: RunHero, index: int, branch: int) -> void:
 	Run.upgrade_card(rh, index, branch)
 	Run.shop_upgrade_used = true
 	_rebuild()
+	UiFx.card_toast(self, rh.deck[index], rh.data.color, "Улучшено")
 
 
 func _show_deck(rh: RunHero) -> void:

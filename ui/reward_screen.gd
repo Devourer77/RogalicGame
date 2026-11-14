@@ -184,6 +184,7 @@ func _take_card(rh: RunHero, card: CardData, chosen: Button) -> void:
 	if Run.add_card(rh, card):
 		_note.text = "Записано в Караульню"
 	_finish(chosen, _all_buttons)
+	UiFx.shine(chosen)
 	_picked = true
 	_update_next()
 
@@ -195,6 +196,7 @@ func _take_upgrade(rh: RunHero, index: int, branch: int, chosen: Button) -> void
 	Run.upgrade_card(rh, index, branch)
 	_note.text = "Улучшено: %s" % rh.deck[index].title
 	_finish(chosen, _all_buttons)
+	UiFx.shine(chosen)
 	_picked = true
 	_update_next()
 
@@ -206,6 +208,7 @@ func _take_bonus(rh: RunHero, index: int, branch: int, chosen: Button) -> void:
 	Run.upgrade_card(rh, index, branch)
 	_note.text = "Улучшено: %s" % rh.deck[index].title
 	_finish(chosen, _bonus_buttons)
+	UiFx.shine(chosen)
 	_bonus_done = true
 	_update_next()
 
@@ -388,4 +391,6 @@ func _take_relic(r: RelicData, pressed: Button, buttons: Array[Button], refuse: 
 		b.disabled = true
 	pressed.text = "Взята" if r != null else "Отказались"
 	_relic_done = true
+	if r != null:
+		UiFx.shine(pressed)
 	_update_next()

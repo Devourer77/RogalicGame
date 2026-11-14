@@ -705,6 +705,20 @@ func _make_hand_slot(active: BattleUnit, index: int, cost: int, playable: bool, 
 	return slot
 
 
+# Сыгранная карта рассыпается искрами (UiFx). Зовётся сценой боя перед розыгрышем —
+# пока карта ещё в руке и видно, где она лежит.
+func burst_hand_card(index: int, card: CardData) -> void:
+	if _hand_box == null or index < 0 or index >= _hand_box.get_child_count():
+		return
+	var slot: Control = _hand_box.get_child(index) as Control
+	if slot == null or slot.get_child_count() == 0:
+		return
+	var button: Control = slot.get_child(0) as Control
+	var rect: Rect2 = button.get_global_rect()
+	rect.position -= _root.global_position
+	UiFx.card_burst(_root, rect, CardView.set_color(card))
+
+
 func _selected_frame() -> StyleBoxFlat:
 	var frame: StyleBoxFlat = UiKit.box(CardView.COLOR_PAPER.lightened(0.06), UiKit.BRASS.lightened(0.3), 4, 8, 0, 0)
 	frame.corner_detail = 1   # срезанные углы, как у самой карты
