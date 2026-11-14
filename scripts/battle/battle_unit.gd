@@ -29,6 +29,8 @@ var overloaded: bool = false  # «Перегрузка»: не потратил 
 var swamp_free: bool = false        # «Кочка»: топь в этот ход не отнимает шагов
 var root_guard: bool = false        # «Корни под ногами»: подошедший вплотную враг опутан
 var gust_guard: int = 0             # «Вихрь вокруг»: подошедший вплотную враг отлетает на столько
+var ember_guard: bool = false       # «Щит углей»: под подошедшим вплотную врагом загорается клетка
+var temper: int = 0                 # «Закалка в пару»: +урон следующей карте с уроном в этот ход
 var spirits: Array[String] = []      # id прирученных духов героя (пассивы)
 var next_lightning: bool = false    # «Буревой разбег»: следующий удар — молния
 var lightning_bonus: int = 0        # «Грозовой заряд»: +урон следующей карте молнии
@@ -86,6 +88,8 @@ func copy() -> BattleUnit:
 	u.swamp_free = swamp_free
 	u.root_guard = root_guard
 	u.gust_guard = gust_guard
+	u.ember_guard = ember_guard
+	u.temper = temper
 	u.next_lightning = next_lightning
 	u.lightning_bonus = lightning_bonus
 	u.outpost = outpost

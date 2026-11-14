@@ -64,6 +64,8 @@ enum AiStyle { NORMAL, HUNTER, GUARD, AMBUSH }
 @export var ambush: int = 0           # «Засада» (скрытень): удар из камыша сильнее на столько
 @export var cult: bool = false        # из Культа Пустого Венца (получает венец павшего послушника)
 @export var bequest: int = 0          # «Наследие венца» (послушник): погибая, отдаёт ближайшему культисту +столько к удару навсегда
+@export var fire_walker: bool = false # «Дитя огня» (Жаровик): огонь и лава его не ранят, по лаве ходит как по полу
+@export var water_weak: bool = false  # «Боится воды» (Жаровик): мокрый — без брони, вода и пар ранят вдвое
 
 var _basic: EnemyAttackData   # удар простого врага, собранный из полей выше
 
@@ -119,6 +121,10 @@ func traits() -> PackedStringArray:
 		t.append("удар из камыша +%d" % ambush)
 	if bequest > 0:
 		t.append("погибая, отдаёт венец ближайшему культисту: его удары +%d" % bequest)
+	if fire_walker:
+		t.append("Дитя огня: огонь и лава его не ранят, по лаве ходит")
+	if water_weak:
+		t.append("Боится воды: мокрый или в луже — без брони, вода и пар ранят вдвое")
 	if move_range <= 0:
 		t.append("не двигается")
 	return t

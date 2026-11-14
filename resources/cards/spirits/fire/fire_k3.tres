@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_k3+1"
+icon = "ram"
+title = "Огненный таран+I"
+description = "Таран до 6, путь горит. Врезавшись: 5 урона +1 за звено, под целью огонь."
+shape = 6
+cost = 2
+cast_range = 6
+damage = 5
+per_link_damage = 1
+special = "fire_trail"
+card_set = "s_fire"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_k3+2"
+icon = "ram"
+title = "Огненный таран+II"
+description = "Сквозной таран до 4: каждому 4 урона +1 за звено, отлёт вбок, путь горит."
+shape = 6
+cost = 2
+cast_range = 4
+damage = 4
+per_link_damage = 1
+special = "fire_pass"
+card_set = "s_fire"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_k3"
+icon = "ram"
+title = "Огненный таран"
+description = "Таран до 4, путь горит. Врезавшись: 5 урона +1 за звено Цепи, под целью огонь."
+shape = 6
+cost = 2
+cast_range = 4
+damage = 5
+per_link_damage = 1
+special = "fire_trail"
+card_set = "s_fire"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

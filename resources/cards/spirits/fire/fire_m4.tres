@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_m4+1"
+icon = "dash"
+title = "Тяга+I"
+description = "Маг переносится на горящую клетку до 7. +1 шаг."
+shape = 1
+cost = 0
+cast_range = 7
+special = "fire_step"
+bonus_moves = 1
+card_set = "s_fire"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["fire"])
+spirit_slot = 4
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_m4+2"
+icon = "dash"
+title = "Тяга+II"
+description = "Маг переносится на горящую клетку до 5, откуда ушёл — загорается. +1 шаг."
+shape = 1
+cost = 0
+cast_range = 5
+special = "fire_step"
+bonus_moves = 1
+bonus_amount = 1
+card_set = "s_fire"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["fire"])
+spirit_slot = 4
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_m4"
+icon = "dash"
+title = "Тяга"
+description = "Маг переносится на горящую клетку до 5. +1 шаг."
+shape = 1
+cost = 0
+cast_range = 5
+special = "fire_step"
+bonus_moves = 1
+card_set = "s_fire"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["fire"])
+spirit_slot = 4
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

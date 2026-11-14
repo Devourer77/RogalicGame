@@ -885,13 +885,19 @@ def _sign(part: Part, kind: str, x: float, y: float, z: float) -> None:
 		for k, (dx, dz, w, h) in enumerate(((0, 0.07, 0.14, 0.025), (0.07, 0, 0.025, 0.14), (0, -0.07, 0.14, 0.025),
 				(-0.06, -0.02, 0.025, 0.1), (-0.02, 0.02, 0.07, 0.025))):
 			part.box((x + dx, y, z + dz), (w, 0.02, h), "dark_stone")
+	elif kind == "fire":
+		# язык пламени: три штриха сходятся кверху, под ними черта углей
+		part.box((x, y, z + 0.02), (0.025, 0.02, 0.2), "dark_stone")
+		part.box((x - 0.05, y, z - 0.01), (0.022, 0.02, 0.13), "dark_stone", rot_y=20.0)
+		part.box((x + 0.05, y, z - 0.01), (0.022, 0.02, 0.13), "dark_stone", rot_y=-20.0)
+		part.box((x, y, z - 0.11), (0.16, 0.02, 0.025), "dark_stone")
 	else:
 		part.box((x, y, z), (0.025, 0.02, 0.26), "dark_stone")
 		part.box((x - 0.05, y, z - 0.02), (0.02, 0.02, 0.14), "dark_stone", rot_y=-30.0)
 		part.box((x + 0.05, y, z + 0.02), (0.02, 0.02, 0.14), "dark_stone", rot_y=30.0)
 
 
-SHRINE_SPIRITS: list = ["tide", "storm", "wind", "bog"]
+SHRINE_SPIRITS: list = ["tide", "storm", "wind", "bog", "fire"]
 
 
 def build_shrine() -> None:

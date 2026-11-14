@@ -175,7 +175,8 @@ static func _context(l: BattleLogic, e: BattleUnit) -> Dictionary:
 		if burst_soon:
 			for t in HexMath.in_range(other.cell, 2 if other.inflation >= 2 else 1):
 				toad[t] = true
-	return {"barrel": barrel, "toad": toad, "ward": _ward(l, e), "prey": _prey(l, e)}
+	return {"barrel": barrel, "toad": toad, "ward": _ward(l, e), "prey": _prey(l, e),
+			"fireproof": e.data != null and e.data.fire_walker}
 
 
 # Подопечный телохранителя: ближайший свой стрелок или зовущий не дальше GUARD_RANGE
@@ -221,8 +222,8 @@ static func _prey(l: BattleLogic, e: BattleUnit) -> BattleUnit:
 static func _place_value(l: BattleLogic, c: Vector2i, ctx: Dictionary) -> int:
 	var v: int = 0
 	var tile: int = l.tile_at(c)
-	if tile == BattleLogic.Tile.FIRE:
-		v -= AI_FIRE_UNDER
+	if tile == BattleLogic.Tile.FIRE and not ctx.get("fireproof", false):
+		v -= AI_FIRE_UNDER   # Жаровику огонь не страшен
 	elif tile == BattleLogic.Tile.GAS:
 		v -= AI_ON_GAS
 	if ctx["barrel"].has(c):

@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_fire_bog_k1+1"
+icon = "hammer"
+title = "Вдавить в лаву+I"
+description = "Соседний враг: 2 урона, толчок 4. Упёрся в лаву или стоит в огне — ещё 6 +2 за звено."
+shape = 1
+cost = 2
+damage = 2
+push = 4
+special = "lava_shove"
+bonus_amount = 6
+card_set = "x_fire_bog"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire", "bog"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_fire_bog_k1+2"
+icon = "hammer"
+title = "Вдавить в лаву+II"
+description = "Соседний враг: 2 урона, толчок 3. Упёрся в лаву или в огне — ещё 6 +2 за звено."
+shape = 1
+damage = 2
+push = 3
+special = "lava_shove"
+bonus_amount = 6
+card_set = "x_fire_bog"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire", "bog"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_fire_bog_k1"
+icon = "hammer"
+title = "Вдавить в лаву"
+description = "Соседний враг: 2 урона, толчок 3. Упёрся в лаву или стоит в огне — ещё 6 +2 за звено."
+shape = 1
+cost = 2
+damage = 2
+push = 3
+special = "lava_shove"
+bonus_amount = 6
+card_set = "x_fire_bog"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire", "bog"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

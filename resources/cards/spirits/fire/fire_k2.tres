@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_k2+1"
+icon = "sword"
+title = "Раскалённый клинок+I"
+description = "4 урона вплотную; по врагу в огне ещё +3.\nЦепь 2: +2."
+shape = 1
+cost = 0
+damage = 4
+special = "hot_blade"
+bonus_amount = 3
+chain_need = 2
+chain_damage = 2
+card_set = "s_fire"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["fire"])
+spirit_slot = 2
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_k2+2"
+icon = "sword"
+title = "Раскалённый клинок+II"
+description = "3 урона вплотную (в огне +3), клетка цели загорается.\nЦепь 2: +2."
+shape = 1
+element = 1
+cost = 0
+damage = 3
+special = "hot_blade"
+bonus_amount = 3
+chain_need = 2
+chain_damage = 2
+card_set = "s_fire"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["fire"])
+spirit_slot = 2
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_k2"
+icon = "sword"
+title = "Раскалённый клинок"
+description = "3 урона вплотную; по врагу в огне ещё +3.\nЦепь 2: +2."
+shape = 1
+cost = 0
+damage = 3
+special = "hot_blade"
+bonus_amount = 3
+chain_need = 2
+chain_damage = 2
+card_set = "s_fire"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["fire"])
+spirit_slot = 2
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

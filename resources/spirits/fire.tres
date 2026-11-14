@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="SpiritData" load_steps=29 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spirit_data.gd" id="1_spirit"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_call.tres" id="c1"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_m1.tres" id="c2"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_m2.tres" id="c3"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_m3.tres" id="c4"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_m4.tres" id="c5"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_m5.tres" id="c6"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_m6.tres" id="c7"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_k1.tres" id="c8"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_k2.tres" id="c9"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_k3.tres" id="c10"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_k4.tres" id="c11"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_k5.tres" id="c12"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/fire/fire_k6.tres" id="c13"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_wind_m1.tres" id="c14"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_wind_m2.tres" id="c15"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_wind_k1.tres" id="c16"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_wind_k2.tres" id="c17"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_tide_m1.tres" id="c18"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_tide_m2.tres" id="c19"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_tide_k1.tres" id="c20"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_tide_k2.tres" id="c21"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_bog_m1.tres" id="c22"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_bog_m2.tres" id="c23"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_bog_k1.tres" id="c24"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_fire_bog_k2.tres" id="c25"]
+[ext_resource type="Resource" path="res://resources/enemies/spirit_fire.tres" id="c26"]
+
+[resource]
+script = ExtResource("1_spirit")
+id = "fire"
+title = "Жаровик"
+description = "Под топью горит тридцать лет. Наверх выходит только дым — и тот, кто его ищет."
+passive_text = "огонь и лава не ранят героя."
+color = Color(1, 0.55, 0.2, 1)
+icon = "fire"
+is_unique = true
+call_card = ExtResource("c1")
+mage_cards = Array[ExtResource("2_card")]([ExtResource("c2"), ExtResource("c3"), ExtResource("c4"), ExtResource("c5"), ExtResource("c6"), ExtResource("c7")])
+knight_cards = Array[ExtResource("2_card")]([ExtResource("c8"), ExtResource("c9"), ExtResource("c10"), ExtResource("c11"), ExtResource("c12"), ExtResource("c13")])
+mixed_cards = Array[ExtResource("2_card")]([ExtResource("c14"), ExtResource("c15"), ExtResource("c16"), ExtResource("c17"), ExtResource("c18"), ExtResource("c19"), ExtResource("c20"), ExtResource("c21"), ExtResource("c22"), ExtResource("c23"), ExtResource("c24"), ExtResource("c25")])
+enemy = ExtResource("c26")

@@ -9,14 +9,17 @@ func _initialize() -> void:
 	for s in range(1, 121):
 		run.start_new_run(s)
 		var b := BattleLogic.new()
-		b.setup(12, 12, run.rng, run.party, run._make_encounter(s % 8, s % 10 == 0))
+		if s % 6 == 0:
+			b.setup(12, 12, run.rng, run.party, cave_squad(), "cave")   # каждый 6-й бой — пещера Жаровика
+		else:
+			b.setup(12, 12, run.rng, run.party, run._make_encounter(s % 8, s % 10 == 0))
 		b.start()
 		for t in 8:
 			if b.is_over: break
 			for h in b.living_heroes():
 				var pool: Array[CardData] = h.hero_data.card_pool.duplicate()
 				# карты духов и смешанные — тоже в случайные руки (с улучшениями)
-				for sid in ["tide", "storm", "wind", "bog"]:
+				for sid in run.ALL_SPIRIT_IDS:
 					var sd: SpiritData = load("res://resources/spirits/%s.tres" % sid)
 					for c in sd.cards_for(h.hero_data.id) + sd.mixed_cards:
 						if c.owner_hero == h.hero_data.id:
@@ -61,3 +64,11 @@ func _initialize() -> void:
 				if not b._check_end(): b._start_heroes_turn()
 	print("сыграно карт: %d, расхождений прогноза: %d" % [played, mismatches])
 	quit()
+
+
+# Бой в Тлеющей пещере (Жаровик + 2 факельщика + 2 гоблина) — как после «Тлеющей расщелины»
+func cave_squad() -> Array[EnemyData]:
+	var list: Array[EnemyData] = [load("res://resources/enemies/spirit_fire.tres")]
+	for id in ["torch_goblin", "torch_goblin", "goblin", "goblin"]:
+		list.append(load("res://resources/enemies/%s.tres" % id))
+	return list

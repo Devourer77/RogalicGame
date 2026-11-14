@@ -29,7 +29,11 @@ const RELIC_CHOICES: int = 3          # из скольких выбирать �
 const RELIC_DIR: String = "res://resources/relics/"
 const SPIRIT_DIR: String = "res://resources/spirits/"
 const SPIRIT_IDS: Array[String] = ["tide", "storm", "wind"]   # обычные духи, которые встречаются в логове
-const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog"]   # все духи по порядку Святилища
+const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog", "fire"]   # все духи по порядку Святилища
+# Тлеющая расщелина (секретный бой с Жаровиком, тз-дух-огня.md)
+const CAVE_EVENT_CHANCE: float = 0.25   # шанс, что событие окажется расщелиной
+const CAVE_ROWS: Vector2i = Vector2i(1, 4)   # в каких рядах карты она может встретиться
+const CAVE_ECHOES: int = 10             # Отзвуки за победу в пещере
 const SPIRIT_SLOTS: int = 2                            # духов на героя
 const LAIR_ROW: int = 2                                # ряд карты с логовом духа (одна точка)
 const SPIRIT_CARD_WEIGHT: float = 2.0                  # карты своих духов и смешанные выпадают чаще
@@ -119,6 +123,8 @@ var relics: Array[String] = []   # id оберегов этого забега (
 var trophy_echoes: int = 0       # Отзвуки вместо трофея (когда все обереги открыты)
 var trophy_choices: Array[RelicData] = []   # из чего выбирать трофей за босса
 var cache_seen: bool = false     # «Тайник павшего дозорного» уже выпадал в этом забеге
+var cave_seen: bool = false      # «Тлеющая расщелина» уже встречалась в этом забеге
+var in_cave: bool = false        # идёт бой в пещере Жаровика
 var rest_used: bool = false      # первый привал уже был (для «Чистого бинта»)
 var candle_used: bool = false    # «Свеча у колокола» уже сработала
 var rerolled: bool = false       # «Знакомая тропа» уже использована
@@ -159,6 +165,8 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	trophy_echoes = 0
 	trophy_choices.clear()
 	cache_seen = false
+	cave_seen = false
+	in_cave = false
 	rest_used = false
 	candle_used = false
 	rerolled = false
@@ -520,6 +528,11 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 		party[i].hp = maxi(wake_hp, hp_left[i])
 	last_battle_big = false
 	tamed_spirit = null
+	if in_cave:
+		in_cave = false
+		offer_spirit(spirit_data("fire"))   # Жаровик сломлен: идёт к герою
+		event_echoes += CAVE_ECHOES
+		last_battle_big = true
 	if current != null and current.type == MapNode.Type.LAIR:
 		offer_spirit(pending_spirit)
 		pending_spirit = null
@@ -737,6 +750,28 @@ func _roll_lair_spirit() -> SpiritData:
 	var picked: SpiritData = free[rng.randi_range(0, free.size() - 1)]
 	Meta.mark_spirit_seen(picked.id)
 	return picked
+
+
+# Может ли событие оказаться «Тлеющей расщелиной»: ряды 1–4, духа огня нет, раз за забег
+func cave_possible() -> bool:
+	var row: int = current.row if current != null else 0
+	return not cave_seen and not party_has_spirit("fire") and spirit_data("fire") != null \
+			and row >= CAVE_ROWS.x and row <= CAVE_ROWS.y
+
+
+# Спуск в расщелину: сразу бой в пещере (Жаровик, 2 факельщика, 2 гоблина). Карта стоит на месте.
+func enter_cave() -> void:
+	in_cave = true
+	pending_spirit = null
+	pending_encounter = null
+	pending_enemies.clear()
+	pending_enemies.append(spirit_data("fire").enemy)
+	for id: String in ["torch_goblin", "torch_goblin", "goblin", "goblin"]:
+		pending_enemies.append(load("res://resources/enemies/%s.tres" % id) as EnemyData)
+	pending_arena = "cave"
+	pending_objective = BattleLogic.Objective.KILL_ALL
+	Meta.mark_spirit_seen("fire")   # Святилище: «Говорят, под топью что-то горит»
+	goto(BATTLE_SCENE)
 
 
 # В этом элитном бою живёт Хозяин трясины (бой с корягачом, а духа ещё нет)

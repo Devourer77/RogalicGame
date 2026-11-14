@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_fire_wind_k1+1"
+icon = "slash"
+title = "Горящий порыв+I"
+description = "Линия 3: 3 урона, толчок 1, клетки загораются."
+shape = 2
+element = 1
+cost = 0
+cast_range = 3
+damage = 3
+push = 1
+card_set = "x_fire_wind"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["fire", "wind"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_fire_wind_k1+2"
+icon = "slash"
+title = "Горящий порыв+II"
+description = "Линия 3: 2 урона, толчок 2, клетки загораются."
+shape = 2
+element = 1
+cost = 0
+cast_range = 3
+damage = 2
+push = 2
+card_set = "x_fire_wind"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["fire", "wind"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_fire_wind_k1"
+icon = "slash"
+title = "Горящий порыв"
+description = "Линия 3: 2 урона, толчок 1, клетки загораются."
+shape = 2
+element = 1
+cost = 0
+cast_range = 3
+damage = 2
+push = 1
+card_set = "x_fire_wind"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["fire", "wind"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

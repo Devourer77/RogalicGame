@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_k5+1"
+icon = "shield"
+title = "Щит углей+I"
+description = "Блок 9; до следующего хода под врагом, подошедшим вплотную, загорается клетка."
+shape = 0
+cast_range = 0
+block = 9
+special = "ember_guard"
+card_set = "s_fire"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_k5+2"
+icon = "shield"
+title = "Щит углей+II"
+description = "Блок 6; до следующего хода под врагом, подошедшим вплотную к любому герою, огонь."
+shape = 0
+cast_range = 0
+block = 6
+special = "ember_guard"
+card_set = "s_fire"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_k5"
+icon = "shield"
+title = "Щит углей"
+description = "Блок 6; до следующего хода под врагом, подошедшим вплотную, загорается клетка."
+shape = 0
+cast_range = 0
+block = 6
+special = "ember_guard"
+card_set = "s_fire"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_m1+1"
+icon = "fire"
+title = "Поджог+I"
+description = "Клетка до 7 загорается: бочка взрывается, камыш, дерево и торф горят."
+shape = 1
+element = 1
+cost = 0
+cast_range = 7
+card_set = "s_fire"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 1
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_m1+2"
+icon = "fire"
+title = "Поджог+II"
+description = "Клетка до 5 загорается.\nЦепь 2: горит весь круг 1."
+shape = 1
+element = 1
+cost = 0
+cast_range = 5
+special = "ignite_burst"
+chain_need = 2
+card_set = "s_fire"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 1
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_m1"
+icon = "fire"
+title = "Поджог"
+description = "Клетка до 5 загорается: бочка взрывается, камыш, дерево и торф горят."
+shape = 1
+element = 1
+cost = 0
+cast_range = 5
+card_set = "s_fire"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 1
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -1,0 +1,68 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_m6+1"
+icon = "meteor"
+title = "Метеор+I"
+description = "Круг 1 до 6: 8 урона, поджог; бочки в 2 клетках взрываются."
+shape = 3
+element = 1
+cost = 2
+cast_range = 6
+damage = 8
+special = "meteor"
+is_rare = true
+card_set = "s_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_m6+2"
+icon = "meteor"
+title = "Метеор+II"
+description = "Круг 2 до 6: 5 урона, поджог; бочки в 2 клетках взрываются.\nЦепь 4: стоит 2."
+shape = 3
+element = 1
+cost = 3
+cast_range = 6
+damage = 5
+special = "meteor2"
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_m6"
+icon = "meteor"
+title = "Метеор"
+description = "Круг 1 до 6: 8 урона, поджог; бочки в 2 клетках взрываются.\nЦепь 4: стоит 2."
+shape = 3
+element = 1
+cost = 3
+cast_range = 6
+damage = 8
+special = "meteor"
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

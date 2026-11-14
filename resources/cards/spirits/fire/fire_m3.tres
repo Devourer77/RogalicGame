@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_m3+1"
+icon = "fire"
+title = "Огненный шар+I"
+description = "Круг 1 до 5: 5 урона +1 за звено, всё загорается."
+shape = 3
+element = 1
+cost = 2
+cast_range = 5
+damage = 5
+per_link_damage = 1
+card_set = "s_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_m3+2"
+icon = "fire"
+title = "Огненный шар+II"
+description = "Круг 1 до 5: 4 урона +1 за звено, поджог.\nЦепь 3: стоит 1."
+shape = 3
+element = 1
+cost = 2
+cast_range = 5
+damage = 4
+per_link_damage = 1
+chain_need = 3
+chain_cost = 1
+card_set = "s_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_m3"
+icon = "fire"
+title = "Огненный шар"
+description = "Круг 1 до 5: 4 урона +1 за звено Цепи, всё загорается."
+shape = 3
+element = 1
+cost = 2
+cast_range = 5
+damage = 4
+per_link_damage = 1
+card_set = "s_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

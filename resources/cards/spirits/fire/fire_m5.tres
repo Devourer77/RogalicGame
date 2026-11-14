@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_m5+1"
+icon = "fire"
+title = "Жаровая завеса+I"
+description = "Стена из 3 клеток огня до 4."
+shape = 8
+element = 1
+cost = 0
+cast_range = 4
+card_set = "s_fire"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_m5+2"
+icon = "fire"
+title = "Жаровая завеса+II"
+description = "Стена из 3 клеток огня до 4. Блок 4 магу."
+shape = 8
+element = 1
+cast_range = 4
+block = 4
+card_set = "s_fire"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_m5"
+icon = "fire"
+title = "Жаровая завеса"
+description = "Стена из 3 клеток огня до 4."
+shape = 8
+element = 1
+cast_range = 4
+card_set = "s_fire"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

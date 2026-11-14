@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "fire_k6+1"
+icon = "whirl"
+title = "Пламенный вихрь+I"
+description = "6 клеток вокруг: 6 урона огнём, клетки горят, +1 ярость за задетого.\nЦепь 4: стоит 1."
+shape = 10
+element = 1
+cost = 2
+cast_range = 0
+damage = 6
+special = "whirl_rage"
+chain_need = 4
+chain_cost = 1
+is_rare = true
+card_set = "s_fire"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "fire_k6+2"
+icon = "whirl"
+title = "Пламенный вихрь+II"
+description = "Круг 2 вокруг: 5 урона огнём, клетки горят, +1 ярость за задетого.\nЦепь 4: стоит 1."
+shape = 10
+element = 1
+cost = 2
+cast_range = 0
+damage = 5
+special = "whirl_rage2"
+chain_need = 4
+chain_cost = 1
+is_rare = true
+card_set = "s_fire"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "fire_k6"
+icon = "whirl"
+title = "Пламенный вихрь"
+description = "6 клеток вокруг: 5 урона огнём, клетки горят, +1 ярость за задетого.\nЦепь 4: стоит 1."
+shape = 10
+element = 1
+cost = 2
+cast_range = 0
+damage = 5
+special = "whirl_rage"
+chain_need = 4
+chain_cost = 1
+is_rare = true
+card_set = "s_fire"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["fire"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

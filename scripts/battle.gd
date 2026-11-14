@@ -93,6 +93,8 @@ func _ready() -> void:
 			Run.pending_objective, Run.relics)
 	hud.relic_list = Run.relic_list()
 	board.build(layout_seed, logic.arena_id, logic.ground)
+	if logic.arena_id == "cave":
+		_warm_cave_light()
 	_update_camera()
 	_create_views()
 	_connect_logic()
@@ -835,6 +837,9 @@ func _show_forecast() -> void:
 			marks.append({"cell": _blast_center(fx_cells), "icon": "barrel", "color": Color(1.0, 0.85, 0.7)})
 		elif fx["kind"] == "tree":
 			marks.append({"cell": fx_cells[0], "icon": "tree", "color": Color(1.0, 0.85, 0.7)})
+		elif fx["kind"] == "peat":
+			for pc: Vector2i in fx_cells:
+				marks.append({"cell": pc, "icon": "fire", "color": Color(1.0, 0.7, 0.4)})
 		elif fx["kind"] == "rune":
 			marks.append({"cell": _blast_center(fx_cells), "icon": "rune_trap", "color": Color(0.9, 0.93, 1.0)})
 	board.show_markers("hazard_marks", marks)
@@ -954,3 +959,18 @@ func _on_card_keep_toggled(index: int) -> void:
 	if not logic.toggle_keep(_active, index) and logic.can_keep(_active, index):
 		hud.add_log("Удержать можно не больше %d карт" % BattleLogic.KEEP_LIMIT)
 	hud.refresh(logic, _active, _selected_card, false)
+
+
+# Тлеющая пещера: вместо зелёного болотного тумана — тёплый тёмный воздух и рыжий свет
+func _warm_cave_light() -> void:
+	var we: WorldEnvironment = get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if we != null and we.environment != null:
+		var env: Environment = we.environment.duplicate() as Environment
+		env.background_color = Color(0.06, 0.045, 0.04)
+		env.ambient_light_color = Color(0.62, 0.5, 0.42)
+		env.fog_light_color = Color(0.26, 0.17, 0.11)
+		we.environment = env
+	var sun: DirectionalLight3D = get_node_or_null("Sun") as DirectionalLight3D
+	if sun != null:
+		sun.light_color = Color(0.95, 0.78, 0.6)
+		sun.light_energy = 0.9

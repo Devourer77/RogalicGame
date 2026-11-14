@@ -16,6 +16,8 @@ const TILE_COLORS: Dictionary[int, Color] = {
 	BattleLogic.Ground.MOSS: Color(0.25, 0.33, 0.18),
 	BattleLogic.Ground.MUD: Color(0.24, 0.20, 0.15),
 	BattleLogic.Ground.PLANKS: Color(0.34, 0.26, 0.17),
+	BattleLogic.Ground.BASALT: Color(0.21, 0.20, 0.20),   # Тлеющая пещера: тёмный базальт
+	BattleLogic.Ground.PEAT: Color(0.27, 0.19, 0.13),     # торф (на нём снова вспыхивает огонь)
 }
 const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй оттенок камня для разнообразия
 
@@ -40,6 +42,10 @@ const ROCK_PILLAR: PackedScene = preload(DIR + "rock_pillar.glb")
 const ROCK_CRATES: PackedScene = preload(DIR + "rock_crates.glb")
 const ROCK_MARKER: PackedScene = preload(DIR + "rock_marker.glb")
 const ROCK_BONES: PackedScene = preload(DIR + "rock_bones.glb")
+# Тлеющая пещера (assets/models/src/build_cave.py)
+const ROCK_STALAGMITE: PackedScene = preload(DIR + "rock_stalagmite.glb")
+const D_CAVE_WALL: PackedScene = preload(DIR + "decor_cave_wall.glb")
+const D_EMBERS: PackedScene = preload(DIR + "decor_embers.glb")
 const ARENA_ROCKS: Dictionary[String, Array] = {
 	"gat": [ROCK_BOULDER, ROCK_MARKER],
 	"grove": [ROCK_BOULDER],
@@ -47,6 +53,7 @@ const ARENA_ROCKS: Dictionary[String, Array] = {
 	"camp": [ROCK_CRATES],
 	"ruins": [ROCK_PILLAR, ROCK_PILLAR, ROCK_MARKER],
 	"lair": [ROCK_BONES, ROCK_BOULDER],
+	"cave": [ROCK_STALAGMITE],
 }
 
 # Декор вокруг арены
@@ -74,6 +81,7 @@ const ARENA_SCATTER: Dictionary[String, Array] = {
 	"camp": [[D_TUSSOCK, 6], [D_STUMP, 4], [D_TREE_BIG, 4], [ROCK_CRATES, 3], [D_MUSHROOMS, 2], [OBJ_REEDS, 4]],
 	"ruins": [[ROCK_PILLAR, 6], [D_ROCK_BIG, 4], [D_TUSSOCK, 6], [D_MUSHROOMS, 4], [D_TREE_BIG, 3], [OBJ_REEDS, 4]],
 	"lair": [[ROCK_BONES, 6], [D_ROCK_BIG, 5], [D_TREE_BIG, 4], [D_MUSHROOMS, 6], [D_STUMP, 3], [D_TUSSOCK, 4]],
+	"cave": [[ROCK_STALAGMITE, 14], [D_EMBERS, 8], [D_ROCK_BIG, 3]],
 }
 
 # На какой высоте рисовать каждый слой подсветки (чтобы они не «мерцали», налезая друг на друга)
@@ -98,6 +106,8 @@ const COLOR_BANK := Color(0.2, 0.18, 0.14)           # топкий берег, 
 const COLOR_GAS_LIGHT := Color(0.55, 0.95, 0.35)     # болотный газ
 const COLOR_LAMP_LIGHT := Color(1.0, 0.72, 0.35)     # фонарь Стражи
 const COLOR_WISP := Color(0.6, 1.0, 0.75)            # болотные огоньки
+const COLOR_CAVE_FLOOR := Color(0.07, 0.06, 0.055)   # Тлеющая пещера: тёмный пол вместо воды
+const COLOR_EMBER_LIGHT := Color(1.0, 0.55, 0.2)     # жар углей и искры (оранжевый, не красный)
 
 @export var width: int = 12   # клеток по горизонтали
 @export var height: int = 12  # клеток в глубину
@@ -148,6 +158,10 @@ func _build_shore() -> void:
 	water_mat.albedo_color = COLOR_SWAMP_WATER
 	water_mat.roughness = 0.25
 	water_mat.metallic = 0.3
+	if _arena == "cave":   # в пещере вместо воды — сухой каменный пол
+		water_mat.albedo_color = COLOR_CAVE_FLOOR
+		water_mat.roughness = 1.0
+		water_mat.metallic = 0.0
 	water.material_override = water_mat
 	water.position = center + Vector3(0.0, -0.16, 0.0)
 	add_child(water)
@@ -173,14 +187,17 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 	var w: float = width * CELL_STEP     # ширина поля в метрах
 	var h: float = height * ROW_STEP     # глубина поля в метрах
 
-	# Шпиль далеко на севере: цель всего пути. Трещина в небе над ним светится.
-	var spire: Node3D = _spawn_prop(decor, D_SPIRE, Vector3(w * 0.5 + rng.randf_range(-6.0, 6.0), -1.0, -62.0), 0.0)
-	spire.scale = Vector3(2.2, 2.2, 2.2)
+	if _arena == "cave":
+		_build_cave_walls(decor, rng)   # под землёй Шпиля и фонарей Стражи не видно
+	else:
+		# Шпиль далеко на севере: цель всего пути. Трещина в небе над ним светится.
+		var spire: Node3D = _spawn_prop(decor, D_SPIRE, Vector3(w * 0.5 + rng.randf_range(-6.0, 6.0), -1.0, -62.0), 0.0)
+		spire.scale = Vector3(2.2, 2.2, 2.2)
 
-	# Фонари Стражи у дальних углов и один сбоку — тёплые островки света
-	for pos: Vector3 in [Vector3(-1.4, 0.0, -1.2), Vector3(w + 0.4, 0.0, -1.2), Vector3(-1.5, 0.0, h * 0.62)]:
-		var lantern: Node3D = _spawn_prop(decor, D_LANTERN, pos, rng.randf_range(-0.4, 0.4) + (PI if pos.x > 0.0 else 0.0))
-		_add_light(lantern, Vector3(0.66 * (-1.0 if pos.x > 0.0 else 1.0), 1.7, 0.0), COLOR_LAMP_LIGHT, 2.2, 6.0)
+		# Фонари Стражи у дальних углов и один сбоку — тёплые островки света
+		for pos: Vector3 in [Vector3(-1.4, 0.0, -1.2), Vector3(w + 0.4, 0.0, -1.2), Vector3(-1.5, 0.0, h * 0.62)]:
+			var lantern: Node3D = _spawn_prop(decor, D_LANTERN, pos, rng.randf_range(-0.4, 0.4) + (PI if pos.x > 0.0 else 0.0))
+			_add_light(lantern, Vector3(0.66 * (-1.0 if pos.x > 0.0 else 1.0), 1.7, 0.0), COLOR_LAMP_LIGHT, 2.2, 6.0)
 
 	# Особые постройки арены
 	match _arena:
@@ -225,6 +242,26 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 			prop.scale = Vector3(s, s, s)
 			if scene == D_MUSHROOMS:
 				_add_light(prop, Vector3(0.0, 0.4, 0.0), Color(0.35, 0.92, 0.82), 0.5, 2.5)
+			if scene == D_EMBERS:
+				_add_light(prop, Vector3(0.0, 0.4, 0.0), COLOR_EMBER_LIGHT, 1.2, 4.0)
+
+
+# Тлеющая пещера: кольцо базальтовых стен вокруг поля (кроме ближней к камере стороны)
+func _build_cave_walls(decor: Node3D, rng: RandomNumberGenerator) -> void:
+	var w: float = width * CELL_STEP
+	var h: float = height * ROW_STEP
+	var spots: Array[Vector3] = []
+	for i in 9:   # дальняя стена
+		spots.append(Vector3(-4.0 + (w + 8.0) * i / 8.0, 0.0, -4.5 - rng.randf() * 1.5))
+	for i in 5:   # боковые
+		spots.append(Vector3(-5.0 - rng.randf(), 0.0, -1.0 + h * i / 4.0))
+		spots.append(Vector3(w + 4.0 + rng.randf(), 0.0, -1.0 + h * i / 4.0))
+	for pos in spots:
+		var wall: Node3D = _spawn_prop(decor, D_CAVE_WALL, pos, rng.randf() * TAU)
+		var s: float = rng.randf_range(1.3, 1.9)
+		wall.scale = Vector3(s, s * rng.randf_range(1.0, 1.4), s)
+	for pos: Vector3 in [Vector3(-2.0, 0.0, -2.0), Vector3(w + 1.0, 0.0, h * 0.4), Vector3(-2.2, 0.0, h * 0.7)]:
+		_add_light(decor, pos + Vector3(0.0, 1.0, 0.0), COLOR_EMBER_LIGHT, 2.0, 7.0)
 
 
 # Случайное место в полосе вокруг поля. Высокий декор — только дальше 3 клеток
@@ -299,7 +336,7 @@ func _build_wisps() -> void:
 	dot.height = 0.07
 	dot.radial_segments = 6
 	dot.rings = 3
-	dot.material = _glow_material(COLOR_WISP, 3.0)
+	dot.material = _glow_material(COLOR_EMBER_LIGHT if _arena == "cave" else COLOR_WISP, 3.0)   # в пещере — искры
 	wisps.mesh = dot
 	wisps.position = field_center() + Vector3(0.0, 0.9, 0.0)
 	add_child(wisps)

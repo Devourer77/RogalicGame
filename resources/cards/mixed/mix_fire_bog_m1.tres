@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_fire_bog_m1+1"
+icon = "maw"
+title = "Разбудить недра+I"
+description = "Круг 1 до 7: топь и трясина становятся лавой на 2 раунда."
+shape = 3
+cast_range = 7
+special = "lava_wake"
+bonus_amount = 2
+card_set = "x_fire_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire", "bog"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_fire_bog_m1+2"
+icon = "maw"
+title = "Разбудить недра+II"
+description = "Круг 1 до 5: топь и трясина становятся лавой на 3 раунда."
+shape = 3
+cast_range = 5
+special = "lava_wake"
+bonus_amount = 3
+card_set = "x_fire_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire", "bog"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_fire_bog_m1"
+icon = "maw"
+title = "Разбудить недра"
+description = "Круг 1 до 5: топь и трясина становятся лавой на 2 раунда."
+shape = 3
+cast_range = 5
+special = "lava_wake"
+bonus_amount = 2
+card_set = "x_fire_bog"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["fire", "bog"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -106,6 +106,8 @@ func _make_detail(sp: SpiritData) -> Control:
 		var hint: String = "Этого духа отряд ещё не встречал. Духи ждут в логове — по одному на акт."
 		if sp.is_unique:
 			hint = "Говорят, в топях живёт кто-то старше духов логова. В логове его не найти."
+		if sp.id == "fire":
+			hint = "Говорят, под топью что-то горит. Вход ищут не в логове, а в трещинах между кочками."
 		box.add_child(UiKit.make_text(hint, 16, UiKit.TEXT_DIM, 960))
 		return panel
 
@@ -179,4 +181,6 @@ func _unique_condition(id: String) -> String:
 	match id:
 		"bog":
 			return "утопить %d врагов в бою с корягачом (элита). Тогда Хозяин трясины сам выйдет к отряду." % Run.BOG_SPIRIT_DROWNS
+		"fire":
+			return "найти «Тлеющую расщелину» (редкое событие в первой половине акта), спуститься и победить хозяина пещеры."
 	return "условие пока не описано."

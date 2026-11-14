@@ -46,6 +46,16 @@ const EVENTS: Array[Dictionary] = [
 			{"text": "Пройти мимо", "action": "leave"},
 		],
 	},
+	# Секрет: выпадает с шансом Run.CAVE_EVENT_CHANCE, раз за забег, пока нет духа огня (см. _pick_event)
+	{
+		"title": "Тлеющая расщелина",
+		"id": "cave",
+		"text": "Между кочками земля проседает, и из трещины тянет сухим жаром — в топях, где всё гниёт от сырости. Мох по краям обуглен, а внизу, в темноте, что-то медленно дышит оранжевым светом. Камни у входа горячие на ощупь.",
+		"options": [
+			{"text": "Спуститься (бой с хозяином пещеры, награда — дух огня)", "action": "cave_enter"},
+			{"text": "Пройти мимо", "action": "cave_leave"},
+		],
+	},
 	# Появляется, только пока есть закрытые обереги, и не чаще раза за забег (см. _pick_event)
 	{
 		"title": "Тайник павшего дозорного",
@@ -88,8 +98,15 @@ func _ready() -> void:
 
 # Случайное событие. «Тайник» — только если остались закрытые обереги и он ещё не выпадал в этом забеге.
 func _pick_event() -> Dictionary:
+	if Run.cave_possible() and Run.rng.randf() < Run.CAVE_EVENT_CHANCE:
+		Run.cave_seen = true
+		for e in EVENTS:
+			if e.get("id", "") == "cave":
+				return e
 	var pool: Array[Dictionary] = []
 	for e in EVENTS:
+		if e.get("id", "") == "cave":
+			continue   # расщелина — только по шансу выше
 		if e.get("id", "") == "cache" and (Run.cache_seen or Meta.closed_charms().is_empty()):
 			continue
 		if e.get("id", "") == "cage" and Run.cage_spirit() == null:
@@ -182,6 +199,15 @@ func _choose(action: String) -> void:
 			Run.last_gold_reward = 0
 			Run.goto(Run.REWARD_SCENE)   # там дух выбирает героя
 			return
+		"cave_enter":
+			Sfx.play("magic", 0.05)
+			UiKit.clear(_column)
+			_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+			_column.add_child(_story("Чем глубже, тем суше воздух. Вода, что стекала по стенам, шипит и исчезает, не долетев до пола."))
+			_column.add_child(UiKit.make_button("В бой", Run.enter_cave, "", true))
+			return
+		"cave_leave":
+			result = "Вы уходите, а трещина за спиной ещё долго дышит в спину теплом."
 		"cache_leave":
 			result = "Вы закрываете крышку и уходите. Пусть хоть что-то в этих топях останется на своём месте."
 		_:

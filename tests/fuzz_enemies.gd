@@ -30,7 +30,10 @@ func _initialize() -> void:
 		run.start_new_run(s)
 		var b := BattleLogic.new()
 		var elite: bool = s % 4 == 0
-		b.setup(12, 12, run.rng, run.party, run._make_encounter(s % 8, s % 10 == 0, elite))
+		if s % 15 == 0:
+			b.setup(12, 12, run.rng, run.party, cave_squad(), "cave")   # пещера Жаровика
+		else:
+			b.setup(12, 12, run.rng, run.party, run._make_encounter(s % 8, s % 10 == 0, elite))
 		for e in b.enemies: seen[e.data.id] = true
 		b.start()
 		for t in 10:
@@ -98,3 +101,11 @@ func _initialize() -> void:
 	print("сыграно карт: %d, ходов врагов: %d" % [played, enemy_turns])
 	print("расхождений полного состояния: %d, расхождений маршрутов: %d, кто-то стоит в трясине: %d" % [mismatches, route_mismatches, hero_bog_deaths])
 	quit(1 if mismatches + route_mismatches + hero_bog_deaths > 0 else 0)
+
+
+# Бой в Тлеющей пещере (Жаровик + 2 факельщика + 2 гоблина) — как после «Тлеющей расщелины»
+func cave_squad() -> Array[EnemyData]:
+	var list: Array[EnemyData] = [load("res://resources/enemies/spirit_fire.tres")]
+	for id in ["torch_goblin", "torch_goblin", "goblin", "goblin"]:
+		list.append(load("res://resources/enemies/%s.tres" % id))
+	return list

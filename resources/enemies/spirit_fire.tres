@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/spirit_fire.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk0"]
+script = ExtResource("2_attack")
+title = "Плевок жаром"
+shape = 1
+attack_range = 4
+damage = 4
+first_only = true
+ignite = true
+
+[sub_resource type="Resource" id="atk1"]
+script = ExtResource("2_attack")
+title = "Вспышка"
+anim = "Attack2"
+shape = 4
+damage = 5
+push = 1
+ignite = true
+
+[sub_resource type="Resource" id="atk2"]
+script = ExtResource("2_attack")
+title = "Раздуть угли"
+anim = "Attack3"
+shape = 3
+attack_range = 2
+damage = 0
+ally_block = 3
+ally_damage = 2
+stoke = 2
+
+[resource]
+script = ExtResource("1_enemy")
+id = "spirit_fire"
+title = "Жаровик"
+description = "Под топью горит тридцать лет. Наверх выходит только дым — и тот, кто его ищет."
+max_hp = 70
+move_range = 2
+damage = 4
+color = Color(1, 0.5, 0.15, 1)
+size = 1.15
+is_boss = true
+tamable = true
+turn_block = 4
+bog_damage = 8
+fire_walker = true
+water_weak = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk0"), SubResource("atk1"), SubResource("atk2")])
+model = ExtResource("9_model")

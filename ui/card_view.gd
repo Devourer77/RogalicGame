@@ -39,6 +39,11 @@ const SETS: Dictionary[String, Array] = {
 	"x_storm_bog": ["Болотные огни", Color("8a8e5c")],
 	"x_storm_wind": ["Буревестник", Color("a4ae86")],
 	"x_bog_wind": ["Болотный туман", Color("6e8a72")],
+	# Дух огня (тз-дух-огня.md): оранжевый, как пламя факельщика; без красного
+	"s_fire": ["Жаровик", Color("c0682a")],
+	"x_fire_wind": ["Пал", Color("b07a4a")],
+	"x_fire_tide": ["Пар", Color("8a8f8a")],
+	"x_fire_bog": ["Лава", Color("9a5a2e")],
 }
 # Роли карт (значок-подпись рядом с архетипом)
 const ROLE_NAMES: Array[String] = ["", "Ход", "Заготовка", "Связка", "Развязка"]

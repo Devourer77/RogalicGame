@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_fire_tide_k1+1"
+icon = "shield"
+title = "Закалка в пару+I"
+description = "Блок 9; если рыцарь в луже — следующая карта с уроном в этот ход +4."
+shape = 0
+cast_range = 0
+block = 9
+special = "temper"
+bonus_amount = 4
+card_set = "x_fire_tide"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["fire", "tide"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_fire_tide_k1+2"
+icon = "shield"
+title = "Закалка в пару+II"
+description = "Под рыцарем появляется лужа. Блок 6, следующая карта с уроном в этот ход +4."
+shape = 0
+cast_range = 0
+block = 6
+special = "temper"
+bonus_amount = 4
+card_set = "x_fire_tide"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["fire", "tide"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_fire_tide_k1"
+icon = "shield"
+title = "Закалка в пару"
+description = "Блок 6; если рыцарь в луже — следующая карта с уроном в этот ход +4."
+shape = 0
+cast_range = 0
+block = 6
+special = "temper"
+bonus_amount = 4
+card_set = "x_fire_tide"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["fire", "tide"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")
