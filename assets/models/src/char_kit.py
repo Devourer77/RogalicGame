@@ -43,7 +43,7 @@ def mat(name, color, metallic=0.0, rough=0.8, emit=0.0, alpha=1.0):
 #   "smooth" — как soft, плюс подразделение: круглые фигуры скругляются в «игрушку», у жёстких деталей
 #              (бруски, пластины, трещины) рёбра помечены жёсткими и не расплываются (~×4 треугольников).
 import os as _os
-SHAPE = _os.environ.get("CHAR_SHAPE", "low")
+SHAPE = _os.environ.get("CHAR_SHAPE", "soft")   # выбрано 15 ноября: мягкий low-poly
 SMOOTH_ANGLE = 40.0   # грани с углом меньше этого освещаются плавно (soft, smooth)
 
 
