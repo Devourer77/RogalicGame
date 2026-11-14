@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/drowned_walker.tres" id="2_walker"]
+[ext_resource type="Resource" path="res://resources/enemies/leech.tres" id="3_leech"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="4_cultist"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "drowned"
+title = "Утопленники"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_walker"), ExtResource("2_walker"), ExtResource("3_leech"), ExtResource("3_leech"), ExtResource("4_cultist")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("3_leech")])
+min_row = 2
+max_row = 3

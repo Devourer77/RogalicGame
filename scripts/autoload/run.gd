@@ -68,6 +68,8 @@ const ENCOUNTERS: Array[EncounterData] = [
 	preload("res://resources/encounters/torches.tres"),
 	preload("res://resources/encounters/reed_ambush.tres"),
 	preload("res://resources/encounters/stone_line.tres"),
+	preload("res://resources/encounters/bog_folk.tres"),   # пиявки (второй заход врагов)
+	preload("res://resources/encounters/drowned.tres"),
 ]
 # Пулы элит и боссов акта: в начале забега выбираются ELITES_PER_RUN разных элит и один босс
 const ELITE_POOL: Array[EncounterData] = [
