@@ -342,7 +342,50 @@ func _build_wisps() -> void:
 	dot.material = _glow_material(COLOR_EMBER_LIGHT if _arena == "cave" else COLOR_WISP, 3.0)   # в пещере — искры
 	wisps.mesh = dot
 	wisps.position = field_center() + Vector3(0.0, 0.9, 0.0)
+	wisps.name = "Wisps"
 	add_child(wisps)
+
+
+# Атмосфера арены (эффекты, этап 6): мягкие огоньки вместо шариков, туман у краёв,
+# мошкара у деревьев, морось. Зовётся сценой боя после того, как задан vfx.
+func add_atmosphere(rain: bool) -> void:
+	if vfx == null:
+		return
+	var center: Vector3 = field_center()
+	var half := Vector3(width * CELL_STEP * 0.5, 0.0, height * ROW_STEP * 0.5)
+	var old: Node = get_node_or_null("Wisps")
+	if old != null:
+		old.queue_free()
+	var air := Node3D.new()
+	air.name = "Atmosphere"
+	add_child(air)
+	if _arena == "cave":
+		# В пещере вместо огоньков — искры углей, тумана и дождя нет
+		vfx.loop("wisp_loop", air, center + Vector3(0.0, 1.0, 0.0), 1.0, COLOR_EMBER_LIGHT,
+			Vector3(half.x + 2.0, 0.8, half.z + 2.0))
+		return
+	vfx.loop("wisp_loop", air, center + Vector3(0.0, 1.0, 0.0), 1.0, Color(0, 0, 0, 0),
+		Vector3(half.x + 4.0, 0.6, half.z + 4.0))
+	# Туман: четыре полосы за краями поля, над водой — поле остаётся чистым
+	var edge: float = 3.5
+	for side: Array in [[Vector3(0.0, 0.0, -half.z - edge), Vector3(half.x + 6.0, 0.3, 2.0)],
+			[Vector3(0.0, 0.0, half.z + edge), Vector3(half.x + 6.0, 0.3, 2.0)],
+			[Vector3(-half.x - edge, 0.0, 0.0), Vector3(2.0, 0.3, half.z + 2.0)],
+			[Vector3(half.x + edge, 0.0, 0.0), Vector3(2.0, 0.3, half.z + 2.0)]]:
+		vfx.loop("mist_loop", air, center + side[0] + Vector3(0.0, 0.4, 0.0), 1.0, Color(0, 0, 0, 0), side[1])
+	# Мошкара у больших деревьев (декор за краем поля)
+	var decor: Node = get_node_or_null("Decorations")
+	if decor != null:
+		var swarms: int = 0
+		for prop in decor.get_children():
+			if swarms >= 4:
+				break
+			if prop is Node3D and String(prop.scene_file_path).contains("tree"):
+				vfx.loop("midge_loop", air, (prop as Node3D).position + Vector3(0.4, 1.3, 0.3))
+				swarms += 1
+	if rain:
+		vfx.loop("rain_loop", air, center + Vector3(0.0, 6.0, 0.0), 1.0, Color(0, 0, 0, 0),
+			Vector3(half.x + 3.0, 0.5, half.z + 3.0))
 
 
 # Светящийся материал без теней (для частиц и огня)

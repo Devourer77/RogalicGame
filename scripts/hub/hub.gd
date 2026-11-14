@@ -99,6 +99,10 @@ var _door_hinge: Node3D
 var _door_tween: Tween
 var _card_stacks: Array[Node3D] = []           # стопки карт на столе Караульни: мало / средне / много
 var _lantern_mats: Array[StandardMaterial3D] = []
+var _lantern_glass: Array[Node3D] = []             # стекло фонарей — у горящих кружат мотыльки
+var _moths: Array[GPUParticles3D] = []
+var _shrine_motes: Array[GPUParticles3D] = []     # огоньки над шарами покорённых духов
+var _vfx: VfxPlayer                                 # частицы и мерцание (scripts/vfx_player.gd)
 var _banner: Node3D
 var _shelf_slots: Array[Node3D] = []        # места на полке: в каждом оберег, ткань и меловой контур
 var _shelf_lights: Array[OmniLight3D] = []  # тёплый отсвет открытого оберега
@@ -116,6 +120,7 @@ func _ready() -> void:
 	_build_palisade()
 	_build_points()
 	_build_lanterns()
+	_build_atmosphere()
 	_spawn_heroes()
 	camera.flight_finished.connect(_on_flight_finished)
 	hud = HubHud.new()
@@ -125,6 +130,45 @@ func _ready() -> void:
 	Meta.changed.connect(refresh_world)
 	refresh_world()
 	_wake_up()
+
+
+# Атмосфера заставы (эффекты, этап 6): живой костёр с искрами и дымом, мерцание свечей
+# колокола, мотыльки у горящих фонарей, туман за частоколом, огоньки над шарами Святилища
+func _build_atmosphere() -> void:
+	_vfx = VfxPlayer.new()
+	_vfx.name = "Vfx"
+	add_child(_vfx)
+	# Костёр: крупное пламя, угли вьются вверх, дым уходит в сумерки, свет дышит
+	_vfx.loop("fire_loop", self, FIRE_POS + Vector3(0.0, 0.45, 0.0), 1.7)
+	_vfx.loop("ember_loop", self, FIRE_POS + Vector3(0.0, 0.6, 0.0), 1.6)
+	_vfx.loop("smoke_loop", self, FIRE_POS + Vector3(0.0, 1.6, 0.0), 1.8)
+	var fire_light: OmniLight3D = get_node_or_null("FireLight") as OmniLight3D
+	if fire_light != null:
+		_vfx.flicker(fire_light, fire_light.light_energy)
+	# Свечи на балке колокола чуть колышутся
+	for flame in _candle_flames:
+		var sway: Tween = flame.create_tween().set_loops()
+		var t: float = randf_range(0.35, 0.6)
+		sway.tween_property(flame, "rotation:z", 0.12, t).set_trans(Tween.TRANS_SINE)
+		sway.tween_property(flame, "rotation:z", -0.1, t * 1.1).set_trans(Tween.TRANS_SINE)
+	# Мотыльки у фонарей (горят не все — включаются в refresh_world)
+	for glass in _lantern_glass:
+		var moths: GPUParticles3D = _vfx.loop("moth_loop", self, glass.global_position)
+		moths.emitting = false
+		_moths.append(moths)
+	# Туман за частоколом: полосы вокруг площадки, внутри чисто
+	var hx: float = FLOOR_SIZE.x * 0.5
+	var hz: float = FLOOR_SIZE.y * 0.5
+	for side: Array in [[Vector3(0.0, 0.3, -hz - 4.0), Vector3(hx + 6.0, 0.3, 2.5)],
+			[Vector3(0.0, 0.3, hz + 4.0), Vector3(hx + 6.0, 0.3, 2.5)],
+			[Vector3(-hx - 4.0, 0.3, 0.0), Vector3(2.5, 0.3, hz + 3.0)],
+			[Vector3(hx + 4.0, 0.3, 0.0), Vector3(2.5, 0.3, hz + 3.0)]]:
+		_vfx.loop("mist_loop", self, side[0], 1.0, Color(0, 0, 0, 0), side[1])
+	# Святилище: над шаром покорённого духа поднимаются огоньки его цвета
+	for orb in _shrine_orbs:
+		var motes: GPUParticles3D = _vfx.loop("rise", self, orb.global_position, 0.35)
+		motes.emitting = false
+		_shrine_motes.append(motes)
 
 
 # Пробуждение: герои проявляются из темноты; если пришли из забега — «Итог пути»
@@ -401,6 +445,8 @@ func refresh_world() -> void:
 		lm.emission_enabled = on
 		lm.emission = COL_WARM
 		lm.emission_energy_multiplier = 3.0
+		if i < _moths.size():
+			_moths[i].emitting = on   # мотыльки летят только на свет
 
 	# Стопка карт на столе Караульни растёт с Запасом обоих героев (до 5 карт / до 15 / больше)
 	var stock: int = 0
@@ -442,6 +488,9 @@ func refresh_world() -> void:
 		om.emission = sp.color
 		om.emission_energy_multiplier = 2.5
 		any_tamed = any_tamed or tamed
+		if i < _shrine_motes.size():
+			_shrine_motes[i].emitting = tamed
+			_shrine_motes[i].process_material = _vfx.loop_material("rise", sp.color)
 	if _shrine_light != null:
 		_shrine_light.visible = any_tamed
 
@@ -535,6 +584,7 @@ func _build_lanterns() -> void:
 		var mat := StandardMaterial3D.new()
 		glass.material_override = mat
 		_lantern_mats.append(mat)
+		_lantern_glass.append(glass)
 
 
 # Частокол по краю: секции по 2 м. С юга (у камеры) он повален — не закрывает заставу,

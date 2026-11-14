@@ -266,6 +266,32 @@ const PRESETS: Dictionary = {
 	"fuse_smoke": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.25, 0.25, 0.26, 0.4), "amount": 3,
 		"life": 1.4, "speed": [0.3, 0.6], "dir": Vector3.UP, "spread": 15.0, "gravity": 0.2,
 		"size": [0.3, 0.5], "radius": 0.1, "spin": 30.0, "fade_in": true, "grow": true},
+
+	# ---- Атмосфера (этап 6). Поле turbulence — частицы «роятся» (шум вместо прямого полёта) ----
+	# Болотные огоньки над полем (область задаётся при вызове loop, параметр box)
+	"wisp_loop": {"tex": "soft_dot", "color": Color(0.6, 1.0, 0.75), "energy": 2.0, "amount": 40, "life": 7.0,
+		"speed": [0.05, 0.2], "dir": Vector3.UP, "spread": 60.0, "gravity": 0.0, "size": [0.12, 0.22],
+		"add": true, "fade_in": true, "turbulence": 0.35},
+	# Слои тумана у краёв поля: огромные бледные клубы медленно ползут
+	"mist_loop": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.55, 0.66, 0.6, 0.14), "amount": 12,
+		"life": 14.0, "speed": [0.05, 0.15], "dir": Vector3.RIGHT, "spread": 40.0, "gravity": 0.0,
+		"size": [4.0, 7.0], "spin": 4.0, "fade_in": true, "grow": true},
+	# Мошкара у мёртвых деревьев
+	"midge_loop": {"tex": "soft_dot", "color": Color(0.08, 0.09, 0.07, 0.9), "amount": 16, "life": 2.5,
+		"speed": [0.1, 0.3], "spread": 180.0, "gravity": 0.0, "size": [0.035, 0.055], "radius": 0.35,
+		"turbulence": 1.0},
+	# Мотыльки у фонарей
+	"moth_loop": {"tex": "soft_dot", "color": Color(1.0, 0.95, 0.8), "energy": 1.6, "amount": 4, "life": 3.0,
+		"speed": [0.1, 0.3], "spread": 180.0, "gravity": 0.0, "size": [0.05, 0.08], "radius": 0.4,
+		"add": true, "turbulence": 1.0},
+	# Морось над полем
+	"rain_loop": {"tex": "spark", "color": Color(0.72, 0.8, 0.88, 0.32), "amount": 260, "life": 0.9,
+		"speed": [8.0, 10.0], "dir": Vector3.DOWN, "spread": 3.0, "gravity": -2.0, "size": [0.035, 0.055],
+		"stretch": true},
+	# Споры вокруг споровика
+	"spore_loop": {"tex": "soft_dot", "color": Color(0.78, 0.82, 0.48, 0.75), "amount": 7, "life": 2.6,
+		"speed": [0.1, 0.3], "dir": Vector3.UP, "spread": 60.0, "gravity": 0.1, "size": [0.05, 0.09],
+		"radius": 0.5, "fade_in": true, "turbulence": 0.5},
 }
 
 var _process_cache: Dictionary = {}   # имя пресета → ParticleProcessMaterial
@@ -343,9 +369,17 @@ func trail(preset_name: String, follow: Node3D, color: Color) -> GPUParticles3D:
 	return parts
 
 
+# Материал частиц пресета с другим цветом — чтобы перекрасить уже работающий loop
+func loop_material(preset_name: String, color: Color) -> ParticleProcessMaterial:
+	return _process_for(preset_name, color)
+
+
 # Непрерывный эффект на месте (огонь на клетке, круги на луже, газ). Живёт, пока жив parent.
 # at — точка относительно parent.
-func loop(preset_name: String, parent: Node3D, at: Vector3 = Vector3.ZERO, scale: float = 1.0) -> GPUParticles3D:
+# color — другой цвет (прозрачный Color — как в пресете); box — частицы появляются по всей коробке
+# с такими полуразмерами (огоньки над полем, морось), а не в точке.
+func loop(preset_name: String, parent: Node3D, at: Vector3 = Vector3.ZERO, scale: float = 1.0,
+		color: Color = Color(0, 0, 0, 0), box: Vector3 = Vector3.ZERO) -> GPUParticles3D:
 	var p: Dictionary = PRESETS[preset_name]
 	var parts := GPUParticles3D.new()
 	var amount: int = p.get("amount", 8)
@@ -354,10 +388,16 @@ func loop(preset_name: String, parent: Node3D, at: Vector3 = Vector3.ZERO, scale
 	parts.preprocess = parts.lifetime   # сразу «в разгаре», а не с пустого места
 	parts.randomness = 0.3
 	parts.fixed_fps = 0
-	parts.process_material = _process_for(preset_name)
+	var process: ParticleProcessMaterial = _process_for(preset_name, color)
+	if box != Vector3.ZERO:
+		process = process.duplicate()
+		process.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+		process.emission_box_extents = box
+	parts.process_material = process
 	parts.draw_pass_1 = _draw_for(preset_name)
 	parts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	parts.visibility_aabb = AABB(Vector3(-2, -1, -2), Vector3(4, 5, 4))
+	var reach: Vector3 = box + Vector3(2.0, 3.0, 2.0)
+	parts.visibility_aabb = AABB(-reach, reach * 2.0)
 	parts.position = at
 	if scale != 1.0:
 		parts.scale = Vector3.ONE * scale
@@ -411,6 +451,15 @@ func _process_for(preset_name: String, tint: Color = Color(0, 0, 0, 0)) -> Parti
 	if p.get("frames", 1) > 1:
 		m.anim_speed_min = 1.0
 		m.anim_speed_max = 1.0
+	var turbulence: float = p.get("turbulence", 0.0)
+	if turbulence > 0.0:
+		# Шум сбивает частицы с прямого пути — рой мошкары, плавающие огоньки
+		m.turbulence_enabled = true
+		m.turbulence_noise_strength = 1.0
+		m.turbulence_noise_scale = 2.5
+		m.turbulence_noise_speed = Vector3(0.2, 0.2, 0.2)
+		m.turbulence_influence_min = turbulence * 0.5
+		m.turbulence_influence_max = turbulence
 	# Размер: быстро вырастает и плавно уменьшается к концу жизни
 	var curve := Curve.new()
 	if p.get("grow", false):
@@ -1377,3 +1426,20 @@ func add_companions(view: Node3D, ids: Array[String], height: float) -> void:
 		var bob: Tween = core.create_tween().set_loops()
 		bob.tween_property(core, "position:y", 0.12, 0.9).set_trans(Tween.TRANS_SINE)
 		bob.tween_property(core, "position:y", -0.08, 0.9).set_trans(Tween.TRANS_SINE)
+
+
+# ---------- Атмосфера (этап 6) ----------
+
+# Постоянный эффект у врага: споры у споровика (на фигурке, ходит с ней)
+func enemy_ambient(view: Node3D, enemy_id: String, height: float) -> void:
+	if enemy_id != "sporeling":
+		return
+	var holder: Node3D = view.get_node_or_null("Auras")
+	if holder == null:
+		holder = Node3D.new()
+		holder.name = "Auras"
+		view.add_child(holder)
+	var node := Node3D.new()
+	node.name = "spores"
+	holder.add_child(node)
+	loop("spore_loop", node, Vector3(0.0, height * 0.6, 0.0))

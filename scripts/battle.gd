@@ -50,6 +50,8 @@ const SHAKE_POWER_TREE: float = 0.2        # сила тряски у паден
 const HITSTOP_TIME: float = 0.08           # стоп-кадр: на столько секунд игра почти замирает
 const HITSTOP_SCALE: float = 0.05          # …и идёт с такой скоростью (1.0 — без стоп-кадра)
 const SHAKE_ENABLED: bool = true           # тряска камеры (потом — в настройки)
+const RAIN_ENABLED: bool = true            # морось над топями (потом — в настройки)
+const RAIN_CHANCE: float = 0.5             # в какой доле боёв идёт морось
 const SHAKE_POWER_HERO_HIT: float = 0.06   # тряска, когда бьют героя
 const SHAKE_POWER_BIG_HIT: float = 0.15    # …сильный удар (от VfxPlayer.BIG_HIT) или добивание
 const SHAKE_POWER_BOSS: float = 0.3        # удар босса
@@ -111,6 +113,10 @@ func _ready() -> void:
 	add_child(vfx)
 	vfx.warm_up()
 	board.vfx = vfx   # живой огонь, круги на воде, газ и т. п. на клетках
+	# Атмосфера арены: огоньки, туман, мошкара; морось — в части боёв (выбор по сиду раскладки,
+	# на правила и общий генератор случайностей не влияет)
+	var rainy: bool = RAIN_ENABLED and posmod(hash(layout_seed), 100) < int(RAIN_CHANCE * 100.0)
+	board.add_atmosphere(rainy)
 	_create_views()
 	_connect_logic()
 	hud.card_pressed.connect(_on_card_pressed)
@@ -151,6 +157,7 @@ func _make_enemy_view(e: BattleUnit) -> Unit:
 	view.setup_label(1.4 * e.data.size + 0.55)
 	_views[e] = view
 	_last_hp[e] = e.hp
+	vfx.enemy_ambient(view, e.data.id if e.data != null else "", _unit_height(e))   # споры у споровика
 	return view
 
 
