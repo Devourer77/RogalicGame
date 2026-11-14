@@ -179,6 +179,7 @@ func _create_views() -> void:
 		board.set_tile_effect(c, logic.tiles[c])
 	for u: BattleUnit in _views:
 		_views[u].set_status(_plate_info(u, logic.snapshot(u)))
+		vfx.set_auras(_views[u], _unit_height(u), logic.snapshot(u))   # капли, яд, руна и т. п.
 
 	# Кольцо выбора: плоский цилиндр, который «приклеиваем» к выбранному герою
 	_ring = MeshInstance3D.new()
@@ -354,11 +355,11 @@ func _on_unit_damaged(unit: BattleUnit, amount: int, state: Dictionary) -> void:
 	var tick: bool = source in ["fire", "lava", "poison", "gas"]
 	var is_hero: bool = unit.is_hero
 	if amount <= 0 and absorbed <= 0:
-		_queue(func() -> void: view.set_status(info))
+		_queue(func() -> void: _show_status(unit, view, info, state))
 		return
 	_queue(func() -> void:
 		Sfx.play("block" if amount <= 0 else "hit", 0.08)
-		view.set_status(info)
+		_show_status(unit, view, info, state)
 		vfx.hit(view, height, hit_info)
 		if not tick and amount > 0:
 			if big:
@@ -380,6 +381,7 @@ func _unit_height(unit: BattleUnit) -> float:
 func _on_unit_died(unit: BattleUnit) -> void:
 	var view: Unit = _views[unit]
 	var height: float = _unit_height(unit)
+	_queue(func() -> void: vfx.clear_auras(view))   # капли, яд и прочее гаснут
 	if logic.object_at(unit.cell) == BattleLogic.Obj.BOG:
 		_queue(func() -> void:
 			Sfx.play("water", 0.08)
@@ -440,11 +442,20 @@ func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
 	if healed > 0 and view.visible:
 		var height: float = _unit_height(unit)
 		_queue(func() -> void:
-			view.set_status(info)
+			_show_status(unit, view, info, state)
 			vfx.heal(view, height, healed)
 		)
 		return
-	_queue(func() -> void: view.set_status(info))
+	_queue(func() -> void: _show_status(unit, view, info, state))
+
+
+# Плашка над фигуркой и постоянные эффекты состояний (капли, яд, тина, руна, провокация, фитиль)
+func _show_status(unit: BattleUnit, view: Unit, info: Dictionary, state: Dictionary) -> void:
+	view.set_status(info)
+	if state.get("hp", 1) <= 0:
+		vfx.clear_auras(view)
+	else:
+		vfx.set_auras(view, _unit_height(unit), state)
 
 
 func _on_tile_changed(cell: Vector2i, tile: int) -> void:

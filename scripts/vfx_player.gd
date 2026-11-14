@@ -239,6 +239,33 @@ const PRESETS: Dictionary = {
 	"frost_burst": {"tex": "glint", "color": Color(0.85, 0.95, 1.0), "energy": 2.5, "amount": 14,
 		"life": 0.6, "speed": [0.5, 1.5], "spread": 90.0, "gravity": 0.0, "damping": 2.0,
 		"size": [0.14, 0.26], "radius": 0.35, "add": true, "spin": 200.0},
+
+	# ---- Состояния на юнитах (этап 4), непрерывные, мелкие — модель должна быть видна ----
+	# Мокрый: редкие капли падают с фигурки
+	"drip_loop": {"tex": "drop", "color": Color(0.6, 0.85, 1.0, 0.9), "energy": 1.8, "amount": 10,
+		"life": 0.55, "speed": [0.0, 0.3], "dir": Vector3.DOWN, "spread": 10.0, "gravity": -7.0,
+		"size": [0.12, 0.18], "radius": 0.28, "add": true, "stretch": true},
+	# Яд: зелёные пузырьки поднимаются
+	"poison_loop": {"tex": "soft_dot", "color": C_POISON, "energy": 2.2, "amount": 7, "life": 1.1,
+		"speed": [0.3, 0.6], "dir": Vector3.UP, "spread": 15.0, "gravity": 0.2, "damping": 0.3,
+		"size": [0.1, 0.17], "radius": 0.3, "add": true, "fade_in": true},
+	# Опутан: кольца тины у ног и клочья, что тянутся из земли
+	"bind_loop": {"tex": "ring", "color": Color(0.28, 0.42, 0.22, 0.9), "amount": 2, "life": 1.4,
+		"speed": [0.0, 0.0], "gravity": 0.0, "size": [0.8, 1.0], "flat": true, "fade_in": true},
+	"vines_loop": {"tex": "shard", "color": Color(0.3, 0.45, 0.22), "amount": 5, "life": 0.9,
+		"speed": [0.3, 0.6], "dir": Vector3.UP, "spread": 20.0, "gravity": -0.3, "damping": 0.5,
+		"size": [0.1, 0.18], "radius": 0.4, "spin": 90.0, "fade_in": true},
+	# Руна на оружии: огоньки цвета руны вьются у руки
+	"rune_loop": {"tex": "soft_dot", "color": C_HIT, "energy": 2.8, "amount": 12, "life": 0.7,
+		"speed": [0.2, 0.5], "dir": Vector3.UP, "spread": 60.0, "gravity": 0.3, "damping": 0.6,
+		"size": [0.12, 0.2], "radius": 0.25, "add": true, "fade_in": true},
+	# Фитиль жабы: искры и дымок
+	"fuse_loop": {"tex": "spark", "color": C_FIRE, "energy": 3.0, "amount": 12, "life": 0.35,
+		"speed": [1.2, 2.5], "dir": Vector3.UP, "spread": 45.0, "gravity": -5.0, "damping": 1.0,
+		"size": [0.07, 0.11], "radius": 0.1, "add": true, "stretch": true},
+	"fuse_smoke": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.25, 0.25, 0.26, 0.4), "amount": 3,
+		"life": 1.4, "speed": [0.3, 0.6], "dir": Vector3.UP, "spread": 15.0, "gravity": 0.2,
+		"size": [0.3, 0.5], "radius": 0.1, "spin": 30.0, "fade_in": true, "grow": true},
 }
 
 var _process_cache: Dictionary = {}   # имя пресета → ParticleProcessMaterial
@@ -523,22 +550,29 @@ func light_flash(at: Vector3, color: Color, energy: float = 3.0, radius: float =
 # Все сетки модели фигурки (без плашки и подсветок)
 func _meshes(view: Node) -> Array[MeshInstance3D]:
 	var out: Array[MeshInstance3D] = []
+	var auras: Node = view.get_node_or_null("Auras")   # кольца состояний — не часть модели
 	for n in view.find_children("*", "MeshInstance3D", true, false):
+		if auras != null and auras.is_ancestor_of(n):
+			continue
 		out.append(n as MeshInstance3D)
 	return out
 
 
+# Светящийся слой поверх всех материалов фигурки (один на фигурку: вспышка урона, пульс жабы)
+func _flash_material(view: Node3D) -> ShaderMaterial:
+	if view.has_meta("flash_mat"):
+		return view.get_meta("flash_mat")
+	var mat := ShaderMaterial.new()
+	mat.shader = _flash_shader
+	view.set_meta("flash_mat", mat)
+	for m in _meshes(view):
+		m.material_overlay = mat
+	return mat
+
+
 # Вспышка модели при уроне: поверх всех материалов кладём светящийся слой и гасим его
 func flash(view: Node3D, color: Color = C_HIT, strength: float = 1.0) -> void:
-	var mat: ShaderMaterial
-	if view.has_meta("flash_mat"):
-		mat = view.get_meta("flash_mat")
-	else:
-		mat = ShaderMaterial.new()
-		mat.shader = _flash_shader
-		view.set_meta("flash_mat", mat)
-		for m in _meshes(view):
-			m.material_overlay = mat
+	var mat: ShaderMaterial = _flash_material(view)
 	mat.set_shader_parameter("flash_color", color)
 	var tween: Tween = view.create_tween()
 	tween.tween_method(func(v: float) -> void: mat.set_shader_parameter("amount", v),
@@ -1044,3 +1078,149 @@ func flicker(light: OmniLight3D, base: float) -> void:
 	tween.tween_property(light, "light_energy", base * 1.25, randf_range(0.08, 0.16))
 	tween.tween_property(light, "light_energy", base * 0.8, randf_range(0.08, 0.2))
 	tween.tween_property(light, "light_energy", base, randf_range(0.1, 0.2))
+
+
+# ---------- Состояния на юнитах (этап 4) ----------
+
+# Цвет руны на оружии по её виду (BattleUnit.rune)
+const RUNE_COLORS: Dictionary[String, Color] = {
+	"fire": C_FIRE, "storm": C_SHOCK, "rot": Color(0.45, 0.7, 0.3), "tide": C_WATER,
+}
+const C_TAUNT := Color(0.95, 0.7, 0.3)   # провокация — тёмно-жёлтое кольцо Рыцаря
+
+
+# Включает и выключает постоянные эффекты на фигурке по её состоянию.
+# state — словарь из BattleLogic.snapshot (wet, poison, entangled, rune, rune_hits, taunt,
+# inflation, fuse, smoldering). Эффекты живут в узле "Auras" внутри фигурки и ходят вместе с ней.
+func set_auras(view: Node3D, height: float, state: Dictionary) -> void:
+	var holder: Node3D = view.get_node_or_null("Auras")
+	if holder == null:
+		holder = Node3D.new()
+		holder.name = "Auras"
+		view.add_child(holder)
+	var want: Dictionary = {}   # имя ауры → нужна ли
+	want["wet"] = state.get("wet", 0) > 0
+	want["poison"] = state.get("poison", 0) > 0
+	want["bound"] = state.get("entangled", 0) > 0
+	want["rune"] = state.get("rune", "") != "" and state.get("rune_hits", 0) > 0
+	want["taunt"] = state.get("taunt", false)
+	want["fuse"] = state.get("fuse", 0) > 0 or state.get("smoldering", false)
+	for key: String in want:
+		var node: Node3D = holder.get_node_or_null(key)
+		if key == "rune" and node != null and want[key] and node.get_meta("kind", "") != state.get("rune", ""):
+			_fade_aura(node)   # руна сменилась — другой цвет
+			node = null
+		if want[key] and node == null:
+			node = Node3D.new()
+			node.name = key
+			holder.add_child(node)
+			_build_aura(key, node, height, state)
+		elif not want[key] and node != null:
+			_fade_aura(node)
+	# Руна слабеет с каждым зарядом: меньше огоньков
+	var rune_node: Node3D = holder.get_node_or_null("rune")
+	if rune_node != null and rune_node.get_child_count() > 0 and rune_node.get_child(0) is GPUParticles3D:
+		var parts: GPUParticles3D = rune_node.get_child(0)
+		parts.amount_ratio = clampf(0.35 + 0.22 * state.get("rune_hits", 0), 0.35, 1.0)
+	# Раздувание жабы: мешок пульсирует бирюзой тем сильнее, чем больше стаков
+	_set_inflation_pulse(view, state.get("inflation", 0))
+
+
+func _build_aura(key: String, node: Node3D, height: float, state: Dictionary) -> void:
+	match key:
+		"wet":
+			loop("drip_loop", node, Vector3(0.0, height * 0.75, 0.0))
+		"poison":
+			loop("poison_loop", node, Vector3(0.0, height * 0.35, 0.0))
+		"bound":
+			loop("bind_loop", node, Vector3(0.0, 0.05, 0.0))
+			loop("vines_loop", node, Vector3(0.0, 0.1, 0.0))
+		"rune":
+			node.set_meta("kind", state.get("rune", ""))
+			var rune_color: Color = RUNE_COLORS.get(state.get("rune", ""), C_HIT)
+			var parts: GPUParticles3D = loop("rune_loop", node, Vector3(0.0, height * 0.55, 0.0))
+			parts.process_material = _process_for("rune_loop", rune_color)
+			# Мягкий отсвет руны на доспехе
+			var glow := OmniLight3D.new()
+			glow.light_color = rune_color
+			glow.light_energy = 0.9
+			glow.omni_range = 1.6
+			glow.position.y = height * 0.55
+			node.add_child(glow)
+			flicker(glow, 0.9)
+		"taunt":
+			# Тусклое кольцо на земле, медленно вращается
+			var plane := PlaneMesh.new()
+			plane.size = Vector2(1.5, 1.5)
+			var ring_node := MeshInstance3D.new()
+			ring_node.mesh = plane
+			var mat := StandardMaterial3D.new()
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+			mat.albedo_texture = load(TEX_DIR + "ring.png")
+			mat.albedo_color = Color(C_TAUNT.r * 1.4, C_TAUNT.g * 1.4, C_TAUNT.b * 1.4, 0.8)
+			ring_node.material_override = mat
+			ring_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			ring_node.position.y = 0.06
+			node.add_child(ring_node)
+			var tween: Tween = ring_node.create_tween().set_loops()
+			tween.tween_property(mat, "albedo_color:a", 0.45, 0.8).set_trans(Tween.TRANS_SINE)
+			tween.tween_property(mat, "albedo_color:a", 0.8, 0.8).set_trans(Tween.TRANS_SINE)
+		"fuse":
+			loop("fuse_loop", node, Vector3(0.0, height * 0.9, 0.0))
+			loop("fuse_smoke", node, Vector3(0.0, height * 0.95, 0.0))
+			var light := OmniLight3D.new()
+			light.light_color = C_FIRE
+			light.light_energy = 0.8
+			light.omni_range = 1.8
+			light.position.y = height * 0.9
+			node.add_child(light)
+			flicker(light, 0.8)
+
+
+# Аура больше не нужна: частицы перестают появляться и догорают, потом узел удаляется
+func _fade_aura(node: Node3D) -> void:
+	node.name = "fading_%d" % node.get_instance_id()   # чтобы на её место можно было сразу поставить новую
+	var longest: float = 0.3
+	for child in node.get_children():
+		if child is GPUParticles3D:
+			child.emitting = false
+			longest = maxf(longest, child.lifetime)
+		elif child is MeshInstance3D or child is Light3D:
+			var tween: Tween = child.create_tween()
+			tween.tween_property(child, "scale", Vector3(0.01, 0.01, 0.01), 0.25)
+	get_tree().create_timer(longest + 0.1).timeout.connect(node.queue_free)
+
+
+# Убрать все ауры (фигурка погибла)
+func clear_auras(view: Node3D) -> void:
+	var holder: Node3D = view.get_node_or_null("Auras")
+	if holder != null:
+		for child in holder.get_children():
+			_fade_aura(child)
+	_set_inflation_pulse(view, 0)
+
+
+# Пульс раздувания: поверх модели мерцает бирюза (тот же слой, что и вспышка урона)
+func _set_inflation_pulse(view: Node3D, stacks: int) -> void:
+	var old: Tween = view.get_meta("pulse_tween") if view.has_meta("pulse_tween") else null
+	var old_stacks: int = view.get_meta("pulse_stacks", 0)
+	if stacks == old_stacks:
+		return
+	view.set_meta("pulse_stacks", stacks)
+	if old != null and old.is_valid():
+		old.kill()
+	view.remove_meta("pulse_tween")
+	if stacks <= 0:
+		return
+	var mat: ShaderMaterial = _flash_material(view)
+	var peak: float = 0.3 * stacks
+	var pulse := func(v: float) -> void:
+		mat.set_shader_parameter("flash_color", C_RIFT)   # после вспышки урона цвет снова бирюзовый
+		mat.set_shader_parameter("amount", v)
+	var tween: Tween = view.create_tween().set_loops()
+	tween.tween_method(pulse, 0.0, peak, 0.45).set_trans(Tween.TRANS_SINE)
+	tween.tween_method(pulse, peak, 0.0, 0.45).set_trans(Tween.TRANS_SINE)
+	view.set_meta("pulse_tween", tween)

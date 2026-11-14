@@ -698,7 +698,8 @@ func snapshot(u: BattleUnit) -> Dictionary:
 	var state: Dictionary = {"hp": u.hp, "block": u.block, "rage": u.rage, "taunt": u.taunt,
 			"holding_line": u.holding_line,
 			"charge": u.charge, "momentum": u.momentum, "entangled": u.entangled,
-			"wet": wet_turns(u), "poison": u.poison, "rune": u.rune, "rune_hits": u.rune_hits}
+			"wet": wet_turns(u), "poison": u.poison, "rune": u.rune, "rune_hits": u.rune_hits,
+			"inflation": u.inflation}
 	if u.data != null:
 		# Что враг собирается сделать в этом раунде — для надписи над головой
 		var atk: EnemyAttackData = enemy_attack(u)
