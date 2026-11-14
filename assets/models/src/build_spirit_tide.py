@@ -22,50 +22,113 @@ HEAD = 1.02
 
 
 def build_mesh():
-    water = k.mat("Tide_Water", (0.17, 0.29, 0.37), rough=0.35, emit=0.04)
-    deep = k.mat("Tide_Deep", (0.11, 0.20, 0.27), rough=0.35, emit=0.03)
-    light = k.mat("Tide_Light", (0.36, 0.54, 0.64), rough=0.25, emit=0.08)
-    puddle = k.mat("Tide_Puddle", (0.14, 0.25, 0.32), rough=0.2, emit=0.03)
+    # Вода — глянцевая (низкая шероховатость, лёгкий металл даёт блики) и идёт полосами от тёмной
+    # глубины у лужи к светлой поверхности у плеч: так однотонные материалы читаются как толща воды.
+    abyss = k.mat("Tide_Abyss", (0.07, 0.14, 0.2), metallic=0.1, rough=0.15, emit=0.02)
+    deep = k.mat("Tide_Deep", (0.11, 0.21, 0.29), metallic=0.1, rough=0.12, emit=0.03)
+    water = k.mat("Tide_Water", (0.17, 0.31, 0.41), metallic=0.1, rough=0.1, emit=0.04)
+    shallow = k.mat("Tide_Shallow", (0.29, 0.49, 0.6), metallic=0.08, rough=0.1, emit=0.06)
+    foam = k.mat("Tide_Foam", (0.6, 0.8, 0.86), rough=0.3, emit=0.1)
+    film = k.mat("Tide_Film", (0.34, 0.6, 0.72), metallic=0.1, rough=0.05, emit=0.05, alpha=0.42)
+    puddle = k.mat("Tide_Puddle", (0.12, 0.23, 0.31), metallic=0.15, rough=0.06, emit=0.03)
     rift = k.mat("Tide_Rift", (0.30, 0.95, 0.85), rough=0.3, emit=1.4)
+    core = k.mat("Tide_Core", (0.42, 1.0, 0.9), rough=0.3, emit=2.2)
     eye = k.mat("Tide_Eye", (0.55, 1.0, 0.95), rough=0.3, emit=3.0)
 
-    # Лужа: плоский гранёный диск и светлый край-рябь (кость Puddle — растекается и дрожит)
-    k.barrel("Puddle", 0.52, 0.47, 0.0, 0.035, puddle, "Puddle", segs=12)
-    k.barrel("PuddleRim", 0.56, 0.53, 0.0, 0.018, light, "Puddle", segs=12)
-    for i, (x, y, s) in enumerate([(0.3, 0.22, 0.09), (-0.34, 0.12, 0.07), (0.1, -0.38, 0.08), (-0.18, -0.3, 0.06)]):
-        k.sphere(f"Ripple{i}", s, (x, y, 0.035), light, "Puddle", scale=(1.6, 1.0, 0.18), segs=6, rings=3)
+    # --- Лужа: гладкое зеркало, кольцо мелкой воды, пенный край, рябь кольцами и брызги по краю ---
+    k.barrel("Puddle", 0.54, 0.5, 0.0, 0.03, puddle, "Puddle", segs=14)
+    k.barrel("PuddleInner", 0.4, 0.36, 0.0, 0.034, deep, "Puddle", segs=10)
+    k.barrel("PuddleRim", 0.58, 0.55, 0.0, 0.016, foam, "Puddle", segs=14)
+    for ring, (rad, n, s) in enumerate([(0.47, 9, 0.05), (0.31, 6, 0.04)]):
+        for i in range(n):
+            a = 2 * math.pi * (i + 0.5 * ring) / n
+            k.box(f"Ripple{ring}_{i}", (s * 0.35, s * 2.4, 0.008), (rad * math.cos(a), rad * math.sin(a), 0.033), water,
+                  "Puddle", rot=(0, 0, math.degrees(a)))
+    for i, (a, h) in enumerate([(20, 0.09), (75, 0.06), (140, 0.1), (200, 0.07), (255, 0.08), (320, 0.06)]):
+        r = math.radians(a)
+        base_p = (0.53 * math.cos(r), 0.53 * math.sin(r), 0.01)
+        tip = (0.6 * math.cos(r), 0.6 * math.sin(r), h)
+        k.limb(f"Spray{i}", base_p, tip, 0.018, 0.0, shallow, "Puddle", segs=4)
 
-    # Тело: юбка воды от лужи до пояса (тёмная, широкая внизу) и торс до плеч
-    k.barrel("Skirt", 0.33, 0.16, 0.02, WAIST, deep, "Body", segs=9, sy=0.85)
-    k.barrel("SkirtFlow", 0.38, 0.3, 0.02, 0.14, water, "Body", segs=9, sy=0.9)
-    k.barrel("Torso", 0.16, 0.24, WAIST - 0.02, SHOULDER - 0.04, water, "Chest", segs=8, sy=0.7)
-    k.barrel("Shoulders", 0.24, 0.12, SHOULDER - 0.05, SHOULDER + 0.05, light, "Chest", segs=8, sy=0.7)
-    k.limb("Neck", (0, 0.0, SHOULDER + 0.03), (0, -0.01, HEAD - 0.06), 0.085, 0.07, water, "Chest", segs=6)
+    # --- Тело: поток из лужи — полосы от бездны внизу к светлой воде, сужение к поясу ---
+    body = [(0.02, 0.37, abyss), (0.1, 0.3, deep), (0.22, 0.23, deep), (0.36, 0.18, water), (WAIST, 0.16, None)]
+    for i in range(len(body) - 1):
+        z0, r0, m = body[i]
+        z1, r1, _ = body[i + 1]
+        k.barrel(f"Skirt{i}", r0, r1, z0, z1, m, "Body", segs=10, sy=0.85)
+    # Пенный воротник там, где тело выходит из лужи
+    for i in range(7):
+        a = 2 * math.pi * i / 7
+        k.sphere(f"WaistFoam{i}", 0.065, (0.33 * math.sin(a), -0.29 * math.cos(a), 0.06), foam, "Body",
+                 scale=(1.5, 0.8, 0.5), rot=(0, 0, -math.degrees(a)), segs=4, rings=2)
 
-    # Голова-капля: круглый низ, вытянутая вверх и чуть назад верхушка; без лица, два огня-глаза
-    k.sphere("HeadBulb", 0.13, (0, -0.01, HEAD), water, "Head", scale=(0.9, 0.85, 1.05), segs=8, rings=5)
-    k.limb("HeadTip", (0, 0.0, HEAD + 0.05), (0, 0.035, HEAD + 0.2), 0.108, 0.06, water, "Head", segs=7)
-    k.limb("HeadTip2", (0, 0.035, HEAD + 0.2), (0, 0.08, HEAD + 0.3), 0.06, 0.0, water, "Head", segs=7)
-    k.limb("HeadHi", (0.03, -0.06, HEAD + 0.06), (0.02, 0.0, HEAD + 0.22), 0.018, 0.008, light, "Head", segs=4)
+    # Торс: тёмная вода внутри, светящееся сердце Раскола, сверху — прозрачная плёнка поверхности
+    k.barrel("TorsoLow", 0.15, 0.2, WAIST - 0.03, 0.66, water, "Chest", segs=10, sy=0.7)
+    k.barrel("TorsoHigh", 0.2, 0.235, 0.66, SHOULDER - 0.04, shallow, "Chest", segs=10, sy=0.7)
+    k.sphere("Core", 0.055, (0.0, -0.13, 0.68), core, "Chest", scale=(1.0, 0.6, 1.2), segs=6, rings=4)
+    k.barrel("TorsoFilm", 0.19, 0.27, WAIST - 0.01, SHOULDER - 0.02, film, "Chest", segs=10, sy=0.78)
+    k.barrel("Shoulders", 0.26, 0.13, SHOULDER - 0.05, SHOULDER + 0.05, shallow, "Chest", segs=10, sy=0.72)
+    # Гребень волны с плеч: пенные «языки», загнутые назад
+    for i, (x, h, lean) in enumerate([(-0.17, 0.13, -15), (-0.07, 0.17, -5), (0.05, 0.16, 6), (0.16, 0.12, 15)]):
+        mid = (x * 1.08, 0.12, SHOULDER + h * 0.65)
+        k.limb(f"Crest{i}", (x, 0.04, SHOULDER), mid, 0.05, 0.03, shallow, "Chest", segs=5)
+        k.limb(f"CrestTip{i}", mid, (x * 1.12, 0.21, SHOULDER + h * 0.8), 0.03, 0.0, foam, "Chest", segs=5)
+    k.limb("Neck", (0, 0.0, SHOULDER + 0.03), (0, -0.01, HEAD - 0.06), 0.085, 0.07, water, "Chest", segs=8)
+    # Капли, висящие в воздухе у плеч
+    for i, (x, y, z) in enumerate([(-0.33, -0.05, 0.98), (0.31, 0.02, 1.04), (-0.2, 0.12, 1.12), (0.12, -0.16, 1.2)]):
+        k.sphere(f"Drop{i}", 0.022, (x, y, z), shallow, "Chest", scale=(1, 1, 1.5), segs=6, rings=4)
+
+    # --- Голова-капля: круглый низ, верхушка загибается назад гребнем и разбрызгивается ---
+    k.sphere("HeadBulb", 0.135, (0, -0.01, HEAD), water, "Head", scale=(0.9, 0.85, 1.0), segs=9, rings=5)
+    # верхушка — одна и та же вода, без «полос», чтобы не читалась шляпой; загиб назад
+    k.limb("HeadTip", (0, -0.005, HEAD + 0.03), (0, 0.04, HEAD + 0.19), 0.118, 0.07, water, "Head", segs=9)
+    k.sphere("HeadTipJoint", 0.07, (0, 0.04, HEAD + 0.19), water, "Head", segs=8, rings=4)
+    k.limb("HeadTip2", (0, 0.04, HEAD + 0.19), (0, 0.13, HEAD + 0.28), 0.07, 0.035, water, "Head", segs=8)
+    k.limb("HeadTip3", (0, 0.13, HEAD + 0.28), (0, 0.23, HEAD + 0.27), 0.035, 0.0, shallow, "Head", segs=6)
     for side in (-1, 1):
-        k.sphere(f"Eye{side}", 0.022, (0.045 * side, -0.11, HEAD + 0.01), eye, "Head", scale=(1.3, 0.6, 0.8), segs=6, rings=3)
+        k.limb(f"HeadSpray{side}", (0.0, 0.18, HEAD + 0.28), (0.06 * side, 0.25, HEAD + 0.33), 0.012, 0.0, foam, "Head", segs=4)
+    k.limb("HeadHi", (0.045, -0.085, HEAD + 0.06), (0.035, -0.035, HEAD + 0.17), 0.013, 0.005, shallow, "Head", segs=4)
+    for side in (-1, 1):
+        k.sphere(f"Eye{side}", 0.024, (0.046 * side, -0.11, HEAD + 0.01), eye, "Head", scale=(1.3, 0.6, 0.8), segs=6, rings=3)
 
-    # Руки-струи: плечо → локоть → кисть у земли, кисть растекается всплеском
+    # --- Руки-струи: плечо → локоть → кисть у земли; пенная спираль, стекающие капли, всплеск-корона ---
     for side, pre in ((-1, "R"), (1, "L")):
         sh = (0.22 * side, 0.0, SHOULDER - 0.02)
         el = (0.34 * side, -0.04, 0.5)
         hd = (0.38 * side, -0.07, 0.1)
-        k.limb(f"Arm{pre}", sh, el, 0.075, 0.06, water, f"Arm{pre}", segs=6)
-        k.limb(f"Fore{pre}", el, hd, 0.06, 0.075, water, f"Fore{pre}", segs=6)
-        k.limb(f"ForeHi{pre}", (el[0] - 0.02 * side, el[1] - 0.04, el[2] - 0.02),
-               (hd[0] - 0.01 * side, hd[1] - 0.06, hd[2] + 0.08), 0.02, 0.015, light, f"Fore{pre}", segs=4)
-        # Всплеск у ладони: широкий плоский конус и пара «пальцев»-струй
-        k.limb(f"Splash{pre}", (hd[0], hd[1], hd[2] + 0.04), (hd[0], hd[1] - 0.02, 0.0), 0.06, 0.14, light, f"Hand{pre}", segs=7)
+        k.sphere(f"ShoulderBall{pre}", 0.085, sh, shallow, f"Arm{pre}", segs=6, rings=3)
+        k.limb(f"Arm{pre}", sh, el, 0.08, 0.06, water, f"Arm{pre}", segs=8)
+        k.sphere(f"Elbow{pre}", 0.064, el, water, f"Fore{pre}", segs=6, rings=4)
+        k.limb(f"Fore{pre}", el, hd, 0.06, 0.08, deep, f"Fore{pre}", segs=8)
+        # пенная полоса, обвивающая предплечье
+        for j in range(3):
+            f0 = j / 3.0
+            f1 = (j + 0.8) / 3.0
+            a0 = math.radians(120 * j)
+            a1 = math.radians(120 * j + 90)
+            p0 = tuple(el[n] + (hd[n] - el[n]) * f0 for n in range(3))
+            p1 = tuple(el[n] + (hd[n] - el[n]) * f1 for n in range(3))
+            r = 0.068
+            k.limb(f"Swirl{pre}{j}", (p0[0] + r * math.cos(a0), p0[1] + r * math.sin(a0), p0[2]),
+                   (p1[0] + r * math.cos(a1), p1[1] + r * math.sin(a1), p1[2]), 0.014, 0.01, foam, f"Fore{pre}", segs=4)
+        # капли, отрывающиеся снизу руки
+        for j, f in enumerate((0.35, 0.7)):
+            p = tuple(el[n] + (hd[n] - el[n]) * f for n in range(3))
+            k.sphere(f"Drip{pre}{j}", 0.02, (p[0] + 0.07 * side, p[1] - 0.02, p[2] - 0.04), shallow, f"Fore{pre}",
+                     scale=(1, 1, 1.7), segs=4, rings=3)
+        # всплеск у ладони: плоский пенный диск и корона струй
+        k.limb(f"Splash{pre}", (hd[0], hd[1], hd[2] + 0.04), (hd[0], hd[1] - 0.02, 0.0), 0.065, 0.15, shallow, f"Hand{pre}", segs=9)
+        k.barrel(f"SplashFoam{pre}", 0.16, 0.12, 0.0, 0.02, foam, f"Hand{pre}", segs=7, loc=(hd[0], hd[1] - 0.02))
+        for j in range(3):
+            a = math.radians(-90 + 120 * j + 30 * side)
+            b = (hd[0] + 0.12 * math.cos(a), hd[1] - 0.02 + 0.12 * math.sin(a), 0.01)
+            tip = (hd[0] + 0.2 * math.cos(a), hd[1] - 0.02 + 0.2 * math.sin(a), 0.08 + 0.03 * (j % 2))
+            k.limb(f"Crown{pre}{j}", b, tip, 0.022, 0.0, foam if j % 2 else shallow, f"Hand{pre}", segs=4)
         for j, dx in enumerate((-0.05, 0.05)):
             k.limb(f"Finger{pre}{j}", (hd[0], hd[1] - 0.02, hd[2]),
-                   (hd[0] + dx, hd[1] - 0.13, 0.01), 0.025, 0.006, water, f"Hand{pre}", segs=4)
+                   (hd[0] + dx, hd[1] - 0.14, 0.01), 0.026, 0.006, water, f"Hand{pre}", segs=5)
 
-    # Трещины Раскола внутри воды: по груди и юбке спереди, немного сзади
+    # --- Трещины Раскола внутри воды: грудь (сходятся к сердцу), юбка, руки, затылок ---
     def surf(r_bottom, r_top, z0, z1, z, ang, sy):
         r = r_bottom + (r_top - r_bottom) * (z - z0) / (z1 - z0)
         a = math.radians(ang)
@@ -75,14 +138,18 @@ def build_mesh():
         ("Body", 0.33, 0.16, 0.02, WAIST, 0.85, [(0.08, -10), (0.2, 6), (0.32, -4), (0.44, 10)]),
         ("Body", 0.33, 0.16, 0.02, WAIST, 0.85, [(0.12, 25), (0.24, 34), (0.36, 22)]),
         ("Body", 0.33, 0.16, 0.02, WAIST, 0.85, [(0.1, -38), (0.22, -28), (0.3, -40)]),
-        ("Chest", 0.16, 0.24, WAIST - 0.02, SHOULDER - 0.04, 0.7, [(0.52, 8), (0.62, -6), (0.72, 4), (0.8, 18)]),
-        ("Chest", 0.16, 0.24, WAIST - 0.02, SHOULDER - 0.04, 0.7, [(0.64, -6), (0.7, -24)]),
+        ("Chest", 0.15, 0.235, WAIST - 0.03, SHOULDER - 0.04, 0.7, [(0.52, 8), (0.6, -4), (0.66, 0)]),
+        ("Chest", 0.15, 0.235, WAIST - 0.03, SHOULDER - 0.04, 0.7, [(0.7, 0), (0.76, -14), (0.8, -26)]),
+        ("Chest", 0.15, 0.235, WAIST - 0.03, SHOULDER - 0.04, 0.7, [(0.7, 4), (0.75, 18), (0.81, 22)]),
         ("Body", 0.33, 0.16, 0.02, WAIST, 0.85, [(0.1, 170), (0.26, 185), (0.4, 175)]),
     ]
     for i, (bone, rb, rt, z0, z1, sy, pts) in enumerate(veins):
         ps = [surf(rb, rt, z0, z1, z, a, sy) for z, a in pts]
         for n in range(len(ps) - 1):
-            k.limb(f"Vein{i}_{n}", ps[n], ps[n + 1], 0.011, 0.011, rift, bone, segs=4)
+            k.limb(f"Vein{i}_{n}", ps[n], ps[n + 1], 0.011, 0.011, rift, bone, segs=3)
+    for side, pre in ((-1, "R"), (1, "L")):
+        k.limb(f"ArmVein{pre}", (0.3 * side, -0.07, 0.68), (0.36 * side, -0.09, 0.42), 0.009, 0.007, rift, f"Arm{pre}", segs=3)
+    k.limb("HeadVein", (0.06, 0.07, HEAD + 0.02), (0.02, 0.1, HEAD + 0.17), 0.009, 0.006, rift, "Head", segs=3)
     return k.join_parts("SpiritTideMesh")
 
 
@@ -236,6 +303,7 @@ def death(t):
     p.add("ForeL", x=tr([0, 0, 20, 40, 42, 42]))
     p.move("Root", z=tr([0, 0.03, -0.25, -0.75, -0.95, -0.98]))
     p.size("Body", 1.0, 1.0, tr([1, 1.04, 0.85, 0.7, 0.65, 0.65]))
+    p.size("Chest", tr([1, 1, 0.9, 0.6, 0.4, 0.4]))   # гребень и плечи тоже уходят под воду, не торчат из лужи
     p.size("Puddle", tr([1, 1.02, 1.2, 1.45, 1.55, 1.55]))
     shiver = pulse(t, 0.93, 0.05)
     p.size("Puddle", tr([1, 1.02, 1.2, 1.45, 1.55, 1.55]) + 0.06 * shiver)

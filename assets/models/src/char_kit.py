@@ -16,8 +16,8 @@ def srgb(c):
     return tuple((x / 12.92) if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c)
 
 
-def mat(name, color, metallic=0.0, rough=0.8, emit=0.0):
-    """Однотонный материал. color — как на экране (sRGB)."""
+def mat(name, color, metallic=0.0, rough=0.8, emit=0.0, alpha=1.0):
+    """Однотонный материал. color — как на экране (sRGB). alpha < 1 — полупрозрачный (вода, стекло)."""
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
     bsdf = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
@@ -28,6 +28,9 @@ def mat(name, color, metallic=0.0, rough=0.8, emit=0.0):
     if emit > 0:
         bsdf.inputs["Emission Color"].default_value = lin
         bsdf.inputs["Emission Strength"].default_value = emit
+    if alpha < 1.0:
+        bsdf.inputs["Alpha"].default_value = alpha
+        m.surface_render_method = "BLENDED"   # glTF: alphaMode BLEND
     m.diffuse_color = lin
     return m
 
