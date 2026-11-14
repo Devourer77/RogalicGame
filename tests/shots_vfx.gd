@@ -34,10 +34,13 @@ func _initialize() -> void:
 		["heal_mage", func() -> void: vfx.heal(b._views[hero_m], 1.65, 6)],
 		["fire_tick", func() -> void: vfx.hit(b._views[en[0]], 1.4, {"dealt": 3, "source": "fire", "material": "sparks"})],
 		["sink", func() -> void: vfx.sink(b._views[en[3]])],
+		["rise", func() -> void: vfx.burst("rise", b._views[hero_k].global_position + Vector3(0, 0.1, 0), 1.0, 0, Color(0.95, 0.7, 0.3))],
+		["lightning", func() -> void: vfx.lightning(b._views[en[1]].global_position + Vector3(0.3, 6, 0), b._views[en[1]].global_position + Vector3(0, 0.1, 0), Color(0.95, 0.95, 0.62), 0.08, 12)],
+		["slash", func() -> void: vfx.slash(b._views[hero_k].global_position, Vector3.FORWARD, Color(0.78, 0.86, 0.96), 0.95, 140.0, 0.3)],
 	]
 	var targets: Dictionary = {"hit_goblin": en[0], "big_hit_goblin": en[0], "hit_stone": en[1],
 		"hit_wood": en[4], "hit_water_lightning": en[3], "block_knight": hero_k, "poison_mage": hero_m,
-		"heal_mage": hero_m, "fire_tick": en[0], "sink": en[3]}
+		"heal_mage": hero_m, "fire_tick": en[0], "sink": en[3], "rise": hero_k, "lightning": en[1], "slash": hero_k}
 	for c in cases:
 		if only != "" and c[0] != only:
 			continue

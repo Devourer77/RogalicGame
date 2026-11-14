@@ -48,6 +48,11 @@ enum Element {
 # Набор карты: "storm" (Буря Раскола), "elements" (Повелитель стихий),
 # "onslaught" (Натиск), "warden" (Страж топей), "runes" (Руны Стражи). Пусто — базовая карта.
 @export var card_set: String = ""
+# Эффект карты на поле (VfxPlayer.play_card). Пусто — подбирается сам по форме, стихии и набору.
+# Можно задать «форму» и «цвет» через двоеточие, например "area:fire" или "bolt".
+# Формы: melee, bash, staff, dash, guard, buff, bolt, chain, wave, area.
+# Цвета: steel, rage, arcane, water, lightning, wind, bog, fire, steam.
+@export var vfx: String = ""
 
 @export_group("Рыцарь")
 @export var taunt: bool = false        # провокация: враги, которые дотягиваются до героя, бьют только его

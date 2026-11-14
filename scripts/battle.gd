@@ -551,26 +551,31 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 		cast_sound = "block"
 	elif is_mage:
 		cast_sound = "magic"
+	# Эффект карты (VfxCards): клетки в мире и Цепь запоминаем сейчас, к анимации они могут измениться
+	var picked: Array[String] = VfxCards.pick(card)
+	var world_cells: Array[Vector3] = []
+	for c in cells:
+		world_cells.append(board.grid_to_world(c))
+	var chain_now: int = logic.chain_value()
+	var sky: bool = picked[1] == "lightning" or card.special == "meteor"
 	_queue(func() -> void:
 		Sfx.play(cast_sound, 0.06)
 		view.face_dir(dir)
-		# Выбираем анимацию героя под тип карты:
-		# Маг: CastSky (Метеор, Молния, Рывок), Cast (направленные заклинания), Block (Щит), Attack (Удар посохом)
+		# Выбираем анимацию героя под эффект карты:
+		# Маг: CastSky (молния, метеор, рывок), Cast (заклинания), Block (щит), Attack (посох)
 		# Рыцарь: Attack (удары), Block (щит и провокация)
-		if (card.block > 0 or card.taunt) and view.has_anim("Block"):
+		var form: String = picked[0]
+		if form == "guard" and view.has_anim("Block"):
 			await view.play_block()
-		elif is_mage and (card.id in ["meteor", "lightning", "dash"] or card.id.begins_with("mb_dash")) and view.has_anim("CastSky"):
+		elif is_mage and (sky or form == "dash") and view.has_anim("CastSky"):
 			await view.play_cast_sky(dir)
-		elif is_mage and card.id != "strike" and not card.id.begins_with("mb_staff") and view.has_anim("Cast"):
+		elif is_mage and form != "staff" and view.has_anim("Cast"):
 			await view.play_cast(dir)
-		elif card.damage > 0 and view.has_anim("Attack") and dir != Vector2i.ZERO:
+		elif (card.damage > 0 or form == "melee" or form == "bash" or form == "staff") and view.has_anim("Attack") and dir != Vector2i.ZERO:
 			await view.play_attack(dir)
 
 		board.show_cells("flash", cells, COLOR_FLASH)
-		if is_mage or card.element != CardData.Element.NONE:
-			await SpellFx.play(board, card, from_cell, cells)
-		else:
-			await get_tree().create_timer(0.25).timeout   # короткая пауза, чтобы вспышку было видно
+		await VfxCards.play(vfx, card, view, world_cells, chain_now)
 		board.clear_layer("flash")
 	)
 
