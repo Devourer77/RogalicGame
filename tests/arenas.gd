@@ -19,7 +19,8 @@ func _initialize() -> void:
 			b.setup(12, 12, run.rng, run.party, run._make_encounter(6, arena == "lair"), arena)
 			if b.objects.is_empty(): empty_fields += 1
 			if not b._field_is_open(): fails += 1
-			if b.enemies.size() < 5: fails += 1
+			# в бою с боссом свита своя: у Утопшего капитана 3 (+2 топляка зовёт колокол), у остальных 4
+			if b.enemies.size() < (4 if arena == "lair" else 5): fails += 1
 			# Враги стоят в своей зоне (со сдвигом на 1 ряд к героям) и не в трясине
 			for e: BattleUnit in b.enemies:
 				if e.cell.y < BattleLogic.ENEMY_ROW_OFFSET or e.cell.y > b._enemy_last_row() \
