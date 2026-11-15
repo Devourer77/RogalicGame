@@ -465,6 +465,64 @@ def bog_rim_b(m):
     m.cyl(0.025, 0.01, 0.3, (0.1, -0.03, -0.02), WOOD_D, rot=(80, 0, 100), seg=4)
 
 
+# ---- Стыки и переходы покрытий (board.gd ставит их между плитами) ----
+# Шов вдоль X на y = 0, длина — сторона соты (~0.66 м). -Y — сторона соседней клетки.
+MOSS_D = (0.16, 0.23, 0.12)
+
+
+@model
+def joint_moss(m):
+    """Стык двух клеток мха: моховая полоса поверх щели, плиты сливаются в одну поляну.
+    Тонкая тёмная линия посередине — чтобы клетки всё равно считались."""
+    m.blob(0.3, (0.0, 0.0, 0.004), MOSS, scale=(1.12, 0.3, 0.05), jit=0.15)
+    m.blob(0.1, (-0.18, 0.04, 0.01), MOSS_L, scale=(1.4, 0.7, 0.12), jit=0.2)
+    m.blob(0.08, (0.2, -0.03, 0.01), MOSS_L, scale=(1.3, 0.8, 0.12), jit=0.2)
+    m.box((0.56, 0.008, 0.004), (0.0, 0.0, 0.017), MOSS_D)
+
+
+@model
+def joint_mud(m):
+    """Стык двух клеток грязи: грязь заливает щель, мокрое пятно, тонкая линия сетки."""
+    m.blob(0.3, (0.0, 0.0, -0.02), MUD, scale=(1.12, 0.3, 0.05), jit=0.15)
+    m.blob(0.09, (0.12, 0.02, -0.012), MUD_W, scale=(1.5, 0.8, 0.08), rough=0.35)
+    m.box((0.56, 0.008, 0.004), (0.0, 0.0, -0.006), MUD_W)
+
+
+def _edge_patch(m, colors, z, pebbles=0, grass=0):
+    """Пятна вдоль края плиты, наползающие с соседней клетки (-Y — сосед)."""
+    for i, x in enumerate((-0.22, -0.05, 0.13, 0.26)):
+        r = m.rnd.uniform(0.07, 0.11)
+        y = m.rnd.uniform(-0.02, 0.06)
+        m.blob(r, (x, y, z), colors[i % len(colors)], scale=(1.5, m.rnd.uniform(0.7, 1.2), 0.1), jit=0.25)
+    for i in range(pebbles):
+        m.blob(0.025, (m.rnd.uniform(-0.25, 0.25), m.rnd.uniform(0.0, 0.12), z), STONE_D, scale=(1, 1, 0.6))
+    for i in range(grass):
+        m.cyl(0.015, 0, m.rnd.uniform(0.08, 0.14), (m.rnd.uniform(-0.2, 0.2), m.rnd.uniform(0.0, 0.08), z),
+              MOSS_L, rot=(m.rnd.uniform(-25, 25), m.rnd.uniform(-25, 25), 0), seg=3)
+
+
+@model
+def edge_moss_a(m):
+    """Мох с соседней клетки наползает на край каменной плиты."""
+    _edge_patch(m, [MOSS, MOSS_L], 0.004, grass=2)
+
+
+@model
+def edge_moss_b(m):
+    _edge_patch(m, [MOSS_L, MOSS, MOSS], 0.004, pebbles=1)
+
+
+@model
+def edge_mud_a(m):
+    """Грязь с соседней клетки размазана по краю плиты."""
+    _edge_patch(m, [MUD, MUD_W], 0.002, pebbles=2)
+
+
+@model
+def edge_mud_b(m):
+    _edge_patch(m, [MUD_W, MUD, MUD], 0.002, grass=1)
+
+
 def hex_half_height(x):
     """Сколько места по Y у соты на расстоянии x от центра (доски не должны вылезать за край)."""
     return max(HEX_R - abs(x) / math.sqrt(3), 0.0)

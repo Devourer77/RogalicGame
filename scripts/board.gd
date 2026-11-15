@@ -6,7 +6,8 @@ extends Node3D
 # Поле из сот: размеры клетки задаёт HexMath (расстояние между центрами соседей, радиус гекса).
 const CELL_STEP: float = HexMath.CELL_STEP                 # расстояние между центрами соседних клеток, м
 const ROW_STEP: float = HexMath.HEX_SIZE * 1.5             # расстояние между рядами, м
-const TILE_GAP: float = 0.97       # доля клетки, которую занимает плита (остальное — щель)
+const TILE_GAP: float = 0.97       # доля клетки, которую занимает плита-заглушка (остальное — щель)
+const TILE_MODEL_SCALE: float = 1.013   # модели плит чуть шире своей заготовки: щели между ними уже
 const TILE_THICKNESS: float = 0.2  # толщина плиты
 
 # Цвета плит-заглушек (те же, что в assets/models/src/build_topi.py).
@@ -23,6 +24,7 @@ const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй отте�
 
 # Все модели топей собраны скриптом assets/models/src/build_topi.py
 const SUBTLE_SCALE: float = 0.9   # сдержанная подсветка: контур чуть внутри соты
+const POOL_TILES: Array[int] = [BattleLogic.Tile.WATER, BattleLogic.Tile.SWAMP]   # клетки, которые сливаются с соседями
 const PUDDLE_PART: float = 0.8    # лужа меньше плиты (доля радиуса соты)
 const PUDDLE_Y: float = 0.025     # высота глади луж
 const HIGHLIGHT_SHADER: Shader = preload("res://assets/shaders/cell_highlight.gdshader")   # подсветка клеток: контур + слабая заливка
@@ -48,6 +50,13 @@ const TILE_STONE_ALT_MODEL: String = "tile_hex_stone_b"
 
 # Объекты на клетках (ключ — BattleLogic.Obj)
 const OBJ_BOG: PackedScene = preload(DIR + "obj_bog.glb")
+# Стыки покрытий (build_topi.py): полоса поверх щели между двумя клетками мха или грязи
+const JOINT_MOSS: PackedScene = preload(DIR + "joint_moss.glb")
+const JOINT_MUD: PackedScene = preload(DIR + "joint_mud.glb")
+# Мох и грязь с соседней клетки на краю каменной плиты и гати
+const EDGE_MOSS: Array[PackedScene] = [preload(DIR + "edge_moss_a.glb"), preload(DIR + "edge_moss_b.glb")]
+const EDGE_MUD: Array[PackedScene] = [preload(DIR + "edge_mud_a.glb"), preload(DIR + "edge_mud_b.glb")]
+const EDGE_TARGETS: Array[int] = [BattleLogic.Ground.STONE, BattleLogic.Ground.PLANKS]
 # Бортик трясины на одну сторону соты: ставится только туда, где сосед — не трясина
 const BOG_RIMS: Array[PackedScene] = [preload(DIR + "bog_rim_a.glb"), preload(DIR + "bog_rim_b.glb")]
 # Клетки с водой трясины: сама трясина и то, что лежит поверх неё (мостки, настил)
@@ -149,7 +158,10 @@ var _tile_mesh: CylinderMesh
 var _hex_tile_meshes: Dictionary[String, Mesh] = {}
 var _object_nodes: Dictionary[Vector2i, Node3D] = {}
 var _object_kinds: Dictionary[Vector2i, int] = {}
-var _bog_water: Dictionary[Vector2i, Node3D] = {}     # вода и бортики трясины по клеткам
+var _bog_water: Dictionary[Vector2i, Node3D] = {}
+var _lava_links: Dictionary[Vector2i, Node3D] = {}    # перемычки между соседними клетками лавы
+var _tile_drop: Dictionary[Vector2i, float] = {}      # на сколько плита клетки опущена (неровность пола)
+var _swamp_mat: StandardMaterial3D     # вода и бортики трясины по клеткам
 var _puddle_links: Dictionary[Vector2i, Node3D] = {}  # перемычки между соседними лужами
 var _effect_kinds: Dictionary[Vector2i, int] = {}     # какой эффект лежит на клетке (BattleLogic.Tile)
 var _bog_water_mat: ShaderMaterial
@@ -194,16 +206,60 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 				turns = (turns % 2) * 3
 			tile.rotation.y = deg_to_rad(60.0 * turns)
 			tile.position = grid_to_world(cell) + Vector3(0.0, -drop, 0.0)
+			tile.scale = Vector3(TILE_MODEL_SCALE, 1.0, TILE_MODEL_SCALE)   # щели между плитами уже
 		else:
 			tile.mesh = _get_tile_mesh()
 			tile.material_override = _get_solid_material(color)
 			tile.position = grid_to_world(cell) + Vector3(0.0, -TILE_THICKNESS / 2.0 - drop, 0.0)
 		add_child(tile)
+		_tile_drop[cell] = drop
 
+	_build_ground_joints(ground)
 	_build_decorations(rng)
 	if _arena != "cave":
 		_build_shore_edge(layout_seed)
 	_build_wisps()
+
+
+# Стыки покрытий, чтобы поле смотрелось одним местом, а не шахматной доской:
+# — соседние клетки мха (или грязи) сливаются: моховая/грязевая полоса поверх щели,
+#   посередине тонкая линия — клетки всё равно считаются;
+# — у каменной плиты и гати рядом с мхом или грязью край зарастает мхом / пачкается грязью.
+func _build_ground_joints(ground: Dictionary[Vector2i, int]) -> void:
+	if ground.is_empty():
+		return
+	var holder := Node3D.new()
+	holder.name = "GroundJoints"
+	add_child(holder)
+	var apothem: float = CELL_STEP * 0.5
+	var soft: Dictionary[int, PackedScene] = {BattleLogic.Ground.MOSS: JOINT_MOSS, BattleLogic.Ground.MUD: JOINT_MUD}
+	var edges: Dictionary[int, Array] = {BattleLogic.Ground.MOSS: EDGE_MOSS, BattleLogic.Ground.MUD: EDGE_MUD}
+	for cell: Vector2i in ground:
+		var kind: int = ground[cell]
+		for i in HexMath.DIRS.size():
+			var d: Vector2i = HexMath.DIRS[i]
+			var other: Vector2i = cell + d
+			if not ground.has(other):
+				continue
+			var other_kind: int = ground[other]
+			var v: Vector3 = HexMath.axial_to_world(d).normalized()
+			var hash_value: int = posmod(cell.x * 29 + cell.y * 11 + i * 7, 101)
+			if kind == other_kind and soft.has(kind) and i < 3:   # каждый стык — один раз
+				var joint: Node3D = soft[kind].instantiate()
+				var y: float = -(_tile_drop.get(cell, 0.0) + _tile_drop.get(other, 0.0)) * 0.5
+				joint.position = grid_to_world(cell) + v * apothem + Vector3(0.0, y, 0.0)
+				joint.rotation.y = atan2(v.x, v.z)
+				if hash_value % 2 == 0:   # разворот на 180° — полоса не повторяется (отражать нельзя: темнеет)
+					joint.rotation.y += PI
+				holder.add_child(joint)
+			elif EDGE_TARGETS.has(kind) and edges.has(other_kind):
+				var list: Array = edges[other_kind]
+				var edge: Node3D = (list[hash_value % list.size()] as PackedScene).instantiate()
+				edge.position = grid_to_world(cell) + v * apothem * 0.82 + Vector3(0.0, -_tile_drop.get(cell, 0.0), 0.0)
+				edge.rotation.y = atan2(v.x, v.z)   # сторона соседа модели (+Z) — к соседу
+				holder.add_child(edge)
+	for n in holder.find_children("*", "GeometryInstance3D", true, false):
+		(n as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 # Вода топей до горизонта и тёмный берег-островок под плитами
@@ -597,9 +653,9 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 	if _effects.has(cell):
 		_effects[cell].queue_free()
 		_effects.erase(cell)
-	var was_water: bool = _effect_kinds.get(cell, BattleLogic.Tile.NONE) == BattleLogic.Tile.WATER
+	var was_pool: bool = POOL_TILES.has(_effect_kinds.get(cell, BattleLogic.Tile.NONE))
 	_effect_kinds[cell] = tile
-	if was_water or tile == BattleLogic.Tile.WATER:
+	if was_pool or POOL_TILES.has(tile):
 		_refresh_puddles_around(cell)   # соседние лужи сливаются: перемычки пересобираются
 	if tile == BattleLogic.Tile.NONE:
 		_effect_kinds.erase(cell)
@@ -641,13 +697,13 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			if vfx != null:
 				vfx.loop("frost_loop", root, Vector3(0.0, 0.12, 0.0))   # блики инея
 		BattleLogic.Tile.SWAMP:
-			# Трясина: тёмная болотная жижа с зеленоватым отсветом
-			var mud := _flat_disc(0.42 * CELL_STEP, Color(0.17, 0.22, 0.12, 0.95), 0.02)
-			var mud_mat: StandardMaterial3D = mud.material_override
-			mud_mat.roughness = 0.2
-			mud_mat.emission_enabled = true
-			mud_mat.emission = Color(0.2, 0.32, 0.1)
-			mud_mat.emission_energy_multiplier = 0.2
+			# Топь: тёмная болотная жижа с зеленоватым отсветом, по форме соты.
+			# Соседние клетки топи сливаются (_refresh_puddle_links).
+			var mud := MeshInstance3D.new()
+			mud.mesh = _hex_prism(HexMath.HEX_SIZE * PUDDLE_PART, 0.01)
+			mud.position.y = PUDDLE_Y - 0.005
+			mud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mud.material_override = _get_swamp_material()
 			root.add_child(mud)
 			if vfx != null:
 				vfx.loop("bubble_loop", root, Vector3(0.0, 0.035, 0.0))   # пузыри
@@ -971,8 +1027,48 @@ func _is_bog_water(cell: Vector2i) -> bool:
 
 func _refresh_bog_around(cell: Vector2i) -> void:
 	_refresh_bog(cell)
+	_refresh_lava_links(cell)
 	for d: Vector2i in HexMath.DIRS:
 		_refresh_bog(cell + d)
+		_refresh_lava_links(cell + d)
+
+
+# Соседние клетки лавы — одно озеро: между ними перемычки из тёмного края и жидкого огня,
+# в углу, где сходятся три лавы, — заплатка. Свет и пузыри остаются у каждой клетки.
+func _refresh_lava_links(cell: Vector2i) -> void:
+	if _lava_links.has(cell):
+		_lava_links[cell].queue_free()
+		_lava_links.erase(cell)
+	var lava: int = BattleLogic.Obj.LAVA
+	if _object_kinds.get(cell, BattleLogic.Obj.NONE) != lava:
+		return
+	var root := Node3D.new()
+	root.position = grid_to_world(cell)
+	var apothem: float = CELL_STEP * 0.5
+	var n: int = HexMath.DIRS.size()
+	for i in n:
+		var d: Vector2i = HexMath.DIRS[i]
+		if _object_kinds.get(cell + d, BattleLogic.Obj.NONE) != lava:
+			continue
+		var v: Vector3 = HexMath.axial_to_world(d)
+		var angle: float = atan2(v.x, v.z)
+		for layer: Array in [[0.97, 0.1, Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05],
+				[0.8, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07]]:
+			var strip: MeshInstance3D = _glow_slab(Vector3(HexMath.HEX_SIZE * layer[0], layer[1], apothem + 0.02),
+					layer[2], layer[3], layer[4], layer[5])
+			strip.position += v.normalized() * apothem * 0.5
+			strip.rotation.y = angle
+			root.add_child(strip)
+		var d2: Vector2i = HexMath.DIRS[(i + 1) % n]
+		if _object_kinds.get(cell + d2, BattleLogic.Obj.NONE) == lava:
+			var corner: MeshInstance3D = _glow_hex(0.6, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07)
+			corner.position += (v + HexMath.axial_to_world(d2)) / 3.0
+			root.add_child(corner)
+	if root.get_child_count() == 0:
+		root.free()
+		return
+	add_child(root)
+	_lava_links[cell] = root
 
 
 # Вода и бортики трясины на одной клетке (пересобираются целиком — их мало)
@@ -1002,8 +1098,6 @@ func _refresh_bog(cell: Vector2i) -> void:
 		var rim: Node3D = BOG_RIMS[hash_value % BOG_RIMS.size()].instantiate()
 		rim.position = v * apothem
 		rim.rotation.y = atan2(v.x, v.z)   # сторона суши модели (+Z) — к соседней плите
-		if hash_value % 3 == 0:   # иногда бортик зеркальный — чтобы не повторялся
-			rim.scale.x = -1.0
 		root.add_child(rim)
 
 
@@ -1032,6 +1126,17 @@ func _get_puddle_material() -> ShaderMaterial:
 	return _puddle_mat
 
 
+func _get_swamp_material() -> StandardMaterial3D:
+	if _swamp_mat == null:
+		_swamp_mat = StandardMaterial3D.new()
+		_swamp_mat.albedo_color = Color(0.17, 0.22, 0.12)
+		_swamp_mat.roughness = 0.2
+		_swamp_mat.emission_enabled = true
+		_swamp_mat.emission = Color(0.2, 0.32, 0.1)
+		_swamp_mat.emission_energy_multiplier = 0.2
+	return _swamp_mat
+
+
 func _refresh_puddles_around(cell: Vector2i) -> void:
 	_refresh_puddle_links(cell)
 	for d: Vector2i in HexMath.DIRS:
@@ -1044,8 +1149,10 @@ func _refresh_puddle_links(cell: Vector2i) -> void:
 	if _puddle_links.has(cell):
 		_puddle_links[cell].queue_free()
 		_puddle_links.erase(cell)
-	if _effect_kinds.get(cell, BattleLogic.Tile.NONE) != BattleLogic.Tile.WATER:
+	var kind: int = _effect_kinds.get(cell, BattleLogic.Tile.NONE)
+	if not POOL_TILES.has(kind):
 		return
+	var mat: Material = _get_puddle_material() if kind == BattleLogic.Tile.WATER else _get_swamp_material()
 	var root := Node3D.new()
 	root.position = grid_to_world(cell)
 	var width: float = HexMath.HEX_SIZE * PUDDLE_PART
@@ -1053,7 +1160,7 @@ func _refresh_puddle_links(cell: Vector2i) -> void:
 	var n: int = HexMath.DIRS.size()
 	for i in n:
 		var d: Vector2i = HexMath.DIRS[i]
-		if _effect_kinds.get(cell + d, BattleLogic.Tile.NONE) != BattleLogic.Tile.WATER:
+		if _effect_kinds.get(cell + d, BattleLogic.Tile.NONE) != kind:
 			continue
 		var v: Vector3 = HexMath.axial_to_world(d)
 		var strip := MeshInstance3D.new()
@@ -1062,15 +1169,15 @@ func _refresh_puddle_links(cell: Vector2i) -> void:
 		strip.mesh = plane
 		strip.position = v.normalized() * apothem * 0.5 + Vector3(0.0, PUDDLE_Y, 0.0)
 		strip.rotation.y = atan2(v.x, v.z)
-		strip.material_override = _get_puddle_material()
+		strip.material_override = mat
 		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(strip)
 		var d2: Vector2i = HexMath.DIRS[(i + 1) % n]   # следующая сторона — угол между ними
-		if _effect_kinds.get(cell + d2, BattleLogic.Tile.NONE) == BattleLogic.Tile.WATER:
+		if _effect_kinds.get(cell + d2, BattleLogic.Tile.NONE) == kind:
 			var corner := MeshInstance3D.new()
 			corner.mesh = _hex_prism(HexMath.HEX_SIZE * PUDDLE_PART * 0.75, 0.01)
 			corner.position = (v + HexMath.axial_to_world(d2)) / 3.0 + Vector3(0.0, PUDDLE_Y - 0.005, 0.0)
-			corner.material_override = _get_puddle_material()
+			corner.material_override = mat
 			corner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(corner)
 	if root.get_child_count() == 0:
