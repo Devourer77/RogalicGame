@@ -73,7 +73,7 @@ func _packs() -> void:
 			if ids.has(enc.id): repeat_ok = false
 			ids.append(enc.id)
 			for i in enc.core.size():
-				if enemies[i] != enc.core[i]: core_ok = false
+				if enemies[i].id != enc.core[i].id: core_ok = false   # с модификатором враг — копия, сравниваем по id
 			if enemies.size() != 4 + row / 2: count_ok = false
 			var sh := 0
 			for d in enemies:

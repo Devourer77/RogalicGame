@@ -286,6 +286,9 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		if state.get("fuse", 0) > 0 or state.get("smoldering", false):
 			info["intent_icon"] = "fuse"
 			info["intent_color"] = UiKit.THREAT
+		# Модификатор врага: значок бирюзы — тусклый, пока не сработал, яркий — когда сработал
+		if state.get("mod", "") != "":
+			marks.append(("mod_on:" if state.get("mod_on", false) else "mod:") + state["mod"])
 		if u.data.ai_style == EnemyData.AiStyle.HUNTER:
 			marks.append("ai_hunter")
 		elif u.data.ai_style == EnemyData.AiStyle.GUARD:
@@ -489,6 +492,8 @@ func _on_fx_hint(kind: String, unit: BattleUnit, other: BattleUnit) -> void:
 			_queue(func() -> void: await vfx.absorb(other_at + Vector3(0.0, 1.1, 0.0), view, height))
 		"armor_burnt":
 			_queue(func() -> void: vfx.armor_burn(view, height))
+		"modifier":   # сработал модификатор врага — вспышка бирюзы Раскола
+			_queue(func() -> void: vfx.flash(view, UiKit.RIFT, 1.2))
 		"bequest":
 			_queue(func() -> void: await vfx.bequest(other_at, view, height))
 

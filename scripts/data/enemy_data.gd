@@ -64,6 +64,7 @@ enum AiStyle { NORMAL, HUNTER, GUARD, AMBUSH }
 @export var ambush: int = 0           # «Засада» (скрытень): удар из камыша сильнее на столько
 @export var cult: bool = false        # из Культа Пустого Венца (получает венец павшего послушника)
 @export var bequest: int = 0          # «Наследие венца» (послушник): погибая, отдаёт ближайшему культисту +столько к удару навсегда
+@export var modifier: EnemyModifier = null   # «характер» этого врага в бою (Run._apply_modifiers); у файла врага пусто
 @export var fire_walker: bool = false # «Дитя огня» (Жаровик): огонь и лава его не ранят, по лаве ходит как по полу
 @export var water_weak: bool = false  # «Боится воды» (Жаровик): мокрый — без брони, вода и пар ранят вдвое
 
@@ -89,6 +90,8 @@ func attack_on_turn(turn: int) -> EnemyAttackData:
 # Короткий список особенностей — для подсказки при наведении
 func traits() -> PackedStringArray:
 	var t: PackedStringArray = []
+	if modifier != null:
+		t.append(modifier.description)
 	if keep_distance > 0:
 		t.append("держит дистанцию")
 	if ai_style == AiStyle.HUNTER:

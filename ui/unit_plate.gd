@@ -74,6 +74,10 @@ func _draw() -> void:
 		elif mark == "ritual":
 			# Ритуал: через сколько раундов ритуалист призовёт подмогу (это угроза — красный)
 			parts.append(["ritual", UiKit.THREAT, str(_info.get("ritual_turns", 0))])
+		elif mark.begins_with("mod_on:"):
+			parts.append([mark.trim_prefix("mod_on:"), UiKit.RIFT.lightened(0.25), ""])   # модификатор сработал
+		elif mark.begins_with("mod:"):
+			parts.append([mark.trim_prefix("mod:"), Color(UiKit.RIFT, 0.55), ""])   # модификатор ждёт условия
 		elif mark.begins_with("ai_"):
 			parts.append([mark, UiKit.TEXT_DIM, ""])   # характер врага — серый: бирюза занята усилениями
 		else:

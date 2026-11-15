@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_modifier.gd" id="1_mod"]
+
+[resource]
+script = ExtResource("1_mod")
+id = "spite"
+title = "Злопамятный"
+kind = 2
+value = 2
+icon = "mod_spite"
+description = "Злопамятный: ударили вплотную — бьёт в ответ на 2 (раз за ход героев)."
+only_for = Array[String](["drowned_walker", "rock_crawler", "goblin"])
+not_for = Array[String]([])
+needs_caller = false

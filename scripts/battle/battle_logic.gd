@@ -707,9 +707,11 @@ func snapshot(u: BattleUnit) -> Dictionary:
 		# Что враг собирается сделать в этом раунде — для надписи над головой
 		var atk: EnemyAttackData = enemy_attack(u)
 		state["intent"] = atk.title
-		state["damage"] = atk.damage + u.bonus_damage + u.crown_power + ritual_power + _ambush_bonus(u) \
+		state["damage"] = atk.damage + u.bonus_damage + u.crown_power + ritual_power + _ambush_bonus(u) + mod_damage(u) \
 				if atk.shape != EnemyData.Attack.AURA else 0
 		state["fuse"] = u.fuse
+		state["mod"] = u.data.modifier.icon if u.data.modifier != null else ""
+		state["mod_on"] = mod_active(u)
 		state["smoldering"] = is_smoldering(u)
 		if u.fuse > 0:
 			state["intent"] = "Взрыв!"
@@ -2889,6 +2891,7 @@ func _hint_damage(unit: BattleUnit, amount: int, source: String, ignore_block: b
 func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if amount <= 0 or not unit.is_alive():
 		return
+	var direct: bool = _dmg_source == ""   # удар картой, а не яд, огонь или взрыв
 	# «Живой бастион»: Рыцарь рядом принимает половину урона по напарнику вместо него
 	if unit.is_hero and not unit.guarding:
 		for g in living_heroes():
@@ -2927,11 +2930,20 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		message.emit("%s: −%d HP (блок поглотил %d)" % [unit.title, dealt, absorbed])
 	else:
 		message.emit("%s: −%d HP" % [unit.title, dealt])
+	if not unit.is_alive() and _mod_kind(unit) == EnemyModifier.Kind.TENACIOUS and not unit.mod_used:
+		unit.mod_used = true   # «Цепкий»: первый раз встаёт
+		unit.hp = unit.data.modifier.value
+		fx_hint.emit("modifier", unit, null)
+		message.emit("%s цепляется за жизнь: встаёт с %d HP" % [unit.title, unit.hp])
+		status_changed.emit(unit, snapshot(unit))
+	if unit.is_alive():
+		_mod_after_hit(unit, direct)
 	if not unit.is_alive():
 		unit_died.emit(unit)
 		message.emit("%s падает" % unit.title)
 		_death_blast(unit)
 		_pass_crown(unit)
+		_mod_on_death(unit, true)
 	elif unit.data != null and unit.data.inflation and _cur_attack and _cur_card != null \
 			and _cur_card.special != "harpoon":
 		unit.inflation += 1
@@ -3273,6 +3285,90 @@ func _kill(unit: BattleUnit) -> void:
 	unit.block = 0
 	unit_damaged.emit(unit, 0, snapshot(unit))
 	unit_died.emit(unit)
+	_mod_on_death(unit, false)   # утонул: «Вера в Венец» у соседей срабатывает, «Гнилое нутро» — нет
+
+
+# ---------- Модификаторы врагов (EnemyModifier, тз-сложность-боя.md) ----------
+
+func _mod_kind(u: BattleUnit) -> int:
+	return u.data.modifier.kind if u != null and u.data != null and u.data.modifier != null else -1
+
+
+# Сработал ли модификатор (для значка над плашкой: горит или тлеет)
+func mod_active(u: BattleUnit) -> bool:
+	match _mod_kind(u):
+		EnemyModifier.Kind.FRENZY:
+			return u.mod_on
+		EnemyModifier.Kind.FAITH:
+			return u.mod_stacks > 0
+		EnemyModifier.Kind.RALLY:
+			return u.mod_step_next or u.mod_step > 0
+		EnemyModifier.Kind.TENACIOUS, EnemyModifier.Kind.SPITE:
+			return u.mod_used
+	return false
+
+
+# Прибавка к удару врага от модификатора
+func mod_damage(e: BattleUnit) -> int:
+	match _mod_kind(e):
+		EnemyModifier.Kind.FRENZY:
+			return e.data.modifier.value if e.mod_on else 0
+		EnemyModifier.Kind.FAITH:
+			return e.mod_stacks
+	return 0
+
+
+# Лишние шаги врага от модификатора
+func mod_steps(e: BattleUnit) -> int:
+	if _mod_kind(e) == EnemyModifier.Kind.FRENZY and e.mod_on:
+		return 1
+	return e.mod_step
+
+
+# Враг получил урон и жив: «Бешенство» при HP ≤ половины, «Злопамятный» отвечает герою вплотную
+func _mod_after_hit(u: BattleUnit, direct: bool) -> void:
+	match _mod_kind(u):
+		EnemyModifier.Kind.FRENZY:
+			if not u.mod_on and u.hp * 2 <= u.max_hp:
+				u.mod_on = true
+				fx_hint.emit("modifier", u, null)
+				message.emit("%s впадает в бешенство!" % u.title)
+				status_changed.emit(u, snapshot(u))
+		EnemyModifier.Kind.SPITE:
+			var h: BattleUnit = _cur_hero
+			if direct and not u.mod_used and h != null and h.is_alive() and HexMath.distance(h.cell, u.cell) == 1:
+				u.mod_used = true
+				fx_hint.emit("modifier", u, null)
+				message.emit("%s бьёт в ответ" % u.title)
+				status_changed.emit(u, snapshot(u))
+				_dmg_source = "spite"
+				_damage(h, u.data.modifier.value)
+
+
+# Враг погиб: «Гнилое нутро» лопается (если не утонул), у соседей с «Верой в Венец» прибавляется сила
+func _mod_on_death(unit: BattleUnit, burst: bool) -> void:
+	if unit.is_hero:
+		return
+	for o in living_enemies():
+		if _mod_kind(o) == EnemyModifier.Kind.FAITH and o != unit and HexMath.distance(o.cell, unit.cell) <= 2 \
+				and o.mod_stacks < o.data.modifier.value:
+			o.mod_stacks += 1
+			o.block += 3
+			fx_hint.emit("modifier", o, null)
+			message.emit("%s: вера крепнет (+3 блока, удары +%d)" % [o.title, o.mod_stacks])
+			status_changed.emit(o, snapshot(o))
+	if burst and _mod_kind(unit) == EnemyModifier.Kind.ROTTEN:
+		message.emit("%s лопается гнилью!" % unit.title)
+		var cells: Array[Vector2i] = []
+		for d: Vector2i in HexMath.DIRS:
+			if is_inside(unit.cell + d):
+				cells.append(unit.cell + d)
+		effect_cells.emit(cells, "gas")
+		for c in cells:
+			var v: BattleUnit = unit_at(c)
+			if v != null and v.is_alive():
+				_dmg_source = "rotten"
+				_damage(v, unit.data.modifier.value)
 
 
 
@@ -3537,6 +3633,9 @@ func _shuffle(cards: Array[CardData]) -> void:
 
 func _start_heroes_turn() -> void:
 	turn += 1
+	for e in living_enemies():
+		if _mod_kind(e) == EnemyModifier.Kind.SPITE:
+			e.mod_used = false   # «Злопамятный» снова может ответить
 	ctx.reset()
 	_aether = false
 	for h in living_heroes():
@@ -3770,6 +3869,8 @@ func enemy_attack(e: BattleUnit) -> EnemyAttackData:
 # а у кого есть «броня» (turn_block) — получает её заново. Блок не копится.
 func _start_enemy_phase() -> void:
 	for e in living_enemies():
+		e.mod_step = 1 if e.mod_step_next else 0   # «Отклик на зов»: лишний шаг в этот ход
+		e.mod_step_next = false
 		var block: int = e.data.turn_block
 		if e.data.water_weak:
 			if tile_at(e.cell) == Tile.WATER:
@@ -3793,7 +3894,7 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 	enemy_attacked.emit(e, dir, cells)
 	if atk.title != "Удар":
 		message.emit("%s: %s" % [e.title, atk.title])
-	var damage: int = atk.damage + e.bonus_damage + e.crown_power + ritual_power + _ambush_bonus(e)
+	var damage: int = atk.damage + e.bonus_damage + e.crown_power + ritual_power + _ambush_bonus(e) + mod_damage(e)
 	if e.bonus_damage > 0:
 		e.bonus_damage = 0   # усиление «Зова» — на один удар
 		status_changed.emit(e, snapshot(e))
@@ -3852,6 +3953,11 @@ func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
 			if cells.has(ally.cell):
 				ally.block += atk.ally_block
 				ally.bonus_damage = maxi(ally.bonus_damage, atk.ally_damage)
+				if _mod_kind(ally) == EnemyModifier.Kind.RALLY:
+					ally.bonus_damage += ally.data.modifier.value   # «Отклик на зов»
+					ally.mod_step_next = true
+					fx_hint.emit("modifier", ally, null)
+					message.emit("%s откликается на зов" % ally.title)
 				status_changed.emit(ally, snapshot(ally))
 	if atk.summon != null and atk.summon_count > 0:
 		_summon_around(e, atk.summon, atk.summon_count)
@@ -4117,7 +4223,7 @@ func _attack_cells(e: BattleUnit, atk: EnemyAttackData, from: Vector2i, dir: Vec
 # Сколько клеток враг может пройти в свой ход (без учёта опутывания).
 # Рядом рыцарь в «Стойке стража» — не больше HOLD_LINE_STEPS (босса это не держит).
 func enemy_move_range(e: BattleUnit) -> int:
-	var steps: int = e.data.move_range
+	var steps: int = e.data.move_range + mod_steps(e)
 	if not e.data.is_boss and is_held(e):
 		steps = mini(steps, HOLD_LINE_STEPS)
 	return steps

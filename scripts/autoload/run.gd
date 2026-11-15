@@ -22,6 +22,12 @@ const FINAL_ACT: int = 1
 const MAP_ROWS: int = 8        # последний ряд — босс, предпоследний — привал
 const MAP_COLS: int = 3
 const OBJECTIVE_FROM_ROW: int = 2     # с какого ряда карты бывают бои с особой целью
+# Модификаторы врагов (тз-сложность-боя.md): сколько врагов в бою получают «характер»
+const MODIFIERS_DIR: String = "res://resources/enemy_modifiers/"
+const MODIFIER_IDS: Array[String] = ["frenzy", "rally", "spite", "faith", "tenacious", "rotten"]
+const MOD_FROM_ROW: int = 2            # с какого ряда в обычных боях
+const MOD_MORE_FROM_ROW: int = 4       # с этого ряда — двое
+const MOD_BELL: int = 2                # с этого Звона — ещё один в каждом бою, начиная с ряда 0
 const OBJECTIVE_CHANCE: float = 0.3   # шанс особой цели у обычного боя
 const OBJECTIVE_GOLD: int = 15        # доплата золотом за бой с особой целью
 const MAX_RELICS: int = 4             # больше порченых реликвий за забег не взять (обереги не в счёт)
@@ -514,6 +520,53 @@ func _make_encounter(row: int, boss: bool, elite: bool = false) -> Array[EnemyDa
 			count += 1   # Звон 1: в обычном бою на врага больше
 		while result.size() < count:
 			result.append(_roll_filler(enc, result))
+	_apply_modifiers(result, row, enc.kind != EncounterData.Kind.NORMAL)
+	return result
+
+
+# Сколько врагов в бою получают модификатор: ряды 0–1 — никто, 2–3 — один, 4+ — двое;
+# элита и босс — один из свиты (сам главный — нет). Звон 2 — ещё один, с первого ряда.
+func modifier_count(row: int, big: bool) -> int:
+	var n: int = 1 if big else (2 if row >= MOD_MORE_FROM_ROW else (1 if row >= MOD_FROM_ROW else 0))
+	if bell >= MOD_BELL:
+		n += 1
+	return n
+
+
+# Выдаёт модификаторы: случайным подходящим врагам (не главному элиты или босса, не духу),
+# каждому — случайный из подходящих ему. Враг получает свою копию данных, общий файл не меняется.
+func _apply_modifiers(list: Array[EnemyData], row: int, big: bool) -> void:
+	var mods: Array[EnemyModifier] = all_modifiers()
+	var caller: bool = false   # есть ли в бою, кто зовёт (тогда годится «Отклик на зов»)
+	for e in list:
+		for atk in e.cycle:
+			caller = caller or (atk.shape == EnemyData.Attack.AURA and (atk.ally_damage > 0 or atk.ally_block > 0))
+	var slots: Array[int] = []
+	for i in list.size():
+		var e: EnemyData = list[i]
+		if (big and i == 0) or e.is_boss or e.tamable or e.modifier != null:
+			continue
+		if not _mods_for(e, mods, caller).is_empty():
+			slots.append(i)
+	for k in modifier_count(row, big):
+		if slots.is_empty():
+			return
+		var i: int = slots.pop_at(rng.randi_range(0, slots.size() - 1))
+		var options: Array[EnemyModifier] = _mods_for(list[i], mods, caller)
+		var copy: EnemyData = list[i].duplicate() as EnemyData
+		copy.modifier = options[rng.randi_range(0, options.size() - 1)]
+		list[i] = copy
+
+
+func _mods_for(e: EnemyData, mods: Array[EnemyModifier], caller: bool) -> Array[EnemyModifier]:
+	return mods.filter(func(m: EnemyModifier) -> bool: return m.fits(e) and (caller or not m.needs_caller))
+
+
+# Все модификаторы (порядок постоянный — для повторяемости по сиду)
+func all_modifiers() -> Array[EnemyModifier]:
+	var result: Array[EnemyModifier] = []
+	for id: String in MODIFIER_IDS:
+		result.append(load(MODIFIERS_DIR + id + ".tres") as EnemyModifier)
 	return result
 
 

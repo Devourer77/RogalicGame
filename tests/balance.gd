@@ -279,6 +279,9 @@ func _score(b: BattleLogic, threat: Dictionary) -> float:
 	for e in b.enemies:
 		if e.is_alive():
 			s -= e.hp + 0.3 * e.block + 4.0
+			# «Цепкий» ещё не вставал — его настоящий запас HP больше (иначе бот боится его «убить»)
+			if e.data.modifier != null and e.data.modifier.kind == EnemyModifier.Kind.TENACIOUS and not e.mod_used:
+				s -= e.data.modifier.value
 	for h in b.heroes:
 		if h.is_alive():
 			s += h.hp + minf(h.block, threat.get(h.id, 0)) * 0.8 + 0.05 * h.block

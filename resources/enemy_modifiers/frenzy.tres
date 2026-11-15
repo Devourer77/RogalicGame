@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_modifier.gd" id="1_mod"]
+
+[resource]
+script = ExtResource("1_mod")
+id = "frenzy"
+title = "Бешенство"
+kind = 0
+value = 2
+icon = "mod_frenzy"
+description = "Бешенство: когда HP ≤ половины — удары +2 и +1 шаг до конца боя."
+only_for = Array[String](["wolf", "goblin", "goblin_slinger", "torch_goblin", "goblin_bomber", "reed_lurker"])
+not_for = Array[String]([])
+needs_caller = false

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyModifier" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_modifier.gd" id="1_mod"]
+
+[resource]
+script = ExtResource("1_mod")
+id = "faith"
+title = "Вера в Венец"
+kind = 3
+value = 3
+icon = "mod_faith"
+description = "Вера в Венец: рядом погиб союзник — +3 блока и удары +1 (до 3 раз)."
+only_for = Array[String](["cultist", "cult_novice"])
+not_for = Array[String]([])
+needs_caller = false

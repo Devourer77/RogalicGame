@@ -2,7 +2,7 @@ extends SceneTree
 # Бой с новыми врагами «вживую»: сцена боя, несколько ходов врагов с анимациями, снимки экрана.
 # Ловит ошибки в сцене (а не только в логике). Запуск с окном:
 #   godot --path . --resolution 1280x720 -s tests/shots_enemies.gd
-# Переменные: ENEMIES=id,id,... (по умолчанию все новые), ARENA=ключ арены, TURNS=сколько ходов.
+# Переменные: ENEMIES=id,id,... (id:модификатор — с модификатором; по умолчанию все новые), ARENA=ключ арены, TURNS=сколько ходов.
 func _initialize() -> void:
 	await process_frame
 	var run = root.get_node("Run")
@@ -13,7 +13,14 @@ func _initialize() -> void:
 	var turns: int = int(OS.get_environment("TURNS")) if OS.get_environment("TURNS") != "" else 4
 	run.start_new_run(21)
 	var list: Array[EnemyData] = []
-	for id in ids: list.append(load("res://resources/enemies/%s.tres" % id))
+	for id in ids:
+		# «wolf:frenzy» — враг с модификатором
+		var parts: PackedStringArray = id.split(":")
+		var d: EnemyData = load("res://resources/enemies/%s.tres" % parts[0])
+		if parts.size() > 1:
+			d = d.duplicate()
+			d.modifier = load("res://resources/enemy_modifiers/%s.tres" % parts[1])
+		list.append(d)
 	run.pending_enemies = list
 	run.pending_arena = arena
 	change_scene_to_file(run.BATTLE_SCENE)

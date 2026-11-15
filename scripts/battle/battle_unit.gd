@@ -54,6 +54,12 @@ var vulnerable: int = 0       # «Уязвимость к магии»: след
 var retain_turns: Dictionary = {}  # карта -> сколько ходов пролежала в руке (OnRetain), у героев
 var bonus_damage: int = 0     # «Зов Раскола»: следующий удар сильнее на столько
 var crown_power: int = 0      # «Наследие венца»: все удары сильнее на столько (до конца боя)
+# Модификатор врага (data.modifier): что уже сработало
+var mod_on: bool = false      # «Бешенство» включилось
+var mod_used: bool = false    # «Цепкий» уже вставал; «Злопамятный» уже ответил в этот ход героев
+var mod_stacks: int = 0       # «Вера в Венец»: сколько раз сработала
+var mod_step: int = 0         # «Отклик на зов»: лишний шаг в этот ход врагов
+var mod_step_next: bool = false   # «Отклик на зов»: лишний шаг на следующий ход врагов
 var ai_reason: String = ""    # почему враг так ходит («Добьёт Мага»); считает EnemyAI, показывает карточка врага
 
 
@@ -97,6 +103,11 @@ func copy() -> BattleUnit:
 	u.wet = wet
 	u.poison = poison
 	u.crown_power = crown_power
+	u.mod_on = mod_on
+	u.mod_used = mod_used
+	u.mod_stacks = mod_stacks
+	u.mod_step = mod_step
+	u.mod_step_next = mod_step_next
 	u.rune = rune
 	u.rune_hits = rune_hits
 	u.inflation = inflation
