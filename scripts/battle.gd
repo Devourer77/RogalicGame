@@ -19,6 +19,7 @@ enum Mode {
 	AIMING,  # выбрана карта: клик по полю — применить
 }
 
+const UNIT_LAYER: int = 2   # слой отрисовки фигурок (бит 2): видны камере, не попадают в зонд отражений
 const VIGNETTE_SHADER: Shader = preload("res://assets/shaders/vignette.gdshader")   # края экрана в сумраке
 const COLOR_MOVE := Color(0.3, 0.6, 1.0, 0.35)
 const COLOR_TARGET := Color(1.0, 0.9, 0.3, 0.3)
@@ -109,6 +110,7 @@ func _ready() -> void:
 	if logic.arena_id == "cave":
 		_warm_cave_light()
 	_add_vignette()
+	_add_reflection_probe()
 	_update_camera()
 	vfx = VfxPlayer.new()
 	vfx.name = "Vfx"
@@ -157,6 +159,7 @@ func _make_enemy_view(e: BattleUnit) -> Unit:
 		view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
 	view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
 	vfx.add_rim(view)   # светлая кайма по контуру — фигурка отделяется от плит
+	_put_on_unit_layer(view)
 	view.setup_label(1.4 * e.data.size + 0.55)
 	_views[e] = view
 	_last_hp[e] = e.hp
@@ -174,6 +177,7 @@ func _create_views() -> void:
 			view.add_child(_make_capsule_model(h.hero_data.color, 1.1, true))
 		view.face_dir(HexMath.FACE_UP)   # лицом к врагам
 		vfx.add_rim(view)   # светлая кайма по контуру
+		_put_on_unit_layer(view)
 		view.setup_label(2.0)
 		view.visible = h.is_alive()
 		_views[h] = view
@@ -1127,6 +1131,28 @@ func _on_card_keep_toggled(index: int) -> void:
 	hud.refresh(logic, _active, _selected_card, false)
 
 
+# Зонд отражений над полем: один раз снимает арену (фонари, туман, деревья, свечение бочек),
+# и блестящие поверхности — вода, лужи, лёд, сталь, мокрое — отражают её.
+# Фигурки на слое 2 и в снимок не попадают (иначе в лужах навсегда остались бы их старые места).
+func _add_reflection_probe() -> void:
+	var probe := ReflectionProbe.new()
+	probe.name = "ReflectionProbe"
+	probe.update_mode = ReflectionProbe.UPDATE_ONCE
+	probe.size = Vector3(board.width * Board.CELL_STEP + 14.0, 10.0, board.height * Board.ROW_STEP + 14.0)
+	probe.position = board.field_center() + Vector3(0.0, 2.0, 0.0)
+	probe.box_projection = true
+	probe.max_distance = 60.0
+	probe.cull_mask = 1
+	probe.ambient_mode = ReflectionProbe.AMBIENT_DISABLED   # общую заливку не трогаем
+	add_child(probe)
+
+
+# Ставит всем мешам модели фигурки слой 2: камера их видит, зонд отражений — нет
+func _put_on_unit_layer(view: Node3D) -> void:
+	for n in view.find_children("*", "VisualInstance3D", true, false):
+		(n as VisualInstance3D).layers = UNIT_LAYER
+
+
 # Затемнение по краям экрана (виньетка): взгляд держится в центре поля, края уходят в сумрак.
 # Слой ниже интерфейса (HUD — слой 1), мышь сквозь него проходит.
 func _add_vignette() -> void:
@@ -1151,6 +1177,12 @@ func _warm_cave_light() -> void:
 		env.background_color = Color(0.06, 0.045, 0.04)
 		env.ambient_light_color = Color(0.62, 0.5, 0.42)
 		env.fog_light_color = Color(0.26, 0.17, 0.11)
+		if env.sky != null:   # и в отражениях — тёплый тёмный свод вместо болотного неба
+			env.sky = env.sky.duplicate(true) as Sky
+			var sky_mat: ShaderMaterial = env.sky.sky_material as ShaderMaterial
+			sky_mat.set_shader_parameter("zenith_color", Color(0.04, 0.025, 0.02))
+			sky_mat.set_shader_parameter("horizon_color", Color(0.3, 0.17, 0.08))
+			sky_mat.set_shader_parameter("rift_strength", 0.0)
 		we.environment = env
 	var sun: DirectionalLight3D = get_node_or_null("Sun") as DirectionalLight3D
 	if sun != null:

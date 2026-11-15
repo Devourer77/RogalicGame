@@ -22,6 +22,7 @@ const TILE_COLORS: Dictionary[int, Color] = {
 const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй оттенок камня для разнообразия
 
 # Все модели топей собраны скриптом assets/models/src/build_topi.py
+const WATER_SHADER: Shader = preload("res://assets/shaders/water.gdshader")   # вода вокруг поля и лужи
 const DIR: String = "res://assets/models/topi/"
 
 # Шестиугольные плиты по виду покрытия (build_topi.py, «tile_hex_*»). У камня два вида:
@@ -182,15 +183,18 @@ func _build_shore() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(220.0, 220.0)
 	water.mesh = plane
-	var water_mat := StandardMaterial3D.new()
-	water_mat.albedo_color = COLOR_SWAMP_WATER
-	water_mat.roughness = 0.25
-	water_mat.metallic = 0.3
 	if _arena == "cave":   # в пещере вместо воды — сухой каменный пол
-		water_mat.albedo_color = COLOR_CAVE_FLOOR
-		water_mat.roughness = 1.0
-		water_mat.metallic = 0.0
-	water.material_override = water_mat
+		var floor_mat := StandardMaterial3D.new()
+		floor_mat.albedo_color = COLOR_CAVE_FLOOR
+		floor_mat.roughness = 1.0
+		water.material_override = floor_mat
+	else:
+		# Стоячая вода с рябью, отражает небо и арену (assets/shaders/water.gdshader)
+		var water_mat := ShaderMaterial.new()
+		water_mat.shader = WATER_SHADER
+		water_mat.set_shader_parameter("deep_color", COLOR_SWAMP_WATER)
+		water_mat.set_shader_parameter("shallow_color", COLOR_SWAMP_WATER * 1.8)
+		water.material_override = water_mat
 	water.position = center + Vector3(0.0, -0.16, 0.0)
 	add_child(water)
 
@@ -504,16 +508,22 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 	root.position = grid_to_world(cell)
 	match tile:
 		BattleLogic.Tile.WATER:
-			# Лужа: тёмное зеркало с голубым отсветом (стихия слегка светится)
-			var puddle := _flat_disc(0.41 * CELL_STEP, Color(0.1, 0.26, 0.38, 0.92), 0.02)
-			var mat: StandardMaterial3D = puddle.material_override
-			mat.roughness = 0.05
-			mat.metallic = 0.4
-			mat.emission_enabled = true
-			mat.emission = Color(0.1, 0.35, 0.55)
-			mat.emission_energy_multiplier = 0.25
-			puddle.scale = Vector3(1.0, 1.0, 0.8 + 0.2 * float(posmod(cell.x * 5 + cell.y * 3, 3)) / 2.0)
-			puddle.rotation.y = float(posmod(cell.x * 37 + cell.y * 91, 360))
+			# Лужа по форме соты: тёмное зеркало с рябью и голубым отсветом (стихия слегка светится).
+			# Отражает небо и арену, как вода вокруг поля.
+			var puddle := MeshInstance3D.new()
+			puddle.mesh = _hex_prism(HexMath.HEX_SIZE * 0.8, 0.01)   # край плиты виден — не путать с подсветкой хода
+			puddle.position.y = 0.02
+			puddle.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var mat := ShaderMaterial.new()
+			mat.shader = WATER_SHADER
+			mat.set_shader_parameter("deep_color", Color(0.02, 0.06, 0.1))
+			mat.set_shader_parameter("shallow_color", Color(0.06, 0.15, 0.22))
+			mat.set_shader_parameter("glow_color", Color(0.1, 0.35, 0.55))
+			mat.set_shader_parameter("glow_energy", 0.18)
+			mat.set_shader_parameter("alpha", 0.92)
+			mat.set_shader_parameter("ripple_scale", 1.8)
+			mat.set_shader_parameter("roughness_value", 0.08)
+			puddle.material_override = mat
 			root.add_child(puddle)
 			if vfx != null:
 				vfx.loop("ripple_loop", root, Vector3(0.0, 0.04, 0.0))   # круги на воде

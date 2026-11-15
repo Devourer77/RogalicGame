@@ -1,12 +1,22 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/board.gd" id="1_board"]
 [ext_resource type="Script" path="res://scripts/battle.gd" id="2_battle"]
 [ext_resource type="Script" path="res://ui/battle_hud.gd" id="5_hud"]
+[ext_resource type="Shader" path="res://assets/shaders/sky_reflect.gdshader" id="6_sky"]
+
+[sub_resource type="ShaderMaterial" id="SkyMat_1"]
+shader = ExtResource("6_sky")
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("SkyMat_1")
+radiance_size = 2
 
 [sub_resource type="Environment" id="Env_1"]
 background_mode = 1
 background_color = Color(0.075, 0.105, 0.1, 1)
+sky = SubResource("Sky_1")
+reflected_light_source = 2
 ambient_light_source = 2
 ambient_light_color = Color(0.5, 0.62, 0.6, 1)
 ambient_light_energy = 0.38
