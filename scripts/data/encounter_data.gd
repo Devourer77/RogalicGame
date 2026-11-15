@@ -15,6 +15,7 @@ enum Kind { NORMAL, ELITE, BOSS }
 @export var min_row: int = 0               # с какого ряда карты встречается (для обычных)
 @export var max_row: int = 99              # по какой ряд включительно
 @export var arena: String = ""             # своя арена (ключ BattleLogic.ARENAS); пусто — любая
+@export var waves: Array[WaveData] = []    # подкрепления по ходу боя (пусто — без волн)
 
 
 # Встречается ли обычный отряд на этом ряду карты

@@ -214,6 +214,9 @@ var ritual_caster_id: int = -1                 # «Ритуал»: id ритуа
 var ritual_timer: int = 0                      # «Ритуал»: сколько раундов осталось
 var ritual_power: int = 0                      # «Ритуал»: +урон всех врагов от завершённых ритуалов
 var water_row: int = -1                        # «Вода прибывает»: какой ряд зальёт следующим (-1 — ещё не началось)
+var waves: Array[WaveData] = []                # волны подкрепления этого боя (из отряда врагов)
+var wave_extra: int = 0                        # Звон 4: на столько врагов больше в каждой волне
+var wave_leader_id: int = -1                   # пока жив этот враг (первый в отряде), волны идут
 
 var _cur_card: CardData = null     # карта, эффекты которой считаются сейчас (для пассивок врагов)
 # Подсказка для эффектов (только для показа, на правила не влияет): откуда урон —
@@ -3182,9 +3185,9 @@ func _flood_next_row() -> void:
 	message.emit("Вода прибывает: нижний ряд ушёл в трясину")
 
 
-# Новый враг посреди боя — в верхних рядах на свободной клетке. null — места нет.
-func spawn_enemy(enemy_data: EnemyData) -> BattleUnit:
-	var c: Vector2i = _random_free_cell(0, _enemy_last_row())
+# Новый враг посреди боя — в верхних рядах на свободной клетке (или на клетке at). null — места нет.
+func spawn_enemy(enemy_data: EnemyData, at: Vector2i = NO_CELL) -> BattleUnit:
+	var c: Vector2i = at if at != NO_CELL else _random_free_cell(0, _enemy_last_row())
 	if c == NO_CELL:
 		return null
 	var e := _new_unit(enemy_data.title)
@@ -3196,6 +3199,116 @@ func spawn_enemy(enemy_data: EnemyData) -> BattleUnit:
 	enemies.append(e)
 	unit_spawned.emit(e)
 	return e
+
+
+# ---------- Волны подкрепления ----------
+# Отряд (EncounterData.waves) задаёт, кто и когда приходит. Приходят в конце раунда,
+# с края поля, пока жив главный враг боя. Клетки выбираются по порядку, без случайности,
+# поэтому их можно заранее показать на поле.
+
+# Включает волны в этом бою. Вызывать после setup() и до start().
+func set_waves(list: Array[WaveData], extra: int = 0) -> void:
+	waves = list.duplicate()
+	wave_extra = extra
+	wave_leader_id = enemies[0].id if not enemies.is_empty() else -1
+
+
+func _wave_leader() -> BattleUnit:
+	var leader: BattleUnit = _unit_by_id(wave_leader_id)
+	if leader == null or not leader.is_alive():
+		return null
+	return leader
+
+
+# Кто и куда придёт в конце текущего раунда: [{"cell": клетка, "enemy": EnemyData}]
+func _wave_arrivals() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if is_over or waves.is_empty() or _wave_leader() == null:
+		return result
+	var taken: Array[Vector2i] = []
+	for w in waves:
+		if not w.arrives_on(turn) or w.enemy == null:
+			continue
+		var n: int = w.count_on(turn) + wave_extra
+		for c in _wave_edge_cells(w.from):
+			if n <= 0 or living_enemies().size() + result.size() >= SUMMON_ENEMY_CAP:
+				break
+			if taken.has(c):
+				continue
+			taken.append(c)
+			result.append({"cell": c, "enemy": w.enemy, "text": w.text})
+			n -= 1
+	return result
+
+
+# Клетки, куда придёт волна в конце этого раунда (для значков на поле)
+func wave_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for a: Dictionary in _wave_arrivals():
+		cells.append(a["cell"])
+	return cells
+
+
+# Свободные клетки края по порядку: сверху — от середины к краям, сбоку — слева и справа
+# по очереди сверху вниз. Если край занят — следующий ряд (столбец) внутрь.
+func _wave_edge_cells(from: WaveData.From) -> Array[Vector2i]:
+	var order: Array[Vector2i] = []
+	if from == WaveData.From.TOP:
+		var mid: int = floori(width / 2.0)
+		for y in 3:
+			for i in width:
+				var x: int = mid + ceili(i / 2.0) * (1 if i % 2 == 1 else -1)
+				if x >= 0 and x < width:
+					order.append(_cell(x, y))
+	else:
+		for depth in 3:
+			for y in range(1, floori(height / 2.0) + 1):
+				order.append(_cell(depth, y))
+				order.append(_cell(width - 1 - depth, y))
+	var result: Array[Vector2i] = []
+	for c in order:
+		if is_inside(c) and not rocks.has(c) and not objects.has(c) and unit_at(c) == null \
+				and tile_at(c) != Tile.FIRE and tile_at(c) != Tile.GAS and tile_at(c) != Tile.SWAMP:
+			result.append(c)
+	return result
+
+
+# Конец раунда: приходит волна (если сейчас её раунд и главный враг жив)
+func _waves_round_end() -> void:
+	var arrivals: Array[Dictionary] = _wave_arrivals()
+	if arrivals.is_empty():
+		return
+	var names: Dictionary[String, int] = {}
+	for a: Dictionary in arrivals:
+		var title: String = (a["enemy"] as EnemyData).title
+		names[title] = int(names.get(title, 0)) + 1
+	var parts: Array[String] = []
+	for title: String in names:
+		parts.append(title if names[title] == 1 else "%s ×%d" % [title, names[title]])
+	var why: String = String(arrivals[0]["text"])
+	message.emit("%s: из тумана выходят %s" % [why if why != "" else "Подмога", ", ".join(parts)])
+	for a: Dictionary in arrivals:
+		spawn_enemy(a["enemy"], a["cell"])
+
+
+# Строка для интерфейса: когда и кто придёт следующей волной ("" — волн больше не будет)
+func wave_text() -> String:
+	var leader: BattleUnit = _wave_leader()
+	if leader == null or is_over:
+		return ""
+	var best_round: int = -1
+	var best: WaveData = null
+	for w in waves:
+		var r: int = w.next_round(maxi(turn, 1))
+		if r > 0 and (best_round < 0 or r < best_round):
+			best_round = r
+			best = w
+	if best == null:
+		return ""
+	var n: int = best.count_on(best_round) + wave_extra
+	var who: String = best.enemy.title + (" ×%d" % n if n > 1 else "")
+	var when: String = "в конце этого раунда" if best_round == turn else "в конце раунда %d" % best_round
+	return "%s %s\n(пока жив %s)" % [who, when, leader.title]
 
 
 # ---------- «Клещи» ----------
@@ -3775,6 +3888,7 @@ func end_turn() -> void:
 	_objective_round_end()
 	if _check_end():
 		return
+	_waves_round_end()   # волна — в самом конце раунда: перебил всех раньше — она не придёт
 
 	_start_heroes_turn()
 
@@ -4109,6 +4223,9 @@ func clone() -> BattleLogic:
 	c.ritual_timer = ritual_timer
 	c.ritual_power = ritual_power
 	c.water_row = water_row
+	c.waves = waves.duplicate()
+	c.wave_extra = wave_extra
+	c.wave_leader_id = wave_leader_id
 	c.arena_id = arena_id
 	c.peat = peat.duplicate()
 	c._next_id = _next_id
@@ -4167,6 +4284,9 @@ func forecast_hazards() -> Dictionary:
 			if u.poison > 0:
 				poison[u.id] = POISON_DAMAGE
 	var flares: Array[Vector2i] = sim.peat_flare_cells() if not sim.is_over else ([] as Array[Vector2i])
+	var wave_at: Array[Vector2i] = sim.wave_cells()
+	if not wave_at.is_empty():
+		effects.append({"cells": wave_at, "kind": "wave"})   # сюда в конце раунда придёт подмога
 	if not flares.is_empty():
 		effects.append({"cells": flares, "kind": "peat"})   # торф пещеры вспыхнет в конце раунда
 	return {"effects": effects, "fire": fire, "poison": poison}

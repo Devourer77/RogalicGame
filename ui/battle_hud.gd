@@ -440,12 +440,17 @@ func _refresh_relics() -> void:
 # Цель боя: значок, название и что осталось («Ритуал: 3 р. до призыва»)
 func _refresh_objective(logic: BattleLogic) -> void:
 	UiKit.clear(_objective_row)
-	_objective_row.visible = logic.objective != BattleLogic.Objective.KILL_ALL
+	var wave: String = logic.wave_text()   # когда придёт подмога (вожак, Певчая, огр)
+	var has_goal: bool = logic.objective != BattleLogic.Objective.KILL_ALL
+	_objective_row.visible = has_goal or wave != ""
 	if not _objective_row.visible:
 		return
-	_objective_row.add_child(UiKit.icon_rect(logic.objective_icon(), 16, UiKit.BRASS))
-	_objective_row.add_child(UiKit.make_label(logic.objective_title() + ":", 14, UiKit.BRASS, true))
-	var text: Label = UiKit.make_label(logic.objective_text(), 14, UiKit.TEXT)
+	var line: String = logic.objective_text() if has_goal else ""
+	if wave != "":
+		line += ("\n" if line != "" else "") + ("Подмога: " if has_goal else "") + wave
+	_objective_row.add_child(UiKit.icon_rect(logic.objective_icon() if has_goal else "hourglass", 16, UiKit.BRASS))
+	_objective_row.add_child(UiKit.make_label((logic.objective_title() if has_goal else "Подмога") + ":", 14, UiKit.BRASS, true))
+	var text: Label = UiKit.make_label(line, 14, UiKit.TEXT)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.custom_minimum_size.x = 200
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL

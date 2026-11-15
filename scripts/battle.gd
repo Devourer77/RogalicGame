@@ -105,6 +105,8 @@ func _ready() -> void:
 	var layout_seed: int = Run.rng.randi()
 	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena,
 			Run.pending_objective, Run.relics)
+	if Run.pending_encounter != null:
+		logic.set_waves(Run.pending_encounter.waves, Run.wave_extra())   # подкрепления (вожак, Певчая, огр)
 	hud.relic_list = Run.relic_list()
 	board.build(layout_seed, logic.arena_id, logic.ground)
 	if logic.arena_id == "cave":
@@ -1004,6 +1006,11 @@ func _show_forecast() -> void:
 	var marks: Array[Dictionary] = []
 	for fx: Dictionary in hazards["effects"]:
 		var fx_cells: Array[Vector2i] = fx["cells"]
+		if fx["kind"] == "wave":
+			# Сюда в конце раунда придёт подмога: песочные часы, удара по клетке нет
+			for wc: Vector2i in fx_cells:
+				marks.append({"cell": wc, "icon": "hourglass", "color": Color(1.0, 0.62, 0.55)})
+			continue
 		for c: Vector2i in fx_cells:
 			if not seen.has(c):
 				seen[c] = true

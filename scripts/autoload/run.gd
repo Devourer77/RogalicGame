@@ -28,6 +28,7 @@ const MODIFIER_IDS: Array[String] = ["frenzy", "rally", "spite", "faith", "tenac
 const MOD_FROM_ROW: int = 2            # с какого ряда в обычных боях
 const MOD_MORE_FROM_ROW: int = 4       # с этого ряда — двое
 const MOD_BELL: int = 2                # с этого Звона — ещё один в каждом бою, начиная с ряда 0
+const WAVE_BELL: int = 4               # с этого Звона в каждой волне подкрепления на 1 врага больше
 const OBJECTIVE_CHANCE: float = 0.3   # шанс особой цели у обычного боя
 const OBJECTIVE_GOLD: int = 15        # доплата золотом за бой с особой целью
 const MAX_RELICS: int = 4             # больше порченых реликвий за забег не взять (обереги не в счёт)
@@ -522,6 +523,11 @@ func _make_encounter(row: int, boss: bool, elite: bool = false) -> Array[EnemyDa
 			result.append(_roll_filler(enc, result))
 	_apply_modifiers(result, row, enc.kind != EncounterData.Kind.NORMAL)
 	return result
+
+
+# Звон 4: сколько врагов добавить в каждую волну подкрепления
+func wave_extra() -> int:
+	return 1 if bell >= WAVE_BELL else 0
 
 
 # Сколько врагов в бою получают модификатор: ряды 0–1 — никто, 2–3 — один, 4+ — двое;

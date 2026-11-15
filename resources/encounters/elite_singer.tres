@@ -1,10 +1,20 @@
-[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+[gd_resource type="Resource" script_class="EncounterData" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Resource" path="res://resources/enemies/choir_singer.tres" id="2_singer"]
 [ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="3_cultist"]
 [ext_resource type="Resource" path="res://resources/enemies/cult_novice.tres" id="4_novice"]
+[ext_resource type="Script" path="res://scripts/data/wave_data.gd" id="9_wave"]
+
+[sub_resource type="Resource" id="wave_flock"]
+script = ExtResource("9_wave")
+enemy = ExtResource("4_novice")
+first_round = 3
+count = 1
+every = 3
+text = "Хор созывает паству"
+
 
 [resource]
 script = ExtResource("1_enc")
@@ -12,3 +22,4 @@ id = "elite_singer"
 title = "Певчая Венца"
 kind = 1
 core = Array[ExtResource("1_enemy")]([ExtResource("2_singer"), ExtResource("3_cultist"), ExtResource("3_cultist"), ExtResource("4_novice"), ExtResource("4_novice")])
+waves = Array[ExtResource("9_wave")]([SubResource("wave_flock")])

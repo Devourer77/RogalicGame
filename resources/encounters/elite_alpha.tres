@@ -1,9 +1,19 @@
-[gd_resource type="Resource" script_class="EncounterData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Resource" path="res://resources/enemies/grey_alpha.tres" id="2_alpha"]
 [ext_resource type="Resource" path="res://resources/enemies/wolf.tres" id="3_wolf"]
+[ext_resource type="Script" path="res://scripts/data/wave_data.gd" id="9_wave"]
+
+[sub_resource type="Resource" id="wave_pack"]
+script = ExtResource("9_wave")
+enemy = ExtResource("3_wolf")
+first_round = 2
+count = 2
+from = 1
+text = "Вой вожака собирает стаю"
+
 
 [resource]
 script = ExtResource("1_enc")
@@ -11,3 +21,4 @@ id = "elite_alpha"
 title = "Седой вожак"
 kind = 1
 core = Array[ExtResource("1_enemy")]([ExtResource("2_alpha"), ExtResource("3_wolf"), ExtResource("3_wolf"), ExtResource("3_wolf"), ExtResource("3_wolf")])
+waves = Array[ExtResource("9_wave")]([SubResource("wave_pack")])
