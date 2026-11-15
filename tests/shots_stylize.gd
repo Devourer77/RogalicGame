@@ -19,7 +19,8 @@ func _initialize() -> void:
 
 	var h: float = float(OS.get_environment("HEIGHT")) if OS.get_environment("HEIGHT") != "" else 1.2
 	var gap: float = maxf(h * 0.95, 1.15)
-	_floor(world, gap)
+	if OS.get_environment("NOFLOOR") == "":
+		_floor(world, gap)
 	var paths: Array[String] = [OS.get_environment("BEFORE"), OS.get_environment("AFTER")]
 	var models: Array[Node3D] = []
 	for i in paths.size():

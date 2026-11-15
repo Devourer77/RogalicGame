@@ -28,15 +28,18 @@ const MIST_SHADER: Shader = preload("res://assets/shaders/ground_mist.gdshader")
 const WATER_SHADER: Shader = preload("res://assets/shaders/water.gdshader")   # вода вокруг поля и лужи
 const DIR: String = "res://assets/models/topi/"
 
-# Шестиугольные плиты по виду покрытия (build_topi.py, «tile_hex_*»). У камня два вида:
-# второй (кладка из трёх камней) ставится там, где раньше был второй оттенок.
-const TILE_MODELS: Dictionary[int, String] = {
-	BattleLogic.Ground.STONE: "tile_hex_stone_a",
-	BattleLogic.Ground.MOSS: "tile_hex_moss",
-	BattleLogic.Ground.MUD: "tile_hex_mud",
-	BattleLogic.Ground.PLANKS: "tile_hex_planks",
-	BattleLogic.Ground.BASALT: "tile_hex_basalt",
-	BattleLogic.Ground.PEAT: "tile_hex_peat",
+# Шестиугольные плиты по виду покрытия (build_topi.py, «tile_hex_*»), у каждого вида несколько
+# вариантов — клетка берёт свой по координатам. Тёмный расколотый камень (stone_b) ставится там,
+# где раньше был второй оттенок камня.
+const TILE_MODELS: Dictionary[int, Array] = {
+	# цельная плита чаще остальных — расколотые не должны рябить по всему полю
+	BattleLogic.Ground.STONE: ["tile_hex_stone_a", "tile_hex_stone_d", "tile_hex_stone_a", "tile_hex_stone_c",
+			"tile_hex_stone_a", "tile_hex_stone_e", "tile_hex_stone_d"],
+	BattleLogic.Ground.MOSS: ["tile_hex_moss", "tile_hex_moss_b", "tile_hex_moss_c"],
+	BattleLogic.Ground.MUD: ["tile_hex_mud", "tile_hex_mud_b", "tile_hex_mud_c"],
+	BattleLogic.Ground.PLANKS: ["tile_hex_planks", "tile_hex_planks_b", "tile_hex_planks_c"],
+	BattleLogic.Ground.BASALT: ["tile_hex_basalt", "tile_hex_basalt_b"],
+	BattleLogic.Ground.PEAT: ["tile_hex_peat", "tile_hex_peat_b"],
 }
 const TILE_STONE_ALT_MODEL: String = "tile_hex_stone_b"
 # (квадратные плиты tile_*.glb от старой квадратной сетки не используются)
@@ -157,7 +160,9 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 	for cell: Vector2i in HexMath.rect_cells(width, height):
 		var kind: int = ground.get(cell, BattleLogic.Ground.STONE)
 		var color: Color = TILE_COLORS.get(kind, TILE_COLORS[BattleLogic.Ground.STONE])
-		var model_name: String = TILE_MODELS.get(kind, TILE_MODELS[BattleLogic.Ground.STONE])
+		var variants: Array = TILE_MODELS.get(kind, TILE_MODELS[BattleLogic.Ground.STONE])
+		# вариант — по клетке (не по общему генератору, чтобы не сдвинуть раскладку декора)
+		var model_name: String = variants[posmod(cell.x * 17 + cell.y * 31 + cell.x * cell.y * 5, variants.size())]
 		if kind == BattleLogic.Ground.STONE and rng.randf() > 0.6:
 			color = TILE_STONE_ALT
 			model_name = TILE_STONE_ALT_MODEL
@@ -166,6 +171,11 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 		var drop: float = rng.randf() * 0.02   # плиты чуть неровные по высоте
 		if tile_mesh != null:
 			tile.mesh = tile_mesh
+			# плиты — пол: тень отбрасывать им некуда, а сами себе они давали полосы («зубцы» тени)
+			tile.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			# Без упрощения издалека (LOD): у плит мало треугольников, а упрощение склеивает
+			# расколы плит в «веер» из полос
+			tile.lod_bias = 128.0
 			# Поворот на 0/60/…/300° по клетке, чтобы одинаковые плиты не лежали «под копирку».
 			# Гать — только 0 или 180°: брёвна идут поперёк дороги.
 			var turns: int = posmod(cell.x * 7 + cell.y * 13, 6)

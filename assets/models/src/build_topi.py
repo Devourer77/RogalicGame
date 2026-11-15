@@ -236,23 +236,12 @@ def tile_hex_stone_a(m):
 
 @model
 def tile_hex_stone_b(m):
-    """Второй камень: плита потемнее, расколотая на два куска, с отбитым углом.
-    (Не «кубиком» из трёх ромбов — такая плита читалась как объёмный куб.)"""
-    c = hex_pts(HEX_R)
-    m.prism(c, -0.2, -0.05, STONE_D)
-    # раскол по линии между двумя противоположными сторонами, немного вбок
-    p1 = ((c[1][0] + c[2][0]) / 2 + 0.04, (c[1][1] + c[2][1]) / 2)
-    p2 = ((c[4][0] + c[5][0]) / 2 - 0.02, (c[4][1] + c[5][1]) / 2)
-    half_a = [p2, c[5], c[0], c[1], p1]
-    half_b = [p1, c[2], c[3], c[4], p2]
-    for pts, h, col in ((half_a, 0.0, (0.27, 0.30, 0.30)), (half_b, -0.012, (0.25, 0.28, 0.28))):
-        cx = sum(p[0] for p in pts) / len(pts)
-        cy = sum(p[1] for p in pts) / len(pts)
-        pts = [(cx + (x - cx) * 0.975, cy + (y - cy) * 0.975) for x, y in pts]   # щель раскола
-        m.prism(pts, -0.12, h, col, chamfer=0.03)
-    m.box((0.2, 0.025, 0.012), (0.12, 0.26, 0.0), STONE_D, rot=(0, 0, -20))
+    """Второй камень: плита потемнее с длинным расколом и пятном мха.
+    Плита цельная, раскол — тёмная полоса: куски из отдельных многоугольников издалека «веерили»."""
+    hex_base(m, STONE_D)
+    m.box((0.95, 0.03, 0.012), (0.02, 0.02, 0.0), (0.16, 0.18, 0.18), rot=(0, 0, 4))
+    m.box((0.2, 0.025, 0.012), (0.12, 0.26, 0.0), (0.16, 0.18, 0.18), rot=(0, 0, -20))
     m.blob(0.07, (-0.3, -0.25, -0.01), MOSS, scale=(1.3, 1, 0.12))
-
 
 @model
 def tile_hex_moss(m):
@@ -315,6 +304,138 @@ def tile_hex_peat(m):
     for i in range(4):
         a = m.rnd.uniform(0, 6.28)
         m.box((0.22, 0.012, 0.01), (0.2 * math.cos(a), 0.2 * math.sin(a), -0.008), PEAT_D, rot=(0, 0, math.degrees(a) + 70))
+
+
+# ---- Дополнительные варианты плит: чтобы одинаковые клетки не повторялись «под копирку».
+# board.gd берёт вариант по клетке (TILE_MODELS — списки). Цвета те же, что у основных плит,
+# чтобы вид покрытия читался одинаково.
+
+@model
+def tile_hex_stone_c(m):
+    """Плита с двумя почти параллельными расколами и мхом в одном из них."""
+    hex_base(m, STONE)
+    m.box((0.9, 0.028, 0.012), (0.0, -0.2, 0.0), STONE_D, rot=(0, 0, 8))
+    m.box((0.85, 0.028, 0.012), (0.0, 0.15, 0.0), STONE_D, rot=(0, 0, -6))
+    m.box((0.18, 0.04, 0.014), (-0.2, 0.17, 0.0), MOSS, rot=(0, 0, -6))
+    m.blob(0.03, (0.3, -0.05, 0.0), STONE_L, scale=(1, 1, 0.6))
+
+@model
+def tile_hex_stone_d(m):
+    """Цельная плита: трава в трещине, мокрое пятно, пара камешков."""
+    hex_base(m, STONE)
+    m.box((0.5, 0.03, 0.012), (0.05, -0.05, 0.0), STONE_D, rot=(0, 0, -15))
+    for x in (-0.15, 0.0, 0.14):
+        m.cyl(0.015, 0, 0.1, (x, -0.05 + x * -0.27, 0.0), MOSS_L, rot=(m.rnd.uniform(-20, 20), m.rnd.uniform(-20, 20), 0), seg=3)
+    m.blob(0.16, (-0.2, 0.22, -0.003), STONE_D, scale=(1.3, 1, 0.03), rough=0.35)   # сырое пятно
+    m.blob(0.035, (0.3, 0.2, 0.0), STONE_L, scale=(1, 1, 0.6))
+    m.blob(0.028, (0.24, 0.27, 0.0), STONE_D, scale=(1, 1, 0.6))
+
+
+@model
+def tile_hex_stone_e(m):
+    """Плита с косым расколом и отбитым углом, на сколе мох."""
+    hex_base(m, STONE)
+    m.box((0.75, 0.03, 0.012), (0.08, 0.05, 0.0), STONE_D, rot=(0, 0, 55))
+    m.box((0.2, 0.18, 0.05), (-0.36, -0.22, -0.02), STONE_D, rot=(0, 0, 30))
+    m.blob(0.08, (-0.33, -0.2, 0.0), MOSS, scale=(1.4, 0.8, 0.15))
+
+@model
+def tile_hex_moss_b(m):
+    """Камень, мох наполз с одного края; кочка травы."""
+    hex_base(m, STONE)
+    m.prism([(x, y) for x, y in hex_pts(HEX_R - 0.05)[1:5]] + [(0.1, -0.05)], -0.05, 0.012, MOSS, chamfer=0.025)
+    m.blob(0.12, (-0.25, 0.0, 0.005), MOSS_L, scale=(1.2, 1, 0.4))
+    for i in range(5):
+        m.cyl(0.018, 0, m.rnd.uniform(0.1, 0.18), (-0.25 + m.rnd.uniform(-0.06, 0.06), m.rnd.uniform(-0.06, 0.06), 0.02),
+              MOSS_L, rot=(m.rnd.uniform(-25, 25), m.rnd.uniform(-25, 25), 0), seg=3)
+
+
+@model
+def tile_hex_moss_c(m):
+    """Сплошной мох буграми, сквозь него торчит угол старой плиты."""
+    hex_base(m, MOSS)
+    for i in range(5):
+        a = math.radians(60 * i + m.rnd.uniform(-20, 20))
+        rr = m.rnd.uniform(0.12, 0.35)
+        m.blob(m.rnd.uniform(0.1, 0.16), (rr * math.cos(a), rr * math.sin(a), -0.02), MOSS_L if i % 2 else MOSS,
+               scale=(1.3, 1.1, 0.25), jit=0.25)
+    m.box((0.22, 0.18, 0.06), (0.22, -0.25, -0.01), STONE, rot=(4, -6, 25))
+
+
+@model
+def tile_hex_mud_b(m):
+    """Грязь с корнями и мокрой колеёй."""
+    hex_base(m, MUD, top=-0.02, chamfer=0.05)
+    m.box((0.85, 0.12, 0.01), (0.0, 0.08, -0.022), MUD_W, rot=(0, 0, 8), rough=0.35)   # колея
+    m.cyl(0.03, 0.012, 0.5, (-0.3, -0.2, -0.02), WOOD_D, rot=(88, 0, 70), seg=4)      # корень
+    m.cyl(0.02, 0.008, 0.3, (0.1, -0.3, -0.02), WOOD_D, rot=(88, 0, 130), seg=4)
+    m.blob(0.04, (0.3, 0.3, -0.01), STONE_D, scale=(1, 1, 0.6))
+
+
+@model
+def tile_hex_mud_c(m):
+    """Грязь, пучки осоки и россыпь камешков."""
+    hex_base(m, MUD, top=-0.02, chamfer=0.05)
+    m.blob(0.2, (-0.15, -0.1, -0.025), MUD_W, scale=(1.1, 1.3, 0.05), rough=0.35)
+    for x, y in [(0.25, 0.2), (0.3, 0.13), (-0.3, 0.3)]:
+        m.cyl(0.018, 0, 0.16, (x, y, -0.02), REED_D, rot=(m.rnd.uniform(-20, 20), m.rnd.uniform(-20, 20), 0), seg=3)
+    for i in range(5):
+        m.blob(0.025, (m.rnd.uniform(-0.3, 0.3), m.rnd.uniform(-0.3, 0.3), -0.015), STONE_D, scale=(1, 1, 0.6))
+
+
+def planks_row(m, broken=None, moss=None, tilt=1.5):
+    hex_base(m, MUD_W, top=-0.12, chamfer=0.0)
+    for i in range(6):
+        y = -0.48 + i * 0.192
+        half = HEX_R * math.sqrt(3) / 2
+        if abs(y) > HEX_R / 2:
+            half *= (HEX_R - abs(y)) / (HEX_R / 2)
+        ln = max(half * 2 - 0.06 - m.rnd.uniform(0, 0.05), 0.15)
+        x0 = -ln / 2
+        if broken == i:   # бревно сломано: кусок короче, второй утоп ниже
+            m.cyl(0.085, 0.08, ln * 0.45, (x0 + ln * 0.55, y, -0.13), WOOD_D, rot=(0, 90, 3), seg=6)
+            ln *= 0.5
+        col = [WOOD_ROT, WOOD_D, WOOD_ROT, WOOD_ROT, WOOD_D, WOOD_ROT][(i + 1) % 6]
+        m.cyl(0.092, 0.088, ln, (x0, y, -0.09), col, rot=(0, 90, m.rnd.uniform(-tilt, tilt)), seg=6)
+        if moss == i:
+            m.blob(0.07, (x0 + ln * 0.3, y, -0.0), MOSS, scale=(1.6, 0.8, 0.3))
+
+
+@model
+def tile_hex_planks_b(m):
+    """Гать: одно бревно сломано, на другом мох."""
+    planks_row(m, broken=2, moss=4)
+
+
+@model
+def tile_hex_planks_c(m):
+    """Гать: брёвна лежат неровно, перетянуты верёвкой."""
+    planks_row(m, moss=1, tilt=4.0)
+    for x in (-0.3, 0.32):
+        m.box((0.03, 1.0, 0.02), (x, 0.0, 0.0), ROPE)
+
+
+@model
+def tile_hex_basalt_b(m):
+    """Базальт: один широкий столб и мелкие рядом, в щелях пепел."""
+    m.prism(hex_pts(HEX_R), -0.2, -0.05, BASALT_D)
+    m.prism(hex_pts(0.36, 5), -0.1, -0.004, BASALT, chamfer=0.025)
+    for k in (1, 4):
+        a = math.radians(90 + 60 * k + 30)
+        m.prism([(x + 0.43 * math.cos(a), y + 0.43 * math.sin(a)) for x, y in hex_pts(0.15, 15 * k)],
+                -0.1, -0.02, BASALT_D, chamfer=0.02)
+    m.blob(0.06, (0.32, 0.1, -0.04), (0.35, 0.33, 0.31), scale=(1.5, 1, 0.2))
+
+
+@model
+def tile_hex_peat_b(m):
+    """Торф с пучками сухой травы и тёмными мокрыми пятнами."""
+    hex_base(m, PEAT, top=-0.01, chamfer=0.05)
+    m.blob(0.18, (0.15, -0.1, -0.012), PEAT_D, scale=(1.3, 1, 0.08))
+    for cx, cy in [(-0.25, 0.15), (0.2, 0.28)]:
+        for i in range(5):
+            m.cyl(0.015, 0, m.rnd.uniform(0.1, 0.16), (cx + m.rnd.uniform(-0.05, 0.05), cy + m.rnd.uniform(-0.05, 0.05), 0.0),
+                  REED_D, rot=(m.rnd.uniform(-30, 30), m.rnd.uniform(-30, 30), 0), seg=3)
 
 
 # ======================= ОБЪЕКТЫ НА КЛЕТКАХ =======================

@@ -202,7 +202,7 @@ def _bake_material(info, mode, edge_radius, min_z, max_z, emit_max, image):
     # 4. Светлая кромка на выпуклых рёбрах: Bevel скругляет нормаль у ребра,
     #    разница с настоящей нормалью = «насколько близко ребро». Во впадинах кромку гасит AO.
     bev = N.new("ShaderNodeBevel")
-    bev.samples = 4
+    bev.samples = 8
     bev.inputs["Radius"].default_value = edge_radius
     dot = N.new("ShaderNodeVectorMath")
     dot.operation = "DOT_PRODUCT"
@@ -210,7 +210,7 @@ def _bake_material(info, mode, edge_radius, min_z, max_z, emit_max, image):
     L.new(geo.outputs["Normal"], dot.inputs[1])
     edge = N.new("ShaderNodeMapRange")
     edge.clamp = True
-    edge.inputs["From Min"].default_value = 0.995
+    edge.inputs["From Min"].default_value = 0.985   # ниже — кромка ловит шум Bevel на плоских гранях
     edge.inputs["From Max"].default_value = 0.90
     L.new(dot.outputs["Value"], edge.inputs["Value"])
     convex = N.new("ShaderNodeMapRange")   # кромка только там, где модель не затенена складкой
