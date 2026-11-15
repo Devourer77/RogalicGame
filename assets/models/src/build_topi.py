@@ -565,6 +565,40 @@ def decor_tussock(m):
               rot=(m.rnd.uniform(-25, 25), m.rnd.uniform(-25, 25), 0), seg=3)
 
 
+def shore_chunk(m, stones, roots, grass):
+    """Кусок топкого берега вдоль края поля: грязевой склон уходит в воду, камни, корни, осока.
+    Длина ~1.4 м вдоль X, к полю — сторона +Y (Blender), к воде — -Y; верх на высоте 0."""
+    m.blob(0.55, (0, 0.05, -0.12), MUD_W, scale=(1.35, 0.75, 0.3), jit=0.25)     # склон в воду
+    m.blob(0.45, (0.1, 0.22, -0.05), MUD, scale=(1.4, 0.6, 0.22), jit=0.22)      # верх берега
+    m.blob(0.3, (-0.3, 0.25, -0.02), MOSS, scale=(1.3, 0.8, 0.18), jit=0.2)      # мох по кромке
+    for x, y, r in stones:
+        m.blob(r, (x, y, -0.04), m.rnd.choice((STONE, STONE_D, STONE_L)), scale=(1.2, 1, 0.6), jit=0.25)
+    for x, ang in roots:   # корни торчат из склона к воде
+        m.cyl(0.04, 0.01, 0.55, (x, 0.1, 0.0), WOOD_D, rot=(m.rnd.uniform(60, 80), 0, ang), seg=4)
+    for i in range(grass):
+        x = m.rnd.uniform(-0.6, 0.6)
+        m.cyl(0.02, 0, m.rnd.uniform(0.25, 0.45), (x, m.rnd.uniform(0.0, 0.3), -0.02), MOSS_L if i % 2 else REED_D,
+              rot=(m.rnd.uniform(-25, 25), m.rnd.uniform(-25, 25), 0), seg=3)
+
+
+@model
+def decor_shore_a(m):
+    """Берег: два камня, корень, немного осоки."""
+    shore_chunk(m, [(-0.45, -0.1, 0.16), (0.35, -0.2, 0.11)], [(0.1, 170)], 4)
+
+
+@model
+def decor_shore_b(m):
+    """Берег: большой валун в воде, корни."""
+    shore_chunk(m, [(0.2, -0.28, 0.24), (-0.5, 0.0, 0.08)], [(-0.3, 190), (0.55, 160)], 3)
+
+
+@model
+def decor_shore_c(m):
+    """Берег: заросший осокой, мелкие камешки."""
+    shore_chunk(m, [(-0.2, -0.25, 0.07), (0.15, -0.3, 0.06), (0.5, -0.15, 0.09)], [], 9)
+
+
 @model
 def decor_mushrooms(m):
     """Грибы Раскола: светятся бирюзой."""

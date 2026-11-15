@@ -1177,6 +1177,14 @@ func _warm_cave_light() -> void:
 		env.background_color = Color(0.06, 0.045, 0.04)
 		env.ambient_light_color = Color(0.62, 0.5, 0.42)
 		env.fog_light_color = Color(0.26, 0.17, 0.11)
+		# Цветокоррекция пещеры: тени тёпло-бурые, светлое — янтарное
+		var grade := Gradient.new()
+		grade.offsets = PackedFloat32Array([0.0, 0.25, 0.5, 0.75, 1.0])
+		grade.colors = PackedColorArray([Color(0.015, 0.005, 0.0), Color(0.27, 0.24, 0.21), Color(0.52, 0.49, 0.46),
+				Color(0.8, 0.75, 0.68), Color(1.0, 0.96, 0.88)])
+		var grade_tex := GradientTexture1D.new()
+		grade_tex.gradient = grade
+		env.adjustment_color_correction = grade_tex
 		if env.sky != null:   # и в отражениях — тёплый тёмный свод вместо болотного неба
 			env.sky = env.sky.duplicate(true) as Sky
 			var sky_mat: ShaderMaterial = env.sky.sky_material as ShaderMaterial

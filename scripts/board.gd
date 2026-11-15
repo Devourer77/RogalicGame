@@ -22,6 +22,8 @@ const TILE_COLORS: Dictionary[int, Color] = {
 const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй оттенок камня для разнообразия
 
 # Все модели топей собраны скриптом assets/models/src/build_topi.py
+const HIGHLIGHT_SHADER: Shader = preload("res://assets/shaders/cell_highlight.gdshader")   # подсветка клеток: контур + слабая заливка
+const MIST_SHADER: Shader = preload("res://assets/shaders/ground_mist.gdshader")   # стелющийся туман
 const WATER_SHADER: Shader = preload("res://assets/shaders/water.gdshader")   # вода вокруг поля и лужи
 const DIR: String = "res://assets/models/topi/"
 
@@ -56,6 +58,9 @@ const ROCK_MARKER: PackedScene = preload(DIR + "rock_marker.glb")
 const ROCK_BONES: PackedScene = preload(DIR + "rock_bones.glb")
 # Тлеющая пещера (assets/models/src/build_cave.py)
 const ROCK_STALAGMITE: PackedScene = preload(DIR + "rock_stalagmite.glb")
+# Куски топкого берега: ими обложен край островка с плитами, чтобы он не был ровным «столом»
+const D_SHORE: Array[PackedScene] = [preload(DIR + "decor_shore_a.glb"), preload(DIR + "decor_shore_b.glb"),
+		preload(DIR + "decor_shore_c.glb")]
 const D_CAVE_WALL: PackedScene = preload(DIR + "decor_cave_wall.glb")
 const D_EMBERS: PackedScene = preload(DIR + "decor_embers.glb")
 const ARENA_ROCKS: Dictionary[String, Array] = {
@@ -127,6 +132,7 @@ const COLOR_EMBER_LIGHT := Color(1.0, 0.55, 0.2)     # жар углей и ис
 var _layers: Dictionary[String, Node3D] = {}
 var _effects: Dictionary[Vector2i, Node3D] = {}
 var _flat_materials: Dictionary[Color, StandardMaterial3D] = {}
+var _highlight_materials: Dictionary[Color, ShaderMaterial] = {}
 var _solid_materials: Dictionary[Color, StandardMaterial3D] = {}
 var _highlight_mesh: CylinderMesh
 var _tile_mesh: CylinderMesh
@@ -173,6 +179,8 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 		add_child(tile)
 
 	_build_decorations(rng)
+	if _arena != "cave":
+		_build_shore_edge(layout_seed)
 	_build_wisps()
 
 
@@ -208,6 +216,40 @@ func _build_shore() -> void:
 	bank.material_override = bank_mat
 	bank.position = center + Vector3(0.0, -0.21, 0.0)
 	add_child(bank)
+
+
+# Неровный берег: куски грязи с камнями, корнями и осокой вдоль всех четырёх краёв островка.
+# Свой генератор от сида раскладки — порядок остального декора не меняется.
+func _build_shore_edge(layout_seed: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = layout_seed + 7919
+	var edge := Node3D.new()
+	edge.name = "ShoreEdge"
+	add_child(edge)
+	var c: Vector3 = field_center()
+	var hx: float = (width + 0.5) * CELL_STEP * 0.5
+	var hz: float = ((height - 1) * ROW_STEP + HexMath.HEX_SIZE * 2.0 + 0.4) * 0.5
+	# стороны: точка начала, направление вдоль стороны, длина, наружу (к воде)
+	var sides: Array = [
+		[Vector3(c.x - hx, 0.0, c.z - hz), Vector3.RIGHT, hx * 2.0, Vector3.FORWARD],
+		[Vector3(c.x - hx, 0.0, c.z + hz), Vector3.RIGHT, hx * 2.0, Vector3.BACK],
+		[Vector3(c.x - hx, 0.0, c.z - hz), Vector3.BACK, hz * 2.0, Vector3.LEFT],
+		[Vector3(c.x + hx, 0.0, c.z - hz), Vector3.BACK, hz * 2.0, Vector3.RIGHT],
+	]
+	for side: Array in sides:
+		var start: Vector3 = side[0]
+		var along: Vector3 = side[1]
+		var length: float = side[2]
+		var out: Vector3 = side[3]
+		var t: float = rng.randf_range(0.0, 0.5)
+		while t < length + 0.3:
+			var pos: Vector3 = start + along * t + out * rng.randf_range(0.05, 0.3)
+			pos.y = c.y - 0.07
+			var chunk: Node3D = _spawn_prop(edge, D_SHORE[rng.randi() % D_SHORE.size()], pos,
+					atan2(out.x, out.z) + rng.randf_range(-0.3, 0.3))
+			var s: float = rng.randf_range(0.9, 1.25)
+			chunk.scale = Vector3(s, rng.randf_range(0.8, 1.1), s)
+			t += rng.randf_range(0.8, 1.15)
 
 
 # Декор за пределами сетки (на клики и правила не влияет).
@@ -377,7 +419,34 @@ func _build_wisps() -> void:
 
 # Атмосфера арены (эффекты, этап 6): мягкие огоньки вместо шариков, туман у краёв,
 # мошкара у деревьев, морось. Зовётся сценой боя после того, как задан vfx.
+# Стелющийся туман: два низких слоя над водой и краями поля (assets/shaders/ground_mist.gdshader).
+# Над серединой поля почти прозрачный, чтобы бой читался.
+func _add_ground_mist() -> void:
+	var field_w: float = width * CELL_STEP
+	var field_d: float = (height - 1) * ROW_STEP + HexMath.HEX_SIZE
+	var c: Vector3 = field_center()
+	var rect := Vector4(-CELL_STEP * 0.5, -HexMath.HEX_SIZE, field_w, field_d)
+	for layer: Array in [[0.08, 0.6, 0.16], [0.32, 0.35, 0.11]]:   # высота, густота, размер клочьев
+		var plane := MeshInstance3D.new()
+		var mesh := PlaneMesh.new()
+		mesh.size = Vector2(field_w + 40.0, field_d + 40.0)
+		plane.mesh = mesh
+		plane.position = Vector3(c.x, layer[0], c.z)
+		plane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var mat := ShaderMaterial.new()
+		mat.shader = MIST_SHADER
+		mat.set_shader_parameter("field_rect", rect)
+		mat.set_shader_parameter("density", layer[1])
+		mat.set_shader_parameter("scale", layer[2])
+		if _arena == "cave":   # в пещере — бурый дым от тлеющего торфа, пореже
+			mat.set_shader_parameter("mist_color", Color(0.3, 0.22, 0.16))
+			mat.set_shader_parameter("density", layer[1] * 0.6)
+		plane.material_override = mat
+		add_child(plane)
+
+
 func add_atmosphere(rain: bool) -> void:
+	_add_ground_mist()
 	if vfx == null:
 		return
 	var center: Vector3 = field_center()
@@ -463,7 +532,7 @@ func show_cells(layer: String, cells: Array[Vector2i], color: Color) -> void:
 			continue
 		var m := MeshInstance3D.new()
 		m.mesh = _get_highlight_mesh()
-		m.material_override = _get_flat_material(color)
+		m.material_override = _get_highlight_material(color)
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		m.position = grid_to_world(c) + Vector3(0.0, y, 0.0)
 		holder.add_child(m)
@@ -731,6 +800,17 @@ func _get_solid_material(color: Color) -> StandardMaterial3D:
 
 
 # Полупрозрачный материал без освещения. Кешируем: один цвет — один материал.
+# Материал подсветки клетки: слабая заливка + яркий контур соты (с кешем по цвету)
+func _get_highlight_material(color: Color) -> ShaderMaterial:
+	if not _highlight_materials.has(color):
+		var mat := ShaderMaterial.new()
+		mat.shader = HIGHLIGHT_SHADER
+		mat.set_shader_parameter("color", color)
+		mat.set_shader_parameter("apothem", HexMath.HEX_SIZE * 0.88 * 0.8660254)
+		_highlight_materials[color] = mat
+	return _highlight_materials[color]
+
+
 func _get_flat_material(color: Color) -> StandardMaterial3D:
 	if not _flat_materials.has(color):
 		var mat := StandardMaterial3D.new()

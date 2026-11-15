@@ -13,6 +13,8 @@ extends Node3D
 # ---------- Ручки ----------
 const FULL_EFFECTS: bool = true          # false — «упрощённые»: частиц вдвое меньше
 const FLASH_TIME: float = 0.18           # сколько длится вспышка модели при уроне
+const PROJECTILE_LIGHT: float = 1.6   # сила света от летящего снаряда (огонь, вода, магия)
+const LIGHTNING_LIGHT: float = 3.5    # сила вспышки света от молнии
 const STATUS_FADE_TIME: float = 0.5   # за сколько секунд проявляется/сходит слой состояния на модели
 const DISSOLVE_TIME: float = 0.9         # за сколько секунд павший враг растворяется
 const NUMBER_SIZE: int = 96              # размер цифры урона (font_size у Label3D)
@@ -885,6 +887,13 @@ func projectile(from: Vector3, to: Vector3, color: Color, size: float = 0.45, ti
 		arc: float = 0.3) -> void:
 	var core: MeshInstance3D = orb(color, size)
 	core.global_position = from
+	# Снаряд светит на плиты и фигурки, мимо которых летит
+	var glow := OmniLight3D.new()
+	glow.light_color = color
+	glow.light_energy = PROJECTILE_LIGHT
+	glow.omni_range = 2.6
+	glow.shadow_enabled = false
+	core.add_child(glow)
 	var tr: GPUParticles3D = trail("trail", core, color)
 	var tween: Tween = core.create_tween()
 	tween.tween_method(func(t: float) -> void:
@@ -899,6 +908,8 @@ func projectile(from: Vector3, to: Vector3, color: Color, size: float = 0.45, ti
 # Ломаная молния из from в to: ярко вспыхивает, пару раз «перещёлкивается» и гаснет.
 # Вызывать без await — длится ~0,25 с.
 func lightning(from: Vector3, to: Vector3, color: Color, width: float = 0.07, jags: int = 9) -> void:
+	# Вспышка света посередине разряда: молния освещает поле под собой
+	light_flash(from.lerp(to, 0.5), color.lerp(Color.WHITE, 0.4), LIGHTNING_LIGHT, from.distance_to(to) * 0.6 + 2.5, 0.28)
 	var node := MeshInstance3D.new()
 	var mesh := ImmediateMesh.new()
 	node.mesh = mesh

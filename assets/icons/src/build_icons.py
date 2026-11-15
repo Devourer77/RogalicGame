@@ -196,40 +196,65 @@ ICONS["mage"] = (p("M32 3 C46 9 52 25 52 40 L59 59 H5 L12 40 C12 25 18 9 32 3Z")
 ICONS["knight"] = (p("M12 55 V28 C12 14 21 5 32 5 C43 5 52 14 52 28 V55 L40 60 H24Z") + r(18, 25, 28, 6, 1, K)
 		+ r(30, 31, 4, 23, 1, K) + s("M32 5 V20", 3, K, 0.5))
 
-# ---------- схемы областей (сетка 5x5): яркие клетки — куда попадёт, кружок — герой ----------
+# ---------- схемы областей (соты 5x5, «острым углом вверх», нечётные ряды сдвинуты вправо):
+# яркие соты — куда попадёт, полупрозрачные — путь, кружок — герой, точка в кружке — союзник ----------
+HEX_R = 6.3                      # радиус соты на значке
+HEX_W = HEX_R * 3 ** 0.5         # ширина соты
+HEX_X0 = (64 - HEX_W * 5.5) / 2 + HEX_W / 2
+HEX_Y0 = (64 - (HEX_R * 1.5 * 4 + HEX_R * 2)) / 2 + HEX_R
+
+
+def hex_center(x, y):
+	return HEX_X0 + x * HEX_W + (HEX_W / 2 if y % 2 else 0), HEX_Y0 + y * HEX_R * 1.5
+
+
+def hex_cell(x, y, op=1.0, shrink=0.86):
+	cx, cy = hex_center(x, y)
+	pts = [(cx + HEX_R * shrink * math.cos(math.radians(90 + 60 * k)),
+			cy + HEX_R * shrink * math.sin(math.radians(90 + 60 * k))) for k in range(6)]
+	return poly(pts, W, op)
+
+
+def hex_ring1(x, y):
+	"""Сота и 6 её соседей (ряды со сдвигом: у нечётного ряда соседи сверху и снизу — x и x+1)."""
+	d = 0 if y % 2 else -1
+	return {(x, y), (x - 1, y), (x + 1, y), (x + d, y - 1), (x + d + 1, y - 1), (x + d, y + 1), (x + d + 1, y + 1)}
+
+
 def shape(hit, hero=None, trail=(), ally=None):
 	out = ""
 	for y in range(5):
 		for x in range(5):
-			px, py = 3 + x * 12, 3 + y * 12
 			if (x, y) in hit:
-				out += r(px, py, 10, 10, 2)
+				out += hex_cell(x, y)
 			elif (x, y) in trail:
-				out += r(px, py, 10, 10, 2, W, 0.5)
+				out += hex_cell(x, y, 0.5)
 			else:
-				out += r(px, py, 10, 10, 2, W, 0.16)
+				out += hex_cell(x, y, 0.16)
 	for cell, solid in ((hero, False), (ally, True)):
 		if cell is not None:
-			cx, cy = 8 + cell[0] * 12, 8 + cell[1] * 12
-			out += c(cx, cy, 5.5, K) + (c(cx, cy, 4) if solid else ring(cx, cy, 3.2, 2.2))
+			cx, cy = hex_center(*cell)
+			out += c(cx, cy, 5.0, K) + (c(cx, cy, 3.6) if solid else ring(cx, cy, 2.9, 2.0))
 	return out
 
 
+# Прямая «вверх-вправо» от героя в (2, 4): (2, 3), (3, 2), (3, 1), (4, 0)
+_UP_LINE = [(2, 3), (3, 2), (3, 1), (4, 0)]
 ICONS["shape_self"] = shape((), ally=(2, 2))
 ICONS["shape_single"] = shape({(2, 1)}, hero=(2, 4))
-ICONS["shape_line"] = shape({(2, 0), (2, 1), (2, 2), (2, 3)}, hero=(2, 4))
-ICONS["shape_cross"] = shape({(2, 2), (1, 2), (3, 2), (2, 1), (2, 3)})
-ICONS["shape_square"] = shape({(x, y) for x in (1, 2, 3) for y in (1, 2, 3)})
-ICONS["shape_arc"] = shape({(1, 2), (2, 2), (3, 2)}, hero=(2, 3))
-ICONS["shape_charge"] = shape({(2, 0)}, hero=(2, 4), trail={(2, 1), (2, 2), (2, 3)})
+ICONS["shape_line"] = shape(set(_UP_LINE), hero=(2, 4))
+ICONS["shape_cross"] = shape(hex_ring1(2, 2))                      # круг 1
+ICONS["shape_square"] = shape(hex_ring1(2, 2))                     # круг 1 (на сотах это одно и то же)
+ICONS["shape_arc"] = shape({(1, 3), (2, 3), (3, 4)}, hero=(2, 4))  # клетка вплотную и две соседние с ней
+ICONS["shape_charge"] = shape({_UP_LINE[3]}, hero=(2, 4), trail=set(_UP_LINE[:3]))
 ICONS["shape_ally"] = shape((), hero=(1, 3), ally=(3, 1))
-ICONS["shape_wall"] = shape({(1, 1), (2, 1), (3, 1)}, hero=(2, 4))
-ICONS["shape_leap"] = shape({(2, 1), (1, 1), (3, 1), (2, 0), (2, 2)}, hero=(2, 4), trail={(2, 3)})
-ICONS["shape_around"] = shape({(x, y) for x in (1, 2, 3) for y in (1, 2, 3)} - {(2, 2)}, hero=(2, 2))
-ICONS["shape_fell"] = shape({(2, 0), (2, 1), (2, 2)}, hero=(2, 4), trail={(2, 3)})
+ICONS["shape_wall"] = shape({(1, 1), (2, 1), (3, 1)}, hero=(2, 4))  # 3 соты в ряд
+ICONS["shape_leap"] = shape(hex_ring1(2, 1), hero=(2, 4), trail={(2, 3)})
+ICONS["shape_around"] = shape(hex_ring1(2, 2) - {(2, 2)}, hero=(2, 2))   # 6 сот вокруг героя
+ICONS["shape_fell"] = shape(set(_UP_LINE[1:]), hero=(2, 4), trail={_UP_LINE[0]})
 
 ICONS["shape_diag"] = shape({(3, 2)}, hero=(2, 3))
-ICONS["shape_xcross"] = shape({(2, 2), (1, 1), (3, 1), (1, 3), (3, 3)})
+ICONS["shape_xcross"] = shape(hex_ring1(2, 2))
 
 # ---------- удержание карт, статусы, руны ----------
 RUNE_STONE = poly([(32, 3), (55, 16), (55, 48), (32, 61), (9, 48), (9, 16)])
