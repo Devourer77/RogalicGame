@@ -23,6 +23,8 @@ const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй отте�
 
 # Все модели топей собраны скриптом assets/models/src/build_topi.py
 const SUBTLE_SCALE: float = 0.9   # сдержанная подсветка: контур чуть внутри соты
+const PUDDLE_PART: float = 0.8    # лужа меньше плиты (доля радиуса соты)
+const PUDDLE_Y: float = 0.025     # высота глади луж
 const HIGHLIGHT_SHADER: Shader = preload("res://assets/shaders/cell_highlight.gdshader")   # подсветка клеток: контур + слабая заливка
 const MIST_SHADER: Shader = preload("res://assets/shaders/ground_mist.gdshader")   # стелющийся туман
 const WATER_SHADER: Shader = preload("res://assets/shaders/water.gdshader")   # вода вокруг поля и лужи
@@ -46,6 +48,10 @@ const TILE_STONE_ALT_MODEL: String = "tile_hex_stone_b"
 
 # Объекты на клетках (ключ — BattleLogic.Obj)
 const OBJ_BOG: PackedScene = preload(DIR + "obj_bog.glb")
+# Бортик трясины на одну сторону соты: ставится только туда, где сосед — не трясина
+const BOG_RIMS: Array[PackedScene] = [preload(DIR + "bog_rim_a.glb"), preload(DIR + "bog_rim_b.glb")]
+# Клетки с водой трясины: сама трясина и то, что лежит поверх неё (мостки, настил)
+const BOG_WATER_KINDS: Array[int] = [BattleLogic.Obj.BOG, BattleLogic.Obj.PLANKS, BattleLogic.Obj.BRIDGE]
 const OBJ_TREES: Array[PackedScene] = [preload(DIR + "obj_tree_a.glb"), preload(DIR + "obj_tree_b.glb")]
 const OBJ_BARREL: PackedScene = preload(DIR + "obj_barrel.glb")
 const OBJ_PLANKS: PackedScene = preload(DIR + "obj_planks.glb")
@@ -143,6 +149,11 @@ var _tile_mesh: CylinderMesh
 var _hex_tile_meshes: Dictionary[String, Mesh] = {}
 var _object_nodes: Dictionary[Vector2i, Node3D] = {}
 var _object_kinds: Dictionary[Vector2i, int] = {}
+var _bog_water: Dictionary[Vector2i, Node3D] = {}     # вода и бортики трясины по клеткам
+var _puddle_links: Dictionary[Vector2i, Node3D] = {}  # перемычки между соседними лужами
+var _effect_kinds: Dictionary[Vector2i, int] = {}     # какой эффект лежит на клетке (BattleLogic.Tile)
+var _bog_water_mat: ShaderMaterial
+var _puddle_mat: ShaderMaterial
 var _arena: String = ""
 # Эффекты (частицы, свет). Сцена боя задаёт его до того, как ставит объекты и клетки.
 # Пусто — клетки рисуются по-старому, простыми формами.
@@ -586,7 +597,12 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 	if _effects.has(cell):
 		_effects[cell].queue_free()
 		_effects.erase(cell)
+	var was_water: bool = _effect_kinds.get(cell, BattleLogic.Tile.NONE) == BattleLogic.Tile.WATER
+	_effect_kinds[cell] = tile
+	if was_water or tile == BattleLogic.Tile.WATER:
+		_refresh_puddles_around(cell)   # соседние лужи сливаются: перемычки пересобираются
 	if tile == BattleLogic.Tile.NONE:
+		_effect_kinds.erase(cell)
 		return
 	var root := Node3D.new()
 	root.position = grid_to_world(cell)
@@ -595,19 +611,10 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			# Лужа по форме соты: тёмное зеркало с рябью и голубым отсветом (стихия слегка светится).
 			# Отражает небо и арену, как вода вокруг поля.
 			var puddle := MeshInstance3D.new()
-			puddle.mesh = _hex_prism(HexMath.HEX_SIZE * 0.8, 0.01)   # край плиты виден — не путать с подсветкой хода
-			puddle.position.y = 0.02
+			puddle.mesh = _hex_prism(HexMath.HEX_SIZE * PUDDLE_PART, 0.01)   # край плиты виден — не путать с подсветкой хода
+			puddle.position.y = PUDDLE_Y - 0.005
 			puddle.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			var mat := ShaderMaterial.new()
-			mat.shader = WATER_SHADER
-			mat.set_shader_parameter("deep_color", Color(0.02, 0.06, 0.1))
-			mat.set_shader_parameter("shallow_color", Color(0.06, 0.15, 0.22))
-			mat.set_shader_parameter("glow_color", Color(0.1, 0.35, 0.55))
-			mat.set_shader_parameter("glow_energy", 0.18)
-			mat.set_shader_parameter("alpha", 0.92)
-			mat.set_shader_parameter("ripple_scale", 1.8)
-			mat.set_shader_parameter("roughness_value", 0.08)
-			puddle.material_override = mat
+			puddle.material_override = _get_puddle_material()   # общий материал — соседние лужи без шва
 			root.add_child(puddle)
 			if vfx != null:
 				vfx.loop("ripple_loop", root, Vector3(0.0, 0.04, 0.0))   # круги на воде
@@ -853,6 +860,7 @@ func add_object(cell: Vector2i, kind: int) -> void:
 	add_child(node)
 	_object_nodes[cell] = node
 	_object_kinds[cell] = kind
+	_refresh_bog_around(cell)
 	if kind == BattleLogic.Obj.STAKES:
 		_orient_stakes(cell)
 		for d: Vector2i in HexMath.DIRS:
@@ -881,6 +889,7 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 	var node: Node3D = _object_nodes.get(cell)
 	_object_nodes.erase(cell)
 	_object_kinds.erase(cell)
+	_refresh_bog_around(cell)
 	if node != null:
 		match old_kind:
 			BattleLogic.Obj.TREE:
@@ -926,6 +935,8 @@ func move_object(from: Vector2i, to: Vector2i) -> void:
 	_object_nodes[to] = node
 	_object_kinds[to] = _object_kinds.get(from, BattleLogic.Obj.NONE)
 	_object_kinds.erase(from)
+	_refresh_bog_around(from)
+	_refresh_bog_around(to)
 	var tween: Tween = create_tween()
 	var steps: int = HexMath.distance(from, to)
 	tween.tween_property(node, "position", grid_to_world(to), 0.12 * steps)
@@ -947,6 +958,126 @@ func _remove_object_node(cell: Vector2i) -> void:
 		_object_nodes[cell].queue_free()
 		_object_nodes.erase(cell)
 		_object_kinds.erase(cell)
+		_refresh_bog_around(cell)
+
+
+# ---------- Трясина и лужи: соседние клетки сливаются в одну воду ----------
+# Вода рисуется по каждой клетке общим шейдером в мировых координатах — на стыке шва не видно.
+# Бортик (трясина) или край (лужа) — только с тех сторон, где соседняя клетка не такая же.
+
+func _is_bog_water(cell: Vector2i) -> bool:
+	return BOG_WATER_KINDS.has(_object_kinds.get(cell, BattleLogic.Obj.NONE))
+
+
+func _refresh_bog_around(cell: Vector2i) -> void:
+	_refresh_bog(cell)
+	for d: Vector2i in HexMath.DIRS:
+		_refresh_bog(cell + d)
+
+
+# Вода и бортики трясины на одной клетке (пересобираются целиком — их мало)
+func _refresh_bog(cell: Vector2i) -> void:
+	if _bog_water.has(cell):
+		_bog_water[cell].queue_free()
+		_bog_water.erase(cell)
+	if not _is_bog_water(cell):
+		return
+	var root := Node3D.new()
+	root.position = grid_to_world(cell)
+	add_child(root)
+	_bog_water[cell] = root
+	var water := MeshInstance3D.new()
+	water.mesh = _hex_prism(HexMath.HEX_SIZE, 0.02)   # полный размер соты: соседние воды смыкаются
+	water.position.y = -0.02
+	water.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	water.material_override = _get_bog_water_material()
+	root.add_child(water)
+	var apothem: float = CELL_STEP * 0.5
+	for i in HexMath.DIRS.size():
+		var d: Vector2i = HexMath.DIRS[i]
+		if _is_bog_water(cell + d):
+			continue
+		var v: Vector3 = HexMath.axial_to_world(d).normalized()
+		var hash_value: int = posmod(cell.x * 13 + cell.y * 7 + i * 5, 97)
+		var rim: Node3D = BOG_RIMS[hash_value % BOG_RIMS.size()].instantiate()
+		rim.position = v * apothem
+		rim.rotation.y = atan2(v.x, v.z)   # сторона суши модели (+Z) — к соседней плите
+		if hash_value % 3 == 0:   # иногда бортик зеркальный — чтобы не повторялся
+			rim.scale.x = -1.0
+		root.add_child(rim)
+
+
+func _get_bog_water_material() -> ShaderMaterial:
+	if _bog_water_mat == null:
+		_bog_water_mat = ShaderMaterial.new()
+		_bog_water_mat.shader = WATER_SHADER
+		_bog_water_mat.set_shader_parameter("deep_color", Color(0.025, 0.04, 0.03))
+		_bog_water_mat.set_shader_parameter("shallow_color", Color(0.06, 0.08, 0.05))
+		_bog_water_mat.set_shader_parameter("ripple_speed", 0.04)      # вязкая — рябь медленная
+		_bog_water_mat.set_shader_parameter("ripple_strength", 0.07)
+		_bog_water_mat.set_shader_parameter("roughness_value", 0.16)
+	return _bog_water_mat
+
+
+func _get_puddle_material() -> ShaderMaterial:
+	if _puddle_mat == null:
+		_puddle_mat = ShaderMaterial.new()
+		_puddle_mat.shader = WATER_SHADER
+		_puddle_mat.set_shader_parameter("deep_color", Color(0.02, 0.06, 0.1))
+		_puddle_mat.set_shader_parameter("shallow_color", Color(0.06, 0.15, 0.22))
+		_puddle_mat.set_shader_parameter("glow_color", Color(0.1, 0.35, 0.55))
+		_puddle_mat.set_shader_parameter("glow_energy", 0.18)
+		_puddle_mat.set_shader_parameter("ripple_scale", 1.8)
+		_puddle_mat.set_shader_parameter("roughness_value", 0.08)
+	return _puddle_mat
+
+
+func _refresh_puddles_around(cell: Vector2i) -> void:
+	_refresh_puddle_links(cell)
+	for d: Vector2i in HexMath.DIRS:
+		_refresh_puddle_links(cell + d)
+
+
+# Перемычки между лужами: полоса до общей стороны с каждой соседней лужей и
+# заплатка в углу, где сходятся три лужи. Сама лужа чуть меньше плиты — край плиты виден.
+func _refresh_puddle_links(cell: Vector2i) -> void:
+	if _puddle_links.has(cell):
+		_puddle_links[cell].queue_free()
+		_puddle_links.erase(cell)
+	if _effect_kinds.get(cell, BattleLogic.Tile.NONE) != BattleLogic.Tile.WATER:
+		return
+	var root := Node3D.new()
+	root.position = grid_to_world(cell)
+	var width: float = HexMath.HEX_SIZE * PUDDLE_PART
+	var apothem: float = CELL_STEP * 0.5
+	var n: int = HexMath.DIRS.size()
+	for i in n:
+		var d: Vector2i = HexMath.DIRS[i]
+		if _effect_kinds.get(cell + d, BattleLogic.Tile.NONE) != BattleLogic.Tile.WATER:
+			continue
+		var v: Vector3 = HexMath.axial_to_world(d)
+		var strip := MeshInstance3D.new()
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(width, apothem + 0.02)
+		strip.mesh = plane
+		strip.position = v.normalized() * apothem * 0.5 + Vector3(0.0, PUDDLE_Y, 0.0)
+		strip.rotation.y = atan2(v.x, v.z)
+		strip.material_override = _get_puddle_material()
+		strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(strip)
+		var d2: Vector2i = HexMath.DIRS[(i + 1) % n]   # следующая сторона — угол между ними
+		if _effect_kinds.get(cell + d2, BattleLogic.Tile.NONE) == BattleLogic.Tile.WATER:
+			var corner := MeshInstance3D.new()
+			corner.mesh = _hex_prism(HexMath.HEX_SIZE * PUDDLE_PART * 0.75, 0.01)
+			corner.position = (v + HexMath.axial_to_world(d2)) / 3.0 + Vector3(0.0, PUDDLE_Y - 0.005, 0.0)
+			corner.material_override = _get_puddle_material()
+			corner.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(corner)
+	if root.get_child_count() == 0:
+		root.free()
+		return
+	add_child(root)
+	_puddle_links[cell] = root
 
 
 # Модель объекта. Поворот «случайный», но одинаковый для клетки — чтобы объекты не выглядели копиями.
