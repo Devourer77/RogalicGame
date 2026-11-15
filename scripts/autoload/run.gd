@@ -34,6 +34,7 @@ const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog", "fire"]  
 const CAVE_EVENT_CHANCE: float = 0.25   # шанс, что событие окажется расщелиной
 const CAVE_ROWS: Vector2i = Vector2i(1, 4)   # в каких рядах карты она может встретиться
 const CAVE_ECHOES: int = 10             # Отзвуки за победу в пещере
+const MIN_DECK_SIZE: int = 5            # меньше стольких карт в колоде убрать нельзя (лавка, события)
 const SPIRIT_SLOTS: int = 2                            # духов на героя
 const LAIR_ROW: int = 2                                # ряд карты с логовом духа (одна точка)
 const SPIRIT_CARD_WEIGHT: float = 2.0                  # карты своих духов и смешанные выпадают чаще
@@ -127,6 +128,7 @@ var relics: Array[String] = []   # id оберегов этого забега (
 var trophy_echoes: int = 0       # Отзвуки вместо трофея (когда все обереги открыты)
 var trophy_choices: Array[RelicData] = []   # из чего выбирать трофей за босса
 var cache_seen: bool = false     # «Тайник павшего дозорного» уже выпадал в этом забеге
+var events_seen: Array[String] = []   # названия событий, уже выпавших в этом забеге (не повторяются)
 var cave_seen: bool = false      # «Тлеющая расщелина» уже встречалась в этом забеге
 var in_cave: bool = false        # идёт бой в пещере Жаровика
 var rest_used: bool = false      # первый привал уже был (для «Чистого бинта»)
@@ -169,6 +171,7 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	trophy_echoes = 0
 	trophy_choices.clear()
 	cache_seen = false
+	events_seen.clear()
 	cave_seen = false
 	in_cave = false
 	rest_used = false
@@ -940,6 +943,22 @@ func random_rare_card(hero_data: HeroData) -> CardData:
 		for c in hero_data.card_pool:
 			if c.is_rare:
 				rares.append(c)
+	return rares[rng.randi_range(0, rares.size() - 1)]
+
+
+# Карта герою из события: из того же, из чего его награды (базовый пул + карты его духов).
+# rare — только редкие ★ (закрытые в хабе не выпадают), иначе только обычные.
+func event_card(rh: RunHero, rare: bool) -> CardData:
+	if not rare:
+		var normal: Array[CardData] = roll_cards(rh, 1, true)
+		return normal[0] if not normal.is_empty() else null
+	var locked: Dictionary = Meta.locked_card_ids()
+	var rares: Array[CardData] = []
+	for c in rh.data.card_pool + spirit_reward_cards(rh):
+		if c.is_rare and not locked.has(c.id):
+			rares.append(c)
+	if rares.is_empty():
+		return random_rare_card(rh.data)
 	return rares[rng.randi_range(0, rares.size() - 1)]
 
 

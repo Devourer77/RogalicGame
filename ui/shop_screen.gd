@@ -98,7 +98,7 @@ func _start_removal() -> void:
 		sections.append({"title": rh.data.title, "color": rh.data.color, "cards": rh.deck})
 	DeckOverlay.open(self, "Какую карту убрать?", sections,
 			"Нажми на карту — она навсегда уйдёт из колоды. Цена: %d золота." % Run.REMOVE_CARD_PRICE,
-			_remove_card, func(section: int) -> bool: return Run.party[section].deck.size() > 5)
+			_remove_card, func(section: int) -> bool: return Run.party[section].deck.size() > Run.MIN_DECK_SIZE)
 
 
 func _remove_card(section: int, index: int) -> void:

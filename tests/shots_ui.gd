@@ -117,9 +117,21 @@ func _initialize() -> void:
 		await _shot("14_shop_removal")
 	await _goto(run, run.REST_SCENE)
 	await _shot("15_rest")
+	# Событие «Затонувшая повозка»: остальные будто уже были, расщелина — тоже
+	run.cave_seen = true
+	run.events_seen.clear()
+	for e: Dictionary in load("res://ui/event_screen.gd").EVENTS:
+		if e["title"] != "Затонувшая повозка Стражи":
+			run.events_seen.append(e["title"])
 	await _goto(run, run.EVENT_SCENE)
 	await _shot("16_event")
-	current_scene._choose("drink")
+	current_scene._choose(load("res://ui/event_screen.gd").EVENTS[7]["options"][1])
+	await _shot("16a_event_remove")
+	var mage_deck: Array = current_scene._hero("mage").deck
+	var overlays: Array = current_scene.get_children().filter(func(c): return c is ColorRect)
+	current_scene._remove(current_scene._hero("mage"), mage_deck.size() - 1)
+	for c in overlays:
+		c.queue_free()
 	await _shot("16b_event_result")
 	run.last_run_won = true
 	await _goto(run, run.GAME_OVER_SCENE)

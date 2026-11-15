@@ -33,7 +33,7 @@ func _initialize() -> void:
 	print("reward ok, relic_done=", current_scene._relic_done)
 	change_scene_to_file("res://ui/event_screen.tscn")
 	for i in 30: await process_frame
-	current_scene._choose("idol")
+	current_scene._choose(load("res://ui/event_screen.gd").EVENTS[2]["options"][0])   # Утопленный идол: снять амулет
 	for i in 10: await process_frame
 	print("event idol ok, relics=", run.relics.size())
 	quit()
