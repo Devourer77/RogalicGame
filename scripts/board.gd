@@ -22,6 +22,7 @@ const TILE_COLORS: Dictionary[int, Color] = {
 const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй оттенок камня для разнообразия
 
 # Все модели топей собраны скриптом assets/models/src/build_topi.py
+const SUBTLE_SCALE: float = 0.9   # сдержанная подсветка: контур чуть внутри соты
 const HIGHLIGHT_SHADER: Shader = preload("res://assets/shaders/cell_highlight.gdshader")   # подсветка клеток: контур + слабая заливка
 const MIST_SHADER: Shader = preload("res://assets/shaders/ground_mist.gdshader")   # стелющийся туман
 const WATER_SHADER: Shader = preload("res://assets/shaders/water.gdshader")   # вода вокруг поля и лужи
@@ -132,7 +133,7 @@ const COLOR_EMBER_LIGHT := Color(1.0, 0.55, 0.2)     # жар углей и ис
 var _layers: Dictionary[String, Node3D] = {}
 var _effects: Dictionary[Vector2i, Node3D] = {}
 var _flat_materials: Dictionary[Color, StandardMaterial3D] = {}
-var _highlight_materials: Dictionary[Color, ShaderMaterial] = {}
+var _highlight_materials: Dictionary[String, ShaderMaterial] = {}
 var _solid_materials: Dictionary[Color, StandardMaterial3D] = {}
 var _highlight_mesh: CylinderMesh
 var _tile_mesh: CylinderMesh
@@ -521,7 +522,9 @@ func field_center() -> Vector3:
 
 # Подсвечивает клетки цветом. Слой (layer) — это группа подсветки:
 # новый вызов с тем же слоем заменяет старую подсветку этого слоя.
-func show_cells(layer: String, cells: Array[Vector2i], color: Color) -> void:
+# subtle = true — сдержанная подсветка: только тонкий контур чуть внутри соты, почти без заливки
+# (клетки, куда можно идти: их много, они не должны застилать поле).
+func show_cells(layer: String, cells: Array[Vector2i], color: Color, subtle: bool = false) -> void:
 	clear_layer(layer)
 	var holder := Node3D.new()
 	add_child(holder)
@@ -532,8 +535,10 @@ func show_cells(layer: String, cells: Array[Vector2i], color: Color) -> void:
 			continue
 		var m := MeshInstance3D.new()
 		m.mesh = _get_highlight_mesh()
-		m.material_override = _get_highlight_material(color)
+		m.material_override = _get_highlight_material(color, subtle)
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if subtle:   # контур чуть внутри, чтобы у соседних клеток линии не сливались в толстую
+			m.scale = Vector3(SUBTLE_SCALE, 1.0, SUBTLE_SCALE)
 		m.position = grid_to_world(c) + Vector3(0.0, y, 0.0)
 		holder.add_child(m)
 
@@ -801,14 +806,19 @@ func _get_solid_material(color: Color) -> StandardMaterial3D:
 
 # Полупрозрачный материал без освещения. Кешируем: один цвет — один материал.
 # Материал подсветки клетки: слабая заливка + яркий контур соты (с кешем по цвету)
-func _get_highlight_material(color: Color) -> ShaderMaterial:
-	if not _highlight_materials.has(color):
+func _get_highlight_material(color: Color, subtle: bool = false) -> ShaderMaterial:
+	var key: String = str(color) + ("s" if subtle else "")
+	if not _highlight_materials.has(key):
 		var mat := ShaderMaterial.new()
 		mat.shader = HIGHLIGHT_SHADER
 		mat.set_shader_parameter("color", color)
 		mat.set_shader_parameter("apothem", HexMath.HEX_SIZE * 0.88 * 0.8660254)
-		_highlight_materials[color] = mat
-	return _highlight_materials[color]
+		if subtle:
+			mat.set_shader_parameter("fill_part", 0.08)
+			mat.set_shader_parameter("edge_width", 0.045)
+			mat.set_shader_parameter("edge_boost", 1.0)
+		_highlight_materials[key] = mat
+	return _highlight_materials[key]
 
 
 func _get_flat_material(color: Color) -> StandardMaterial3D:

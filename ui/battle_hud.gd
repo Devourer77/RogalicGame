@@ -23,7 +23,7 @@ const SIDE_WIDTH: float = 300.0
 
 # Цвета клеток на поле — такие же, как в scripts/battle.gd (для памятки слева снизу)
 const LEGEND: Array[Array] = [
-	[Color(0.3, 0.6, 1.0), "сюда можно идти"],
+	[Color(0.72, 0.86, 0.88), "сюда можно идти"],
 	[Color(1.0, 0.25, 0.25), "сюда ударят враги"],
 	[Color(1.0, 0.85, 0.4), "путь врага в его ход"],
 	[Color(0.37, 0.92, 0.83), "шаман усилит своих"],
@@ -333,7 +333,7 @@ func _build_help() -> void:
 	column.add_child(UiKit.make_title("Как играть", 26, UiKit.BRASS.lightened(0.2)))
 	column.add_child(UiKit.make_divider(300))
 	var rows: Array[Array] = [
-		["mouse_l", "", "ЛКМ по синей клетке — идти выбранным героем"],
+		["mouse_l", "", "ЛКМ по светлой клетке — идти выбранным героем"],
 		["mouse_l", "", "ЛКМ по карте, потом по клетке — сыграть карту"],
 		["mouse_r", "", "ПКМ или Esc — отменить выбранную карту"],
 		["", "1–7", "Сыграть карту по её номеру"],
@@ -768,9 +768,9 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 	else:
 		var can_move: bool = active.moves_left > 0 and not logic.get_move_targets(active).is_empty()
 		if can_move and any_playable:
-			text = "%s: клик по синей клетке — идти, клик по карте — сыграть её" % active.title
+			text = "%s: клик по светлой клетке — идти, клик по карте — сыграть её" % active.title
 		elif can_move:
-			text = "%s: карты не по карману, но можно идти — клик по синей клетке" % active.title
+			text = "%s: карты не по карману, но можно идти — клик по светлой клетке" % active.title
 		elif any_playable:
 			text = "%s: шагов нет — выбери карту" % active.title
 			if active.entangled > 0:

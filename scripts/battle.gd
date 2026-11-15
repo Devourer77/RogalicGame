@@ -21,7 +21,7 @@ enum Mode {
 
 const UNIT_LAYER: int = 2   # слой отрисовки фигурок (бит 2): видны камере, не попадают в зонд отражений
 const VIGNETTE_SHADER: Shader = preload("res://assets/shaders/vignette.gdshader")   # края экрана в сумраке
-const COLOR_MOVE := Color(0.3, 0.6, 1.0, 0.35)
+const COLOR_MOVE := Color(0.72, 0.86, 0.88, 0.3)   # куда можно идти: бледный лунный контур (тонкий, без заливки)
 const COLOR_TARGET := Color(1.0, 0.9, 0.3, 0.3)
 const COLOR_AREA := Color(1.0, 0.5, 0.1, 0.6)
 const COLOR_GHOST_MOVE := Color(0.4, 0.8, 1.0, 0.55)   # куда встанут юниты после карты
@@ -971,7 +971,7 @@ func _enter_idle() -> void:
 	var move_cells: Array[Vector2i] = []
 	for c: Vector2i in logic.get_move_targets(_active):
 		move_cells.append(c)
-	board.show_cells("move", move_cells, COLOR_MOVE)
+	board.show_cells("move", move_cells, COLOR_MOVE, true)
 	_show_forecast()
 	hud.refresh(logic, _active, -1, false)
 	hud.update_discard_button(logic, _active, _discarding, false)
