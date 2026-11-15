@@ -35,6 +35,8 @@ const CAVE_EVENT_CHANCE: float = 0.25   # шанс, что событие ока
 const CAVE_ROWS: Vector2i = Vector2i(1, 4)   # в каких рядах карты она может встретиться
 const CAVE_ECHOES: int = 10             # Отзвуки за победу в пещере
 const MIN_DECK_SIZE: int = 5            # меньше стольких карт в колоде убрать нельзя (лавка, события)
+const WOUND_CARD: String = "res://resources/cards/wound.tres"   # «Рана» павшему в бою (тз-сложность-боя.md)
+const WOUNDS_PER_FALL: int = 1          # сколько Ран за одно падение
 const SPIRIT_SLOTS: int = 2                            # духов на героя
 const LAIR_ROW: int = 2                                # ряд карты с логовом духа (одна точка)
 const SPIRIT_CARD_WEIGHT: float = 2.0                  # карты своих духов и смешанные выпадают чаще
@@ -128,6 +130,9 @@ var relics: Array[String] = []   # id оберегов этого забега (
 var trophy_echoes: int = 0       # Отзвуки вместо трофея (когда все обереги открыты)
 var trophy_choices: Array[RelicData] = []   # из чего выбирать трофей за босса
 var cache_seen: bool = false     # «Тайник павшего дозорного» уже выпадал в этом забеге
+var last_wounded: Array[String] = []   # кто получил Рану в последнем бою (показать на экране награды)
+var wounds_per_fall: int = WOUNDS_PER_FALL   # сколько Ран за падение (замер может выключить: 0)
+var sim_no_scenes: bool = false        # замер забега ботом: goto() ничего не открывает
 var events_seen: Array[String] = []   # названия событий, уже выпавших в этом забеге (не повторяются)
 var cave_seen: bool = false      # «Тлеющая расщелина» уже встречалась в этом забеге
 var in_cave: bool = false        # идёт бой в пещере Жаровика
@@ -171,6 +176,7 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	trophy_echoes = 0
 	trophy_choices.clear()
 	cache_seen = false
+	last_wounded.clear()
 	events_seen.clear()
 	cave_seen = false
 	in_cave = false
@@ -271,6 +277,8 @@ func _tougher(enemy: EnemyData, factor: float) -> EnemyData:
 
 
 func goto(scene_path: String) -> void:
+	if sim_no_scenes:
+		return   # замер забега ботом (tests/balance_run.gd): экраны не открываем
 	# call_deferred — сменить сцену после текущего кадра, а не посреди обработки
 	get_tree().change_scene_to_file.call_deferred(scene_path)
 
@@ -533,6 +541,12 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 			wake_hp = 5        # «Свеча у колокола»: в первый раз — с 5 HP
 			candle_used = true
 		party[i].hp = maxi(wake_hp, hp_left[i])
+	last_wounded.clear()
+	for i in party.size():
+		if hp_left[i] <= 0:
+			add_wounds(party[i], wounds_per_fall)   # пал в бою — Рана в колоду
+			if wounds_per_fall > 0:
+				last_wounded.append(party[i].data.title)
 	last_battle_big = false
 	tamed_spirit = null
 	if in_cave:
@@ -960,6 +974,26 @@ func event_card(rh: RunHero, rare: bool) -> CardData:
 	if rares.is_empty():
 		return random_rare_card(rh.data)
 	return rares[rng.randi_range(0, rares.size() - 1)]
+
+
+# ---------- Раны ----------
+
+# Рана в колоду: сыграть нельзя, только занимает место в руке. Не пишется в Запас Караульни.
+func add_wounds(rh: RunHero, count: int) -> void:
+	var wound: CardData = load(WOUND_CARD)
+	for i in count:
+		rh.deck.append(wound)
+
+
+func wound_count(rh: RunHero) -> int:
+	return rh.deck.filter(func(c: CardData) -> bool: return c.unplayable).size()
+
+
+# «Перевязка» на привале: убирает все Раны героя (вместо отдыха)
+func bandage(rh: RunHero) -> int:
+	var n: int = wound_count(rh)
+	rh.deck.assign(rh.deck.filter(func(c: CardData) -> bool: return not c.unplayable))
+	return n
 
 
 func random_hero() -> RunHero:

@@ -979,6 +979,8 @@ func can_play(h: BattleUnit, index: int) -> bool:
 	if is_over or not h.is_alive() or index < 0 or index >= h.hand.size():
 		return false
 	var card: CardData = h.hand[index]
+	if card.unplayable:
+		return false   # «Рана»
 	if card.special == "kick" and ctx.attacks(h.hero_data.id) >= 2:
 		return false   # анти-спам: после двух Атак пинок недоступен
 	if card.special == "vent" and h.mana >= 0:

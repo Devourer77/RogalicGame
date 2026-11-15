@@ -44,6 +44,8 @@ const SETS: Dictionary[String, Array] = {
 	"x_fire_wind": ["Пал", Color("b07a4a")],
 	"x_fire_tide": ["Пар", Color("8a8f8a")],
 	"x_fire_bog": ["Лава", Color("9a5a2e")],
+	# «Рана» павшего героя: пепельно-серая (не красная — красный только про угрозу врагов)
+	"wound": ["Рана", Color("6f6a64")],
 }
 # Роли карт (значок-подпись рядом с архетипом)
 const ROLE_NAMES: Array[String] = ["", "Ход", "Заготовка", "Связка", "Развязка"]
@@ -211,7 +213,8 @@ static func make_button(card: CardData, owner_color: Color = Color.GRAY, cost: i
 		stats.add_child(_pill(UiKit.chip(s[0], s[1], s[2], "", 11, 12)))
 	if stats.get_child_count() == 0:
 		# Чисел нет — пишем словами, на что действует карта («на себя», «на союзника»…)
-		stats.add_child(_pill(UiKit.make_label(SHAPE_NAMES.get(card.shape, ""), 10, COLOR_TEXT_DIM, true)))
+		var where: String = "не играется" if card.unplayable else SHAPE_NAMES.get(card.shape, "")
+		stats.add_child(_pill(UiKit.make_label(where, 10, COLOR_TEXT_DIM, true)))
 	b.add_child(stats)
 
 	# --- Описание: размер шрифта подбирается, чтобы длинный текст влез целиком ---
@@ -226,7 +229,7 @@ static func make_button(card: CardData, owner_color: Color = Color.GRAY, cost: i
 	text.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	b.add_child(text)
 
-	# --- «Камень» маны: гранёный ромб в левом верхнем углу поверх рамки ---
+	# --- «Камень» маны: гранёный ромб в левом верхнем углу поверх рамки (у «Раны» его нет: сыграть нельзя) ---
 	var current: int = card.cost if cost < 0 else cost
 	var gem_color: Color = COLOR_MANA_CHEAP if current < card.cost else COLOR_MANA
 	var gem := Panel.new()
@@ -253,6 +256,8 @@ static func make_button(card: CardData, owner_color: Color = Color.GRAY, cost: i
 	gem_text.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.7))
 	gem_text.add_theme_constant_override("outline_size", 4)
 	b.add_child(gem_text)
+	gem.visible = not card.unplayable
+	gem_text.visible = not card.unplayable
 
 	# --- Цифра-клавиша (в бою) ---
 	if hotkey > 0:

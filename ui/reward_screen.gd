@@ -41,6 +41,11 @@ func _build_head() -> void:
 	head.add_child(gold)
 	_column.add_child(head)
 	_column.add_child(UiKit.party_bar())
+	# Кто падал в бою — тому в колоду легла Рана (убрать: лавка или «Перевязка» на привале)
+	for title: String in Run.last_wounded:
+		var line: HBoxContainer = UiKit.chip("wound", "%s пал в бою — в колоду легла Рана" % title, UiKit.TEXT_DIM, "", 15, 18)
+		line.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		_column.add_child(line)
 
 
 # Шаг 1: главная награда — карта одному из героев, улучшение или пропуск

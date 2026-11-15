@@ -1,5 +1,5 @@
 extends Control
-# Привал: оба героя восстанавливают часть здоровья.
+# Привал: оба героя восстанавливают часть здоровья — или «Перевязка» убирает Раны одного героя.
 
 
 func _ready() -> void:
@@ -20,6 +20,15 @@ func _ready() -> void:
 	rest.custom_minimum_size.x = 340
 	rest.tooltip_text = "Вылечит: " + ", ".join(gains)
 	column.add_child(rest)
+	# «Перевязка»: вместо отдыха убрать все Раны одного героя
+	for rh in Run.party:
+		var n: int = Run.wound_count(rh)
+		if n > 0:
+			var bandage: Button = UiKit.make_button("Перевязка: %s  ·  убрать Ран: %d (вместо отдыха)" % [rh.data.title, n],
+					_bandage.bind(rh), "wound")
+			bandage.custom_minimum_size.x = 340
+			bandage.tooltip_text = "Раны уйдут из колоды. Лечения на этом привале не будет."
+			column.add_child(bandage)
 	_add_spirit_transfers(column)
 	var skip: Button = UiKit.make_button("Идти дальше", Run.goto.bind(Run.MAP_SCENE))
 	skip.custom_minimum_size.x = 340
@@ -50,4 +59,10 @@ func _rest() -> void:
 	Run.rest_used = true   # «Чистый бинт» действует только на первый привал
 	for rh in Run.party:
 		Run.heal_hero(rh, ceili(rh.data.max_hp * heal_share))
+	Run.goto(Run.MAP_SCENE)
+
+
+func _bandage(rh: RunHero) -> void:
+	Sfx.play("heal", 0.04)
+	Run.bandage(rh)
 	Run.goto(Run.MAP_SCENE)

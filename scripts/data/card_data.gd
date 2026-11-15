@@ -124,3 +124,4 @@ enum Role { NONE, MOVE, SETUP, LINK, FINISH }
 @export var chain_jumps: bool = false   # перескоки молнии: +1 за каждые 2 звена Цепи
 @export var no_falloff: bool = false    # перескоки молнии не слабеют
 @export var is_call: bool = false       # Зов духа: раз в бой, не уходит в сброс, в Цепь не идёт
+@export var unplayable: bool = false    # «Рана»: сыграть нельзя, только занимает место в руке
