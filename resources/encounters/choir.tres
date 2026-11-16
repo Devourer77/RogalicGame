@@ -12,3 +12,4 @@ title = "Певчие Венца"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_cultist"), ExtResource("2_cultist"), ExtResource("3_goblin"), ExtResource("3_goblin")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("3_goblin")])
 max_row = 1
+formation = 4

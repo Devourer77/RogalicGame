@@ -132,6 +132,16 @@ enum Ground {
 }
 
 # Цель боя. KILL_ALL — обычный бой; остальные добавляют условие и не дают затягивать бой.
+# Строй отряда — где враги стоят в начале боя (поле EncounterData.formation)
+enum Formation {
+	FREE,     # как раньше: случайно в верхних рядах
+	FLANK,    # двумя группами у левого и правого края — заходят с двух сторон
+	SCREEN,   # бойцы впереди стеной, стрелки сзади у укрытия
+	AMBUSH,   # самый быстрый боец уже сбоку от героев, остальные сверху
+	SPREAD,   # враги разбросаны далеко друг от друга — одной картой всех не задеть
+	CLUSTER,  # тесной кучей вокруг первого (жаба среди гоблинов)
+}
+
 enum Objective {
 	KILL_ALL,      # убить всех
 	RITUAL,        # ритуалист (шаман или культист) за RITUAL_TURNS раундов призывает подмогу и усиливает своих
@@ -252,7 +262,8 @@ var _shock_cells: Dictionary[Vector2i, bool] = {}   # клетки, где мо�
 # Создаёт героев, врагов и всё поле. Ничего не показывает — только данные.
 func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		party: Array[RunHero], enemy_list: Array[EnemyData], arena: String = "",
-		battle_objective: int = Objective.KILL_ALL, charm_ids: Array[String] = []) -> void:
+		battle_objective: int = Objective.KILL_ALL, charm_ids: Array[String] = [],
+		enemy_formation: Formation = Formation.FREE) -> void:
 	charms = charm_ids.duplicate()   # обереги хаба и порченые реликвии — одним списком id
 	arena_id = arena   # пусто — арена выберется случайно
 	objective = battle_objective
@@ -286,9 +297,11 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		for i in POLLEN_EXTRA_GAS:
 			_place(2, height - 4, func(c: Vector2i) -> void: tiles[c] = Tile.GAS)
 
-	# Враги — в верхних рядах, на свободных клетках
-	for enemy_data: EnemyData in enemy_list:
-		var c: Vector2i = _random_free_cell(ENEMY_ROW_OFFSET, _enemy_last_row())
+	# Враги — по строю отряда (без строя — в верхних рядах на свободных клетках)
+	var places: Array[Vector2i] = _formation_cells(enemy_list, enemy_formation)
+	for i in enemy_list.size():
+		var enemy_data: EnemyData = enemy_list[i]
+		var c: Vector2i = places[i]
 		if c == NO_CELL:
 			continue
 		var e := _new_unit(enemy_data.title)
@@ -4409,6 +4422,114 @@ func _random_free_cell(min_row: int, max_row: int) -> Vector2i:
 	if free.is_empty():
 		return NO_CELL
 	return free[rng.randi_range(0, free.size() - 1)]
+
+
+# ---------- Строй отряда ----------
+# Клетки врагов в начале боя по строю. Случайность — только внутри зоны (общий генератор),
+# так что прогноз хода остаётся точным. Если зона занята — враг встаёт как без строя.
+
+func _formation_cells(list: Array[EnemyData], formation: Formation) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	result.resize(list.size())
+	result.fill(NO_CELL)
+	var top: int = ENEMY_ROW_OFFSET
+	var last: int = _enemy_last_row()
+	var taken: Array[Vector2i] = []
+	var pick := func(zone: Array[Vector2i]) -> Vector2i:
+		var free: Array[Vector2i] = zone.filter(func(c: Vector2i) -> bool: return _is_empty(c) and not taken.has(c))
+		if free.is_empty():
+			return NO_CELL
+		return free[rng.randi_range(0, free.size() - 1)]
+	var order: Array[int] = []
+	for i in list.size():
+		order.append(i)
+	var ambusher: int = -1
+	if formation == Formation.AMBUSH:
+		# В засаде — самый быстрый из бьющих вплотную
+		for i in list.size():
+			if list[i].keep_distance == 0 and (ambusher < 0 or list[i].move_range > list[ambusher].move_range):
+				ambusher = i
+	var left_side: bool = rng.randi_range(0, 1) == 0
+	var flank_n: int = 0
+	for i in order:
+		var e: EnemyData = list[i]
+		var ranged: bool = e.keep_distance > 0
+		var zone: Array[Vector2i] = []
+		match formation:
+			Formation.FLANK:
+				# по очереди слева и справа; стрелки — поглубже
+				var left: bool = flank_n % 2 == 0
+				flank_n += 1
+				var y0: int = top if ranged else top + 1
+				zone = _zone(0, 3, y0, y0 + 2) if left else _zone(width - 4, width - 1, y0, y0 + 2)
+			Formation.SCREEN:
+				if ranged:
+					zone = _covered(_zone(2, width - 3, top, top + 1))
+				else:
+					zone = _zone(3, width - 4, last, last + 1)
+			Formation.AMBUSH:
+				if i == ambusher:
+					var y: int = height - 6   # 3–4 ряда до героев: в первом раунде уже достанет
+					var near: Array[Vector2i] = _zone(0, 2, y, y + 1)
+					var far: Array[Vector2i] = _zone(width - 3, width - 1, y, y + 1)
+					zone = near if left_side else far
+					if not zone.any(_is_empty):
+						zone = far if left_side else near   # этот край занят деревьями — с другого
+				else:
+					zone = _zone(0, width - 1, top, last)
+			Formation.SPREAD:
+				zone = _farthest(_zone(0, width - 1, top, last + 1), taken)
+			Formation.CLUSTER:
+				if taken.is_empty():
+					zone = _zone(4, width - 5, top + 1, last)
+				else:
+					for t in taken:
+						for n in HexMath.neighbors(t):
+							if not zone.has(n):
+								zone.append(n)
+		var c: Vector2i = pick.call(zone) if formation != Formation.FREE else NO_CELL
+		if c == NO_CELL:
+			c = pick.call(_zone(0, width - 1, top, last))
+		result[i] = c
+		if c != NO_CELL:
+			taken.append(c)
+	return result
+
+
+# Клетки прямоугольника на поле (столбцы x0..x1, ряды y0..y1 в смещённых координатах)
+func _zone(x0: int, x1: int, y0: int, y1: int) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for y in range(maxi(y0, 0), mini(y1, height - 1) + 1):
+		for x in range(maxi(x0, 0), mini(x1, width - 1) + 1):
+			cells.append(_cell(x, y))
+	return cells
+
+
+# Из зоны — клетки рядом с укрытием (камень, дерево, камыш); если таких нет — вся зона
+func _covered(zone: Array[Vector2i]) -> Array[Vector2i]:
+	var near: Array[Vector2i] = zone.filter(func(c: Vector2i) -> bool:
+		return HexMath.neighbors(c).any(func(n: Vector2i) -> bool: return rocks.has(n) or objects.has(n)))
+	return near if near.any(_is_empty) else zone
+
+
+# Из зоны — свободные клетки, самые далёкие от уже поставленных (для россыпи)
+func _farthest(zone: Array[Vector2i], placed: Array[Vector2i]) -> Array[Vector2i]:
+	if placed.is_empty():
+		return zone
+	var best: int = -1
+	var cells: Array[Vector2i] = []
+	for c in zone:
+		if not _is_empty(c) or placed.has(c):
+			continue
+		var d: int = 99
+		for p in placed:
+			d = mini(d, HexMath.distance(c, p))
+		if d > best:
+			best = d
+			cells = [c]
+		elif d == best:
+			cells.append(c)
+	return cells
 
 
 # «Призрак»: проигрывает карту на копии боя и говорит, что изменится.

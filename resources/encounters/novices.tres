@@ -12,3 +12,4 @@ title = "Послушники"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_novice"), ExtResource("2_novice"), ExtResource("3_cultist"), ExtResource("3_cultist")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("2_novice")])
 max_row = 1
+formation = 5

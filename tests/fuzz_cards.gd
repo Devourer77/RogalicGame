@@ -12,7 +12,8 @@ func _initialize() -> void:
 		if s % 6 == 0:
 			b.setup(12, 12, run.rng, run.party, cave_squad(), "cave")   # каждый 6-й бой — пещера Жаровика
 		else:
-			b.setup(12, 12, run.rng, run.party, run._make_encounter(s % 8, s % 10 == 0))
+			var squad: Array[EnemyData] = run._make_encounter(s % 8, s % 10 == 0)
+			b.setup(12, 12, run.rng, run.party, squad, "", BattleLogic.Objective.KILL_ALL, [] as Array[String], run.pending_formation())
 		b.start()
 		for t in 8:
 			if b.is_over: break

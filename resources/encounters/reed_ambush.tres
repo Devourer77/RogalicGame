@@ -16,3 +16,4 @@ filler = Array[ExtResource("1_enemy")]([ExtResource("2_lurker"), ExtResource("5_
 min_row = 1
 max_row = 3
 arena = "reeds"
+formation = 3

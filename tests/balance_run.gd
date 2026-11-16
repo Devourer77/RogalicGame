@@ -148,7 +148,7 @@ func _play_run(run: Node, seed_value: int, bell: int) -> Dictionary:
 # Бой по текущим pending_* забега тем же ботом, что в balance.gd
 func _run_battle(run: Node) -> Dictionary:
 	var b := BattleLogic.new()
-	b.setup(12, 12, run.rng, run.party, run.pending_enemies, run.pending_arena, run.pending_objective, run.relics)
+	b.setup(12, 12, run.rng, run.party, run.pending_enemies, run.pending_arena, run.pending_objective, run.relics, (BattleLogic.Formation.FREE if OS.get_environment("NOFORM") != "" else run.pending_formation()))   # NOFORM=1 — без строя
 	if run.pending_encounter != null and OS.get_environment("NOWAVES") == "":   # NOWAVES=1 — замер без волн
 		b.set_waves(run.pending_encounter.waves, run.wave_extra())
 	b.start()

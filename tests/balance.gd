@@ -126,7 +126,7 @@ func _play_battle(run: Node, seed_value: int, cfg: Dictionary) -> Dictionary:
 	for r: RelicData in cfg.get("relics", []):
 		relic_list.append(r.id)
 	var b := BattleLogic.new()
-	b.setup(12, 12, run.rng, run.party, enemies, arena, objective, relic_list)
+	b.setup(12, 12, run.rng, run.party, enemies, arena, objective, relic_list, (BattleLogic.Formation.FREE if OS.get_environment("NOFORM") != "" else run.pending_formation()))   # NOFORM=1 — без строя
 	if run.pending_encounter != null and OS.get_environment("NOWAVES") == "":   # NOWAVES=1 — замер без волн
 		b.set_waves(run.pending_encounter.waves, run.wave_extra())
 	b.start()

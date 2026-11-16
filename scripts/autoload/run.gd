@@ -66,6 +66,8 @@ const HEROES: Array[HeroData] = [
 const ENCOUNTERS: Array[EncounterData] = [
 	preload("res://resources/encounters/gang.tres"),
 	preload("res://resources/encounters/pack.tres"),
+	preload("res://resources/encounters/hunt.tres"),        # волки в засаде сбоку, пращники сверху
+	preload("res://resources/encounters/toad_mound.tres"),  # жаба в куче гоблинов
 	preload("res://resources/encounters/choir.tres"),
 	preload("res://resources/encounters/gas_ambush.tres"),
 	preload("res://resources/encounters/shaman_guard.tres"),
@@ -523,6 +525,11 @@ func _make_encounter(row: int, boss: bool, elite: bool = false) -> Array[EnemyDa
 			result.append(_roll_filler(enc, result))
 	_apply_modifiers(result, row, enc.kind != EncounterData.Kind.NORMAL)
 	return result
+
+
+# Строй врагов в ближайшем бою (у логова, пещеры и боёв без отряда — свободный)
+func pending_formation() -> BattleLogic.Formation:
+	return pending_encounter.formation if pending_encounter != null else BattleLogic.Formation.FREE
 
 
 # Звон 4: сколько врагов добавить в каждую волну подкрепления

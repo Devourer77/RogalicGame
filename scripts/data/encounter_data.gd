@@ -16,6 +16,7 @@ enum Kind { NORMAL, ELITE, BOSS }
 @export var max_row: int = 99              # по какой ряд включительно
 @export var arena: String = ""             # своя арена (ключ BattleLogic.ARENAS); пусто — любая
 @export var waves: Array[WaveData] = []    # подкрепления по ходу боя (пусто — без волн)
+@export var formation: BattleLogic.Formation = BattleLogic.Formation.FREE   # строй: как враги стоят в начале боя
 
 
 # Встречается ли обычный отряд на этом ряду карты

@@ -12,3 +12,4 @@ title = "Гоблинская шайка"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_goblin"), ExtResource("2_goblin"), ExtResource("2_goblin"), ExtResource("3_slinger")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("2_goblin")])
 max_row = 1
+formation = 2

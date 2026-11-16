@@ -104,7 +104,7 @@ func _ready() -> void:
 	Run.ensure_run()
 	var layout_seed: int = Run.rng.randi()
 	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena,
-			Run.pending_objective, Run.relics)
+			Run.pending_objective, Run.relics, Run.pending_formation())
 	if Run.pending_encounter != null:
 		logic.set_waves(Run.pending_encounter.waves, Run.wave_extra())   # подкрепления (вожак, Певчая, огр)
 	hud.relic_list = Run.relic_list()

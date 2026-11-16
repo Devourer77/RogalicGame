@@ -12,3 +12,4 @@ title = "Стая"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_wolf"), ExtResource("2_wolf"), ExtResource("2_wolf"), ExtResource("3_goblin")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("3_goblin")])
 max_row = 1
+formation = 1
