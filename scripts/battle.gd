@@ -94,6 +94,9 @@ var _cam_tween: Tween
 var _battle_start_ms: int = 0     # когда начался бой
 var _enemy_phase_ms: int = 0      # сколько всего длились ходы врагов (от «Конец хода» до конца анимаций)
 var _start_hp: Array[int] = []    # здоровье героев в начале боя
+var _start_enemies: int = 0       # сколько врагов было в начале (для журнала: сколько пришло потом)
+var _cards_played: int = 0        # сыграно карт за бой (журнал боёв)
+var _cards_scrapped: int = 0      # сброшено «в ноги» за шаги
 var vfx: VfxPlayer                 # частицы, вспышки, цифры урона (scripts/vfx_player.gd)
 var _last_hp: Dictionary[BattleUnit, int] = {}   # здоровье юнита на прошлом событии — чтобы заметить лечение
 var _fire_forecast: Dictionary = {}   # прогноз огня: id юнита → урон в конце хода врагов
@@ -140,6 +143,10 @@ func _ready() -> void:
 	_battle_start_ms = Time.get_ticks_msec()
 	for h in logic.heroes:
 		_start_hp.append(h.hp)
+	_start_enemies = logic.enemies.size()
+	logic.card_played.connect(func(_c: BattleUnit, _card: CardData, is_scrap: bool) -> void:
+		if is_scrap: _cards_scrapped += 1
+		else: _cards_played += 1)
 	_mode = Mode.BUSY
 	logic.start()
 	if Run.current != null and Run.current.type == MapNode.Type.ELITE and Run.bog_spirit_offered():
@@ -1089,6 +1096,50 @@ func _print_battle_stats() -> void:
 			logic.arena_title(), row, logic.turn,
 			(Time.get_ticks_msec() - _battle_start_ms) / 1000.0, _enemy_phase_ms / 1000.0,
 			", ".join(hp_text)])
+	_write_journal()
+
+
+# Строка в журнал боёв user://battles.csv (scripts/battle_journal.gd). При замере ботом не пишем.
+func _write_journal() -> void:
+	if Run.sim_no_scenes:
+		return
+	var kinds: Dictionary = {MapNode.Type.BATTLE: "бой", MapNode.Type.ELITE: "элита",
+			MapNode.Type.BOSS: "босс", MapNode.Type.LAIR: "логово", MapNode.Type.EVENT: "событие"}
+	var kind: String = "пещера" if Run.in_cave else (kinds.get(Run.current.type, "?") if Run.current != null else "?")
+	var hp_start: Array[int] = []
+	var hp_end: Array[int] = []
+	var lost: int = 0
+	var falls: int = 0
+	for i in logic.heroes.size():
+		var h: BattleUnit = logic.heroes[i]
+		var start: int = _start_hp[i] if i < _start_hp.size() else h.hp
+		hp_start.append(start)
+		hp_end.append(maxi(h.hp, 0))
+		lost += maxi(start - maxi(h.hp, 0), 0)
+		if h.hp <= 0:
+			falls += 1
+	var mods: int = 0
+	for e in logic.enemies:
+		if e.data != null and e.data.modifier != null:
+			mods += 1
+	var enc: EncounterData = Run.pending_encounter
+	BattleJournal.write({
+		"date": Time.get_datetime_string_from_system(false, true),
+		"seed": Run.seed_value, "bell": Run.bell,
+		"row": Run.current.row if Run.current != null else -1, "kind": kind,
+		"squad": enc.title if enc != null else "", "arena": logic.arena_title(),
+		"objective": logic.objective_title() if logic.objective != BattleLogic.Objective.KILL_ALL else "",
+		"formation": BattleLogic.Formation.keys()[Run.pending_formation()].to_lower(),
+		"enemies": _start_enemies, "modifiers": mods,
+		"arrived": maxi(logic.enemies.size() - _start_enemies, 0),
+		"rounds": logic.turn, "won": 1 if logic.won else 0,
+		"seconds": roundi((Time.get_ticks_msec() - _battle_start_ms) / 1000.0),
+		"enemy_seconds": roundi(_enemy_phase_ms / 1000.0),
+		"mage_start": hp_start[0] if hp_start.size() > 0 else 0, "mage_end": hp_end[0] if hp_end.size() > 0 else 0,
+		"knight_start": hp_start[1] if hp_start.size() > 1 else 0, "knight_end": hp_end[1] if hp_end.size() > 1 else 0,
+		"hp_lost": lost, "falls": falls, "cards": _cards_played, "scraps": _cards_scrapped,
+	})
+	print("Журнал боёв: строка записана в %s" % BattleJournal.full_path())
 
 
 # Переводит точку на экране в клетку поля:
