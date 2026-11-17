@@ -6,6 +6,8 @@ extends Resource
 # Элиты и боссы — тоже отряды: сам сильный враг первым в ядре, за ним свита.
 
 enum Kind { NORMAL, ELITE, BOSS }
+# В какой ветке карты встречается отряд: любая (общие враги — гоблины, волки, Культ), Болота или Лес.
+enum Branch { ANY, BOG, FOREST }
 
 @export var id: String = ""
 @export var title: String = ""             # показывается в начале боя рядом с ареной
@@ -17,8 +19,16 @@ enum Kind { NORMAL, ELITE, BOSS }
 @export var arena: String = ""             # своя арена (ключ BattleLogic.ARENAS); пусто — любая
 @export var waves: Array[WaveData] = []    # подкрепления по ходу боя (пусто — без волн)
 @export var formation: BattleLogic.Formation = BattleLogic.Formation.FREE   # строй: как враги стоят в начале боя
+@export var branch: Branch = Branch.ANY    # ветка карты акта (мир.md, раздел 2)
 
 
 # Встречается ли обычный отряд на этом ряду карты
 func fits_row(row: int) -> bool:
 	return kind == Kind.NORMAL and row >= min_row and row <= max_row
+
+
+# Подходит ли отряд ветке карты (MapNode.BOG / MapNode.FOREST; -1 — общий ряд, подходит любой)
+func fits_branch(map_branch: int) -> bool:
+	if branch == Branch.ANY or map_branch < 0:
+		return true
+	return (branch == Branch.BOG and map_branch == MapNode.BOG) or (branch == Branch.FOREST and map_branch == MapNode.FOREST)

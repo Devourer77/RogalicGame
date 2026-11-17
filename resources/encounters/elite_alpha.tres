@@ -18,6 +18,7 @@ text = "Вой вожака собирает стаю"
 [resource]
 script = ExtResource("1_enc")
 id = "elite_alpha"
+branch = 2
 title = "Седой вожак"
 kind = 1
 core = Array[ExtResource("1_enemy")]([ExtResource("2_alpha"), ExtResource("3_wolf"), ExtResource("3_wolf"), ExtResource("3_wolf"), ExtResource("3_wolf")])

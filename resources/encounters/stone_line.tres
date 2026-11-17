@@ -11,6 +11,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "stone_line"
+branch = 1
 title = "Каменный строй"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_crawler"), ExtResource("2_crawler"), ExtResource("3_shaman"), ExtResource("4_slinger"), ExtResource("5_cultist")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("6_goblin")])

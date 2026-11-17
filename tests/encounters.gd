@@ -105,10 +105,15 @@ func _elites_and_bosses() -> void:
 	var distinct_ok := true; var bosses: Dictionary = {}; var elites: Dictionary = {}
 	for s in range(1, 101):
 		run.start_new_run(s)
-		if run.run_elites.size() != 2 or run.run_elites[0] == run.run_elites[1]: distinct_ok = false
+		# по две элиты на ветку (Болота, Лес), все четыре разные, каждая подходит своей ветке
+		var ids: Dictionary = {}
+		for e in run.run_elites: ids[e.id] = true
+		if run.run_elites.size() != 4 or ids.size() != 4: distinct_ok = false
+		for i in run.run_elites.size():
+			if not run.run_elites[i].fits_branch(MapNode.BOG if i < 2 else MapNode.FOREST): distinct_ok = false
 		for e in run.run_elites: elites[e.id] = true
 		bosses[run.run_boss.id] = true
-	check("Две разные элиты на забег", distinct_ok)
+	check("По две разные элиты на каждую ветку, все четыре разные", distinct_ok)
 	check("За 100 забегов встречаются все элиты (%d)" % run.ELITE_POOL.size(), elites.size() == run.ELITE_POOL.size())
 	check("За 100 забегов встречаются все боссы (%d)" % run.BOSS_POOL.size(), bosses.size() == run.BOSS_POOL.size())
 	run.start_new_run(9); var b1: String = run.run_boss.id; var el1: String = run.run_elites[0].id
@@ -134,23 +139,65 @@ func _elites_and_bosses() -> void:
 
 
 func _map() -> void:
-	print("--- Карта пути ---")
-	var one_ok := true; var bypass_ok := true
+	print("--- Карта пути: две ветки ---")
+	var one_ok := true; var bypass_ok := true; var shape_ok := true; var cross_ok := true; var lair_ok := true
 	for s in range(1, 201):
 		run.start_new_run(s)
-		var count := 0; var col := -1
+		for branch in [MapNode.BOG, MapNode.FOREST]:
+			var count := 0; var col := -1; var lairs := 0
+			for n in run.map:
+				if n.branch != branch: continue
+				if n.type == MapNode.Type.LAIR: lairs += 1
+				if n.type == MapNode.Type.ELITE and n.row != run.MAP_ROWS - 3:
+					count += 1; col = n.col
+					if n.row != run.OPTIONAL_ELITE_ROW: one_ok = false
+			if count != 1: one_ok = false
+			if lairs != 1: lair_ok = false
+			for n in run.row_nodes(run.OPTIONAL_ELITE_ROW - 1):
+				if n.branch != branch: continue
+				var other := false
+				for c in n.next:
+					if c != col: other = true
+				if not other: bypass_ok = false
+		# Форма: 6 рядов по 6 точек, общий привал и босс; все дороги последнего ряда веток — на привал
+		var rest: Array[MapNode] = run.row_nodes(run.MAP_ROWS - 2)
+		var boss: Array[MapNode] = run.row_nodes(run.MAP_ROWS - 1)
+		if rest.size() != 1 or rest[0].type != MapNode.Type.REST or boss.size() != 1 or boss[0].type != MapNode.Type.BOSS: shape_ok = false
+		for row in run.MAP_ROWS - 2:
+			if run.row_nodes(row).size() != run.MAP_COLS: shape_ok = false
+		# Между ветками — ровно две дорожки (тропа крест-накрест), и только с ряда CROSS_ROW
+		var crossings := 0
 		for n in run.map:
-			if n.type == MapNode.Type.ELITE and n.row != run.MAP_ROWS - 3:
-				count += 1; col = n.col
-				if n.row != run.OPTIONAL_ELITE_ROW: one_ok = false
-		if count != 1: one_ok = false
-		for n in run.row_nodes(run.OPTIONAL_ELITE_ROW - 1):
-			var other := false
 			for c in n.next:
-				if c != col: other = true
-			if not other: bypass_ok = false
-	check("Ровно одна необязательная элита, в своём ряду", one_ok)
+				var t: MapNode = run.find_map_node(n.row + 1, c)
+				if t == null: shape_ok = false; continue
+				if t.branch != MapNode.COMMON and n.branch != MapNode.COMMON and t.branch != n.branch:
+					crossings += 1
+					if n.row != run.CROSS_ROW: cross_ok = false
+		if crossings != 2: cross_ok = false
+	check("В каждой ветке ровно одна необязательная элита, в своём ряду", one_ok)
 	check("Необязательную элиту всегда можно обойти", bypass_ok)
+	check("В каждой ветке одно логово духа", lair_ok)
+	check("Две ветки по 3 колонки, общий привал и босс", shape_ok)
+	check("Одна тропа-переход между ветками, на ряду %d" % run.CROSS_ROW, cross_ok)
+	# Отряды по ветке: в Лесу нет болотных, на Болотах нет лесных
+	var branch_ok := true
+	for s in range(1, 41):
+		run.start_new_run(s)
+		for branch in [MapNode.BOG, MapNode.FOREST]:
+			run.current = run.find_map_node(2, branch * run.BRANCH_COLS)
+			for row in [0, 2, 4]:
+				run._make_encounter(row, false)
+				if not run.pending_encounter.fits_branch(branch): branch_ok = false
+			var el: EncounterData = run.elite_for_row(run.MAP_ROWS - 3)
+			if not el.fits_branch(branch): branch_ok = false
+	check("Отряды и элиты — своей ветки", branch_ok)
+	# На общем привале ветка — та, откуда пришли
+	run.start_new_run(3)
+	var forest_node: MapNode = run.find_map_node(run.MAP_ROWS - 3, run.BRANCH_COLS + 1)
+	forest_node.visited = true
+	run.current = run.row_nodes(run.MAP_ROWS - 2)[0]
+	check("На привале ветка — откуда пришли (Лес)", run.current_branch() == MapNode.FOREST)
 
 
 func _weaver() -> void:

@@ -96,7 +96,7 @@ func _run_side() -> void:
 	var lair := 0
 	for n in run.map:
 		if n.type == MapNode.Type.LAIR: lair += 1
-	check("На карте одно логово", lair == 1)
+	check("На карте по логову в каждой ветке", lair == 2)
 	var before: int = mage.deck.size()
 	check("Дух пришёл к Магу", run.add_spirit(mage, sp("tide")))
 	check("Три карты духа сразу в колоде", mage.deck.size() == before + 3 and mage.deck.has(sp("tide").mage_cards[0]))

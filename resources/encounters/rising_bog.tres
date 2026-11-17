@@ -10,6 +10,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "rising_bog"
+branch = 1
 title = "Топь поднимается"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_walker"), ExtResource("2_walker"), ExtResource("3_toad"), ExtResource("3_toad"), ExtResource("4_slinger")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("5_goblin")])

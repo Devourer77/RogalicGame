@@ -10,6 +10,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "reed_ambush"
+branch = 1
 title = "Засада в камыше"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_lurker"), ExtResource("2_lurker"), ExtResource("3_slinger"), ExtResource("4_wolf")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("2_lurker"), ExtResource("5_goblin")])

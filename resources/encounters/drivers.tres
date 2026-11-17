@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "drivers"
+branch = 2
 title = "Загонщики"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_weaver"), ExtResource("2_weaver"), ExtResource("3_slinger"), ExtResource("3_slinger"), ExtResource("4_wolf")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("4_wolf")])

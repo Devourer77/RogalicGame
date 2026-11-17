@@ -4488,6 +4488,8 @@ func _formation_cells(list: Array[EnemyData], formation: Formation) -> Array[Vec
 							if not zone.has(n):
 								zone.append(n)
 		var c: Vector2i = pick.call(zone) if formation != Formation.FREE else NO_CELL
+		if c == NO_CELL and formation == Formation.SCREEN and not ranged:
+			c = pick.call(_zone(0, width - 1, last - 1, last + 1))   # стена шире, но всё ещё впереди стрелков
 		if c == NO_CELL:
 			c = pick.call(_zone(0, width - 1, top, last))
 		result[i] = c

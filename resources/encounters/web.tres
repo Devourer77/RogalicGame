@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "web"
+branch = 2
 title = "Паутина"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_weaver"), ExtResource("2_weaver"), ExtResource("3_wolf"), ExtResource("3_wolf")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("3_wolf"), ExtResource("4_goblin")])

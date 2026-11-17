@@ -1,11 +1,18 @@
 extends Control
 # Карта забега: ряды точек снизу вверх, наверху босс.
+# Две ветки рядом — Гнилые топи (слева) и Густые леса (справа); на ряду Run.CROSS_ROW между ними
+# одна тропа-переход, сходятся они на общем привале перед боссом.
 # Можно пойти только в точки, куда ведёт дорожка из текущей (они в латунной рамке и «дышат»).
 
-const COL_SPACING: float = 190.0
+const COL_SPACING: float = 140.0
+const BRANCH_GAP: float = 120.0       # лишний зазор между ветками
 const ROW_SPACING: float = 62.0
 const NODE_SIZE: float = 52.0
 const BOSS_SIZE: float = 66.0
+const LABEL_HEIGHT: float = 34.0       # место под подписями веток внизу
+# Подложка ветки (тёмный цвет её области) и цвет подписи
+const BRANCH_TINT: Array[Color] = [Color(0.16, 0.22, 0.22, 0.55), Color(0.15, 0.24, 0.15, 0.55)]
+const BRANCH_TEXT: Array[Color] = [Color(0.62, 0.78, 0.74), Color(0.66, 0.82, 0.58)]
 
 # Для каждого типа точки: иконка, цвет кружка и подсказка
 const NODE_LOOK: Dictionary[int, Array] = {
@@ -30,7 +37,7 @@ func _ready() -> void:
 	var head := HBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 14)
-	head.add_child(UiKit.make_title("Гнилые топи", 30, UiKit.BRASS.lightened(0.2)))
+	head.add_child(UiKit.make_title(_area_title(), 30, UiKit.BRASS.lightened(0.2)))
 	var seed_label: Label = UiKit.make_label("акт I  ·  Звон %d  ·  сид %d" % [Run.bell, Run.seed_value], 14, UiKit.TEXT_DIM)
 	seed_label.size_flags_vertical = Control.SIZE_SHRINK_END
 	seed_label.tooltip_text = "Сид забега: введи его в главном меню, чтобы повторить этот же забег."
@@ -39,13 +46,15 @@ func _ready() -> void:
 	column.add_child(head)
 
 	_area = Control.new()
-	_area.custom_minimum_size = Vector2(COL_SPACING * (Run.MAP_COLS - 1) + BOSS_SIZE,
-			ROW_SPACING * (Run.MAP_ROWS - 1) + BOSS_SIZE)
+	_area.custom_minimum_size = Vector2(COL_SPACING * (Run.MAP_COLS - 1) + BRANCH_GAP + BOSS_SIZE,
+			ROW_SPACING * (Run.MAP_ROWS - 1) + BOSS_SIZE + LABEL_HEIGHT)
 	_area.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_area.draw.connect(_draw_links)   # дорожки рисуем сами в сигнале draw
 	column.add_child(_area)
 
 	_available = Run.available_nodes()
+	for branch in [MapNode.BOG, MapNode.FOREST]:
+		_area.add_child(_branch_label(branch))
 	for n in Run.map:
 		_area.add_child(_make_node_button(n))
 
@@ -82,6 +91,10 @@ func _make_node_button(n: MapNode) -> Button:
 		b.tooltip_text = "Босс: %s — последний бой акта.\n%s" % [Run.run_boss.title, _boss_hint(Run.run_boss)]
 	elif n.type == MapNode.Type.ELITE and n.row < Run.MAP_ROWS - 3:
 		b.tooltip_text += "\nНеобязательная: можно обойти. Награда — реликвия на выбор."
+	if n.branch != MapNode.COMMON:
+		b.tooltip_text += "\n%s." % Run.BRANCH_TITLES[n.branch]
+		if _crosses_from(n):
+			b.tooltip_text += "\nОтсюда есть тропа в другую ветку."
 	if is_current:
 		b.tooltip_text += "\nВы здесь."
 	elif n.visited:
@@ -129,17 +142,62 @@ func _make_node_button(n: MapNode) -> Button:
 	return b
 
 
-# Центр точки. Ряд 0 — внизу.
+# Центр точки. Ряд 0 — внизу. Колонки Леса сдвинуты вправо на зазор между ветками,
+# одиночные точки (привал, босс) — по центру карты.
 func _node_center(n: MapNode) -> Vector2:
-	var cols: int = Run.row_nodes(n.row).size()
-	var x_offset: float = (Run.MAP_COLS - cols) * COL_SPACING / 2.0   # одиночного босса — по центру
-	var x: float = x_offset + n.col * COL_SPACING + BOSS_SIZE / 2.0
 	var y: float = (Run.MAP_ROWS - 1 - n.row) * ROW_SPACING + BOSS_SIZE / 2.0
+	if Run.row_nodes(n.row).size() == 1:
+		return Vector2(_area.custom_minimum_size.x / 2.0, y)
+	var x: float = n.col * COL_SPACING + BOSS_SIZE / 2.0
+	if n.branch == MapNode.FOREST:
+		x += BRANCH_GAP
 	return Vector2(x, y)
 
 
-# Дорожки между точками: пройденный путь — латунный, ближайшие шаги — светлые, остальное — тусклое
+# Есть ли из точки тропа-переход в другую ветку
+func _crosses_from(n: MapNode) -> bool:
+	for c in n.next:
+		var target: MapNode = Run.find_map_node(n.row + 1, c)
+		if target != null and target.branch != MapNode.COMMON and target.branch != n.branch:
+			return true
+	return false
+
+
+# Заголовок: где отряд сейчас; до первого шага — развилка
+func _area_title() -> String:
+	var branch: int = Run.current_branch()
+	if branch == MapNode.COMMON:
+		return "Развилка: топи или чаща" if Run.current == null else "Окраина Марки"
+	return Run.BRANCH_TITLES[branch]
+
+
+# Подпись ветки под её нижним рядом
+func _branch_label(branch: int) -> Label:
+	var first: float = branch * Run.BRANCH_COLS * COL_SPACING + BOSS_SIZE / 2.0 + (BRANCH_GAP if branch == MapNode.FOREST else 0.0)
+	var width: float = (Run.BRANCH_COLS - 1) * COL_SPACING
+	var label: Label = UiKit.make_label(Run.BRANCH_TITLES[branch], 17, BRANCH_TEXT[branch])
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.size = Vector2(width + 120.0, LABEL_HEIGHT)
+	label.position = Vector2(first - 60.0, (Run.MAP_ROWS - 1) * ROW_SPACING + BOSS_SIZE + 2.0)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+# Подложка ветки: тёмный прямоугольник от нижнего ряда до последнего ряда ветки
+func _draw_branch_backs() -> void:
+	var top_row: int = Run.MAP_ROWS - 3
+	for branch in [MapNode.BOG, MapNode.FOREST]:
+		var a: Vector2 = _node_center(Run.find_map_node(0, branch * Run.BRANCH_COLS))
+		var b: Vector2 = _node_center(Run.find_map_node(top_row, branch * Run.BRANCH_COLS + Run.BRANCH_COLS - 1))
+		var pad: float = NODE_SIZE * 0.85
+		var rect := Rect2(Vector2(a.x - pad, b.y - pad), Vector2(b.x - a.x + pad * 2.0, a.y - b.y + pad * 2.0 + LABEL_HEIGHT))
+		_area.draw_rect(rect, BRANCH_TINT[branch], true)
+
+
+# Дорожки между точками: пройденный путь — латунный, ближайшие шаги — светлые, остальное — тусклое.
+# Тропа-переход между ветками — пунктиром.
 func _draw_links() -> void:
+	_draw_branch_backs()
 	for n in Run.map:
 		for c in n.next:
 			var target: MapNode = Run.find_map_node(n.row + 1, c)
@@ -153,7 +211,11 @@ func _draw_links() -> void:
 			elif n == Run.current and _available.has(target):
 				color = UiKit.BRASS.lightened(0.35)
 				width = 3.0
-			_area.draw_line(_node_center(n), _node_center(target), color, width, true)
+			var crossing: bool = target.branch != MapNode.COMMON and target.branch != n.branch
+			if crossing:
+				_area.draw_dashed_line(_node_center(n), _node_center(target), color, width + 1.0, 10.0, true)
+			else:
+				_area.draw_line(_node_center(n), _node_center(target), color, width, true)
 
 
 # Одна строка о боссе для подсказки: его строка лора из подсказки в бою

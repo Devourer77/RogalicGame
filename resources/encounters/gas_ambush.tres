@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "gas_ambush"
+branch = 1
 title = "Газовая засада"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_toad"), ExtResource("2_toad"), ExtResource("3_slinger"), ExtResource("3_slinger")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("4_goblin")])

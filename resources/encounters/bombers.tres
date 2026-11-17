@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "bombers"
+branch = 1
 title = "Подрывники"
 core = Array[ExtResource("1_enemy")]([ExtResource("2_bomber"), ExtResource("2_bomber"), ExtResource("3_walker"), ExtResource("4_goblin"), ExtResource("4_goblin")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("4_goblin")])

@@ -19,8 +19,12 @@ const TROPHY_SCENE: String = "res://ui/trophy_screen.tscn"
 # Сколько актов в забеге. Звон открывается, только если пройден последний (пока акт один).
 const FINAL_ACT: int = 1
 
-const MAP_ROWS: int = 8        # последний ряд — босс, предпоследний — привал
-const MAP_COLS: int = 3
+const MAP_ROWS: int = 8        # последний ряд — босс, предпоследний — общий привал
+# Две ветки рядом (мир.md, раздел 2): колонки 0–2 — Болота, 3–5 — Лес. Сходятся на привале перед боссом.
+const BRANCH_COLS: int = 3     # точек в ряду одной ветки
+const MAP_COLS: int = BRANCH_COLS * 2
+const CROSS_ROW: int = 3       # с этого ряда — одна тропа-переход между ветками (на ряд выше)
+const BRANCH_TITLES: Array[String] = ["Гнилые топи", "Густые леса"]
 const OBJECTIVE_FROM_ROW: int = 2     # с какого ряда карты бывают бои с особой целью
 # Модификаторы врагов (тз-сложность-боя.md): сколько врагов в бою получают «характер»
 const MODIFIERS_DIR: String = "res://resources/enemy_modifiers/"
@@ -96,8 +100,8 @@ const BOSS_POOL: Array[EncounterData] = [
 	preload("res://resources/encounters/boss_mother.tres"),
 	preload("res://resources/encounters/boss_captain.tres"),   # Утопший капитан (второй заход)
 ]
-const ELITES_PER_RUN: int = 2        # необязательная элита на развилке + обязательная перед привалом
-const OPTIONAL_ELITE_ROW: int = 3    # ряд карты с необязательной элитой (одна точка из трёх)
+const ELITES_PER_RUN: int = 2        # на ветку: необязательная элита на развилке + обязательная перед привалом
+const OPTIONAL_ELITE_ROW: int = 3    # ряд карты с необязательной элитой (одна точка из трёх в каждой ветке)
 
 var is_active: bool = false
 var seed_value: int = 0
@@ -119,7 +123,7 @@ const SPIRIT_START_CARDS: int = 3          # сколько карт дух да
 var pending_arena: String = ""               # арена ближайшего боя (ключ из BattleLogic.ARENAS)
 var pending_objective: int = 0               # цель ближайшего боя (BattleLogic.Objective)
 var pending_encounter: EncounterData = null  # отряд ближайшего боя (его название видно в начале боя)
-var run_elites: Array[EncounterData] = []    # элиты этого забега: [на развилке, перед привалом]
+var run_elites: Array[EncounterData] = []    # элиты забега: [Болота: развилка, привал, Лес: развилка, привал]
 var run_boss: EncounterData = null           # босс этого забега (виден на карте с самого начала)
 var used_encounters: Array[String] = []      # какие обычные отряды уже были (не повторяются)
 var _last_arena: String = ""                 # прошлая арена — чтобы не повторялась подряд
@@ -404,49 +408,86 @@ func pick_arena(is_boss: bool) -> String:
 func _generate_map() -> void:
 	map.clear()
 	for row in MAP_ROWS:
-		var cols: int = 1 if row == MAP_ROWS - 1 else MAP_COLS
+		var common: bool = row >= MAP_ROWS - 2   # привал и босс — одна общая точка
+		var cols: int = 1 if common else MAP_COLS
 		for col in cols:
 			var n := MapNode.new()
 			n.row = row
 			n.col = col
+			n.branch = MapNode.COMMON if common else branch_of_col(col)
 			n.type = _roll_node_type(row)
 			map.append(n)
-	# Дорожки: из каждой точки — прямо вверх, иногда ещё и вбок
+	# Дорожки: из каждой точки — прямо вверх, иногда ещё и вбок (в пределах своей ветки)
 	for row in MAP_ROWS - 1:
 		for n in row_nodes(row):
-			if row + 1 == MAP_ROWS - 1:
-				n.next.append(0)   # все дороги ведут к боссу
+			if row + 1 >= MAP_ROWS - 2:
+				n.next.append(0)   # все дороги сходятся на привале, оттуда — к боссу
 				continue
 			n.next.append(n.col)
+			var first: int = n.branch * BRANCH_COLS
 			var side: int = n.col + (1 if rng.randf() < 0.5 else -1)
-			if side >= 0 and side < MAP_COLS and rng.randf() < 0.6:
+			if side >= first and side < first + BRANCH_COLS and rng.randf() < 0.6:
 				n.next.append(side)
-	_place_optional_elite()
-	_place_lair()
+	_place_crossing()
+	for branch in [MapNode.BOG, MapNode.FOREST]:
+		_place_optional_elite(branch)
+		_place_lair(branch)
 
 
-# Необязательная элита: одна точка в ряду OPTIONAL_ELITE_ROW. Чтобы её всегда можно было
-# обойти, из точки под ней обязательно есть дорожка вбок.
-func _place_optional_elite() -> void:
+# Колонка → ветка
+func branch_of_col(col: int) -> int:
+	return MapNode.BOG if col < BRANCH_COLS else MapNode.FOREST
+
+
+# Ветка, по которой сейчас идёт отряд (на общем привале и у босса — та, откуда пришли)
+func current_branch() -> int:
+	if current == null:
+		return MapNode.COMMON
+	if current.branch != MapNode.COMMON:
+		return current.branch
+	for row in range(current.row - 1, -1, -1):
+		for n in row_nodes(row):
+			if n.visited and n.branch != MapNode.COMMON:
+				return n.branch
+	return MapNode.COMMON
+
+
+# Тропа-переход: на ряду CROSS_ROW от внутренних колонок веток (2 и 3) — дорожка крест-накрест
+# в соседнюю ветку на ряд выше. Сменить ветку можно только здесь.
+func _place_crossing() -> void:
+	var bog_inner: MapNode = find_map_node(CROSS_ROW, BRANCH_COLS - 1)
+	var forest_inner: MapNode = find_map_node(CROSS_ROW, BRANCH_COLS)
+	if bog_inner == null or forest_inner == null:
+		return
+	bog_inner.next.append(BRANCH_COLS)
+	forest_inner.next.append(BRANCH_COLS - 1)
+
+
+# Необязательная элита: одна точка в ряду OPTIONAL_ELITE_ROW в каждой ветке. Чтобы её всегда можно было
+# обойти, из точки под ней обязательно есть дорожка вбок (в своей ветке).
+func _place_optional_elite(branch: int) -> void:
 	if OPTIONAL_ELITE_ROW <= 0 or OPTIONAL_ELITE_ROW >= MAP_ROWS - 3:
 		return
-	var col: int = rng.randi_range(0, MAP_COLS - 1)
+	var first: int = branch * BRANCH_COLS
+	var col: int = first + rng.randi_range(0, BRANCH_COLS - 1)
 	var node: MapNode = find_map_node(OPTIONAL_ELITE_ROW, col)
 	if node == null:
 		return
 	node.type = MapNode.Type.ELITE
 	for n in row_nodes(OPTIONAL_ELITE_ROW - 1):
+		if n.branch != branch:
+			continue
 		var others: bool = false
 		for c in n.next:
 			if c != col:
 				others = true
 		if not others:
-			n.next.append(col + 1 if col + 1 < MAP_COLS else col - 1)
+			n.next.append(col + 1 if col + 1 < first + BRANCH_COLS else col - 1)
 
 
-# Логово духа: одна точка в ряду LAIR_ROW (обычный бой рядом всегда есть)
-func _place_lair() -> void:
-	var col: int = rng.randi_range(0, MAP_COLS - 1)
+# Логово духа: одна точка в ряду LAIR_ROW в каждой ветке (обычный бой рядом всегда есть)
+func _place_lair(branch: int) -> void:
+	var col: int = branch * BRANCH_COLS + rng.randi_range(0, BRANCH_COLS - 1)
 	var node: MapNode = find_map_node(LAIR_ROW, col)
 	if node != null and node.type != MapNode.Type.ELITE:
 		node.type = MapNode.Type.LAIR
@@ -471,31 +512,51 @@ func _roll_node_type(row: int) -> MapNode.Type:
 	return MapNode.Type.REST
 
 
-# Элиты и босс этого забега — один раз, в начале (через общий генератор забега)
+# Элиты и босс этого забега — один раз, в начале (через общий генератор забега).
+# У каждой ветки свои две элиты (общие, как Певчая, годятся обеим); одна элита не попадёт в обе ветки,
+# пока хватает кандидатов — тропа-переход не сведёт с ней дважды.
 func _pick_act_bosses() -> void:
-	var elites: Array[EncounterData] = ELITE_POOL.duplicate()
 	run_elites.clear()
-	for i in mini(ELITES_PER_RUN, elites.size()):
-		run_elites.append(elites.pop_at(rng.randi_range(0, elites.size() - 1)))
+	var taken: Array[String] = []
+	for branch in [MapNode.BOG, MapNode.FOREST]:
+		var pool: Array[EncounterData] = []
+		for enc in ELITE_POOL:
+			if enc.fits_branch(branch) and not taken.has(enc.id):
+				pool.append(enc)
+		for i in ELITES_PER_RUN:
+			if pool.is_empty():   # кандидатов мало — берём из своей ветки повторно
+				for enc in ELITE_POOL:
+					if enc.fits_branch(branch):
+						pool.append(enc)
+			var picked: EncounterData = pool.pop_at(rng.randi_range(0, pool.size() - 1))
+			run_elites.append(picked)
+			taken.append(picked.id)
 	run_boss = BOSS_POOL[rng.randi_range(0, BOSS_POOL.size() - 1)]
 
 
-# Элита для точки на этом ряду: перед привалом — последняя из выбранных, на развилке — первая
-func elite_for_row(row: int) -> EncounterData:
+# Элита для точки на этом ряду: перед привалом — вторая из выбранных для ветки, на развилке — первая.
+# Ветка — текущая (вне карты считаем Болота).
+func elite_for_row(row: int, branch: int = -2) -> EncounterData:
 	if run_elites.is_empty():
 		_pick_act_bosses()
-	return run_elites[-1] if row >= MAP_ROWS - 3 else run_elites[0]
+	if branch == -2:
+		branch = current_branch()
+	if branch == MapNode.COMMON:
+		branch = MapNode.BOG
+	var base: int = branch * ELITES_PER_RUN
+	return run_elites[base + ELITES_PER_RUN - 1] if row >= MAP_ROWS - 3 else run_elites[base]
 
 
-# Обычный отряд для ряда: своей ступени и ещё не встреченный в этом забеге
+# Обычный отряд для ряда: своей ступени, своей ветки и ещё не встреченный в этом забеге
 func _pick_encounter(row: int) -> EncounterData:
+	var branch: int = current_branch()
 	var options: Array[EncounterData] = []
 	for enc in ENCOUNTERS:
-		if enc.fits_row(row) and not used_encounters.has(enc.id):
+		if enc.fits_row(row) and enc.fits_branch(branch) and not used_encounters.has(enc.id):
 			options.append(enc)
-	if options.is_empty():   # все отряды ступени уже были — можно повторить
+	if options.is_empty():   # все отряды ступени и ветки уже были — можно повторить
 		for enc in ENCOUNTERS:
-			if enc.fits_row(row):
+			if enc.fits_row(row) and enc.fits_branch(branch):
 				options.append(enc)
 	if options.is_empty():
 		options = ENCOUNTERS.duplicate()

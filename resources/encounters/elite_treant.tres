@@ -10,6 +10,7 @@
 [resource]
 script = ExtResource("1_enc")
 id = "elite_treant"
+branch = 1
 title = "Мшистый корягач"
 kind = 1
 core = Array[ExtResource("1_enemy")]([ExtResource("2_treant"), ExtResource("3_shaman"), ExtResource("4_slinger"), ExtResource("5_goblin")])
