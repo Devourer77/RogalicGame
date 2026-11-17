@@ -345,9 +345,10 @@ def export(rig, body, glb_path, blend_path=None, tex_size=None):
     import os, sys
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import stylize
-    if tex_size is None:   # герои и боссы крупнее и видны в хабе — им 1024, остальным 512
+    if tex_size is None:   # герои, боссы и детальные *_hd крупнее — им 1024, остальным 512
         name = os.path.splitext(os.path.basename(glb_path))[0]
-        tex_size = stylize.SIZE_BIG if name in stylize.BIG_CHARACTERS else stylize.SIZE_UNIT
+        big = name in stylize.BIG_CHARACTERS or name.endswith("_hd")   # *_hd — детальные версии для крупных планов
+        tex_size = stylize.SIZE_BIG if big else stylize.SIZE_UNIT
     apply_shape(body)
     stylize.stylize(body, os.path.join(os.path.dirname(os.path.abspath(__file__)), "baked"), tex_size)
     body.parent = rig
