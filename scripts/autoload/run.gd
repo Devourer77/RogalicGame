@@ -40,7 +40,7 @@ const RELIC_CHOICES: int = 3          # из скольких выбирать �
 const RELIC_DIR: String = "res://resources/relics/"
 const SPIRIT_DIR: String = "res://resources/spirits/"
 const SPIRIT_IDS: Array[String] = ["tide", "storm", "wind"]   # обычные духи, которые встречаются в логове
-const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog", "fire"]   # все духи по порядку Святилища
+const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog", "fire", "forest"]   # все духи по порядку Святилища
 # Тлеющая расщелина (секретный бой с Жаровиком, тз-дух-огня.md)
 const CAVE_EVENT_CHANCE: float = 0.25   # шанс, что событие окажется расщелиной
 const CAVE_ROWS: Vector2i = Vector2i(1, 4)   # в каких рядах карты она может встретиться
@@ -87,6 +87,7 @@ const ENCOUNTERS: Array[EncounterData] = [
 	preload("res://resources/encounters/bog_folk.tres"),   # пиявки (второй заход врагов)
 	preload("res://resources/encounters/drowned.tres"),
 	preload("res://resources/encounters/bombers.tres"),
+	preload("res://resources/encounters/grove_patrol.tres"),   # Стражи Рощи (лес)
 ]
 # Пулы элит и боссов акта: в начале забега выбираются ELITES_PER_RUN разных элит и один босс
 const ELITE_POOL: Array[EncounterData] = [
@@ -94,6 +95,7 @@ const ELITE_POOL: Array[EncounterData] = [
 	preload("res://resources/encounters/elite_queen.tres"),
 	preload("res://resources/encounters/elite_alpha.tres"),
 	preload("res://resources/encounters/elite_singer.tres"),
+	preload("res://resources/encounters/elite_voice.tres"),   # Голос Рощи — лес, у него живёт Леший
 ]
 const BOSS_POOL: Array[EncounterData] = [
 	preload("res://resources/encounters/boss_ogre.tres"),
@@ -115,6 +117,7 @@ var current: MapNode = null              # где герой сейчас (null 
 var pending_enemies: Array[EnemyData] = []  # враги для ближайшего боя
 var pending_spirit: SpiritData = null      # дух в логове (бой за него)
 var last_drowned: int = 0                  # сколько врагов утонуло в последнем бою
+var last_forest_burnt: int = 0             # сколько живых деревьев и клеток лозы сгорело в последнем бою (условие Лешего)
 const BOG_SPIRIT_DROWNS: int = 2            # условие Хозяина трясины: утопить столько врагов в бою с корягачом
 var tamed_spirit: SpiritData = null        # дух, покорённый в последнем бою (ждёт выбора героя)
 var run_spirits: Array[String] = []        # кого покорили в этом забеге (для «Итога пути» и Летописи)
@@ -339,6 +342,8 @@ func enter_node(n: MapNode) -> void:
 			pending_enemies = _make_encounter(n.row, false, true)
 			if bog_spirit_offered():
 				Meta.mark_spirit_seen("bog")   # Хозяин трясины показался: Святилище откроет подсказку
+			if forest_spirit_offered():
+				Meta.mark_spirit_seen("forest")   # Леший показался у Голоса Рощи
 			pending_arena = _encounter_arena(false)
 			pending_objective = BattleLogic.Objective.KILL_ALL
 			goto(BATTLE_SCENE)
@@ -399,7 +404,9 @@ func pick_arena(is_boss: bool) -> String:
 		if run_boss != null and run_boss.arena != "":
 			return run_boss.arena
 		return BattleLogic.BOSS_ARENA
-	var options: Array[String] = BattleLogic.ARENA_POOL.duplicate()
+	# Арены по ветке карты: в Густых лесах — лесные, иначе — болотные
+	var pool: Array[String] = BattleLogic.FOREST_ARENA_POOL if current_branch() == MapNode.FOREST else BattleLogic.ARENA_POOL
+	var options: Array[String] = pool.duplicate()
 	options.erase(_last_arena)
 	_last_arena = options[rng.randi_range(0, options.size() - 1)]
 	return _last_arena
@@ -687,6 +694,9 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 	if current != null and current.type == MapNode.Type.ELITE and bog_spirit_offered() \
 			and last_drowned >= BOG_SPIRIT_DROWNS:
 		offer_spirit(spirit_data("bog"))   # уникальный дух: условие выполнено
+	if current != null and current.type == MapNode.Type.ELITE and forest_spirit_offered() \
+			and last_forest_burnt == 0:
+		offer_spirit(spirit_data("forest"))   # Леший: Роща не горела — он идёт с отрядом
 	if current != null and current.type == MapNode.Type.ELITE:
 		elite_kills += 1
 		last_battle_big = true
@@ -928,6 +938,16 @@ func bog_spirit_offered() -> bool:
 		return false
 	for e in pending_encounter.core:
 		if e.id == "mossy_treant":
+			return true
+	return false
+
+
+# В этом элитном бою живёт Леший (бой с Голосом Рощи, а Лешего ещё нет)
+func forest_spirit_offered() -> bool:
+	if party_has_spirit("forest") or pending_encounter == null:
+		return false
+	for e in pending_encounter.core:
+		if e.id == "grove_voice":
 			return true
 	return false
 

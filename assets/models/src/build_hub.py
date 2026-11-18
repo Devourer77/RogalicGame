@@ -891,13 +891,21 @@ def _sign(part: Part, kind: str, x: float, y: float, z: float) -> None:
 		part.box((x - 0.05, y, z - 0.01), (0.022, 0.02, 0.13), "dark_stone", rot_y=20.0)
 		part.box((x + 0.05, y, z - 0.01), (0.022, 0.02, 0.13), "dark_stone", rot_y=-20.0)
 		part.box((x, y, z - 0.11), (0.16, 0.02, 0.025), "dark_stone")
+	elif kind == "forest":
+		# дерево: ствол и две пары ветвей вверх, внизу корни
+		part.box((x, y, z), (0.025, 0.02, 0.24), "dark_stone")
+		for dz, sp in ((0.06, 0.05), (-0.02, 0.07)):
+			part.box((x - sp, y, z + dz), (0.02, 0.02, 0.11), "dark_stone", rot_y=35.0)
+			part.box((x + sp, y, z + dz), (0.02, 0.02, 0.11), "dark_stone", rot_y=-35.0)
+		part.box((x - 0.04, y, z - 0.13), (0.02, 0.02, 0.07), "dark_stone", rot_y=-50.0)
+		part.box((x + 0.04, y, z - 0.13), (0.02, 0.02, 0.07), "dark_stone", rot_y=50.0)
 	else:
 		part.box((x, y, z), (0.025, 0.02, 0.26), "dark_stone")
 		part.box((x - 0.05, y, z - 0.02), (0.02, 0.02, 0.14), "dark_stone", rot_y=-30.0)
 		part.box((x + 0.05, y, z + 0.02), (0.02, 0.02, 0.14), "dark_stone", rot_y=30.0)
 
 
-SHRINE_SPIRITS: list = ["tide", "storm", "wind", "bog", "fire"]
+SHRINE_SPIRITS: list = ["tide", "storm", "wind", "bog", "fire", "forest"]
 
 
 def build_shrine() -> None:

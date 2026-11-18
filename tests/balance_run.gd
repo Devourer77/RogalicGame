@@ -160,6 +160,10 @@ func _run_battle(run: Node) -> Dictionary:
 	while not b.is_over:
 		if b.turn >= MAX_TURNS:
 			stuck = true
+			var left: Array[String] = []
+			for e in b.living_enemies():
+				left.append("%s@%s" % [e.data.id, e.cell])
+			print("Завис бой: арена %s, остались %s" % [b.arena_id, ", ".join(left)])
 			break
 		for h in b.living_heroes():
 			_leave_blast_zone(b, h)

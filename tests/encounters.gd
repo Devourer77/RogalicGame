@@ -130,7 +130,7 @@ func _elites_and_bosses() -> void:
 	run.start_new_run(9, 5)
 	var hard: Array[EnemyData] = run._make_encounter(run.MAP_ROWS - 1, true)
 	check("Звон 5: босс +25% HP", hard[0].max_hp == ceili(run.run_boss.core[0].max_hp * 1.25))
-	check("Звон 5: общий файл босса не изменился", run.run_boss.core[0].max_hp in [60, 70])
+	check("Звон 5: общий файл босса не изменился", run.run_boss.core[0].max_hp in [60, 65, 70])   # огр, капитан, Матерь
 	# Огр со своей свитой, как раньше
 	var ogre: EncounterData = load("res://resources/encounters/boss_ogre.tres")
 	var ids: Array[String] = []

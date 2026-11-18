@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="SpiritData" load_steps=16 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spirit_data.gd" id="1_spirit"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_call.tres" id="c1"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_m1.tres" id="c2"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_m2.tres" id="c3"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_m3.tres" id="c4"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_m4.tres" id="c5"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_m5.tres" id="c6"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_m6.tres" id="c7"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_k1.tres" id="c8"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_k2.tres" id="c9"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_k3.tres" id="c10"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_k4.tres" id="c11"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_k5.tres" id="c12"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/forest/forest_k6.tres" id="c13"]
+[ext_resource type="Resource" path="res://resources/enemies/spirit_forest.tres" id="c14"]
+
+[resource]
+script = ExtResource("1_spirit")
+id = "forest"
+title = "Леший"
+description = "Лес помнит каждый шаг. Он — то, чем лес помнит."
+passive_text = "лоза не держит героя; рядом с живым деревом в начале хода +2 блока."
+color = Color(0.38, 0.6, 0.32, 1)
+icon = "tree"
+is_unique = true
+call_card = ExtResource("c1")
+mage_cards = Array[ExtResource("2_card")]([ExtResource("c2"), ExtResource("c3"), ExtResource("c4"), ExtResource("c5"), ExtResource("c6"), ExtResource("c7")])
+knight_cards = Array[ExtResource("2_card")]([ExtResource("c8"), ExtResource("c9"), ExtResource("c10"), ExtResource("c11"), ExtResource("c12"), ExtResource("c13")])
+enemy = ExtResource("c14")

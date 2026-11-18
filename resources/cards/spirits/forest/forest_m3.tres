@@ -1,0 +1,67 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "forest_m3+1"
+icon = "entangled"
+title = "Корни+I"
+description = "5 урона врагу до 4, он опутан на 1 ход.\nЦепь 2: стоит 0."
+shape = 1
+cost = 1
+cast_range = 4
+damage = 5
+special = "entangle"
+chain_need = 2
+chain_cost = 0
+is_spell = true
+card_set = "s_forest"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["forest"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "forest_m3+2"
+icon = "entangled"
+title = "Корни+II"
+description = "3 урона врагу до 6, он опутан на 1 ход.\nЦепь 2: стоит 0."
+shape = 1
+cost = 1
+cast_range = 6
+damage = 3
+special = "entangle"
+chain_need = 2
+chain_cost = 0
+is_spell = true
+card_set = "s_forest"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["forest"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "forest_m3"
+icon = "entangled"
+title = "Корни"
+description = "3 урона врагу до 4, он опутан на 1 ход.\nЦепь 2: стоит 0."
+shape = 1
+cost = 1
+cast_range = 4
+damage = 3
+special = "entangle"
+chain_need = 2
+chain_cost = 0
+is_spell = true
+card_set = "s_forest"
+owner_hero = "mage"
+role = 3
+spirit_ids = Array[String](["forest"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

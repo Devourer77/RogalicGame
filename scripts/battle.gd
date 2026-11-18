@@ -62,6 +62,7 @@ const SPIRIT_COLORS: Dictionary[String, Color] = {
 	"spirit_tide": Color(0.45, 0.75, 1.0), "spirit_storm": Color(0.95, 0.95, 0.6),
 	"spirit_wind": Color(0.72, 0.88, 0.76), "spirit_bog": Color(0.3, 0.5, 0.28),
 	"spirit_fire": Color(1.0, 0.6, 0.2),
+	"spirit_forest": Color(0.45, 0.75, 0.4),
 }
 
 # Камера: смотрит на центр поля под наклоном, Q/E — поворот на 90°, колесо — зум
@@ -151,6 +152,13 @@ func _ready() -> void:
 	logic.start()
 	if Run.current != null and Run.current.type == MapNode.Type.ELITE and Run.bog_spirit_offered():
 		logic.message.emit("В корнях корягача спит Хозяин трясины: утопи %d врагов в трясине — и он пойдёт с тобой." % Run.BOG_SPIRIT_DROWNS)
+	# Подсказка про новые объекты арены — одной строкой в журнале в начале боя
+	if BattleLogic.is_forest_arena(logic.arena_id):
+		logic.message.emit("Лес: лоза держит того, кто на неё встал (удар картой срубает), деревья с лентой закрывают линии и горят, улей — рой с ядом.")
+	elif logic.arena_id == "pump":
+		logic.message.emit("Насосная: удар по клапану — пар обжигает и отбрасывает соседей, вокруг разливается вода.")
+	if Run.current != null and Run.current.type == MapNode.Type.ELITE and Run.forest_spirit_offered():
+		logic.message.emit("Леший смотрит из чащи: победи Голос Рощи, не спалив ни дерева, ни лозы, — и он пойдёт с тобой.")
 	await _play_queue()
 	_select_hero(logic.living_heroes()[0])
 	_enter_idle()
@@ -560,6 +568,8 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 		color = COLOR_SHOCK
 	elif kind == "pincer":
 		color = COLOR_PINCER
+	elif kind == "tree_fire":
+		color = COLOR_LAVA
 	var cells: Array[Vector2i] = [cell]
 	var sound: String = "fire"
 	if kind == "freeze" or kind == "shatter":
@@ -586,6 +596,10 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 		color = COLOR_GAS
 	elif kind == "rune":
 		color = COLOR_RUNE
+	elif kind == "swarm":
+		color = COLOR_GAS
+	elif kind == "steam_vent":
+		color = COLOR_STEAM
 	# Цифры урона над задетыми теперь показывает сам урон (_on_unit_damaged → VfxPlayer)
 	var world: Array[Vector3] = []
 	for c in cells:
@@ -622,6 +636,12 @@ func _effect_vfx(kind: String, world: Array[Vector3]) -> void:
 			vfx.tree_fall(world)
 		"gas":
 			vfx.gas_cloud(world)
+		"swarm":   # рой из улья: тёмные точки над клетками
+			for w in world:
+				vfx.burst("glints", w + Vector3(0.0, 0.6, 0.0), 0.8, 0, Color(0.45, 0.38, 0.2))
+		"steam_vent":   # клапан насосной: пар во все стороны
+			for w in world:
+				vfx.reaction(w, "steam")
 		"rune":
 			for w in world:
 				vfx.burst("glints", w + Vector3(0.0, 0.5, 0.0), 1.0, 0, VfxCards.TINTS["rage"])
@@ -1071,6 +1091,7 @@ func _finish_battle() -> void:
 	for h in logic.heroes:
 		hp_left.append(h.hp)
 	Run.last_drowned = logic.drowned_count   # условие уникального духа (Хозяин трясины)
+	Run.last_forest_burnt = logic.trees_burnt + logic.vines_burnt   # условие Лешего: Роща не должна гореть
 	Run.finish_battle(logic.won, hp_left)
 
 

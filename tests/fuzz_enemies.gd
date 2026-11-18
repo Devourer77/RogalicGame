@@ -34,7 +34,9 @@ func _initialize() -> void:
 			b.setup(12, 12, run.rng, run.party, cave_squad(), "cave")   # пещера Жаровика
 		else:
 			var squad: Array[EnemyData] = run._make_encounter(s % 8, s % 10 == 0, elite)
-			b.setup(12, 12, run.rng, run.party, squad, "", BattleLogic.Objective.KILL_ALL, [] as Array[String], run.pending_formation())
+			# каждый 3-й бой — на лесной арене (лоза, живые деревья, ульи), каждый 7-й — в насосной (клапаны)
+			var arena: String = BattleLogic.FOREST_ARENA_POOL[s % 4] if s % 3 == 0 else ("pump" if s % 7 == 0 else "")
+			b.setup(12, 12, run.rng, run.party, squad, arena, BattleLogic.Objective.KILL_ALL, [] as Array[String], run.pending_formation())
 		for e in b.enemies: seen[e.data.id] = true
 		b.start()
 		for t in 10:

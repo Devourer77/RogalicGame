@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "forest_m5+1"
+icon = "tree"
+title = "Шёпот чащи+I"
+description = "Вокруг мага вырастает лоза; добери 2 карты."
+shape = 0
+cost = 0
+special = "vine_ring"
+draw = 2
+card_set = "s_forest"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["forest"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "forest_m5+2"
+icon = "tree"
+title = "Шёпот чащи+II"
+description = "Вокруг мага вырастает лоза; добери 1 карту, блок 4."
+shape = 0
+cost = 0
+block = 4
+special = "vine_ring"
+draw = 1
+card_set = "s_forest"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["forest"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "forest_m5"
+icon = "tree"
+title = "Шёпот чащи"
+description = "Вокруг мага вырастает лоза; добери 1 карту."
+shape = 0
+cost = 0
+special = "vine_ring"
+draw = 1
+card_set = "s_forest"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["forest"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

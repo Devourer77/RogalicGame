@@ -41,6 +41,8 @@ const SETS: Dictionary[String, Array] = {
 	"x_bog_wind": ["Болотный туман", Color("6e8a72")],
 	# Дух огня (тз-дух-огня.md): оранжевый, как пламя факельщика; без красного
 	"s_fire": ["Жаровик", Color("c0682a")],
+	# Леший (тз-арены-лес.md): мшисто-зелёный лес
+	"s_forest": ["Леший", Color("4f7a3e")],
 	"x_fire_wind": ["Пал", Color("b07a4a")],
 	"x_fire_tide": ["Пар", Color("8a8f8a")],
 	"x_fire_bog": ["Лава", Color("9a5a2e")],

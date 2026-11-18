@@ -1116,6 +1116,10 @@ func reaction(at: Vector3, kind: String) -> void:
 			light_flash(up, C_SHOCK, 2.0, 3.0, 0.15)
 		"pincer":
 			ring(at + Vector3(0, 0.06, 0), Color(0.95, 0.75, 0.35), 1.6, 0.3, 2.0)
+		"tree_fire":   # живое дерево занялось: искры и дым из кроны
+			burst("embers", up + Vector3(0, 1.1, 0), 1.6)
+			burst("smoke", up + Vector3(0, 1.5, 0), 1.2)
+			light_flash(up + Vector3(0, 1.0, 0), C_FIRE, 2.5, 4.0, 0.3)
 
 
 # Столкновение: толкнули в преграду или в другого

@@ -13,4 +13,4 @@ branch = 2
 title = "Прядильщица"
 kind = 1
 core = Array[ExtResource("1_enemy")]([ExtResource("2_queen"), ExtResource("3_weaver"), ExtResource("3_weaver"), ExtResource("4_goblin")])
-arena = "grove"
+arena = "hollow"

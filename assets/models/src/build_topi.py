@@ -958,9 +958,214 @@ def decor_spire(m):
     m.box((0.14, 0.1, 1.2), (-1.0, 0, 25.6), RIFT, rot=(0, -55, 0), emit=5.0)
 
 
+# ======================= ГУСТЫЕ ЛЕСА (объекты и декор) =======================
+# Живое — зелёное и тёплое бурое; признак «с этим можно что-то сделать» — лента Хранителей
+# с бледно светящимся знаком. Декоративные деревья вокруг поля — без ленты.
+
+LEAF = (0.13, 0.22, 0.11)
+LEAF_L = (0.19, 0.29, 0.13)
+LEAF_D = (0.08, 0.15, 0.08)
+BARK = (0.29, 0.23, 0.17)
+BARK_D = (0.20, 0.16, 0.12)
+RIBBON = (0.34, 0.44, 0.47)      # приглушённая лента Хранителей (холодная, не жёлтая и не красная)
+SIGN = (0.72, 0.9, 0.78)         # знак на ленте: бледный серебристо-зелёный
+VINE = (0.30, 0.29, 0.13)       # лоза: оливково-бурая, чтобы отличалась от мха на плитах
+VINE_D = (0.21, 0.16, 0.09)
+VINE_LEAF = (0.36, 0.42, 0.16)
+HIVE = (0.36, 0.29, 0.19)        # плетёный улей
+HIVE_D = (0.24, 0.19, 0.13)
+RUST = (0.33, 0.22, 0.15)        # ржавчина насосной (бурая, не красная)
+BRONZE = (0.30, 0.26, 0.18)
+
+
+def crown(m, z, r, n, spread, tint=0):
+    """Крона из нескольких неровных «шапок» листвы."""
+    cols = [LEAF, LEAF_L, LEAF_D]
+    for i in range(n):
+        a = math.tau * i / n + m.rnd.uniform(-0.4, 0.4)
+        d = spread * m.rnd.uniform(0.4, 1.0)
+        rr = r * m.rnd.uniform(0.75, 1.05)
+        m.blob(rr, (math.cos(a) * d, math.sin(a) * d, z + m.rnd.uniform(-0.12, 0.18)), cols[(i + tint) % 3],
+               scale=(1, 1, 0.78), jit=0.22)
+    m.blob(r * 1.05, (0, 0, z + r * 0.45), cols[(tint + 1) % 3], scale=(1, 1, 0.8), jit=0.2)
+
+
+def live_trunk(m, h, lean):
+    m.cyl(0.16, 0.1, h, (0, 0, 0), BARK, rot=(lean[0], lean[1], 0), seg=7)
+    for a in (30, 150, 270):   # корни
+        r = math.radians(a + m.rnd.uniform(-15, 15))
+        m.cyl(0.08, 0.02, 0.34, (math.cos(r) * 0.1, math.sin(r) * 0.1, 0.08), BARK_D, rot=(0, 115, math.degrees(r)), seg=4)
+    m.blob(0.1, (-0.1, 0.1, 0.03), MOSS, scale=(1.4, 1, 0.4))
+
+
+def ribbon(m, z):
+    """Лента Хранителей вокруг ствола: знак «это дерево — часть боя»."""
+    m.cyl(0.165, 0.155, 0.1, (0, 0, z), RIBBON, seg=8)
+    m.box((0.05, 0.03, 0.3), (0.12, -0.12, z - 0.12), RIBBON, rot=(0, 12, 45))
+    m.box((0.06, 0.012, 0.06), (0.0, -0.166, z + 0.05), SIGN, emit=0.9)   # светящийся резной знак
+
+
+@model
+def obj_live_tree_a(m):
+    """Живое дерево: преграда, закрывает линии. Огонь — крона горит, потом сухое дерево."""
+    live_trunk(m, 1.25, (3, -2))
+    ribbon(m, 0.55)
+    crown(m, 1.45, 0.42, 4, 0.32)
+
+
+@model
+def obj_live_tree_b(m):
+    """Второе живое дерево: выше и стройнее, крона ярусами."""
+    live_trunk(m, 1.5, (-2, 3))
+    ribbon(m, 0.5)
+    crown(m, 1.2, 0.36, 3, 0.28, tint=1)
+    crown(m, 1.85, 0.28, 3, 0.18, tint=2)
+
+
+@model
+def obj_vine(m):
+    """Лоза на клетке: толстые колючие плети петлями над плитой (вошёл — опутан). Видна издалека:
+    бурые петли поднимаются над землёй, этим лоза отличается от мха."""
+    for i in range(5):
+        a = math.tau * i / 5 + m.rnd.uniform(-0.3, 0.3)
+        ln = m.rnd.uniform(0.5, 0.68)
+        m.cyl(0.04, 0.022, ln, (0, 0, 0.04), VINE if i % 2 else VINE_D,
+              rot=(0, 86 + m.rnd.uniform(-5, 5), math.degrees(a)), seg=5)
+        for k in (0.4, 0.78):   # листья и шипы вдоль плети
+            px, py = math.cos(a) * ln * k, math.sin(a) * ln * k
+            m.box((0.13, 0.07, 0.016), (px, py, 0.08), VINE_LEAF, rot=(m.rnd.uniform(-25, 25), 0, math.degrees(a) + 40))
+            m.cyl(0.016, 0, 0.11, (px, py, 0.06), BARK_D, rot=(m.rnd.uniform(-50, 50), m.rnd.uniform(-50, 50), 0), seg=3)
+    for i in range(3):   # петли-арки над плитой
+        a = math.tau * i / 3 + 0.4
+        r = 0.28
+        cx, cy = math.cos(a) * r, math.sin(a) * r
+        for side in (-1, 1):
+            m.cyl(0.03, 0.026, 0.3, (cx + side * 0.09 * math.sin(a), cy - side * 0.09 * math.cos(a), 0.0),
+                  VINE_D, rot=(side * 28 * math.cos(a), side * 28 * math.sin(a), 0), seg=4)
+        m.blob(0.05, (cx, cy, 0.27), VINE_LEAF, scale=(1.4, 1.4, 0.6))
+    m.blob(0.16, (0, 0, 0.04), VINE_D, scale=(1.4, 1.4, 0.35))
+
+
+@model
+def obj_bush(m):
+    """Подлесок: густой куст папоротника и молодых побегов. Закрывает линии, горит."""
+    m.blob(0.3, (0, 0, -0.01), MUD_W, scale=(1.2, 1.2, 0.08))
+    for i in range(5):
+        a = math.tau * i / 5 + m.rnd.uniform(-0.3, 0.3)
+        d = m.rnd.uniform(0.12, 0.26)
+        m.blob(m.rnd.uniform(0.2, 0.26), (math.cos(a) * d, math.sin(a) * d, 0.28 + m.rnd.uniform(0, 0.12)),
+               [LEAF, LEAF_L, LEAF_D][i % 3], scale=(1, 1, 1.15), jit=0.28)
+    for i in range(8):   # листья папоротника торчат вверх и в стороны
+        a = math.tau * i / 8
+        m.box((0.07, 0.02, 0.5), (math.cos(a) * 0.22, math.sin(a) * 0.22, 0.42), LEAF_L,
+              rot=(0, 30 + m.rnd.uniform(-8, 8), math.degrees(a)))
+
+
+@model
+def obj_hive(m):
+    """Дикий улей: плетёный колокол на пне, вокруг пятна мёда. Удар или огонь — рой."""
+    m.cyl(0.3, 0.26, 0.38, (0, 0, -0.05), BARK_D, seg=7)
+    m.cyl(0.26, 0.24, 0.03, (0, 0, 0.33), BARK, seg=7)
+    for k, (r1, r2) in enumerate([(0.26, 0.25), (0.25, 0.21), (0.21, 0.14), (0.14, 0.04)]):
+        m.cyl(r1, r2, 0.14, (0, 0, 0.36 + k * 0.14), HIVE if k % 2 else HIVE_D, seg=8)
+    m.box((0.08, 0.03, 0.06), (0, -0.24, 0.43), (0.05, 0.04, 0.03))   # леток
+    for i in range(6):   # пчёлы — тёмные точки вокруг
+        a = m.rnd.uniform(0, math.tau)
+        m.box((0.035, 0.02, 0.02), (math.cos(a) * 0.36, math.sin(a) * 0.36, m.rnd.uniform(0.45, 0.85)), (0.12, 0.1, 0.06))
+    m.blob(0.12, (0.2, 0.18, 0.02), MOSS, scale=(1.3, 1, 0.4))
+
+
+@model
+def obj_valve(m):
+    """Паровой клапан брошенной насосной: ржавая труба из земли, вентиль, манометр. Удар — пар."""
+    m.cyl(0.2, 0.2, 0.12, (0, 0, 0), IRON, seg=8, metal=0.5, rough=0.7)
+    m.cyl(0.11, 0.11, 0.72, (0, 0, 0.1), RUST, seg=8, metal=0.4, rough=0.8)
+    m.cyl(0.15, 0.15, 0.08, (0, 0, 0.42), BRONZE, seg=8, metal=0.6, rough=0.6)
+    m.cyl(0.11, 0.11, 0.5, (0, 0, 0.75), RUST, rot=(90, 0, 0), seg=8, metal=0.4, rough=0.8)   # колено трубы
+    m.cyl(0.035, 0.035, 0.2, (0, 0, 0.82), IRON, seg=5)
+    m.cyl(0.17, 0.17, 0.03, (0, 0, 1.0), BRONZE, seg=10, metal=0.6, rough=0.5)              # вентиль
+    m.box((0.32, 0.03, 0.03), (0, 0, 1.015), IRON)
+    m.box((0.03, 0.32, 0.03), (0, 0, 1.015), IRON)
+    m.cyl(0.08, 0.08, 0.04, (0.14, -0.06, 0.6), (0.7, 0.72, 0.68), rot=(0, 90, 0), seg=8)    # манометр
+    m.cyl(0.05, 0.08, 0.1, (0, -0.34, 0.66), (0.72, 0.8, 0.82), rot=(90, 0, 0), seg=6, emit=0.4)  # струйка пара
+
+
+@model
+def rock_pipe(m):
+    """Труба насосной на опорах: неразрушимая преграда."""
+    for x in (-0.3, 0.3):
+        m.box((0.12, 0.3, 0.42), (x, 0, 0.21), IRON, metal=0.4, rough=0.7)
+    m.cyl(0.2, 0.2, 0.96, (-0.48, 0, 0.55), RUST, rot=(0, 90, 0), seg=8, metal=0.4, rough=0.8)
+    for x in (-0.25, 0.25):
+        m.cyl(0.22, 0.22, 0.06, (x, 0, 0.55), BRONZE, rot=(0, 90, 0), seg=8, metal=0.6, rough=0.6)
+    m.blob(0.12, (0.1, 0.12, 0.72), MOSS, scale=(1.4, 1, 0.3))
+
+
+@model
+def rock_root(m):
+    """Корни склона в Паучьей лощине: неразрушимая преграда."""
+    m.blob(0.36, (0, 0, 0.12), MUD, scale=(1.2, 1.0, 0.45), jit=0.2)
+    for i in range(5):
+        a = m.rnd.uniform(0, 360)
+        m.cyl(0.1, 0.03, m.rnd.uniform(0.6, 0.9), (m.rnd.uniform(-0.15, 0.15), m.rnd.uniform(-0.15, 0.15), 0.1),
+              BARK_D if i % 2 else BARK, rot=(m.rnd.uniform(60, 80), 0, a), seg=5)
+    m.blob(0.16, (0.15, -0.1, 0.3), MOSS, scale=(1.3, 1, 0.4))
+
+
+@model
+def rock_log(m):
+    """Поваленный ствол у ручья: неразрушимая преграда."""
+    m.cyl(0.24, 0.2, 0.95, (-0.47, 0, 0.22), BARK, rot=(0, 90, 0), seg=7)
+    m.cyl(0.21, 0.21, 0.02, (0.48, 0, 0.22), WOOD_F, rot=(0, 90, 0), seg=7)   # спил
+    m.cyl(0.06, 0.02, 0.4, (-0.1, 0.1, 0.4), BARK_D, rot=(40, 0, 30), seg=4)
+    m.blob(0.18, (-0.15, 0, 0.42), MOSS, scale=(1.6, 1, 0.35))
+    m.blob(0.1, (0.25, 0.12, 0.38), LEAF_L, scale=(1.2, 1, 0.5))
+
+
+@model
+def decor_tree_green(m):
+    """Большое живое дерево вокруг лесной арены (декор, без ленты)."""
+    m.cyl(0.42, 0.26, 2.4, (0, 0, -0.2), BARK, rot=(2, 3, 0), seg=8)
+    m.cyl(0.26, 0.14, 1.4, (0.06, -0.04, 2.1), BARK, rot=(-4, 8, 0), seg=7)
+    for a in (0, 70, 150, 230, 300):
+        r = math.radians(a)
+        m.cyl(0.15, 0.03, 0.8, (math.cos(r) * 0.25, math.sin(r) * 0.25, 0.15), BARK_D, rot=(0, 112, a), seg=4)
+    for z, ang in ((1.9, 40), (2.4, 200), (2.8, 300)):
+        m.cyl(0.09, 0.03, 1.0, (0.05, 0, z), BARK_D, rot=(0, 55, ang), seg=4)
+    crown(m, 3.0, 0.85, 5, 0.85)
+    crown(m, 3.8, 0.6, 3, 0.45, tint=1)
+
+
+@model
+def decor_fern(m):
+    """Папоротник у края лесной арены."""
+    for i in range(9):
+        a = math.tau * i / 9 + m.rnd.uniform(-0.2, 0.2)
+        m.box((0.09, 0.02, 0.6), (math.cos(a) * 0.2, math.sin(a) * 0.2, 0.25), [LEAF, LEAF_L, LEAF_D][i % 3],
+              rot=(0, 52 + m.rnd.uniform(-10, 10), math.degrees(a)))
+    m.blob(0.12, (0, 0, 0.02), LEAF_D, scale=(1.3, 1.3, 0.4))
+
+
+@model
+def decor_pump(m):
+    """Брошенный насос технарей: котёл, маховик, трубы в землю — след стимпанка в болотах."""
+    m.box((1.6, 1.1, 0.3), (0, 0, 0.15), STONE_D)
+    m.cyl(0.55, 0.55, 1.4, (-0.2, 0, 0.3), RUST, seg=10, metal=0.4, rough=0.8)        # котёл
+    m.cyl(0.58, 0.58, 0.08, (-0.2, 0, 0.9), BRONZE, seg=10, metal=0.6, rough=0.6)
+    m.cyl(0.4, 0.15, 0.4, (-0.2, 0, 1.7), RUST, seg=10, metal=0.4, rough=0.8)
+    m.cyl(0.08, 0.08, 1.2, (-0.2, 0, 2.0), IRON, seg=6)                                # труба
+    m.cyl(0.5, 0.5, 0.08, (0.62, -0.1, 1.0), IRON, rot=(90, 0, 0), seg=12, metal=0.5)  # маховик
+    m.cyl(0.08, 0.08, 0.3, (0.62, 0.05, 1.0), BRONZE, rot=(90, 0, 0), seg=6)
+    for a in (0, 60, 120):
+        m.box((0.92, 0.04, 0.04), (0.62, -0.1, 1.0), IRON, rot=(0, a, 0))
+    m.cyl(0.12, 0.12, 1.4, (0.2, 0.3, 0.35), RUST, rot=(0, 75, 30), seg=8, metal=0.4)  # труба в землю
+    m.cyl(0.18, 0.18, 0.12, (-0.2, -0.56, 0.9), (0.7, 0.8, 0.82), rot=(90, 0, 0), seg=8, emit=0.35)  # окошко котла
+    m.blob(0.3, (0.5, 0.4, 0.3), MOSS, scale=(1.4, 1, 0.4))
+
+
 # ======================= СБОРКА И ЭКСПОРТ =======================
 
-BIG = {"decor_spire", "decor_tree_big", "decor_wall", "decor_arch", "decor_rock_big"}   # крупный декор — текстура 1024
+BIG = {"decor_spire", "decor_tree_big", "decor_wall", "decor_arch", "decor_rock_big", "decor_tree_green", "decor_pump"}   # крупный декор — текстура 1024
 
 
 def build_all(out_dir, blend_path, only=None):

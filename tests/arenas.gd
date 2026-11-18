@@ -9,7 +9,9 @@ func _initialize() -> void:
 	await process_frame
 	var run = root.get_node("Run")
 	var sym := {BattleLogic.Obj.BOG: "~", BattleLogic.Obj.TREE: "T", BattleLogic.Obj.BARREL: "B",
-		BattleLogic.Obj.PLANKS: "=", BattleLogic.Obj.REEDS: "\"", BattleLogic.Obj.STAKES: "#"}
+		BattleLogic.Obj.PLANKS: "=", BattleLogic.Obj.REEDS: "\"", BattleLogic.Obj.STAKES: "#",
+		BattleLogic.Obj.LIVE_TREE: "Y", BattleLogic.Obj.VINE: "v", BattleLogic.Obj.BUSH: "*", BattleLogic.Obj.HIVE: "h",
+		BattleLogic.Obj.VALVE: "Q"}
 	var fails := 0
 	for arena: String in BattleLogic.ARENAS:
 		var empty_fields := 0

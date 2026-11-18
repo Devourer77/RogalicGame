@@ -29,6 +29,7 @@ const AI_PRE_HERO: int = 25       # предварительная оценка:
 const AI_NEAR_BARREL: int = 6     # штраф за клетку в радиусе взрыва бочки
 const AI_NEAR_TOAD: int = 6       # штраф за клетку рядом с раздутой жабой
 const AI_ON_GAS: int = 30         # штраф за клетку с газом
+const AI_ON_VINE: int = 25        # штраф за клетку с лозой
 const AI_HUNTER_PREY: int = 20    # охотник: бонус, если удар ранит его добычу
 const AI_GUARD_NEAR: int = 25     # телохранитель: бонус за клетку вплотную к подопечному
 const AI_FLANK: int = 6           # клещи: встал вплотную к герою с другой стороны, чем свой
@@ -147,7 +148,7 @@ static func _ambush_cell(l: BattleLogic, e: BattleUnit, options: Dictionary[Vect
 	var best: Vector2i = Vector2i(-999, -999)
 	var best_key: Vector2i = Vector2i(9999, 9999)
 	for c: Vector2i in options.keys():
-		if l.object_at(c) != BattleLogic.Obj.REEDS:
+		if not l.is_cover(l.object_at(c)):
 			continue
 		var near: int = 9999
 		for h in heroes:
@@ -176,7 +177,8 @@ static func _context(l: BattleLogic, e: BattleUnit) -> Dictionary:
 			for t in HexMath.in_range(other.cell, 2 if other.inflation >= 2 else 1):
 				toad[t] = true
 	return {"barrel": barrel, "toad": toad, "ward": _ward(l, e), "prey": _prey(l, e),
-			"fireproof": e.data != null and e.data.fire_walker}
+			"fireproof": e.data != null and e.data.fire_walker,
+			"vine_free": e.data != null and (e.data.vine_walker or e.data.is_boss)}
 
 
 # Подопечный телохранителя: ближайший свой стрелок или зовущий не дальше GUARD_RANGE
@@ -226,6 +228,8 @@ static func _place_value(l: BattleLogic, c: Vector2i, ctx: Dictionary) -> int:
 		v -= AI_FIRE_UNDER   # Жаровику огонь не страшен
 	elif tile == BattleLogic.Tile.GAS:
 		v -= AI_ON_GAS
+	if l.object_at(c) == BattleLogic.Obj.VINE and not ctx.get("vine_free", false):
+		v -= AI_ON_VINE   # лоза держит: встанешь — в следующий ход не сдвинешься
 	if ctx["barrel"].has(c):
 		v -= AI_NEAR_BARREL
 	if ctx["toad"].has(c):
@@ -398,7 +402,7 @@ static func _evaluate(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, cell:
 	var obj_kind: int = BattleLogic.Obj.NONE
 	for c: Vector2i in l.objects.keys():
 		var kind: int = l.object_at(c)
-		if (kind == BattleLogic.Obj.BARREL or kind == BattleLogic.Obj.TREE) and sim.object_at(c) != kind:
+		if (kind == BattleLogic.Obj.BARREL or kind == BattleLogic.Obj.TREE or kind == BattleLogic.Obj.HIVE) and sim.object_at(c) != kind:
 			obj_kind = kind
 			break
 	if obj_kind != BattleLogic.Obj.NONE and info["hurt"] != "":

@@ -1,0 +1,68 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "forest_m6+1"
+icon = "entangled"
+title = "Гнев леса+I"
+description = "Все враги на лозе или опутанные (до 5): 9 урона, снова опутаны.\nЦепь 3: стоит 1."
+shape = 0
+cost = 2
+special = "thorn_burst"
+bonus_amount = 9
+chain_need = 3
+chain_cost = 1
+is_rare = true
+is_spell = true
+card_set = "s_forest"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["forest"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "forest_m6+2"
+icon = "entangled"
+title = "Гнев леса+II"
+description = "Все враги на лозе или опутанные (до 5): 6 урона +2 за звено Цепи, снова опутаны.\nЦепь 3: стоит 1."
+shape = 0
+cost = 2
+special = "thorn_burst"
+bonus_amount = 6
+chain_need = 3
+chain_cost = 1
+per_link_damage = 2
+is_rare = true
+is_spell = true
+card_set = "s_forest"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["forest"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "forest_m6"
+icon = "entangled"
+title = "Гнев леса"
+description = "Все враги на лозе или опутанные (до 5): 6 урона, снова опутаны.\nЦепь 3: стоит 1."
+shape = 0
+cost = 2
+special = "thorn_burst"
+bonus_amount = 6
+chain_need = 3
+chain_cost = 1
+is_rare = true
+is_spell = true
+card_set = "s_forest"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["forest"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

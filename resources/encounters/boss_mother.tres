@@ -13,4 +13,4 @@ id = "boss_mother"
 title = "Матерь Трясины"
 kind = 2
 core = Array[ExtResource("1_enemy")]([ExtResource("2_mother"), ExtResource("3_toad"), ExtResource("3_toad"), ExtResource("4_slinger"), ExtResource("5_goblin")])
-arena = "reeds"
+arena = "pond"

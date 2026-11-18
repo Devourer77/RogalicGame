@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "forest_m4+1"
+icon = "tree"
+title = "Живой заслон+I"
+description = "На пустой клетке до 3 вырастает живое дерево на 3 раунда (закрывает линии). Блок 6."
+shape = 1
+cost = 1
+cast_range = 3
+block = 6
+special = "grow_tree"
+card_set = "s_forest"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["forest"])
+spirit_slot = 4
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "forest_m4+2"
+icon = "tree"
+title = "Живой заслон+II"
+description = "На пустой клетке до 3 вырастает живое дерево на 6 раундов (закрывает линии). Блок 3."
+shape = 1
+cost = 1
+cast_range = 3
+block = 3
+special = "grow_tree"
+bonus_amount = 3
+card_set = "s_forest"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["forest"])
+spirit_slot = 4
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "forest_m4"
+icon = "tree"
+title = "Живой заслон"
+description = "На пустой клетке до 3 вырастает живое дерево на 3 раунда (закрывает линии). Блок 3."
+shape = 1
+cost = 1
+cast_range = 3
+block = 3
+special = "grow_tree"
+card_set = "s_forest"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["forest"])
+spirit_slot = 4
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

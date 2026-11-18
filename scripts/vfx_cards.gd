@@ -32,7 +32,7 @@ const TINTS: Dictionary[String, Color] = {
 
 # Цвет по набору карты
 const SET_TINTS: Dictionary[String, String] = {
-	"s_tide": "water", "s_storm": "lightning", "s_wind": "wind", "s_bog": "bog", "s_fire": "fire",
+	"s_tide": "water", "s_storm": "lightning", "s_wind": "wind", "s_bog": "bog", "s_fire": "fire", "s_forest": "bog",
 	"m_kinetic": "arcane", "m_flow": "arcane", "m_charge": "arcane",
 	"k_rage": "rage", "k_warden": "steel", "k_onslaught": "steel",
 	"x_fire_tide": "steam",

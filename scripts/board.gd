@@ -68,6 +68,20 @@ const OBJ_REEDS: PackedScene = preload(DIR + "obj_reeds.glb")
 const OBJ_ICE: PackedScene = preload(DIR + "obj_ice.glb")
 const OBJ_STAKES: PackedScene = preload(DIR + "obj_stakes.glb")
 const OBJ_BRIDGE: PackedScene = preload(DIR + "obj_bridge.glb")
+# Густые леса и насосная
+const OBJ_LIVE_TREES: Array[PackedScene] = [preload(DIR + "obj_live_tree_a.glb"), preload(DIR + "obj_live_tree_b.glb")]
+const OBJ_VINE: PackedScene = preload(DIR + "obj_vine.glb")
+const OBJ_BUSH: PackedScene = preload(DIR + "obj_bush.glb")
+const OBJ_HIVE: PackedScene = preload(DIR + "obj_hive.glb")
+const OBJ_VALVE: PackedScene = preload(DIR + "obj_valve.glb")
+const ROCK_PIPE: PackedScene = preload(DIR + "rock_pipe.glb")
+const ROCK_ROOT: PackedScene = preload(DIR + "rock_root.glb")
+const ROCK_LOG: PackedScene = preload(DIR + "rock_log.glb")
+const D_TREE_GREEN: PackedScene = preload(DIR + "decor_tree_green.glb")
+const D_FERN: PackedScene = preload(DIR + "decor_fern.glb")
+const D_PUMP: PackedScene = preload(DIR + "decor_pump.glb")
+const COLOR_FOREST_FLOOR := Color(0.07, 0.085, 0.055)   # лесная земля вокруг лесных арен (вместо воды)
+const COLOR_BURN_LIGHT := Color(1.0, 0.58, 0.22)       # горящая крона
 
 # Неразрушимые преграды: у каждой арены свои
 const ROCK_BOULDER: PackedScene = preload(DIR + "rock_boulder.glb")
@@ -90,6 +104,12 @@ const ARENA_ROCKS: Dictionary[String, Array] = {
 	"ruins": [ROCK_PILLAR, ROCK_PILLAR, ROCK_MARKER],
 	"lair": [ROCK_BONES, ROCK_BOULDER],
 	"cave": [ROCK_STALAGMITE],
+	"pond": [ROCK_BOULDER],
+	"pump": [ROCK_PIPE, ROCK_PIPE, ROCK_CRATES],
+	"thicket": [ROCK_BOULDER],
+	"sanctum": [D_TOTEM, ROCK_BOULDER],
+	"hollow": [ROCK_ROOT, ROCK_ROOT, ROCK_BOULDER],
+	"windfall": [ROCK_LOG],
 }
 
 # Декор вокруг арены
@@ -118,6 +138,12 @@ const ARENA_SCATTER: Dictionary[String, Array] = {
 	"ruins": [[ROCK_PILLAR, 6], [D_ROCK_BIG, 4], [D_TUSSOCK, 6], [D_MUSHROOMS, 4], [D_TREE_BIG, 3], [OBJ_REEDS, 4]],
 	"lair": [[ROCK_BONES, 6], [D_ROCK_BIG, 5], [D_TREE_BIG, 4], [D_MUSHROOMS, 6], [D_STUMP, 3], [D_TUSSOCK, 4]],
 	"cave": [[ROCK_STALAGMITE, 14], [D_EMBERS, 8], [D_ROCK_BIG, 3]],
+	"pond": [[OBJ_REEDS, 18], [D_TUSSOCK, 12], [D_MUSHROOMS, 4], [D_TREE_BIG, 4], [D_STUMP, 3]],
+	"pump": [[ROCK_PIPE, 5], [ROCK_CRATES, 3], [D_TUSSOCK, 6], [D_TREE_BIG, 3], [OBJ_REEDS, 5], [D_MUSHROOMS, 2]],
+	"thicket": [[D_TREE_GREEN, 14], [OBJ_LIVE_TREES[0], 8], [OBJ_BUSH, 10], [D_FERN, 12], [D_STUMP, 2], [D_MUSHROOMS, 3]],
+	"sanctum": [[D_TREE_GREEN, 10], [D_TOTEM, 4], [D_FERN, 12], [OBJ_BUSH, 6], [D_MUSHROOMS, 4], [D_ROCK_BIG, 2]],
+	"hollow": [[D_TREE_GREEN, 8], [D_TREE_BIG, 4], [ROCK_ROOT, 8], [D_FERN, 8], [D_ROCK_BIG, 3], [D_MUSHROOMS, 5]],
+	"windfall": [[D_TREE_GREEN, 11], [ROCK_LOG, 6], [D_FERN, 10], [OBJ_BUSH, 6], [D_STUMP, 3], [OBJ_HIVE, 1]],
 }
 
 # На какой высоте рисовать каждый слой подсветки (чтобы они не «мерцали», налезая друг на друга)
@@ -216,7 +242,7 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 
 	_build_ground_joints(ground)
 	_build_decorations(rng)
-	if _arena != "cave":
+	if _arena != "cave" and not BattleLogic.is_forest_arena(_arena):
 		_build_shore_edge(layout_seed)
 	_build_wisps()
 
@@ -269,9 +295,9 @@ func _build_shore() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(220.0, 220.0)
 	water.mesh = plane
-	if _arena == "cave":   # в пещере вместо воды — сухой каменный пол
+	if _arena == "cave" or BattleLogic.is_forest_arena(_arena):   # в пещере и в лесу вместо воды — сухая земля
 		var floor_mat := StandardMaterial3D.new()
-		floor_mat.albedo_color = COLOR_CAVE_FLOOR
+		floor_mat.albedo_color = COLOR_FOREST_FLOOR if _arena != "cave" else COLOR_CAVE_FLOOR
 		floor_mat.roughness = 1.0
 		water.material_override = floor_mat
 	else:
@@ -346,8 +372,11 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 		var spire: Node3D = _spawn_prop(decor, D_SPIRE, Vector3(w * 0.5 + rng.randf_range(-6.0, 6.0), -1.0, -62.0), 0.0)
 		spire.scale = Vector3(2.2, 2.2, 2.2)
 
-		# Фонари Стражи у дальних углов и один сбоку — тёплые островки света
-		for pos: Vector3 in [Vector3(-1.4, 0.0, -1.2), Vector3(w + 0.4, 0.0, -1.2), Vector3(-1.5, 0.0, h * 0.62)]:
+		# Фонари Стражи у дальних углов и один сбоку — тёплые островки света (в глухом лесу их нет)
+		var lanterns: Array[Vector3] = [Vector3(-1.4, 0.0, -1.2), Vector3(w + 0.4, 0.0, -1.2), Vector3(-1.5, 0.0, h * 0.62)]
+		if BattleLogic.is_forest_arena(_arena):
+			lanterns.clear()
+		for pos: Vector3 in lanterns:
 			var lantern: Node3D = _spawn_prop(decor, D_LANTERN, pos, rng.randf_range(-0.4, 0.4) + (PI if pos.x > 0.0 else 0.0))
 			_add_light(lantern, Vector3(0.66 * (-1.0 if pos.x > 0.0 else 1.0), 1.7, 0.0), COLOR_LAMP_LIGHT, 2.2, 6.0)
 
@@ -372,6 +401,14 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 			_spawn_prop(decor, D_ARCH, Vector3(w + 3.0, -0.3, 1.0), 1.0)
 		"reeds":
 			_spawn_prop(decor, D_BOAT, Vector3(w + 1.8, -0.12, h * 0.5), 1.9)
+		"pump":
+			_spawn_prop(decor, D_PUMP, Vector3(w * 0.5 - 0.5, -0.05, -2.6), 0.1)
+			_spawn_prop(decor, D_PUMP, Vector3(w + 2.8, -0.1, h * 0.35), -1.3)
+			_spawn_prop(decor, D_BOAT, Vector3(-2.6, -0.1, h * 0.5), 0.4)
+		"sanctum":
+			for pos: Vector3 in [Vector3(-1.6, 0.0, 1.5), Vector3(w + 0.6, 0.0, 2.5), Vector3(w * 0.5 - 2.0, 0.0, -1.8),
+					Vector3(w * 0.5 + 1.5, 0.0, -1.8)]:
+				_spawn_prop(decor, D_TOTEM, pos, rng.randf_range(-0.5, 0.5))
 		"lair":
 			_spawn_prop(decor, D_RIBS, Vector3(w * 0.5 - 0.5, -0.05, -2.6), 0.15)
 			for pos: Vector3 in [Vector3(-1.6, 0.0, 2.0), Vector3(w + 0.6, 0.0, 3.5), Vector3(w * 0.5 + 3.0, 0.0, -1.6)]:
@@ -383,7 +420,7 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 		taken.append((child as Node3D).position)
 	for entry: Array in ARENA_SCATTER.get(_arena, ARENA_SCATTER["gat"]):
 		var scene: PackedScene = entry[0]
-		var tall: bool = scene == D_TREE_BIG or scene == D_ROCK_BIG
+		var tall: bool = scene == D_TREE_BIG or scene == D_ROCK_BIG or scene == D_TREE_GREEN or scene == D_PUMP
 		for i: int in entry[1]:
 			var pos: Vector3 = _scatter_spot(rng, tall, taken)
 			if pos.y < -50.0:
@@ -946,6 +983,12 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 	_object_nodes.erase(cell)
 	_object_kinds.erase(cell)
 	_refresh_bog_around(cell)
+	var burn_swap: bool = (old_kind == BattleLogic.Obj.LIVE_TREE and new_kind == BattleLogic.Obj.BURNING_TREE) \
+			or (old_kind == BattleLogic.Obj.BURNING_TREE and new_kind == BattleLogic.Obj.TREE)
+	if node != null and burn_swap:
+		node.queue_free()   # дерево загорелось или прогорело: меняем модель на месте, без «ухода под землю»
+		add_object(cell, new_kind)
+		return
 	if node != null:
 		match old_kind:
 			BattleLogic.Obj.TREE:
@@ -973,7 +1016,8 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 			_:
 				if vfx != null:
 					var broken: Dictionary = {BattleLogic.Obj.PLANKS: "planks", BattleLogic.Obj.REEDS: "reeds",
-						BattleLogic.Obj.STAKES: "stakes"}
+						BattleLogic.Obj.STAKES: "stakes", BattleLogic.Obj.BUSH: "reeds", BattleLogic.Obj.VINE: "reeds",
+						BattleLogic.Obj.HIVE: "planks", BattleLogic.Obj.VALVE: "stakes"}
 					if broken.has(old_kind):
 						vfx.object_broken(grid_to_world(cell), broken[old_kind])
 				await _sink(node)
@@ -1221,6 +1265,30 @@ func _make_object(kind: int, cell: Vector2i) -> Node3D:
 			root = _make_crust_node(hash_value)
 		BattleLogic.Obj.RUNE:
 			root = _make_rune_node()
+		BattleLogic.Obj.LIVE_TREE:
+			root = OBJ_LIVE_TREES[hash_value % 2].instantiate()
+			root.rotation.y = deg_to_rad(float(hash_value))
+		BattleLogic.Obj.BURNING_TREE:
+			root = OBJ_LIVE_TREES[hash_value % 2].instantiate()
+			root.rotation.y = deg_to_rad(float(hash_value))
+			var crown_fire: CPUParticles3D = _make_flames()
+			crown_fire.position.y = 1.3
+			crown_fire.emission_box_extents = Vector3(0.45, 0.3, 0.45)
+			crown_fire.amount = 26
+			root.add_child(crown_fire)
+			_add_light(root, Vector3(0.0, 1.5, 0.0), COLOR_BURN_LIGHT, 1.6, 4.0)
+		BattleLogic.Obj.VINE:
+			root = OBJ_VINE.instantiate()
+			root.rotation.y = deg_to_rad(float(hash_value))
+		BattleLogic.Obj.BUSH:
+			root = OBJ_BUSH.instantiate()
+			root.rotation.y = deg_to_rad(float(hash_value))
+		BattleLogic.Obj.HIVE:
+			root = OBJ_HIVE.instantiate()
+			root.rotation.y = deg_to_rad(float(hash_value))
+		BattleLogic.Obj.VALVE:
+			root = OBJ_VALVE.instantiate()
+			root.rotation.y = (hash_value % 6) * PI / 3.0
 	return root
 
 

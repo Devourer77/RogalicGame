@@ -66,6 +66,7 @@ enum AiStyle { NORMAL, HUNTER, GUARD, AMBUSH }
 @export var bequest: int = 0          # «Наследие венца» (послушник): погибая, отдаёт ближайшему культисту +столько к удару навсегда
 @export var modifier: EnemyModifier = null   # «характер» этого врага в бою (Run._apply_modifiers); у файла врага пусто
 @export var fire_walker: bool = false # «Дитя огня» (Жаровик): огонь и лава его не ранят, по лаве ходит как по полу
+@export var vine_walker: bool = false # Хранители Рощи: лоза их не держит, пчёлы улья не жалят
 @export var water_weak: bool = false  # «Боится воды» (Жаровик): мокрый — без брони, вода и пар ранят вдвое
 
 var _basic: EnemyAttackData   # удар простого врага, собранный из полей выше

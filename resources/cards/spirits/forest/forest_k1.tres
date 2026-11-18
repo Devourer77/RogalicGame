@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "forest_k1+1"
+icon = "entangled"
+title = "Корневая хватка+I"
+description = "8 урона соседнему врагу, он опутан на 1 ход."
+shape = 1
+cost = 1
+cast_range = 1
+damage = 8
+special = "entangle"
+is_attack = true
+card_set = "s_forest"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["forest"])
+spirit_slot = 1
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "forest_k1+2"
+icon = "entangled"
+title = "Корневая хватка+II"
+description = "5 урона соседнему врагу, он опутан на 1 ход. Блок 4."
+shape = 1
+cost = 1
+cast_range = 1
+damage = 5
+block = 4
+special = "entangle"
+is_attack = true
+card_set = "s_forest"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["forest"])
+spirit_slot = 1
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "forest_k1"
+icon = "entangled"
+title = "Корневая хватка"
+description = "5 урона соседнему врагу, он опутан на 1 ход."
+shape = 1
+cost = 1
+cast_range = 1
+damage = 5
+special = "entangle"
+is_attack = true
+card_set = "s_forest"
+owner_hero = "knight"
+role = 3
+spirit_ids = Array[String](["forest"])
+spirit_slot = 1
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")
