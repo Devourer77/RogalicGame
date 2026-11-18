@@ -24,4 +24,5 @@ color = Color(0.4, 0.36, 0.3, 1)
 ai_style = 1
 cycle = Array[ExtResource("2_attack")]([SubResource("atk0")])
 vine_walker = true
+tactician = true
 model = ExtResource("9_model")

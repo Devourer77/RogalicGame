@@ -34,4 +34,5 @@ color = Color(0.34, 0.38, 0.4, 1)
 keep_distance = 2
 cycle = Array[ExtResource("2_attack")]([SubResource("atk0"), SubResource("atk1")])
 vine_walker = true
+tactician = true
 model = ExtResource("9_model")

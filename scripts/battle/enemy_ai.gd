@@ -33,6 +33,18 @@ const AI_ON_VINE: int = 25        # штраф за клетку с лозой
 const AI_HUNTER_PREY: int = 20    # охотник: бонус, если удар ранит его добычу
 const AI_GUARD_NEAR: int = 25     # телохранитель: бонус за клетку вплотную к подопечному
 const AI_FLANK: int = 6           # клещи: встал вплотную к герою с другой стороны, чем свой
+# Тактики (Хранители Рощи, EnemyData.tactician): люди, которые воюют отрядом
+const AI_COVER_RANGED: int = 16   # стрелок за укрытием (дерево, камень, подлесок между ним и ближайшим героем) или в подлеске
+const AI_COVER_MELEE: int = 5     # …боец — меньше: ему всё равно идти вперёд
+const AI_CROWD: int = 6           # штраф за каждого своего вплотную: не встают кучей под удар по площади
+const AI_COMBO_TANGLED: int = 18  # связка: бьёт опутанного (своим уже не уйти от удара)
+const AI_COMBO_WET: int = 8       # связка: бьёт мокрого или стоящего в луже
+const AI_FOCUS: int = 14          # весь отряд бьёт одну цель — самого раненого героя
+const AI_SHELTER: int = 22        # раненый (HP ≤ 40%) встаёт рядом со Щитом
+const AI_WOUNDED_BACK: int = 3    # …и за каждую клетку подальше от героев (до 3)
+const AI_GUARD_FRONT: int = 14    # телохранитель встаёт между подопечным и героями
+const WOUNDED_SHARE: float = 0.4  # раненым считается при HP не больше этой доли
+static var _no_tactics: bool = OS.get_environment("NOTACTIC") != ""   # замер ботом: NOTACTIC=1 — Хранители без тактики
 const GUARD_RANGE: int = 3        # дальше этого подопечного телохранитель не замечает
 const ALLY_BUFF_NEXT_ATTACK: int = 100  # «зов»: за своего, который в следующем раунде ударит
 const ALLY_BUFF_NEXT_AURA: int = 30     # …и за своего, у которого в следующем раунде тоже «зов»
@@ -176,9 +188,43 @@ static func _context(l: BattleLogic, e: BattleUnit) -> Dictionary:
 		if burst_soon:
 			for t in HexMath.in_range(other.cell, 2 if other.inflation >= 2 else 1):
 				toad[t] = true
+	var tactic: bool = e.data != null and e.data.tactician and not _no_tactics
+	var shelters: Array[Vector2i] = []   # где прячутся раненые: клетки рядом с живым Щитом (телохранителем)
+	if tactic:
+		for other in l.living_enemies():
+			if other != e and other.data.ai_style == EnemyData.AiStyle.GUARD:
+				shelters.append(other.cell)
 	return {"barrel": barrel, "toad": toad, "ward": _ward(l, e), "prey": _prey(l, e),
 			"fireproof": e.data != null and e.data.fire_walker,
-			"vine_free": e.data != null and (e.data.vine_walker or e.data.is_boss)}
+			"vine_free": e.data != null and (e.data.vine_walker or e.data.is_boss),
+			"tactic": tactic, "self": e, "focus": _focus(l) if tactic else null,
+			"wounded": tactic and e.hp <= int(e.max_hp * WOUNDED_SHARE) and e.data.ai_style != EnemyData.AiStyle.GUARD,
+			"shelters": shelters, "ranged": e.data != null and e.data.keep_distance > 0}
+
+
+# Общая цель отряда тактиков: самый раненый герой по доле HP (при равенстве — первый в списке)
+static func _focus(l: BattleLogic) -> BattleUnit:
+	var focus: BattleUnit = null
+	for h in l.living_heroes():
+		if focus == null or h.hp * focus.max_hp < focus.hp * h.max_hp:
+			focus = h
+	return focus
+
+
+# Укрытие: между клеткой и ближайшим героем есть то, что закрывает линию (дерево, камень, подлесок),
+# или сама клетка в подлеске/камыше
+static func _covered(l: BattleLogic, c: Vector2i) -> bool:
+	if l.is_cover(l.object_at(c)):
+		return true
+	var near: BattleUnit = _nearest(l.living_heroes(), c)
+	if near == null:
+		return false
+	var line: Array[Vector2i] = HexMath.line_draw(near.cell, c)
+	for i in range(1, line.size() - 1):
+		var t: Vector2i = line[i]
+		if l.rocks.has(t) or l._line_blocker(t) != "":
+			return true
+	return false
 
 
 # Подопечный телохранителя: ближайший свой стрелок или зовущий не дальше GUARD_RANGE
@@ -186,6 +232,8 @@ static func _ward(l: BattleLogic, e: BattleUnit) -> BattleUnit:
 	if e.data.ai_style != EnemyData.AiStyle.GUARD:
 		return null
 	var ward: BattleUnit = null
+	if e.data.tactician and not _no_tactics:
+		return _tactic_ward(l, e)
 	for other in l.living_enemies():
 		if other == e or not (other.data.keep_distance > 0 or _has_aura(other.data)):
 			continue
@@ -193,6 +241,28 @@ static func _ward(l: BattleLogic, e: BattleUnit) -> BattleUnit:
 		if d > GUARD_RANGE:
 			continue
 		if ward == null or d < HexMath.distance(e.cell, ward.cell):
+			ward = other
+	return ward
+
+
+# Щит Коры (тактик): прикрывает того, кому сейчас опаснее всего — раненого, стрелка или зовущего,
+# ближе всех стоящего к героям (не дальше GUARD_RANGE + 1 от себя)
+static func _tactic_ward(l: BattleLogic, e: BattleUnit) -> BattleUnit:
+	var ward: BattleUnit = null
+	var best: int = 1000000
+	var heroes: Array[BattleUnit] = l.living_heroes()
+	for other in l.living_enemies():
+		if other == e or other.data.ai_style == EnemyData.AiStyle.GUARD:
+			continue
+		var wounded: bool = other.hp <= int(other.max_hp * WOUNDED_SHARE)
+		if not (wounded or other.data.keep_distance > 0 or _has_aura(other.data)):
+			continue
+		if HexMath.distance(e.cell, other.cell) > GUARD_RANGE + 1:
+			continue
+		var near: BattleUnit = _nearest(heroes, other.cell)
+		var threat: int = (HexMath.distance(other.cell, near.cell) if near != null else 99) - (3 if wounded else 0)
+		if threat < best:
+			best = threat
 			ward = other
 	return ward
 
@@ -237,6 +307,39 @@ static func _place_value(l: BattleLogic, c: Vector2i, ctx: Dictionary) -> int:
 	var ward: BattleUnit = ctx["ward"]
 	if ward != null and HexMath.distance(c, ward.cell) == 1:
 		v += AI_GUARD_NEAR
+		if ctx.get("tactic", false):
+			# встать между подопечным и героями: ближе к героям, чем он
+			var nh: BattleUnit = _nearest(l.living_heroes(), ward.cell)
+			if nh != null and HexMath.distance(c, nh.cell) < HexMath.distance(ward.cell, nh.cell):
+				v += AI_GUARD_FRONT
+	if ctx.get("tactic", false):
+		v += _tactic_place(l, c, ctx)
+	return v
+
+
+# Тактики: укрытие, не толпиться, раненые — к Щиту и подальше от героев
+static func _tactic_place(l: BattleLogic, c: Vector2i, ctx: Dictionary) -> int:
+	var v: int = 0
+	var me: BattleUnit = ctx["self"]
+	if _covered(l, c):
+		v += AI_COVER_RANGED if ctx["ranged"] else AI_COVER_MELEE
+	if ctx["ward"] == null:   # телохранителю вплотную к своим как раз и надо
+		for other in l.living_enemies():
+			if other != me and HexMath.distance(other.cell, c) == 1:
+				v -= AI_CROWD
+	if ctx["wounded"]:
+		for s: Vector2i in ctx["shelters"]:
+			if HexMath.distance(c, s) == 1:
+				v += AI_SHELTER
+				break
+		var near: BattleUnit = _nearest(l.living_heroes(), c)
+		if near != null:
+			v += mini(HexMath.distance(c, near.cell), 3) * AI_WOUNDED_BACK
+	# Горящее дерево рядом — уйти
+	for n: Vector2i in HexMath.neighbors(c):
+		if l.object_at(n) == BattleLogic.Obj.BURNING_TREE:
+			v -= AI_NEAR_BARREL
+			break
 	return v
 
 
@@ -308,7 +411,7 @@ static func _best_strike(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 		var cand: Dictionary = candidates[i]
 		var c: Vector2i = cand["cell"]
 		var d: Vector2i = cand["dir"]
-		var info: Dictionary = _evaluate(l, e, atk, c, d, ctx["prey"])
+		var info: Dictionary = _evaluate(l, e, atk, c, d, ctx["prey"], ctx)
 		if info["value"] <= 0:
 			continue   # удар никому не выгоден (бьёт своих сильнее, чем героев) — не бьём
 		var total: int = info["value"] + cand["base"] + _flank(l, e, atk, c, cand["cells"])
@@ -322,6 +425,7 @@ static func _best_strike(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 			best_total = total
 			best_front = front
 			info["ward_near"] = ctx["ward"] != null and HexMath.distance(c, ctx["ward"].cell) == 1
+			info["cover"] = ctx.get("tactic", false) and ctx["ranged"] and _covered(l, c)
 			best = {"cell": c, "dir": d, "info": info}
 	return best
 
@@ -345,14 +449,16 @@ static func _flank(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, c: Vecto
 # "push": текст про толчок в беду, "obj": текст про бочку или дерево, "both": ранены оба,
 # "hurt": имя героя, которому больнее всего, "prey_hurt": ранена ли добыча охотника}.
 static func _evaluate(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, cell: Vector2i,
-		dir: Vector2i, prey: BattleUnit) -> Dictionary:
+		dir: Vector2i, prey: BattleUnit, ctx: Dictionary = {}) -> Dictionary:
 	var sim: BattleLogic = l.clone()
 	var sim_e: BattleUnit = sim.enemies[l.enemies.find(e)]
 	sim_e.cell = cell
 	sim._enemy_strike(sim_e, atk, dir)
 
 	var info: Dictionary = {"value": 0, "kill": "", "push": "", "obj": "", "both": false,
-			"hurt": "", "prey_hurt": false}
+			"hurt": "", "prey_hurt": false, "combo": "", "focus": ""}
+	var tactic: bool = ctx.get("tactic", false)
+	var focus: BattleUnit = ctx.get("focus", null)
 	var value: int = 0
 	var wounded: int = 0
 	var worst: int = 0
@@ -372,6 +478,19 @@ static func _evaluate(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, cell:
 				info["hurt"] = h.title
 			if prey != null and h == prey:
 				info["prey_hurt"] = true
+			if tactic:
+				# Связки: опутанного или мокрого бьют охотнее; весь отряд — одну цель
+				if h.entangled > 0:
+					value += AI_COMBO_TANGLED
+					if info["combo"] == "":
+						info["combo"] = "Связка: бьёт опутанного %s" % _acc(h.title)
+				elif h.wet > 0 or l.tile_at(h.cell) == BattleLogic.Tile.WATER:
+					value += AI_COMBO_WET
+					if info["combo"] == "":
+						info["combo"] = "Связка: бьёт мокрого %s" % _acc(h.title)
+				if focus != null and h == focus:
+					value += AI_FOCUS
+					info["focus"] = "Отряд бьёт %s" % _acc(h.title)
 		if not sh.is_alive():
 			value += AI_KILL
 			if info["kill"] == "":
@@ -475,6 +594,10 @@ static func _best_approach(l: BattleLogic, e: BattleUnit, options: Dictionary[Ve
 		reason = "Телохранитель: прикрывает %s" % _acc(ward.title)
 	elif hunting:
 		reason = "Охотник: к раненому %s" % _dat(prey.title)
+	elif ctx.get("wounded", false):
+		reason = "Ранен: отходит под защиту" if _near_any(best_cell, ctx["shelters"]) else "Ранен: держится подальше"
+	elif ctx.get("tactic", false) and _covered(l, best_cell):
+		reason = "Идёт от укрытия к укрытию"
 	elif near != null:
 		reason = "Не достаёт — идёт к %s" % _dat(near.title)
 	return {"cell": best_cell, "reason": reason}
@@ -514,6 +637,13 @@ static func _face_dir(from: Vector2i, targets: Array[BattleUnit]) -> Vector2i:
 	return HexMath.direction_to(from, nearest.cell)
 
 
+static func _near_any(c: Vector2i, cells: Array[Vector2i]) -> bool:
+	for s in cells:
+		if HexMath.distance(c, s) == 1:
+			return true
+	return false
+
+
 static func _nearest(units: Array[BattleUnit], from: Vector2i) -> BattleUnit:
 	var best: BattleUnit = null
 	for u in units:
@@ -531,6 +661,8 @@ static func _strike_reason(info: Dictionary, provoked: bool, ctx: Dictionary) ->
 		return info["push"]
 	if info["obj"] != "":
 		return info["obj"]
+	if info.get("combo", "") != "":
+		return info["combo"]
 	if info["both"]:
 		return "Заденет обоих"
 	var prey: BattleUnit = ctx["prey"]
@@ -540,6 +672,10 @@ static func _strike_reason(info: Dictionary, provoked: bool, ctx: Dictionary) ->
 		return "Телохранитель: прикрывает %s" % _acc(ctx["ward"].title)
 	if provoked:
 		return "Провокация: бьёт %s" % _acc(info["hurt"])
+	if info.get("focus", "") != "":
+		return info["focus"]
+	if info.get("cover", false) and info["hurt"] != "":
+		return "Из укрытия бьёт %s" % _acc(info["hurt"])
 	if info["hurt"] != "":
 		return "Бьёт %s" % _acc(info["hurt"])
 	return "Бьёт по блоку"

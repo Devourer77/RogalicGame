@@ -44,7 +44,7 @@ func _initialize() -> void:
 	var falls: int = 0
 	var bandages: int = 0
 	var wounds_end: int = 0
-	var losses: Dictionary = {"бой": [0, 0], "логово": [0, 0], "элита": [0, 0], "босс": [0, 0]}   # [сумма потерь, боёв]
+	var losses: Dictionary = {"бой": [0, 0], "бой в лесу": [0, 0], "логово": [0, 0], "элита": [0, 0], "босс": [0, 0]}   # [сумма потерь, боёв]
 	var stuck: int = 0
 	for i in runs:
 		var res: Dictionary = _play_run(run, RUN_SEED_BASE + i, bell)
@@ -127,6 +127,9 @@ func _play_run(run: Node, seed_value: int, bell: int) -> Dictionary:
 				res["falls"] += battle["falls"]
 				var l: Array = res["losses"].get(kind, [0, 0])
 				res["losses"][kind] = [l[0] + battle["lost"], l[1] + 1]
+				if node.type == MapNode.Type.BATTLE and node.branch == MapNode.FOREST:
+					var lf: Array = res["losses"].get("бой в лесу", [0, 0])   # отдельно — лес (Хранители)
+					res["losses"]["бой в лесу"] = [lf[0] + battle["lost"], lf[1] + 1]
 				if not battle["won"]:
 					res["row"] = node.row
 					res["kind"] = kind

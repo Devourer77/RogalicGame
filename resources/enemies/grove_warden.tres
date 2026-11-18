@@ -25,4 +25,5 @@ attack_range = 2
 color = Color(0.42, 0.33, 0.22, 1)
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_spear")])
 vine_walker = true
+tactician = true
 model = ExtResource("9_model")
