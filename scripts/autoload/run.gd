@@ -88,6 +88,14 @@ const ENCOUNTERS: Array[EncounterData] = [
 	preload("res://resources/encounters/drowned.tres"),
 	preload("res://resources/encounters/bombers.tres"),
 	preload("res://resources/encounters/grove_patrol.tres"),   # Стражи Рощи (лес)
+	# Хранители Рощи (лес, 18 ноября)
+	preload("res://resources/encounters/saplings.tres"),
+	preload("res://resources/encounters/grove_hunt.tres"),
+	preload("res://resources/encounters/grove_poison.tres"),
+	preload("res://resources/encounters/grove_rain.tres"),
+	preload("res://resources/encounters/bark_wall.tres"),
+	preload("res://resources/encounters/skin_pack.tres"),
+	preload("res://resources/encounters/hive_keepers.tres"),
 ]
 # Пулы элит и боссов акта: в начале забега выбираются ELITES_PER_RUN разных элит и один босс
 const ELITE_POOL: Array[EncounterData] = [

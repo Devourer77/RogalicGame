@@ -43,6 +43,7 @@ func _initialize() -> void:
 	_valve()
 	_arena_pick()
 	_leshy()
+	_keepers()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 
@@ -238,3 +239,33 @@ func _leshy() -> void:
 	run.pending_encounter = load("res://resources/encounters/elite_voice.tres")
 	check("Леший живёт у Голоса Рощи", run.forest_spirit_offered())
 	check("Голос Рощи — элита леса", run.pending_encounter.branch == EncounterData.Branch.FOREST)
+
+
+func _keepers() -> void:
+	print("--- Хранители Рощи ---")
+	var ids: Array[String] = ["grove_warden", "grove_huntress", "grove_poisoner", "grove_beekeeper", "grove_shieldbearer",
+		"grove_skinwearer", "grove_raincaller", "grove_sapling", "grove_voice"]
+	var all_ok: bool = true
+	for id in ids:
+		var d: EnemyData = load("res://resources/enemies/%s.tres" % id)
+		if d == null or d.model == null or not d.vine_walker or d.cycle.is_empty():
+			all_ok = false
+			print("  нет данных: ", id)
+	check("У всех 9 Хранителей есть данные, модель и удары; лоза их не держит", all_ok)
+	# Саженец, погибая, становится деревом
+	var l := fresh(["grove_sapling"]); var s: BattleUnit = l.enemies[0]
+	s.cell = C(5, 5)
+	l._damage(s, 99)
+	check("Саженец погиб — на клетке живое дерево", l.object_at(C(5, 5)) == O.LIVE_TREE)
+	# Отряды леса берутся только в лесу
+	var forest: int = 0
+	for enc: EncounterData in run.ENCOUNTERS:
+		if enc.branch == EncounterData.Branch.FOREST:
+			forest += 1
+			if not enc.fits_branch(MapNode.FOREST) or enc.fits_branch(MapNode.BOG):
+				all_ok = false
+	check("Отрядов леса не меньше 10", forest >= 10)
+	check("Лесные отряды не попадают на болота", all_ok)
+	# Пасечник: удар вокруг себя травит
+	l = fresh(["grove_beekeeper"])
+	check("Пасечник: два удара в цикле, второй — вокруг себя", l.enemies[0].data.cycle.size() == 2 and l.enemies[0].data.cycle[1].shape == 4)

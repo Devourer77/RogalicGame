@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/grove_skinwearer.glb" id="9_model"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk0"]
+script = ExtResource("2_attack")
+title = "Когти"
+shape = 0
+attack_range = 1
+damage = 5
+
+[resource]
+script = ExtResource("1_enemy")
+id = "grove_skinwearer"
+title = "Носящий шкуру"
+description = "Он так долго носил шкуру, что забыл, где кончается зверь."
+max_hp = 11
+move_range = 4
+damage = 5
+attack = 0
+color = Color(0.4, 0.36, 0.3, 1)
+ai_style = 1
+cycle = Array[ExtResource("2_attack")]([SubResource("atk0")])
+vine_walker = true
+model = ExtResource("9_model")

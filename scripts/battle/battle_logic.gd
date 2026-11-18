@@ -3343,6 +3343,7 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		message.emit("%s падает" % unit.title)
 		_death_blast(unit)
 		_pass_crown(unit)
+		_root_on_death(unit)
 		_mod_on_death(unit, true)
 	elif unit.data != null and unit.data.inflation and _cur_attack and _cur_card != null \
 			and _cur_card.special != "harpoon":
@@ -3361,6 +3362,17 @@ func _ambush_bonus(e: BattleUnit) -> int:
 	if e.data == null or e.data.ambush <= 0 or not is_cover(object_at(e.cell)):
 		return 0
 	return e.data.ambush
+
+
+# Саженец: погибая, пускает корни — на его клетке вырастает живое дерево (преграда, горит)
+func _root_on_death(unit: BattleUnit) -> void:
+	if unit.data == null or not unit.data.death_tree:
+		return
+	var c: Vector2i = unit.cell
+	if not is_inside(c) or rocks.has(c) or object_at(c) != Obj.NONE or tile_at(c) == Tile.FIRE:
+		return
+	_set_object(c, Obj.LIVE_TREE, Vector2i.ZERO)
+	message.emit("%s пускает корни и становится деревом" % unit.title)
 
 
 # «Наследие венца»: павший послушник отдаёт силу ближайшему живому культисту

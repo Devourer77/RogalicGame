@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/grove_poisoner.glb" id="9_model"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk0"]
+script = ExtResource("2_attack")
+title = "Дротик"
+shape = 1
+attack_range = 3
+damage = 2
+first_only = true
+poison = 2
+
+[resource]
+script = ExtResource("1_enemy")
+id = "grove_poisoner"
+title = "Отравительница"
+description = "Яд — тоже часть леса. Самая честная."
+max_hp = 8
+move_range = 3
+damage = 2
+attack = 1
+attack_range = 3
+first_only = true
+color = Color(0.36, 0.34, 0.2, 1)
+keep_distance = 2
+cycle = Array[ExtResource("2_attack")]([SubResource("atk0")])
+vine_walker = true
+model = ExtResource("9_model")

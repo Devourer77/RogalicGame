@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="PackedScene" path="res://assets/models/grove_sapling.glb" id="9_model"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+
+[sub_resource type="Resource" id="atk0"]
+script = ExtResource("2_attack")
+title = "Хлёст веткой"
+shape = 0
+attack_range = 1
+damage = 2
+
+[resource]
+script = ExtResource("1_enemy")
+id = "grove_sapling"
+title = "Саженец"
+description = "Хранители сажают их у границы рощи. Иногда они уходят сами."
+max_hp = 5
+move_range = 3
+damage = 2
+attack = 0
+color = Color(0.3, 0.38, 0.22, 1)
+size = "0.9"
+death_tree = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk0")])
+vine_walker = true
+model = ExtResource("9_model")
