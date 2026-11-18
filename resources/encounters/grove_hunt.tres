@@ -11,7 +11,7 @@
 script = ExtResource("1_enc")
 id = "grove_hunt"
 title = "Ловчие Рощи"
-core = Array[ExtResource("1_enemy")]([ExtResource("e3"), ExtResource("e0"), ExtResource("e0")])
+core = Array[ExtResource("1_enemy")]([ExtResource("e3"), ExtResource("e3"), ExtResource("e0"), ExtResource("e0")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("e2"), ExtResource("e1")])
 min_row = 1
 formation = 2

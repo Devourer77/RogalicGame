@@ -1,4 +1,6 @@
 extends "res://tests/balance.gd"
+
+var squad_losses: Dictionary = {}   # id отряда → [потеря HP, боёв, врагов]
 # Замер ЦЕЛОГО забега ботом (тз-сложность-боя.md, задача 1): HP переносится между боями,
 # павший встаёт с 1 HP и получает Рану, награды и привалы — по правилам Run. Бой играет тот же
 # бот, что в tests/balance.gd (этот файл наследует его функции).
@@ -90,6 +92,12 @@ func _initialize() -> void:
 	lines.append("Потеря HP за бой на двоих: %s   (цель: бой 12–20, элита 25–35)" % ", ".join(loss_text))
 	lines.append("Падений героев за забег: %.2f, перевязок: %.2f, Ран в колодах к концу: %.2f" % [falls / n, bandages / n, wounds_end / n])
 	lines.append("Зависших боёв: %d. Время: %.1f с" % [stuck, (Time.get_ticks_msec() - started) / 1000.0])
+	if OS.get_environment("SQUADS") != "":
+		var keys: Array = squad_losses.keys()
+		keys.sort()
+		for k: String in keys:
+			var v: Array = squad_losses[k]
+			lines.append("  %s: потеря %.1f, врагов %.1f, боёв %d" % [k, float(v[0]) / v[1], float(v[2]) / v[1], v[1]])
 	var text: String = "\n".join(lines)
 	print("\n===== ЗАБЕГ =====\n" + text + "\n=================")
 	var f := FileAccess.open("user://balance_run.txt", FileAccess.WRITE)
@@ -127,6 +135,10 @@ func _play_run(run: Node, seed_value: int, bell: int) -> Dictionary:
 				res["falls"] += battle["falls"]
 				var l: Array = res["losses"].get(kind, [0, 0])
 				res["losses"][kind] = [l[0] + battle["lost"], l[1] + 1]
+				if node.type == MapNode.Type.BATTLE and run.pending_encounter != null:
+					var key: String = "отряд " + run.pending_encounter.id   # потери по отрядам (печать — SQUADS=1)
+					var ls: Array = squad_losses.get(key, [0, 0, 0])
+					squad_losses[key] = [ls[0] + battle["lost"], ls[1] + 1, ls[2] + run.pending_enemies.size()]
 				if node.type == MapNode.Type.BATTLE and node.branch == MapNode.FOREST:
 					var lf: Array = res["losses"].get("бой в лесу", [0, 0])   # отдельно — лес (Хранители)
 					res["losses"]["бой в лесу"] = [lf[0] + battle["lost"], lf[1] + 1]

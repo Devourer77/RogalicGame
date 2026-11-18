@@ -9,7 +9,7 @@ script = ExtResource("2_attack")
 title = "Стрела"
 shape = 1
 attack_range = 4
-damage = 4
+damage = 5
 first_only = true
 
 [resource]
@@ -17,9 +17,9 @@ script = ExtResource("1_enemy")
 id = "grove_huntress"
 title = "Ловчая Рощи"
 description = "Она не промахивается. Лес не прощает промахов."
-max_hp = 8
+max_hp = 9
 move_range = 2
-damage = 4
+damage = 5
 attack = 1
 attack_range = 4
 first_only = true

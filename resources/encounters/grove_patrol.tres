@@ -1,14 +1,16 @@
-[gd_resource type="Resource" script_class="EncounterData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Resource" path="res://resources/enemies/grove_warden.tres" id="2_warden"]
 [ext_resource type="Resource" path="res://resources/enemies/wolf.tres" id="3_wolf"]
 
+[ext_resource type="Resource" path="res://resources/enemies/grove_huntress.tres" id="4_hunt"]
+
 [resource]
 script = ExtResource("1_enc")
 id = "grove_patrol"
 title = "Дозор Рощи"
-core = Array[ExtResource("1_enemy")]([ExtResource("2_warden"), ExtResource("2_warden")])
+core = Array[ExtResource("1_enemy")]([ExtResource("2_warden"), ExtResource("2_warden"), ExtResource("4_hunt")])
 filler = Array[ExtResource("1_enemy")]([ExtResource("2_warden"), ExtResource("3_wolf")])
 branch = 2

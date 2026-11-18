@@ -9,16 +9,16 @@ script = ExtResource("2_attack")
 title = "Хлёст веткой"
 shape = 0
 attack_range = 1
-damage = 2
+damage = 3
 
 [resource]
 script = ExtResource("1_enemy")
 id = "grove_sapling"
 title = "Саженец"
 description = "Хранители сажают их у границы рощи. Иногда они уходят сами."
-max_hp = 5
+max_hp = 7
 move_range = 3
-damage = 2
+damage = 3
 attack = 0
 color = Color(0.3, 0.38, 0.22, 1)
 size = "0.9"

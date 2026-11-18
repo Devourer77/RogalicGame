@@ -9,7 +9,7 @@ script = ExtResource("2_attack")
 title = "Дождь"
 shape = 1
 attack_range = 4
-damage = 2
+damage = 3
 puddle = true
 
 [sub_resource type="Resource" id="atk1"]
@@ -18,16 +18,16 @@ title = "Гроза"
 anim = "Attack2"
 shape = 1
 attack_range = 4
-damage = 4
+damage = 5
 
 [resource]
 script = ExtResource("1_enemy")
 id = "grove_raincaller"
 title = "Дождевая"
 description = "Небо сломано. Но дождь ещё слушает тех, кто просит."
-max_hp = 9
+max_hp = 11
 move_range = 2
-damage = 2
+damage = 3
 attack = 1
 attack_range = 4
 color = Color(0.34, 0.38, 0.4, 1)
