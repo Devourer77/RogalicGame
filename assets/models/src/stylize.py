@@ -25,7 +25,7 @@ import bpy, bmesh, math, os
 STYLIZE = True          # False — модели собираются по-старому, однотонными
 SIZE_UNIT = 512         # текстура рядового врага и объекта
 SIZE_BIG = 1024         # героя, босса и крупного декора
-BIG_CHARACTERS = {"hero", "knight", "ogre", "bog_mother", "drowned_captain", "spirit_fire"}   # герои и боссы
+BIG_CHARACTERS = {"hero", "knight", "ogre", "bog_mother", "drowned_captain", "spirit_fire", "sphere_colossus"}   # герои и боссы
 SAMPLES = 96            # сэмплы Cycles; запекание не очищается денойзером, меньше 64 — зерно
 AO_DISTANCE = 0.40      # радиус тени в складках, м
 AO_STRENGTH = 0.90      # насколько темнеют складки (0 — нет)
