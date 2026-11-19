@@ -22,7 +22,7 @@ const CARD_SCALE: float = 0.7                # карты на экране ум
 func _ready() -> void:
 	_column = UiKit.make_screen(self)
 	_column.add_theme_constant_override("separation", 10)
-	_elite = Run.current != null and Run.current.type == MapNode.Type.ELITE
+	_elite = Run.is_elite_battle()
 	_build_head()
 	if Run.tamed_spirit != null:
 		_build_spirit_choice(_column, Run.tamed_spirit)
@@ -334,7 +334,7 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_note)
 	# После элиты (Хозяин трясины) дальше — обычная награда элиты
-	var after_elite: bool = Run.current != null and Run.current.type == MapNode.Type.ELITE
+	var after_elite: bool = Run.is_elite_battle()
 	_next_button = UiKit.make_button("Дальше", func() -> void:
 		Run.tamed_spirit = null
 		Run.goto(Run.REWARD_SCENE if after_elite else Run.MAP_SCENE), "", true)

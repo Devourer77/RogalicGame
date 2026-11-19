@@ -1,43 +1,55 @@
 extends Control
-# Карта забега: ряды точек снизу вверх, наверху босс.
-# Две ветки рядом — Гнилые топи (слева) и Густые леса (справа); на ряду Run.CROSS_ROW между ними
-# одна тропа-переход, сходятся они на общем привале перед боссом.
-# Можно пойти только в точки, куда ведёт дорожка из текущей (они в латунной рамке и «дышат»).
+# Карта забега (тз-карта-пути.md): старая карта на пергаменте, рисунок Gemini (assets/textures/map/).
+# Слева Гнилые топи, справа Густые леса, между ними овраг с мостом — тропа-переход на ряду Run.CROSS_ROW.
+# Тропы извилистые, нарисованы «чернилами» — пунктиром следов. Туман войны: что за точка, видно на
+# Run.FOG_SIGHT рядов вперёд; дальше — плывущий туман и размытые силуэты. Босс — корона в тумане,
+# его имя открывается, когда до него остаётся FOG_SIGHT рядов.
+# Наведи мышь на открытую точку — над ней поднимется карточка (MapCard): место, тип, опасность.
 
-const COL_SPACING: float = 140.0
-const BRANCH_GAP: float = 120.0       # лишний зазор между ветками
-const ROW_SPACING: float = 62.0
-const NODE_SIZE: float = 52.0
-const BOSS_SIZE: float = 66.0
-const LABEL_HEIGHT: float = 34.0       # место под подписями веток внизу
-# Подложка ветки (тёмный цвет её области) и цвет подписи
-const BRANCH_TINT: Array[Color] = [Color(0.16, 0.22, 0.22, 0.55), Color(0.15, 0.24, 0.15, 0.55)]
-const BRANCH_TEXT: Array[Color] = [Color(0.62, 0.78, 0.74), Color(0.66, 0.82, 0.58)]
+const AREA_RATIO: float = 1024.0 / 572.0     # пропорции рисунка карты
+const RESERVED_HEIGHT: float = 178.0         # над и под картой: полоса отряда, заголовок, памятка
+const BG_PATH: String = "res://assets/textures/map/map_bg_act1.jpg"
+const NODE_SIZE: float = 34.0
+const BOSS_SIZE: float = 46.0
+const INK := Color(0.8, 0.72, 0.54, 0.78)       # «следы» троп: светлая выцветшая охра (фон карты тёмный)
+const INK_SHADOW := Color(0.04, 0.03, 0.02, 0.6) # тёмная подложка под следом — читается и на светлой траве
+const INK_FOG := Color(0.8, 0.72, 0.54, 0.3)    # тропы в тумане — бледнее
+const STEP_DOT: float = 8.0                    # шаг «следов» на тропе, точек экрана
+const GLOW := Color(0.95, 0.86, 0.6)            # свет под значком
+const BRANCH_TEXT: Array[Color] = [Color(0.72, 0.82, 0.78), Color(0.74, 0.86, 0.66)]
 
-# Для каждого типа точки: иконка, цвет кружка и подсказка
-const NODE_LOOK: Dictionary[int, Array] = {
-	MapNode.Type.BATTLE: ["battle", Color(0.27, 0.33, 0.37), "Бой: враги и награда — золото и карта на выбор."],
-	MapNode.Type.ELITE: ["elite", Color(0.52, 0.33, 0.12), "Элита: бой с сильным врагом и его свитой."],
-	MapNode.Type.EVENT: ["event", Color(0.28, 0.28, 0.55), "Событие: выбор с риском."],
-	MapNode.Type.SHOP: ["shop", Color(0.47, 0.4, 0.14), "Лавка: купить карту или убрать лишнюю из колоды."],
-	MapNode.Type.REST: ["rest", Color(0.2, 0.43, 0.27), "Привал: оба героя лечатся."],
-	MapNode.Type.BOSS: ["boss", Color(0.5, 0.15, 0.17), "Босс: последний бой акта."],
-	MapNode.Type.LAIR: ["orb", Color(0.2, 0.42, 0.55), "Логово духа: победи духа — и он присоединится к герою."],
+const HINTS: Dictionary[int, String] = {
+	MapNode.Type.BATTLE: "Бой: враги и награда — золото и карта на выбор.",
+	MapNode.Type.ELITE: "Элита: сильный враг и его свита. Награда — реликвия.",
+	MapNode.Type.EVENT: "Событие: выбор — бывает с риском, бывает и бой.",
+	MapNode.Type.SHOP: "Лавка: купить карту или убрать лишнюю из колоды.",
+	MapNode.Type.REST: "Привал: оба героя лечатся.",
+	MapNode.Type.BOSS: "Босс: последний бой акта.",
+	MapNode.Type.LAIR: "Логово духа: победи духа — и он присоединится к герою.",
 }
 
-var _area: Control                          # область, где рисуются точки и дорожки
+var AREA_SIZE: Vector2 = Vector2(1000, 560)   # рисунок карты на экране — по размеру окна (в _ready)
+var _area: Control                    # рисунок карты: фон, тропы, точки, туман, карточка
+var _ink: Control                     # слой троп
+var _fog: ColorRect
 var _available: Array[MapNode] = []
+var _card: MapCard = null
+var _time: float = 0.0
 
 
 func _ready() -> void:
+	var vp: Vector2 = get_viewport_rect().size
+	var h: float = vp.y - RESERVED_HEIGHT
+	AREA_SIZE = Vector2(minf(h * AREA_RATIO, vp.x - 40.0), 0.0)
+	AREA_SIZE.y = AREA_SIZE.x / AREA_RATIO
 	var column: VBoxContainer = UiKit.make_screen(self)
-	column.add_theme_constant_override("separation", 10)
+	column.add_theme_constant_override("separation", 6)
 	column.add_child(UiKit.party_bar(_show_deck))
 
 	var head := HBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 14)
-	head.add_child(UiKit.make_title(_area_title(), 30, UiKit.BRASS.lightened(0.2)))
+	head.add_child(UiKit.make_title(_area_title(), 28, UiKit.BRASS.lightened(0.2)))
 	var seed_label: Label = UiKit.make_label("акт I  ·  Звон %d  ·  сид %d" % [Run.bell, Run.seed_value], 14, UiKit.TEXT_DIM)
 	seed_label.size_flags_vertical = Control.SIZE_SHRINK_END
 	seed_label.tooltip_text = "Сид забега: введи его в главном меню, чтобы повторить этот же забег."
@@ -46,26 +58,51 @@ func _ready() -> void:
 	column.add_child(head)
 
 	_area = Control.new()
-	_area.custom_minimum_size = Vector2(COL_SPACING * (Run.MAP_COLS - 1) + BRANCH_GAP + BOSS_SIZE,
-			ROW_SPACING * (Run.MAP_ROWS - 1) + BOSS_SIZE + LABEL_HEIGHT)
+	_area.custom_minimum_size = AREA_SIZE
 	_area.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_area.draw.connect(_draw_links)   # дорожки рисуем сами в сигнале draw
+	_area.clip_contents = true
 	column.add_child(_area)
+
+	var bg := TextureRect.new()
+	bg.texture = load(BG_PATH) as Texture2D
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.size = AREA_SIZE
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_area.add_child(bg)
+
+	_ink = Control.new()
+	_ink.size = AREA_SIZE
+	_ink.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ink.draw.connect(_draw_trails)
+	_area.add_child(_ink)
 
 	_available = Run.available_nodes()
 	for branch in [MapNode.BOG, MapNode.FOREST]:
 		_area.add_child(_branch_label(branch))
 	for n in Run.map:
-		_area.add_child(_make_node_button(n))
+		_area.add_child(_make_node(n))
 
-	# Памятка: что значит каждая иконка
+	_fog = ColorRect.new()
+	_fog.size = AREA_SIZE
+	_fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://assets/shaders/map_fog.gdshader") as Shader
+	mat.set_shader_parameter("fog_edge", _fog_edge())
+	_fog.material = mat
+	_area.add_child(_fog)
+
+	# Памятка: что значит каждый значок
 	var legend := HBoxContainer.new()
 	legend.alignment = BoxContainer.ALIGNMENT_CENTER
 	legend.add_theme_constant_override("separation", 20)
 	for type: int in [MapNode.Type.BATTLE, MapNode.Type.ELITE, MapNode.Type.LAIR, MapNode.Type.EVENT, MapNode.Type.SHOP, MapNode.Type.REST, MapNode.Type.BOSS]:
-		var look: Array = NODE_LOOK[type]
-		var title: String = (look[2] as String).get_slice(":", 0)
-		legend.add_child(UiKit.chip(look[0], title, (look[1] as Color).lightened(0.55), look[2], 14, 18))
+		var probe := MapNode.new()
+		probe.type = type as MapNode.Type
+		legend.add_child(UiKit.chip(MapCard.icon_for(probe), HINTS[type].get_slice(":", 0), UiKit.BRASS.lightened(0.25), HINTS[type], 14, 20))
+	var fog_chip: Control = UiKit.chip("map_event", "Туман: видно на %d ряда вперёд" % (Run.FOG_SIGHT + Run.fog_bonus), UiKit.TEXT_DIM,
+			"Что за точка, видно только вблизи. Дорожки видны всегда.", 14, 20)
+	legend.add_child(fog_chip)
 	column.add_child(legend)
 	# «Знакомая тропа» (улучшение из хаба): один раз перебросить карту до первого шага
 	if Run.can_reroll_map():
@@ -74,84 +111,188 @@ func _ready() -> void:
 		column.add_child(reroll)
 
 
-# Круглая кнопка точки с иконкой. Куда можно пойти — латунная рамка и лёгкое «дыхание».
-func _make_node_button(n: MapNode) -> Button:
-	var look: Array = NODE_LOOK[n.type]
-	var size: float = BOSS_SIZE if n.type == MapNode.Type.BOSS else NODE_SIZE
+func _process(delta: float) -> void:
+	_time += delta
+
+
+# ---------- Точки ----------
+
+# Точка: значок-штамп латунью со светом под ним. В тумане — тусклый кружок; босс — корона без имени.
+# Куда можно пойти — свет ярче и значок «дышит»; где отряд — тёплый фонарь.
+func _make_node(n: MapNode) -> Control:
+	var revealed: bool = Run.node_revealed(n)
 	var is_available: bool = _available.has(n)
 	var is_current: bool = n == Run.current
+	var size: float = BOSS_SIZE if n.type == MapNode.Type.BOSS else NODE_SIZE
 	var b := Button.new()
-	b.size = Vector2(size, size)
-	b.position = _node_center(n) - b.size / 2.0
+	b.size = Vector2(size, size) * 1.5
+	b.position = _center(n) - b.size / 2.0
 	b.pivot_offset = b.size / 2.0
 	b.disabled = not is_available
 	b.focus_mode = Control.FOCUS_NONE
-	b.tooltip_text = look[2]
-	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
-		b.tooltip_text = "Босс: %s — последний бой акта.\n%s" % [Run.run_boss.title, _boss_hint(Run.run_boss)]
-	elif n.type == MapNode.Type.ELITE and n.row < Run.MAP_ROWS - 3:
-		b.tooltip_text += "\nНеобязательная: можно обойти. Награда — реликвия на выбор."
-	if n.branch != MapNode.COMMON:
-		b.tooltip_text += "\n%s." % Run.BRANCH_TITLES[n.branch]
-		if _crosses_from(n):
-			b.tooltip_text += "\nОтсюда есть тропа в другую ветку."
-	if is_current:
-		b.tooltip_text += "\nВы здесь."
-	elif n.visited:
-		b.tooltip_text += "\nУже пройдено."
+	b.flat = true
+	var empty := StyleBoxEmpty.new()
+	for st: String in ["normal", "hover", "pressed", "disabled", "focus"]:
+		b.add_theme_stylebox_override(st, empty)
 
-	var base: Color = look[1]
-	var border := Color(0, 0, 0, 0.6)
-	var border_width: int = 2
+	var glow_color: Color = GLOW
+	var glow_alpha: float = 0.32
 	if is_available:
-		border = UiKit.BRASS.lightened(0.25)
-		border_width = 3
+		glow_alpha = 0.6
 	elif is_current:
-		border = UiKit.RIFT
-		border_width = 3
-	var radius: int = int(size / 2.0)
-	b.add_theme_stylebox_override("normal", UiKit.box(base, border, border_width, radius, 0, 0))
-	b.add_theme_stylebox_override("hover", UiKit.box(base.lightened(0.18), Color.WHITE, 3, radius, 0, 0))
-	b.add_theme_stylebox_override("pressed", UiKit.box(base.darkened(0.15), UiKit.BRASS, 3, radius, 0, 0))
-	b.add_theme_stylebox_override("disabled", UiKit.box(base, border, border_width, radius, 0, 0))
+		glow_color = Color(1.0, 0.72, 0.38)
+		glow_alpha = 0.75
+	elif n.visited:
+		glow_alpha = 0.12
+	if not revealed:
+		glow_alpha = 0.0
+	if glow_alpha > 0.0:
+		var glow := TextureRect.new()
+		glow.texture = _glow_texture()
+		glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glow.size = b.size
+		glow.modulate = Color(glow_color, glow_alpha)
+		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(glow)
 
-	var icon_size: float = size * 0.58
-	var picture: TextureRect = UiKit.icon_rect(look[0], icon_size, Color(1, 1, 1, 0.95))
-	picture.position = Vector2.ONE * (size - icon_size) / 2.0
-	b.add_child(picture)
+	var icon_color: Color = UiKit.BRASS.lightened(0.15)
+	if n.visited and not is_current:
+		icon_color = Color(UiKit.BRASS.darkened(0.2), 0.6)
+	var icon_name: String = MapCard.icon_for(n)
+	if not revealed:
+		icon_name = "map_boss" if n.type == MapNode.Type.BOSS else "map_event"
+		icon_color = Color(0.75, 0.75, 0.7, 0.35)   # в тумане: только силуэт
+	var pic: TextureRect = UiKit.icon_rect(icon_name, size * (0.9 if revealed else 0.7), icon_color)
+	pic.position = (b.size - pic.size) / 2.0
+	b.add_child(pic)
+	if is_current:
+		var ring := Panel.new()
+		ring.size = Vector2(size, size) * 1.15
+		ring.position = (b.size - ring.size) / 2.0
+		ring.add_theme_stylebox_override("panel", UiKit.box(Color(0, 0, 0, 0), Color(1.0, 0.78, 0.45, 0.9), 2, int(ring.size.x / 2.0)))
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(ring)
 
-	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
-		# Имя босса под его точкой: виден с начала забега, чтобы собирать колоду под него
-		var boss_label: Label = UiKit.make_label(Run.run_boss.title, 15, UiKit.BRASS.lightened(0.3))
-		boss_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		boss_label.size = Vector2(220, size)
-		boss_label.position = Vector2(size + 10, 0)   # справа от точки босса
-		boss_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		b.add_child(boss_label)
-
+	b.tooltip_text = _hint(n, revealed)
 	if is_available:
 		var tween: Tween = b.create_tween().set_loops()
-		tween.tween_property(b, "scale", Vector2.ONE * 1.1, 0.7).set_trans(Tween.TRANS_SINE)
+		tween.tween_property(b, "scale", Vector2.ONE * 1.08, 0.7).set_trans(Tween.TRANS_SINE)
 		tween.tween_property(b, "scale", Vector2.ONE, 0.7).set_trans(Tween.TRANS_SINE)
-	elif n.visited and not is_current:
-		b.modulate = Color(1, 1, 1, 0.4)    # пройденное — бледное
-	elif not is_current:
-		b.modulate = Color(1, 1, 1, 0.78)   # ещё впереди — видно, но не отвлекает
 	b.pressed.connect(Run.enter_node.bind(n))
+	if revealed:
+		b.mouse_entered.connect(_show_card.bind(n))
+		b.mouse_exited.connect(_hide_card.bind(n))
 	Sfx.bind_button(b, "step")
 	return b
 
 
-# Центр точки. Ряд 0 — внизу. Колонки Леса сдвинуты вправо на зазор между ветками,
-# одиночные точки (привал, босс) — по центру карты.
-func _node_center(n: MapNode) -> Vector2:
-	var y: float = (Run.MAP_ROWS - 1 - n.row) * ROW_SPACING + BOSS_SIZE / 2.0
-	if Run.row_nodes(n.row).size() == 1:
-		return Vector2(_area.custom_minimum_size.x / 2.0, y)
-	var x: float = n.col * COL_SPACING + BOSS_SIZE / 2.0
-	if n.branch == MapNode.FOREST:
-		x += BRANCH_GAP
-	return Vector2(x, y)
+func _hint(n: MapNode, revealed: bool) -> String:
+	if not revealed:
+		if n.type == MapNode.Type.BOSS:
+			return "Там, у Шпиля, ждёт хозяин этих мест. Кто — откроется, когда подойдёшь ближе.\nПодсказки — знаки на первых аренах."
+		return "Туман: что здесь — не видно. Подойди ближе."
+	var text: String = HINTS[n.type]
+	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
+		text = "Босс: %s — последний бой акта.\n%s" % [Run.run_boss.title, _boss_hint(Run.run_boss)]
+	if n.branch != MapNode.COMMON:
+		text += "\n%s." % Run.BRANCH_TITLES[n.branch]
+		if _crosses_from(n):
+			text += "\nОтсюда тропа через мост в другую ветку."
+	if n == Run.current:
+		text += "\nВы здесь."
+	elif n.visited:
+		text += "\nУже пройдено."
+	return text
+
+
+# Мягкое пятно света под значком (одна текстура на всех)
+static var _glow_tex: Texture2D = null
+
+static func _glow_texture() -> Texture2D:
+	if _glow_tex == null:
+		var g := GradientTexture2D.new()
+		g.fill = GradientTexture2D.FILL_RADIAL
+		g.fill_from = Vector2(0.5, 0.5)
+		g.fill_to = Vector2(1.0, 0.5)
+		var grad := Gradient.new()
+		grad.set_color(0, Color(1, 1, 1, 1))
+		grad.set_color(1, Color(1, 1, 1, 0))
+		grad.add_point(0.45, Color(1, 1, 1, 0.35))
+		g.gradient = grad
+		g.width = 128
+		g.height = 128
+		_glow_tex = g
+	return _glow_tex
+
+
+# Центр точки на рисунке
+func _center(n: MapNode) -> Vector2:
+	return Vector2(n.pos.x * AREA_SIZE.x, n.pos.y * AREA_SIZE.y)
+
+
+# Граница тумана (доля высоты сверху): посередине между последним видимым рядом и следующим
+func _fog_edge() -> float:
+	var here: int = Run.current.row if Run.current != null else -1
+	var last_seen: int = here + Run.FOG_SIGHT + Run.fog_bonus
+	if last_seen >= Run.MAP_ROWS - 1:
+		return 0.0   # всё видно
+	var y_seen: float = _row_y(last_seen)
+	var y_next: float = _row_y(last_seen + 1)
+	return (y_seen + y_next) / 2.0
+
+
+# Средняя высота ряда на рисунке (доля сверху)
+func _row_y(row: int) -> float:
+	var nodes: Array[MapNode] = Run.row_nodes(row)
+	if nodes.is_empty():
+		return 0.0
+	var sum: float = 0.0
+	for n in nodes:
+		sum += n.pos.y
+	return sum / nodes.size()
+
+
+# ---------- Тропы ----------
+
+# Тропы — пунктир «следов» по плавной кривой с изгибом от сида точки: пройденные — латунью,
+# ближайшие шаги — светлее, остальные — чернилами; в тумане — бледнее.
+func _draw_trails() -> void:
+	var fog_y: float = _fog_edge() * AREA_SIZE.y
+	for n in Run.map:
+		for c in n.next:
+			var target: MapNode = Run.find_map_node(n.row + 1, c)
+			if target == null:
+				continue
+			var color: Color = INK
+			var dot: float = 1.9
+			if n.visited and target.visited:
+				color = UiKit.BRASS.darkened(0.1)
+				dot = 2.5
+			elif n == Run.current and _available.has(target):
+				color = UiKit.BRASS.lightened(0.25)
+				dot = 2.4
+			var a: Vector2 = _center(n)
+			var b: Vector2 = _center(target)
+			var seed_h: int = hash(Vector3i(n.row, n.col, c))
+			var bend: float = (float(seed_h % 1000) / 1000.0 - 0.5) * 0.5   # изгиб тропы
+			var dirv: Vector2 = b - a
+			var perp: Vector2 = Vector2(-dirv.y, dirv.x).normalized()
+			var ctrl: Vector2 = (a + b) / 2.0 + perp * dirv.length() * bend
+			var length: float = dirv.length() * 1.1
+			var steps: int = maxi(3, int(length / STEP_DOT))
+			for i in range(1, steps):
+				var t: float = float(i) / steps
+				var p: Vector2 = a.lerp(ctrl, t).lerp(ctrl.lerp(b, t), t)
+				# следы чуть в шахматном порядке, не точно по линии
+				var side: float = (1.0 if i % 2 == 0 else -1.0) * 2.2
+				p += perp * side
+				if p.distance_to(a) < NODE_SIZE * 0.55 or p.distance_to(b) < NODE_SIZE * 0.55:
+					continue
+				var col: Color = color
+				if p.y < fog_y and color == INK:
+					col = INK_FOG
+				_ink.draw_circle(p + Vector2(0.6, 0.9), dot + 1.0, Color(INK_SHADOW, INK_SHADOW.a * col.a))
+				_ink.draw_circle(p, dot, col)
 
 
 # Есть ли из точки тропа-переход в другую ветку
@@ -163,6 +304,31 @@ func _crosses_from(n: MapNode) -> bool:
 	return false
 
 
+# ---------- Карточка ----------
+
+func _show_card(n: MapNode) -> void:
+	_hide_card(null)
+	_card = MapCard.build(n)
+	var c: Vector2 = _center(n)
+	var pos := Vector2(c.x - _card.size.x / 2.0, c.y - _card.size.y - NODE_SIZE * 0.9)
+	if pos.y < 4.0:
+		pos.y = c.y + NODE_SIZE * 0.9   # у верхнего края — карточка под точкой
+	pos.x = clampf(pos.x, 4.0, AREA_SIZE.x - _card.size.x - 4.0)
+	_card.position = pos
+	_card.modulate = Color(1, 1, 1, 0)
+	_area.add_child(_card)
+	var tw: Tween = _card.create_tween()
+	tw.tween_property(_card, "modulate:a", 1.0, 0.12)
+
+
+func _hide_card(_n: Variant) -> void:
+	if _card != null and is_instance_valid(_card):
+		_card.queue_free()
+	_card = null
+
+
+# ---------- Подписи ----------
+
 # Заголовок: где отряд сейчас; до первого шага — развилка
 func _area_title() -> String:
 	var branch: int = Run.current_branch()
@@ -171,54 +337,22 @@ func _area_title() -> String:
 	return Run.BRANCH_TITLES[branch]
 
 
-# Подпись ветки под её нижним рядом
+# Подпись ветки внизу её половины
 func _branch_label(branch: int) -> Label:
-	var first: float = branch * Run.BRANCH_COLS * COL_SPACING + BOSS_SIZE / 2.0 + (BRANCH_GAP if branch == MapNode.FOREST else 0.0)
-	var width: float = (Run.BRANCH_COLS - 1) * COL_SPACING
-	var label: Label = UiKit.make_label(Run.BRANCH_TITLES[branch], 17, BRANCH_TEXT[branch])
+	var label: Label = UiKit.make_label(Run.BRANCH_TITLES[branch], 19, BRANCH_TEXT[branch])
+	label.add_theme_font_override("font", UiKit.font_title())
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
+	label.add_theme_constant_override("shadow_offset_y", 2)
+	label.add_theme_color_override("font_outline_color", Color(0.05, 0.05, 0.03))
+	label.add_theme_constant_override("outline_size", 4)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.size = Vector2(width + 120.0, LABEL_HEIGHT)
-	label.position = Vector2(first - 60.0, (Run.MAP_ROWS - 1) * ROW_SPACING + BOSS_SIZE + 2.0)
+	label.size = Vector2(AREA_SIZE.x * 0.4, 30)
+	label.position = Vector2((0.05 if branch == MapNode.BOG else 0.55) * AREA_SIZE.x, AREA_SIZE.y - 38.0)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return label
 
 
-# Подложка ветки: тёмный прямоугольник от нижнего ряда до последнего ряда ветки
-func _draw_branch_backs() -> void:
-	var top_row: int = Run.MAP_ROWS - 3
-	for branch in [MapNode.BOG, MapNode.FOREST]:
-		var a: Vector2 = _node_center(Run.find_map_node(0, branch * Run.BRANCH_COLS))
-		var b: Vector2 = _node_center(Run.find_map_node(top_row, branch * Run.BRANCH_COLS + Run.BRANCH_COLS - 1))
-		var pad: float = NODE_SIZE * 0.85
-		var rect := Rect2(Vector2(a.x - pad, b.y - pad), Vector2(b.x - a.x + pad * 2.0, a.y - b.y + pad * 2.0 + LABEL_HEIGHT))
-		_area.draw_rect(rect, BRANCH_TINT[branch], true)
-
-
-# Дорожки между точками: пройденный путь — латунный, ближайшие шаги — светлые, остальное — тусклое.
-# Тропа-переход между ветками — пунктиром.
-func _draw_links() -> void:
-	_draw_branch_backs()
-	for n in Run.map:
-		for c in n.next:
-			var target: MapNode = Run.find_map_node(n.row + 1, c)
-			if target == null:
-				continue
-			var color := Color(UiKit.LINE, 0.9)
-			var width: float = 2.0
-			if n.visited and target.visited:
-				color = UiKit.BRASS
-				width = 4.0
-			elif n == Run.current and _available.has(target):
-				color = UiKit.BRASS.lightened(0.35)
-				width = 3.0
-			var crossing: bool = target.branch != MapNode.COMMON and target.branch != n.branch
-			if crossing:
-				_area.draw_dashed_line(_node_center(n), _node_center(target), color, width + 1.0, 10.0, true)
-			else:
-				_area.draw_line(_node_center(n), _node_center(target), color, width, true)
-
-
-# Одна строка о боссе для подсказки: его строка лора из подсказки в бою
+# Одна строка о боссе для подсказки: его строка лора
 func _boss_hint(enc: EncounterData) -> String:
 	if enc.core.is_empty():
 		return ""

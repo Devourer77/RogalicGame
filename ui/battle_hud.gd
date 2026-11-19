@@ -915,6 +915,29 @@ func _attack_row(caption: String, attack: EnemyAttackData, bonus: int, bright: b
 # ---------- Надписи по центру ----------
 
 # Название арены в начале боя: появляется сверху по центру и тает
+# Короткая подсказка у курсора (знак босса у края арены). Пустой текст — спрятать.
+var _tip: PanelContainer = null
+
+
+func show_tip(text: String, at: Vector2) -> void:
+	if text == "":
+		if _tip != null:
+			_tip.visible = false
+		return
+	if _tip == null:
+		_tip = UiKit.make_panel()
+		_tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var label: Label = UiKit.make_text("", 15, UiKit.TEXT, 320.0)
+		label.name = "Text"
+		_tip.add_child(label)
+		_root.add_child(_tip)
+	(_tip.get_node("Text") as Label).text = text
+	_tip.visible = true
+	_tip.reset_size()
+	# Позиция мыши из события уже в координатах интерфейса (1280×720), пересчитывать не нужно
+	_tip.position = (at + Vector2(18, 14)).min(get_viewport().get_visible_rect().size - _tip.size)
+
+
 func show_arena(title: String) -> void:
 	if title == "":
 		return

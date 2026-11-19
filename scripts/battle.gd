@@ -102,6 +102,7 @@ var vfx: VfxPlayer                 # частицы, вспышки, цифры 
 var _last_hp: Dictionary[BattleUnit, int] = {}   # здоровье юнита на прошлом событии — чтобы заметить лечение
 var _fire_forecast: Dictionary = {}   # прогноз огня: id юнита → урон в конце хода врагов
 var _enemy_phase_running: bool = false   # идёт ход врагов (на нём работает «Скорость ×2»)
+var _boss_sign_hint: String = ""   # подсказка к знаку босса у края арены
 
 
 func _ready() -> void:
@@ -112,6 +113,10 @@ func _ready() -> void:
 	if Run.pending_encounter != null:
 		logic.set_waves(Run.pending_encounter.waves, Run.wave_extra())   # подкрепления (вожак, Певчая, огр)
 	hud.relic_list = Run.relic_list()
+	var sign: Array = Run.boss_sign_for(Run.current) if not Run.sim_no_scenes else []
+	if not sign.is_empty():
+		board.boss_sign = sign[0]
+		_boss_sign_hint = sign[1]
 	board.build(layout_seed, logic.arena_id, logic.ground)
 	if logic.arena_id == "cave":
 		_warm_cave_light()
@@ -150,14 +155,14 @@ func _ready() -> void:
 		else: _cards_played += 1)
 	_mode = Mode.BUSY
 	logic.start()
-	if Run.current != null and Run.current.type == MapNode.Type.ELITE and Run.bog_spirit_offered():
+	if Run.is_elite_battle() and Run.bog_spirit_offered():
 		logic.message.emit("В корнях корягача спит Хозяин трясины: утопи %d врагов в трясине — и он пойдёт с тобой." % Run.BOG_SPIRIT_DROWNS)
 	# Подсказка про новые объекты арены — одной строкой в журнале в начале боя
 	if BattleLogic.is_forest_arena(logic.arena_id):
 		logic.message.emit("Лес: лоза держит того, кто на неё встал (удар картой срубает), деревья с лентой закрывают линии и горят, улей — рой с ядом.")
 	elif logic.arena_id == "pump":
 		logic.message.emit("Насосная: удар по клапану — пар обжигает и отбрасывает соседей, вокруг разливается вода.")
-	if Run.current != null and Run.current.type == MapNode.Type.ELITE and Run.forest_spirit_offered():
+	if Run.is_elite_battle() and Run.forest_spirit_offered():
 		logic.message.emit("Леший смотрит из чащи: победи Голос Рощи, не спалив ни дерева, ни лозы, — и он пойдёт с тобой.")
 	await _play_queue()
 	_select_hero(logic.living_heroes()[0])
@@ -798,6 +803,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if key.keycode == KEY_E:
 			_turn_camera(90.0)
 			return
+	if event is InputEventMouseMotion and _boss_sign_hint != "":
+		_check_boss_sign((event as InputEventMouseMotion).position)
 	if _mode == Mode.BUSY:
 		return
 	if event is InputEventMouseMotion:
@@ -1165,6 +1172,13 @@ func _write_journal() -> void:
 
 # Переводит точку на экране в клетку поля:
 # пускаем луч из камеры через курсор и смотрим, где он пересёк пол (высота 0)
+# Мышь над знаком босса — подсказка-строка у курсора
+func _check_boss_sign(screen_pos: Vector2) -> void:
+	var hit: Variant = Plane(Vector3.UP, 0.0).intersects_ray(camera.project_ray_origin(screen_pos), camera.project_ray_normal(screen_pos))
+	var near: bool = hit != null and Vector2((hit as Vector3).x - board.boss_sign_pos.x, (hit as Vector3).z - board.boss_sign_pos.z).length() < 1.1
+	hud.show_tip(_boss_sign_hint if near else "", screen_pos)
+
+
 func _screen_to_cell(screen_pos: Vector2) -> Vector2i:
 	var ray_from: Vector3 = camera.project_ray_origin(screen_pos)
 	var ray_dir: Vector3 = camera.project_ray_normal(screen_pos)

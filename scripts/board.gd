@@ -193,6 +193,8 @@ var _effect_kinds: Dictionary[Vector2i, int] = {}     # какой эффект 
 var _bog_water_mat: ShaderMaterial
 var _puddle_mat: ShaderMaterial
 var _arena: String = ""
+var boss_sign: String = ""                  # модель знака босса (Run.boss_sign_for), "" — знака нет. Задать до build()
+var boss_sign_pos: Vector3 = Vector3.INF    # где стоит знак (для подсказки при наведении)
 # Эффекты (частицы, свет). Сцена боя задаёт его до того, как ставит объекты и клетки.
 # Пусто — клетки рисуются по-старому, простыми формами.
 var vfx: VfxPlayer = null
@@ -413,6 +415,15 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 			_spawn_prop(decor, D_RIBS, Vector3(w * 0.5 - 0.5, -0.05, -2.6), 0.15)
 			for pos: Vector3 in [Vector3(-1.6, 0.0, 2.0), Vector3(w + 0.6, 0.0, 3.5), Vector3(w * 0.5 + 3.0, 0.0, -1.6)]:
 				_spawn_prop(decor, D_TOTEM, pos, rng.randf_range(-0.5, 0.5))
+
+	# Знак босса — у левого края, ближе к камере, чтобы его было видно с начала боя
+	if boss_sign != "":
+		var path: String = DIR + boss_sign + ".glb"
+		if ResourceLoader.exists(path):
+			boss_sign_pos = Vector3(-1.2, 0.0, h * 0.5)
+			var sign_node: Node3D = _spawn_prop(decor, load(path) as PackedScene, boss_sign_pos, rng.randf_range(0.3, 0.9))
+			sign_node.name = "BossSign"
+			sign_node.scale = Vector3(1.4, 1.4, 1.4)
 
 	# Россыпь по списку арены. Занятые места запоминаем, чтобы декор не слипался.
 	var taken: Array[Vector3] = []

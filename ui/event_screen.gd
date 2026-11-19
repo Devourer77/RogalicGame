@@ -9,7 +9,17 @@ extends Control
 #                                      rare — редкая ★, иначе обычная
 #   {"remove": "mage"}               — игрок сам убирает 1 карту из колоды героя (как в лавке)
 #   {"echoes": 6}                    — Отзвуки (получишь в хабе после забега)
-#   {"relic": 1}                     — случайная порченая реликвия (нельзя, если места кончились)
+#   {"relic": 1}                     — случайная реликвия (нельзя, если места кончились)
+#   {"relic_pick": 3}                — реликвия на выбор из трёх, как за элиту (тз-события.md)
+#   {"fight": "elite"} / {"fight": "<id отряда>"} — бой прямо из события (элита — вторая элита забега,
+#                                      с реликвией в награду); шаг — последний, итог покажет экран награды
+#   {"fog": 1}                       — туман на карте отступает на столько рядов (до конца акта)
+#   {"heal_pct": 30, "who": "all"}   — лечение долей от максимума HP
+#   {"upgrade": "knight"}            — улучшить случайную карту героя (ветка I или II — наугад)
+#   {"wound": "mage"}                — герою «Рана» в колоду
+#   {"keepers": "calm"} / {"keepers": "fewer"} — Хранители до конца акта бьют слабее / в следующем бою
+#                                      с ними на одного меньше
+# Условия появления события: «branch» ("bog" / "forest"), «min_row», «need» — особое условие (см. event_allowed).
 # Случайный исход: «chance» (0..1), «win» и «lose» — у каждого свои effects и текст.
 # «random» в одном выборе — один и тот же герой (кто потерял HP, тот и получает карту).
 # Особые варианты (оберег, дух, бой в пещере) — через «action» и свой код в _special().
@@ -150,12 +160,153 @@ const EVENTS: Array[Dictionary] = [
 					"result": "Среди промокших донесений находятся записи о старых бродах и строевых приёмах местного гарнизона."},
 		],
 	},
+	# ---------- Новые события (тз-события.md, 19 ноября) ----------
+	{
+		"title": "Следы вожака",
+		"id": "tracks",
+		"need": "event_elite",
+		"min_row": 1,
+		"text": "Поперёк тропы — свежие следы, слишком большие для обычной твари. Кора на деревьях содрана на высоте плеча, в грязи темнеют клочья шерсти. Следы уходят в сторону от дороги.",
+		"options": [
+			{"label": "Выследить", "hint": "бой с элитой; награда — реликвия на выбор", "effects": [{"fight": "elite"}],
+					"result": "Отряд сворачивает с тропы."},
+			{"label": "Запомнить, куда ведут", "effects": [{"fog": 1}],
+					"result": "Вы зарисовываете тропы на краю карты. Теперь видно дальше."},
+			{"label": "Уйти", "result": "Следы остаются за спиной. Пусть хозяин их ищет кого-то другого."},
+		],
+	},
+	{
+		"title": "Караван без возницы",
+		"text": "На обочине стоит повозка с клеймом-шестернёй. Лошадей нет, возницы нет, только ящики под просмолённой тканью. Один ящик окован железом и заперт тяжёлым замком.",
+		"options": [
+			{"label": "Сбить замок", "effects": [{"hp": -8, "who": "knight"}, {"relic_pick": 3}],
+					"result": "Замок поддаётся с третьего удара, и пружина ловушки рвёт латнику руку. В ящике — то, что технари везли не на продажу."},
+			{"label": "Забрать то, что сверху", "effects": [{"gold": 30}],
+					"result": "Под тканью — монеты в промасленной бумаге. Кто-то платил за молчание."},
+			{"label": "Не трогать", "result": "Чужой груз — чужие беды."},
+		],
+	},
+	{
+		"title": "Раненый дозорный",
+		"text": "У поваленного столба сидит дозорный Стражи. Плащ в крови, меч на коленях. «Донесите письмо до заставы, — шепчет он. — Я знаю здешние тропы. Всё расскажу».",
+		"options": [
+			{"label": "Перевязать и выслушать", "effects": [{"gold": -15}, {"hp": 6, "who": "all"}, {"fog": 1}],
+					"result": "Он рисует пальцем тропы на вашей карте и отдаёт остаток своего пайка."},
+			{"label": "Забрать его меч", "effects": [{"card": "knight", "rare": true}, {"wound": "mage"}],
+					"result": "Дозорный не сопротивляется. Только смотрит на мага так долго, что тот потом не может уснуть."},
+			{"label": "Оставить", "result": "Его голос долго звучит позади."},
+		],
+	},
+	{
+		"title": "Точильный камень у брода",
+		"text": "У брода лежит плоский камень Стражи, весь в бороздах от клинков. Рядом на столбе — выцветшие знаки ордена, ещё читаемые.",
+		"options": [
+			{"label": "Наточить клинок", "effects": [{"upgrade": "knight"}], "result": "Клинок снова звенит, как в день присяги."},
+			{"label": "Перечертить знаки", "effects": [{"upgrade": "mage"}], "result": "Знаки ордена отзываются в пальцах забытым теплом."},
+		],
+	},
+	{
+		"title": "Колодец желаний",
+		"text": "Старый колодец, на дне — медный отблеск. Над срубом вырезано: «Бросивший — получит». Буквы стёрты руками.",
+		"options": [
+			{"label": "Бросить монеты", "effects": [{"gold": -25}], "chance": 0.5,
+					"win": {"effects": [{"relic_pick": 3}], "result": "Из темноты поднимается то, что когда-то бросили другие."},
+					"lose": {"effects": [], "result": "Монеты звякают о дно. Больше ничего."}},
+			{"label": "Напиться", "effects": [{"hp": 8, "who": "all"}], "result": "Вода с привкусом меди, но холодная и чистая."},
+		],
+	},
+	{
+		"title": "Дозор у священного дуба",
+		"branch": "forest",
+		"text": "Тропу преграждают Хранители Рощи. Маски неподвижны, копья опущены — пока. Старший указывает на дуб, у корней которого лежат дары.",
+		"options": [
+			{"label": "Поклониться и оставить дар", "effects": [{"gold": -20}, {"keepers": "calm"}],
+					"result": "Маски склоняются. До конца пути Хранители бьют вас без прежней злобы."},
+			{"label": "Отказаться", "hint": "бой с Хранителями", "effects": [{"fight": "grove_patrol"}],
+					"result": "Копья поднимаются."},
+			{"label": "Обойти по бурелому", "effects": [{"hp": -4, "who": "all"}],
+					"result": "Ветви рвут одежду, но Хранители так и не двинулись с места."},
+		],
+	},
+	{
+		"title": "Капище масок",
+		"branch": "forest",
+		"text": "На ветвях висят пустые деревянные маски. Одна светится изнутри бледной зеленью. Под деревом — плоский камень для подношений.",
+		"options": [
+			{"label": "Надеть светящуюся маску", "effects": [{"relic": 1}],
+					"result": "Маска прирастает к лицу на миг, потом отпускает. Что-то от неё осталось с вами."},
+			{"label": "Оставить подношение", "hint": "отдать карту → реликвия на выбор", "effects": [{"remove": "random"}, {"relic_pick": 3}],
+					"result": "Роща принимает дар. Взамен маски показывают то, что они хранили."},
+			{"label": "Уйти", "result": "Маски провожают взглядом пустых прорезей."},
+		],
+	},
+	{
+		"title": "Пасека в дупле",
+		"branch": "forest",
+		"text": "В огромном дупле — дикий улей. Соты висят до самой земли, мёд стекает по коре. Пчёлы гудят глухо и зло.",
+		"options": [
+			{"label": "Достать соты", "effects": [{"hp": -6, "who": "knight"}, {"hp": 10, "who": "all"}],
+					"result": "Латы не спасают от каждого жала, но мёд того стоил."},
+			{"label": "Выкурить пчёл", "effects": [{"hp": -1, "who": "all"}, {"gold": 25}],
+					"result": "Под сотами — чей-то давний тайник с монетами."},
+			{"label": "Не трогать", "result": "Гул затихает за спиной."},
+		],
+	},
+	{
+		"title": "Заблудившийся Саженец",
+		"branch": "forest",
+		"text": "У тропы стоит Саженец — кукла из живых ветвей с маленькой резной маской. Он смотрит то на вас, то на чащу, будто не знает дороги.",
+		"options": [
+			{"label": "Отвести к своим", "effects": [{"hp": -3, "who": "all"}, {"keepers": "fewer"}],
+					"result": "На опушке его забирают молча. В следующий раз Хранителей выйдет меньше."},
+			{"label": "Срубить", "effects": [{"card": "mage"}],
+					"result": "Из сердцевины сочится светлый сок. Маг запоминает, как он пахнет."},
+			{"label": "Пройти мимо", "result": "Саженец ещё долго стоит у тропы."},
+		],
+	},
+	{
+		"title": "Насос технарей",
+		"branch": "bog",
+		"text": "Ржавый насос всё ещё гудит. В стеклянной колбе на нём бьётся огонёк — запертый дух, совсем слабый.",
+		"options": [
+			{"label": "Разбить колбу", "chance": 0.5,
+					"win": {"effects": [{"card": "random", "rare": true}], "result": "Огонёк кружит над отрядом и оставляет в памяти чужой приём."},
+					"lose": {"effects": [{"echoes": 10}], "result": "Огонёк гаснет в воздухе, но его эхо уходит с вами."}},
+			{"label": "Забрать колбу", "effects": [{"relic": 1}], "result": "Колба тёплая и тихо гудит в сумке."},
+			{"label": "Уйти", "result": "Насос гудит вам вслед."},
+		],
+	},
+	{
+		"title": "Утопленник шепчет",
+		"branch": "bog",
+		"text": "Из трясины поднимается лицо, белое, как ил. Губы шевелятся: «Отдай то, что тянет тебя вниз. Я возьму».",
+		"options": [
+			{"label": "Выслушать", "effects": [{"hp": -5, "who": "random"}, {"remove": "random"}],
+					"result": "Холодная рука касается запястья. Что-то уходит вместе с ней."},
+			{"label": "Заткнуть уши", "result": "Шёпот стихает, только круги по воде."},
+		],
+	},
+	{
+		"title": "Дым над топью",
+		"branch": "bog",
+		"min_row": 1,
+		"text": "Над кочками поднимается жирный дым. Гоблины жарят что-то на костре и спорят из-за мешка с добычей.",
+		"options": [
+			{"label": "Напасть", "hint": "бой с гоблинами, потом +40 золота", "effects": [{"gold_after": 40}, {"fight": "gang"}],
+					"result": "Гоблины хватаются за дубины."},
+			{"label": "Подкрасться и стащить мешок", "chance": 0.6,
+					"win": {"effects": [{"card": "random"}, {"gold": 15}], "result": "Мешок тяжёлый и звенит. Гоблины даже не обернулись."},
+					"lose": {"effects": [{"fight": "gang"}], "result": "Сучок трещит под сапогом. Гоблины оборачиваются."}},
+			{"label": "Обойти", "result": "Дым ещё долго висит над топью."},
+		],
+	},
 ]
 
 const CARD_SCALE: float = 0.72   # карты-награды на экране итога
 const NAMES: Dictionary = {   # как называть героя: кто / кому / кого
 	"knight": ["Рыцарь", "Рыцарю", "Рыцаря"],
 	"mage": ["Маг", "Магу", "Мага"],
+	"random": ["случайный герой", "случайному герою", "случайного героя"],
 }
 
 var _column: VBoxContainer
@@ -167,6 +318,8 @@ var _lines: Array[String] = []         # что получили и чем за�
 var _won_cards: Array[Dictionary] = [] # карты-награды: {"card", "color"} — показываем картинками
 var _random: RunHero = null            # «случайный герой» этого выбора (один на все шаги)
 var _last_remove: String = ""          # чью карту сейчас убирают (для тестов)
+var fought: bool = false               # выбор увёл в бой (для тестов)
+var relic_offer: Array[RelicData] = [] # реликвии на выбор, которые сейчас показаны (для тестов)
 
 
 func _ready() -> void:
@@ -211,6 +364,15 @@ func _pick_event() -> Dictionary:
 
 
 static func event_allowed(e: Dictionary) -> bool:
+	if e.has("branch"):
+		var want: int = MapNode.FOREST if e["branch"] == "forest" else MapNode.BOG
+		if Run.current_branch() != want:
+			return false
+	var here: int = Run.current.row if Run.current != null else 0
+	if here < int(e.get("min_row", 0)):
+		return false
+	if e.get("need", "") == "event_elite" and (Run.event_elite() == null or Run.pending_event_elite != null):
+		return false
 	match e.get("id", ""):
 		"cave":
 			return false   # расщелина — только по шансу в _pick_event
@@ -297,7 +459,23 @@ static func step_text(s: Dictionary) -> String:
 	if s.has("echoes"):
 		return "+%d Отзвуков" % int(s["echoes"])
 	if s.has("relic"):
-		return "порченая реликвия"
+		return "случайная реликвия"
+	if s.has("relic_pick"):
+		return "реликвия на выбор"
+	if s.has("fog"):
+		return "туман на карте отступит"
+	if s.has("heal_pct"):
+		return "+%d%% HP %s" % [int(s["heal_pct"]), "каждому" if s.get("who", "all") == "all" else NAMES.get(s["who"], ["герою"])[1]]
+	if s.has("upgrade"):
+		return "улучшить карту %s" % NAMES[s["upgrade"]][2]
+	if s.has("wound"):
+		return "%s — Рана" % NAMES[s["wound"]][1]
+	if s.has("gold_after"):
+		return "+%d золота после боя" % int(s["gold_after"])
+	if s.has("keepers"):
+		return "Хранители бьют слабее" if s["keepers"] == "calm" else "Хранителей в следующем бою меньше"
+	if s.has("fight"):
+		return "бой"
 	return ""
 
 
@@ -306,8 +484,10 @@ static func blocked_reason(option: Dictionary) -> String:
 	var gold_cost: int = 0
 	for s: Dictionary in option.get("effects", []):
 		gold_cost -= mini(0, int(s.get("gold", 0)))
-		if s.has("relic") and not Run.can_take_relic():
+		if (s.has("relic") or s.has("relic_pick")) and not Run.can_take_relic():
 			return "Больше реликвий не унести"
+		if s.has("upgrade") and Run.upgradable(_hero_static(s["upgrade"])).is_empty():
+			return "Нечего улучшать"
 	if gold_cost > Run.gold:
 		return "Не хватает золота (нужно %d)" % gold_cost
 	return ""
@@ -332,12 +512,28 @@ func _choose(option: Dictionary) -> void:
 	_next_step()
 
 
-# Выполняет шаги по очереди. «Убрать карту» ждёт выбора игрока, потом продолжает.
+# Выполняет шаги по очереди. «Убрать карту» и «реликвия на выбор» ждут выбора игрока, потом продолжают.
+# «Бой» — последний шаг: после него экран боя, итог покажет экран награды.
 func _next_step() -> void:
 	while not _steps.is_empty():
 		var s: Dictionary = _steps.pop_front()
+		if s.has("fight"):
+			Sfx.play("hit", 0.06)
+			if s["fight"] == "elite":
+				Run.start_event_battle(Run.event_elite(), true)
+			else:
+				Run.start_event_battle(Run.encounter_by_id(s["fight"]), false)
+			fought = true
+			return
+		if s.has("relic_pick"):
+			var offer: Array[RelicData] = Run.roll_relics(int(s["relic_pick"]))
+			if offer.is_empty() or not Run.can_take_relic():
+				_lines.append("Больше реликвий не унести")
+				continue
+			_show_relic_pick(offer)
+			return
 		if s.has("remove"):
-			var rh: RunHero = _hero(s["remove"])
+			var rh: RunHero = _random if s["remove"] == "random" else _hero(s["remove"])
 			if rh.deck.size() <= Run.MIN_DECK_SIZE:
 				_lines.append("%s: колода и так тонкая — убирать нечего" % NAMES[rh.data.id][0])
 				continue
@@ -351,6 +547,26 @@ func _next_step() -> void:
 			return
 		_apply_step(s)
 	_show_result(_story_text)
+
+
+# Реликвия на выбор: три кнопки, взял одну — событие идёт дальше
+func _show_relic_pick(offer: Array[RelicData]) -> void:
+	relic_offer = offer
+	UiKit.clear(_column)
+	_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+	_column.add_child(_story("Выбери реликвию:"))
+	for r in offer:
+		var b: Button = UiKit.make_button("%s\n+ %s\n− %s" % [r.title, r.plus_text, r.minus_text], pick_relic.bind(r))
+		b.custom_minimum_size = Vector2(640, 86)
+		_column.add_child(b)
+
+
+func pick_relic(r: RelicData) -> void:
+	relic_offer.clear()
+	Sfx.play("magic", 0.05)
+	Run.take_relic(r)
+	_lines.append("Реликвия «%s»\n+ %s\n− %s" % [r.title, r.plus_text, r.minus_text])
+	_next_step()
 
 
 func _remove(rh: RunHero, index: int) -> void:
@@ -395,6 +611,39 @@ func _apply_step(s: Dictionary) -> void:
 	elif s.has("echoes"):
 		Run.event_echoes += int(s["echoes"])
 		_lines.append("+%d Отзвуков" % int(s["echoes"]))
+	elif s.has("fog"):
+		Run.fog_bonus += int(s["fog"])
+		_lines.append("Туман на карте отступает: видно на %d ряда вперёд" % (Run.FOG_SIGHT + Run.fog_bonus))
+	elif s.has("heal_pct"):
+		for rh in _targets(s.get("who", "all")):
+			var before: int = rh.hp
+			Run.heal_hero(rh, ceili(rh.data.max_hp * int(s["heal_pct"]) / 100.0))
+			if rh.hp != before:
+				_lines.append("%s: +%d HP" % [rh.data.title, rh.hp - before])
+	elif s.has("upgrade"):
+		var rh: RunHero = _hero(s["upgrade"])
+		var options: Array[int] = Run.upgradable(rh)
+		if options.is_empty():
+			_lines.append("%s: улучшать нечего" % NAMES[rh.data.id][0])
+		else:
+			var idx: int = options[Run.rng.randi_range(0, options.size() - 1)]
+			var old_title: String = rh.deck[idx].title
+			Run.upgrade_card(rh, idx, Run.rng.randi_range(1, 2))
+			_lines.append("%s: «%s» → «%s»" % [NAMES[rh.data.id][0], old_title, rh.deck[idx].title])
+			_won_cards.append({"card": rh.deck[idx], "color": rh.data.color})
+	elif s.has("wound"):
+		var rh: RunHero = _hero(s["wound"])
+		Run.add_wounds(rh, 1)
+		_lines.append("%s: Рана в колоде" % NAMES[rh.data.id][0])
+	elif s.has("gold_after"):
+		Run.gold_after_battle += int(s["gold_after"])
+	elif s.has("keepers"):
+		if s["keepers"] == "calm":
+			Run.keepers_calm = true
+			_lines.append("Хранители Рощи до конца акта бьют на 1 слабее")
+		else:
+			Run.keepers_fewer += 1
+			_lines.append("В следующем бою с Хранителями их будет на одного меньше")
 	elif s.has("relic"):
 		var offer: Array[RelicData] = Run.roll_relics(1)
 		if offer.is_empty() or not Run.can_take_relic():
@@ -421,7 +670,7 @@ func _targets(who: String) -> Array[RunHero]:
 func _sound(steps: Array) -> void:
 	var kind: String = "hit"
 	for s: Dictionary in steps:
-		if s.has("card") or s.has("relic") or s.has("echoes") or s.has("remove"):
+		if s.has("card") or s.has("relic") or s.has("relic_pick") or s.has("echoes") or s.has("remove") or s.has("upgrade"):
 			kind = "magic"
 			break
 		if int(s.get("gold", 0)) > 0:
@@ -459,6 +708,13 @@ func _special(action: String) -> void:
 			_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
 			_column.add_child(_story("Чем глубже, тем суше воздух. Вода, что стекала по стенам, шипит и исчезает, не долетев до пола."))
 			_column.add_child(UiKit.make_button("В бой", Run.enter_cave, "", true))
+
+
+static func _hero_static(hero_id: String) -> RunHero:
+	for rh in Run.party:
+		if rh.data.id == hero_id:
+			return rh
+	return Run.party[0]
 
 
 # Герой отряда по id («knight» / «mage»); если такого нет — случайный

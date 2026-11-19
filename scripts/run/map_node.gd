@@ -11,10 +11,12 @@ const COMMON: int = -1      # общий ряд (привал, босс)
 
 var type: Type = Type.BATTLE
 var row: int = 0              # ряд снизу вверх: 0 — старт, последний — босс
-var col: int = 0              # колонка в ряду (0–2 — Болота, 3–5 — Лес; у привала и босса — 0)
+var col: int = 0              # дорожка-колонка (0–3 — Болота, 4–7 — Лес; у привала и босса — 0)
 var branch: int = BOG         # ветка: BOG, FOREST или COMMON
 var next: Array[int] = []     # колонки следующего ряда, куда отсюда ведут дорожки
 var visited: bool = false
+var arena: String = ""        # арена боя на этой точке (выбрана при создании карты — её видно на карточке)
+var pos: Vector2 = Vector2.ZERO   # место на рисунке карты, доли ширины и высоты (0..1, y — сверху вниз)
 
 
 func type_name() -> String:

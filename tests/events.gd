@@ -25,6 +25,7 @@ func _initialize() -> void:
 	_rules()
 	await _removal_flow()
 	await _cancel_flow()
+	_event_battles()
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 
@@ -56,6 +57,7 @@ func _snapshot() -> Dictionary:
 
 func _all_options() -> void:
 	print("--- Каждый выбор ---")
+	run.sim_no_scenes = true   # бой из события не открывает экран боя
 	for e: Dictionary in SCREEN.EVENTS:
 		for o: Dictionary in e["options"]:
 			if o.has("action"):
@@ -78,6 +80,8 @@ func _all_options() -> void:
 					c.free()
 				removed += 1
 				if removed > 5: break
+			if not s.relic_offer.is_empty():
+				s.pick_relic(s.relic_offer[0])   # реликвия на выбор: игрок взял первую
 			var after: Dictionary = _snapshot()
 			var ok: bool = _matches(o, before, after, s)
 			check("%s · %s" % [e["title"], o["label"]], ok)
@@ -117,17 +121,23 @@ func _matches(o: Dictionary, before: Dictionary, after: Dictionary, s: Control) 
 				want["gold"] += int(st["gold"])
 			if st.has("echoes"):
 				want["echoes"] += int(st["echoes"])
-			if st.has("relic"):
+			if st.has("relic") or st.has("relic_pick"):
 				want["relics"] += 1
+			if st.has("wound"):
+				want[st["wound"] + "_deck"] += 1
+			if st.has("fight"):
+				if not s.fought: return false   # бой должен был начаться
+				return true   # дальше — экран награды, итог проверяют тесты боя
 			if st.has("card"):
 				var who: String = st["card"] if st["card"] != "random" else s._random.data.id
 				want[who + "_deck"] += 1
 			if st.has("remove"):
-				want[st["remove"] + "_deck"] -= 1
+				want[(st["remove"] if st["remove"] != "random" else s._random.data.id) + "_deck"] -= 1
 			if st.has("hp"):
 				var ids: Array = ["knight", "mage"] if st["who"] == "all" else [st["who"] if st["who"] != "random" else s._random.data.id]
 				for id: String in ids:
-					want[id + "_hp"] = maxi(1, want[id + "_hp"] + int(st["hp"]))
+					var mx: int = run.party[0].data.max_hp if run.party[0].data.id == id else run.party[1].data.max_hp
+					want[id + "_hp"] = clampi(want[id + "_hp"] + int(st["hp"]), 1, mx)
 		if want == after:
 			return true
 	print("    было %s\n    стало %s" % [before, after])
@@ -201,3 +211,58 @@ func _cancel_flow() -> void:
 	check("Передумал: карта осталась, новая дана, событие закончилось", mage.deck.size() == deck_before + 1 \
 			and s._lines.any(func(l): return l.contains("не убрали")))
 	s.queue_free()
+
+
+func _event_battles() -> void:
+	print("--- Бои и условия новых событий ---")
+	run.sim_no_scenes = true
+	run.start_new_run(12)
+	var forest: MapNode = null
+	for n in run.row_nodes(2):
+		if n.branch == MapNode.FOREST: forest = n
+	run.current = forest
+	var oak: Dictionary = {}
+	var pump: Dictionary = {}
+	for e: Dictionary in SCREEN.EVENTS:
+		if e["title"] == "Дозор у священного дуба": oak = e
+		if e["title"] == "Насос технарей": pump = e
+	check("В лесу — лесные события", SCREEN.event_allowed(oak))
+	check("В лесу нет болотных событий", not SCREEN.event_allowed(pump))
+	# Следы вожака: вторая элита, не та, что перед привалом, с наградой элиты
+	var extra: EncounterData = run.event_elite()
+	check("Есть вторая элита для «Следов вожака»", extra != null)
+	run.start_event_battle(extra, true)
+	check("Бой из события — элитный", run.is_elite_battle())
+	check("…с этой элитой", run.pending_enemies[0] == extra.core[0])
+	check("…и это не элита перед привалом", extra != run.run_elites[1])
+	run.enter_node(run.find_map_node(3, run.available_nodes()[0].col) if false else run.available_nodes()[0])
+	check("На следующей точке бой из события забыт", run.pending_event_elite == null)
+	# Хранители: дар у дуба и Саженец
+	run.start_new_run(12)
+	run.keepers_calm = true
+	run.keepers_fewer = 1
+	run.current = forest
+	run.forced_encounter = run.encounter_by_id("grove_hunt")
+	var list: Array[EnemyData] = run._make_encounter(3, false)
+	var base: EnemyData = load("res://resources/enemies/grove_huntress.tres")
+	var calm_ok: bool = false
+	for d in list:
+		if d.id == "grove_huntress" and d.cycle[0].damage == base.cycle[0].damage - 1: calm_ok = true
+	check("Дар у дуба: Ловчая бьёт на 1 слабее", calm_ok)
+	check("Общий файл Ловчей не изменился", base.cycle[0].damage == 5)
+	check("Саженец отведён: Хранителей на одного меньше, счётчик сброшен", run.keepers_fewer == 0)
+	run.forced_encounter = null
+	# Знаки босса: на рядах 0–1 есть, дальше нет; знак — этого босса, при повторе тот же
+	run.start_new_run(12)
+	var first: MapNode = run.row_nodes(0)[0]
+	var sign: Array = run.boss_sign_for(first)
+	var own: Array = run.BOSS_SIGNS[run.run_boss.id].map(func(x): return x[0])
+	check("Знак босса на первой арене", not sign.is_empty() and own.has(sign[0]))
+	check("Знак тот же при повторе", run.boss_sign_for(first) == sign)
+	check("Подсказка без имени босса", not sign[1].to_lower().contains("капитан") and not sign[1].to_lower().contains("огр ") and not sign[1].to_lower().contains("матерь"))
+	var far: MapNode = run.row_nodes(3)[0]
+	check("На ряду 3 знака нет", run.boss_sign_for(far).is_empty())
+	for id: String in run.BOSS_SIGNS:
+		for sg: Array in run.BOSS_SIGNS[id]:
+			check("Модель знака есть: " + sg[0], ResourceLoader.exists("res://assets/models/%s.glb" % sg[0]))
+	run.sim_no_scenes = false
