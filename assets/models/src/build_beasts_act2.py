@@ -544,6 +544,9 @@ def moth_mesh():
     k.sphere("Thorax", 0.08, (0, -0.04, 0.62), fur, "Body", segs=6, rings=4)
     k.sphere("Abdomen", 0.07, (0, 0.12, 0.6), fur, "Body", scale=(0.9, 1.7, 0.9), segs=6, rings=4)
     k.sphere("Head", 0.05, (0, -0.14, 0.64), fur, "Body", segs=6, rings=4)
+    stripe = k.mat("AM_Stripe", (0.33, 0.25, 0.19), rough=0.95)   # бурые полосы на брюшке (по референсу, без рыжего)
+    for i, y in enumerate((0.1, 0.18)):
+        a2.ring(f"Stripe{i}", 0.058, 0.014, (0, y, 0.6), (0, 1, 0), stripe, "Body", seg=8)
     for s in (-1, 1):
         k.box(f"Eye{s}", (0.02, 0.02, 0.02), (0.035 * s, -0.18, 0.65), v["rift"], "Body")
         k.limb(f"Antenna{s}", (0.02 * s, -0.17, 0.68), (0.1 * s, -0.28, 0.76), 0.008, 0.003, fur, "Body", segs=3)

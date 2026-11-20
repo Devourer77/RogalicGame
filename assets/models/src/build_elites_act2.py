@@ -346,6 +346,7 @@ def vessel_anims():
         for j in range(3):
             p.add(f"Chain{j}", x=5 * wave(t, 1, 0.3 * j), z=4 * wave(t, 1, 0.3 * j + 0.2))
         p.add("Crown", y=6 * wave(t, 1))
+        p.add("Cage", x=6)   # по референсу клетка наклонена вперёд — дух её толкает
         return p
 
     def idle(t):
@@ -419,8 +420,8 @@ def vessel_anims():
 # ---------- Обозный Исполин ----------
 def giant_mesh(B):
     v = a2.volcano_mats()
-    wood = k.mat("CG_Wood", (0.36, 0.28, 0.2), rough=0.9)
-    wood_d = k.mat("CG_WoodDark", (0.24, 0.19, 0.15), rough=0.9)
+    wood = k.mat("CG_Wood", (0.27, 0.22, 0.18), rough=0.9)   # обугленное, не свежее
+    wood_d = k.mat("CG_WoodDark", (0.17, 0.15, 0.13), rough=0.9)
     hoop = k.mat("CG_Hoop", (0.34, 0.27, 0.22), metallic=0.4, rough=0.7)
     p = B.p
     # таз и ноги — брёвна, стянутые шлаком
@@ -452,7 +453,12 @@ def giant_mesh(B):
     # левая рука — бревно с кулаком из шлака
     k.limb("UpperArm.L", p(0.28, 0, 1.38), p(0.32, 0, 1.1), 0.075, 0.07, wood_d, "UpperArm.L", segs=6)
     k.limb("ForeArm.L", p(0.32, 0, 1.1), p(0.34, -0.05, 0.88), 0.07, 0.065, wood, "ForeArm.L", segs=6)
-    a2.rock("FistL", (0.16 * B.s, 0.16 * B.s, 0.16 * B.s), p(0.34, -0.06, 0.82), v["slag"], "Hand.L", seed=11)
+    for i in range(4):   # кулак из досок, стянутый обручем
+        k.box(f"FistPlank{i}", (0.05 * B.s, 0.18 * B.s, 0.16 * B.s), p(0.3 + 0.028 * i, -0.08, 0.8 - 0.01 * (i % 2)), wood,
+              "Hand.L", rot=(0, 6 * (i - 1.5), 0))
+    a2.ring("FistHoop", 0.085 * B.s, 0.014, p(0.34, -0.08, 0.84), (0, 0, 1), hoop, "Hand.L", seg=10)
+    for i, (x, z) in enumerate(((0.06, 0.95), (-0.1, 1.0), (0.22, 1.4))):   # угольки в шлаке
+        k.box(f"Ember{i}", (0.035, 0.03, 0.03), p(x, -0.16 if i < 2 else -0.06, z), v["ember"], "Hips" if i < 2 else "Chest")
     # правая рука — тележное колесо
     k.limb("UpperArm.R", p(-0.28, 0, 1.38), p(-0.32, 0, 1.1), 0.075, 0.07, wood_d, "UpperArm.R", segs=6)
     k.limb("ForeArm.R", p(-0.32, 0, 1.1), p(-0.34, -0.05, 0.88), 0.07, 0.065, wood, "ForeArm.R", segs=6)
@@ -479,9 +485,10 @@ def build_giant(name):
         bones[f"Hand.{side}"] = (B.p(0.34 * sg, -0.05, 0.88), B.p(0.34 * sg, -0.1, 0.76), f"ForeArm.{side}")
     rig = k.build_armature(name, bones)
     body.parent = rig
-    anim = hu.Anim("swing", hunch=16, crouch=0.15,
-                   extra_stance={"UpperArm.R": (-14, 0, 18), "UpperArm.L": (-10, 0, -14), "ForeArm.L": (-30, 0, 0),
-                                 "ForeArm.R": (-20, 0, 0), "Weapon": (0, 0, 0)})
+    # по референсу: сгорблен, широкая стойка, рука-колесо поднята для замаха
+    anim = hu.Anim("swing", hunch=26, crouch=0.25,
+                   extra_stance={"UpperArm.R": (-60, 0, 34), "UpperArm.L": (-14, 0, -18), "ForeArm.L": (-30, 0, 0),
+                                 "ForeArm.R": (-40, 0, 0), "Weapon": (0, 0, 0)})
 
     def hail(t):
         # Град шлака: обе руки вверх → удар оземь

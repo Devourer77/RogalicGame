@@ -195,25 +195,48 @@ def m_archivist(B):
 
 # ---------- Горновой Венца (элита) ----------
 def m_forgemaster(B):
+    # По принятому референсу Gemini (16 ноября): заметно крупнее и шире обычных культистов,
+    # огромные голые закопчённые руки, короткие тяжёлые ноги, толстый венец с шипами,
+    # горн с мехами за спиной выше головы, клещи с раскалённым концом.
     c = cult_mats()
-    burnt = k.mat("CF_Burnt", (0.5, 0.38, 0.32), rough=0.8)
-    B.figure(burnt, c["ash"], c["coal"], c["leather"], robe=True, sleeves=burnt, head=False, long_robe=True)
+    burnt = k.mat("CF_Burnt", (0.42, 0.32, 0.27), rough=0.8)   # кожа темнее, без розового
+    B.figure(burnt, c["ash"], c["coal"], c["leather"], robe=True, sleeves=burnt, head=False)
     p = B.p
-    k.sphere("Bulk", 0.22 * B.s, p(0, 0, 1.3), c["ash"], "Chest", scale=(1.15, 0.8, 0.9), segs=8, rings=4)
-    k.plate("Apron", [(-0.2, 0), (0.2, 0), (0.21, -0.75), (-0.21, -0.75)], 0.025, p(0, -0.17, 1.32), (B.s, 0, 0),
+    k.sphere("Bulk", 0.25 * B.s, p(0, 0, 1.3), c["ash"], "Chest", scale=(1.3, 0.85, 0.95), segs=8, rings=4)
+    k.limb("Neck", p(0, 0, 1.4), p(0, -0.01, 1.52), 0.1 * B.s, 0.09 * B.s, burnt, "Chest", segs=6)
+    for side, sg in hu.SIDES:   # массивные плечи и руки поверх обычных
+        k.sphere(f"Shoulder.{side}", 0.1 * B.s, p(0.21 * sg, 0, 1.38), burnt, "Chest", scale=(1.1, 1.0, 0.9), segs=7, rings=4)
+        k.limb(f"Biceps.{side}", p(0.21 * sg, 0, 1.36), p(0.25 * sg, 0, 1.13), 0.085 * B.s, 0.07 * B.s, burnt,
+               f"UpperArm.{side}", segs=7)
+        k.limb(f"Forearm.{side}", p(0.25 * sg, 0, 1.12), p(0.26 * sg, -0.05, 0.92), 0.07 * B.s, 0.06 * B.s, burnt,
+               f"ForeArm.{side}", segs=7)
+        k.sphere(f"Fist.{side}", 0.055 * B.s, p(0.26 * sg, -0.06, 0.88), burnt, f"Hand.{side}", segs=6, rings=4)
+        k.limb(f"Calf.{side}", p(0.11 * sg, -0.02, 0.5), p(0.11 * sg, 0, 0.12), 0.075 * B.s, 0.07 * B.s, c["leather"],
+               f"Shin.{side}", segs=6)
+    k.plate("Apron", [(-0.22, 0), (0.22, 0), (0.23, -0.72), (-0.23, -0.72)], 0.025, p(0, -0.2, 1.32), (B.s, 0, 0),
             (0, -0.1 * B.s, B.s), c["leather"], "Chest")
-    cult_hood(B, c, crown_r=0.13)
-    # Переносной горн с мехами на спине
-    k.box("Forge", (0.38 * B.s, 0.28 * B.s, 0.26 * B.s), p(0, 0.28, 1.3), c["iron_d"], "Chest")
-    k.sphere("ForgeCoals", 0.16 * B.s, p(0, 0.28, 1.44), c["coalglow"], "Chest", scale=(1.1, 0.8, 0.4), segs=7, rings=3)
-    k.box("Bellows", (0.06, 0.22 * B.s, 0.2 * B.s), p(0.24, 0.28, 1.26), c["leather"], "Chest", rot=(0, 0, 8))
-    k.limb("BellowsNozzle", p(0.22, 0.2, 1.26), p(0.16, 0.2, 1.3), 0.025, 0.02, c["iron"], "Chest", segs=5)
-    # Клещи с раскалённым концом
+    cult_hood(B, c, crowns=0)
+    # толстый тяжёлый венец с короткими шипами
+    a2.ring("Crown0", 0.14 * B.s, 0.028, p(0, 0.01, 1.86), (0, 0, 1), c["bone"], "Crown", seg=14)
+    for i in range(8):
+        a = math.tau * i / 8
+        x, y = 0.14 * B.s * math.cos(a), 0.14 * B.s * math.sin(a)
+        k.limb(f"CrownSpike{i}", (x, y + p(0, 0.01, 0)[1], p(0, 0, 1.86)[2]), (x * 1.05, y * 1.05 + p(0, 0.01, 0)[1], p(0, 0, 1.94)[2]),
+               0.025, 0.004, c["bone"], "Crown", segs=4)
+    # переносной горн с мехами — над головой
+    k.box("Forge", (0.42 * B.s, 0.3 * B.s, 0.5 * B.s), p(0, 0.3, 1.5), c["iron_d"], "Chest")
+    k.box("ForgeRim", (0.46 * B.s, 0.34 * B.s, 0.05 * B.s), p(0, 0.3, 1.76), c["iron"], "Chest")
+    k.sphere("ForgeCoals", 0.17 * B.s, p(0, 0.3, 1.79), c["coalglow"], "Chest", scale=(1.15, 0.85, 0.4), segs=7, rings=3)
+    k.limb("Chimney", p(-0.12, 0.38, 1.8), p(-0.14, 0.42, 2.02), 0.05, 0.045, c["iron_d"], "Chest", segs=6)
+    k.box("Bellows", (0.07, 0.26 * B.s, 0.28 * B.s), p(0.27, 0.3, 1.46), c["leather"], "Chest", rot=(0, 0, 8))
+    k.box("BellowsBoard", (0.02, 0.28 * B.s, 0.06), p(0.31, 0.3, 1.62), c["wood"], "Chest", rot=(0, 0, 8))
+    k.limb("BellowsNozzle", p(0.24, 0.22, 1.46), p(0.17, 0.22, 1.5), 0.025, 0.02, c["iron"], "Chest", segs=5)
+    # длинные клещи с раскалённым концом
     hx, hy, hz = B.hand_r
     for sgn in (-1, 1):
-        k.limb(f"Tong{sgn}", (hx + 0.02 * sgn, hy + 0.05, hz), (hx + 0.01 * sgn, hy - 0.55, hz), 0.014, 0.014, c["iron_d"],
+        k.limb(f"Tong{sgn}", (hx + 0.025 * sgn, hy + 0.05, hz), (hx + 0.012 * sgn, hy - 0.7, hz), 0.018, 0.016, c["iron_d"],
                "Weapon", segs=4)
-    k.box("TongTip", (0.05, 0.08, 0.04), (hx, hy - 0.6, hz), c["hot"], "Weapon")
+    k.box("TongTip", (0.07, 0.1, 0.05), (hx, hy - 0.76, hz), c["hot"], "Weapon")
 
 
 # ---------- Обгоревший дозорный (павшая Стража, тварь Раскола) ----------
@@ -253,7 +276,7 @@ CHARS = {
                        {"Weapon": (88, 0, 0), "UpperArm.R": (-10, 0, 14), "ForeArm.R": (-60, 0, 0),
                         "UpperArm.L": (-20, 0, -10), "ForeArm.L": (-40, 0, 0)}),
     "cult_archivist": (2.3, m_archivist, "aim", 4, 0.0, 3, {"Weapon": (0, 0, 0)}),
-    "cult_forgemaster": (2.2, m_forgemaster, "swing", 12, 0.1, 1, {}),
+    "cult_forgemaster": (2.3, m_forgemaster, "swing", 14, 0.22, 1, {"UpperArm.L": (-24, 0, -22), "UpperArm.R": (-30, 0, 22)}),
     "burnt_sentry": (1.7, m_sentry, "aim", 4, 0.2, 0, {}),
 }
 
