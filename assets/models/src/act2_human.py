@@ -58,7 +58,7 @@ class Body:
             b.update(extra)
         return b
 
-    def figure(self, skin, cloth, cloth2, boots, robe=False, sleeves=None, head=True):
+    def figure(self, skin, cloth, cloth2, boots, robe=False, sleeves=None, head=True, long_robe=False):
         """Базовая фигура: торс, руки, кисти, ноги (штаны или ряса), обувь, голова (если head)."""
         p = self.p
         sl = sleeves or cloth
@@ -88,7 +88,10 @@ class Body:
             k.box(f"Foot.{side}", (0.11 * self.s, 0.22 * self.s, 0.07 * self.s), p(0.11 * sg, -0.05, 0.035), boots, f"Foot.{side}")
         if robe:
             # Ряса: юбка от пояса до голени, полы спереди и сзади на своих костях
-            k.barrel("Skirt", 0.2 * self.s, 0.25 * self.s, p(0, 0, 0.52)[2], p(0, 0, 0.94)[2], cloth, "Hips", segs=8, sy=0.8)
+            if long_robe:   # ряса до земли
+                k.barrel("Skirt", 0.19 * self.s, 0.27 * self.s, p(0, 0, 0.12)[2], p(0, 0, 0.94)[2], cloth, "Hips", segs=8, sy=0.8)
+            else:           # подвязана у колен
+                k.barrel("Skirt", 0.2 * self.s, 0.25 * self.s, p(0, 0, 0.52)[2], p(0, 0, 0.94)[2], cloth, "Hips", segs=8, sy=0.8)
             k.plate("ClothF", [(-0.15, 0), (0.15, 0), (0.13, -0.38), (0.0, -0.33), (-0.13, -0.4)], 0.025 * self.s,
                     p(0, -0.17, 0.9), (self.s, 0, 0), (0, -0.15 * self.s, 1 * self.s), cloth, "ClothF")
             k.plate("ClothB", [(-0.16, 0), (0.16, 0), (0.14, -0.4), (-0.02, -0.36), (-0.15, -0.38)], 0.025 * self.s,
@@ -260,3 +263,39 @@ class Anim:
         k.bake(rig, "Death", 39, self.death, scale_bones=scale_bones)
         for name, frames, fn in (extra or []):
             k.bake(rig, name, frames, fn, scale_bones=scale_bones)
+
+
+# ---------- Культ Пустого Венца (акт 2) ----------
+
+def cult_mats():
+    """Палитра Культа акта 2: пепельно-серая и угольная ткань, обожжённая кожа, тёмное железо, кость — только венец."""
+    return dict(
+        ash=k.mat("CU_Ash", (0.52, 0.51, 0.49), rough=0.95),
+        ash_d=k.mat("CU_AshDark", (0.36, 0.35, 0.34), rough=0.95),
+        coal=k.mat("CU_Charcoal", (0.24, 0.24, 0.25), rough=0.95),
+        leather=k.mat("CU_Leather", (0.38, 0.28, 0.2), rough=0.85),
+        bone=k.mat("CU_Bone", (0.86, 0.83, 0.74), rough=0.6, emit=0.15),
+        void=k.mat("CU_Void", (0.07, 0.07, 0.08), rough=1.0),
+        iron=k.mat("CU_Iron", (0.3, 0.3, 0.31), metallic=0.5, rough=0.65),
+        iron_d=k.mat("CU_IronDark", (0.21, 0.21, 0.22), metallic=0.5, rough=0.7),
+        wood=k.mat("CU_Wood", (0.42, 0.32, 0.22), rough=0.9),
+        skin=k.mat("CU_Skin", (0.55, 0.47, 0.42), rough=0.8),
+        hot=k.mat("CU_Hot", (1.0, 0.5, 0.12), rough=0.4, emit=1.6),
+        coalglow=k.mat("CU_Coals", (1.0, 0.36, 0.05), rough=0.5, emit=0.9),
+        smoke=k.mat("CU_Smoke", (0.6, 0.64, 0.58), rough=0.95),
+    )
+
+
+def cult_hood(B, c, crowns=1, hood=True, crown_r=0.11):
+    """Капюшон с пустотой вместо лица и парящий костяной венец (crowns колец друг над другом)."""
+    p = B.p
+    if hood:
+        k.sphere("Hood", 0.14 * B.s, p(0, 0.0, 1.58), c["ash"], "Head", scale=(0.95, 1.05, 1.15), segs=8, rings=5)
+        k.limb("HoodTip", p(0, 0.04, 1.66), p(0, 0.12, 1.72), 0.07 * B.s, 0.01, c["ash"], "Head", segs=6)
+        k.sphere("Face", 0.085 * B.s, p(0, -0.1, 1.56), c["void"], "Head", scale=(0.9, 0.6, 1.0), segs=7, rings=4)
+    for i in range(crowns):
+        a2.ring(f"Crown{i}", (crown_r - 0.015 * i) * B.s, 0.012, p(0, 0.01, 1.86 + 0.08 * i), (0, 0, 1), c["bone"], "Crown", seg=14)
+
+
+def crown_bone(B, n=1):
+    return {"Crown": (B.p(0, 0.01, 1.82), B.p(0, 0.01, 1.92 + 0.08 * n), "Head")}
