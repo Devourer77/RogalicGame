@@ -9,7 +9,7 @@ func _ready() -> void:
 		crown.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		column.add_child(crown)
 		column.add_child(UiKit.make_title("Победа!", 64, UiKit.BRASS.lightened(0.3)))
-		column.add_child(UiKit.make_text("Огр повержен, гать свободна. Шпиль стал на один переход ближе.", 20))
+		column.add_child(UiKit.make_text("Хозяин Шпиля повержен. Путь, который Стража не прошла, пройден до конца.", 20))
 	else:
 		var bell: TextureRect = UiKit.icon_rect("bell", 72, UiKit.TEXT_DIM)
 		bell.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

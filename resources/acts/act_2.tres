@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ActData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/act_data.gd" id="1_act"]
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+
+[resource]
+script = ExtResource("1_act")
+number = 2
+title = "Пепельный тракт"
+intro = "Выжженная дорога к Шпилю. Поверху — тракт в пепле и знамёнах Культа, понизу — пещеры и мёртвая лаборатория технарей. Обе дороги сходятся у жерла вулкана."
+branch_titles = Array[String](["Тракт", "Подземье"])
+fork_title = "Развилка: тракт или подземье"
+common_title = "У жерла вулкана"
+map_bg = "res://assets/textures/map/map_bg_act2.jpg"
+encounters = Array[ExtResource("1_enc")]([])
+elite_pool = Array[ExtResource("1_enc")]([])
+boss_pool = Array[ExtResource("1_enc")]([])
+arenas_left = Array[String]([])
+arenas_right = Array[String]([])
+boss_arena = ""
+borrow_from = 1
+enemy_hp_mult = 1.3
+enemy_damage_add = 0

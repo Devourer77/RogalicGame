@@ -15,9 +15,19 @@ const GAME_OVER_SCENE: String = "res://ui/game_over.tscn"
 const HUB_SCENE: String = "res://scenes/hub.tscn"
 const START_PICK_SCENE: String = "res://ui/start_pick.tscn"
 const TROPHY_SCENE: String = "res://ui/trophy_screen.tscn"
+const ACT_SCENE: String = "res://ui/act_screen.tscn"
 
-# Сколько актов в забеге. Звон открывается, только если пройден последний (пока акт один).
-const FINAL_ACT: int = 1
+# Акты забега по порядку (resources/acts/, мир.md, раздел 2). Звон открывается, только если пройден последний.
+# Акты 2 и 3 пока на врагах и аренах акта 1, только крепче (ActData.borrow_from) — их собственные враги в работе.
+const ACTS: Array[ActData] = [
+	preload("res://resources/acts/act_1.tres"),
+	preload("res://resources/acts/act_2.tres"),
+	preload("res://resources/acts/act_3.tres"),
+]
+# Сколько актов в забеге. 1 — забег как раньше (только Гнилые топи), 3 — весь путь до Шпиля.
+const FINAL_ACT: int = 3
+const ACT_HEAL_PERCENT: float = 1.0   # сколько недостающего здоровья возвращается при переходе в новый акт
+const BOSS_GOLD: Vector2i = Vector2i(35, 50)   # золото за босса, если забег на нём не кончается
 
 const MAP_ROWS: int = 8        # последний ряд — босс, предпоследний — общий привал
 # Две ветки рядом (мир.md, раздел 2): колонки 0–2 — Болота, 3–5 — Лес. Сходятся на привале перед боссом.
@@ -26,7 +36,6 @@ const MAP_COLS: int = BRANCH_COLS * 2
 const CROSS_ROW: int = 3       # с этого ряда — тропа-переход между ветками через мост (на ряд выше)
 const PATHS_PER_BRANCH: int = 4   # сколько троп идёт снизу вверх в каждой ветке (сливаются и расходятся)
 const FOG_SIGHT: int = 2          # туман: тип точки виден на столько рядов вперёд от текущей
-const BRANCH_TITLES: Array[String] = ["Гнилые топи", "Густые леса"]
 const OBJECTIVE_FROM_ROW: int = 2     # с какого ряда карты бывают бои с особой целью
 # Модификаторы врагов (тз-сложность-боя.md): сколько врагов в бою получают «характер»
 const MODIFIERS_DIR: String = "res://resources/enemy_modifiers/"
@@ -67,51 +76,8 @@ const HEROES: Array[HeroData] = [
 	preload("res://resources/heroes/knight.tres"),
 ]
 
-# Отряды врагов акта (resources/encounters): обычные бои, элиты и боссы.
-# Обычный бой берёт отряд своей ступени (ряды 0–1, 2–3, 4+), за забег отряд не повторяется.
-const ENCOUNTERS: Array[EncounterData] = [
-	preload("res://resources/encounters/gang.tres"),
-	preload("res://resources/encounters/pack.tres"),
-	preload("res://resources/encounters/hunt.tres"),        # волки в засаде сбоку, пращники сверху
-	preload("res://resources/encounters/toad_mound.tres"),  # жаба в куче гоблинов
-	preload("res://resources/encounters/choir.tres"),
-	preload("res://resources/encounters/gas_ambush.tres"),
-	preload("res://resources/encounters/shaman_guard.tres"),
-	preload("res://resources/encounters/web.tres"),
-	preload("res://resources/encounters/rift_mix.tres"),
-	preload("res://resources/encounters/drivers.tres"),
-	preload("res://resources/encounters/rising_bog.tres"),
-	preload("res://resources/encounters/novices.tres"),
-	preload("res://resources/encounters/spores.tres"),
-	preload("res://resources/encounters/torches.tres"),
-	preload("res://resources/encounters/reed_ambush.tres"),
-	preload("res://resources/encounters/stone_line.tres"),
-	preload("res://resources/encounters/bog_folk.tres"),   # пиявки (второй заход врагов)
-	preload("res://resources/encounters/drowned.tres"),
-	preload("res://resources/encounters/bombers.tres"),
-	preload("res://resources/encounters/grove_patrol.tres"),   # Стражи Рощи (лес)
-	# Хранители Рощи (лес, 18 ноября)
-	preload("res://resources/encounters/saplings.tres"),
-	preload("res://resources/encounters/grove_hunt.tres"),
-	preload("res://resources/encounters/grove_poison.tres"),
-	preload("res://resources/encounters/grove_rain.tres"),
-	preload("res://resources/encounters/bark_wall.tres"),
-	preload("res://resources/encounters/skin_pack.tres"),
-	preload("res://resources/encounters/hive_keepers.tres"),
-]
-# Пулы элит и боссов акта: в начале забега выбираются ELITES_PER_RUN разных элит и один босс
-const ELITE_POOL: Array[EncounterData] = [
-	preload("res://resources/encounters/elite_treant.tres"),
-	preload("res://resources/encounters/elite_queen.tres"),
-	preload("res://resources/encounters/elite_alpha.tres"),
-	preload("res://resources/encounters/elite_singer.tres"),
-	preload("res://resources/encounters/elite_voice.tres"),   # Голос Рощи — лес, у него живёт Леший
-]
-const BOSS_POOL: Array[EncounterData] = [
-	preload("res://resources/encounters/boss_ogre.tres"),
-	preload("res://resources/encounters/boss_mother.tres"),
-	preload("res://resources/encounters/boss_captain.tres"),   # Утопший капитан (второй заход)
-]
+# Отряды, элиты и боссы — в файле акта (resources/acts/act_N.tres), берутся через encounters(),
+# elite_pool(), boss_pool(). Обычный бой берёт отряд своей ступени (ряды 0–1, 2–3, 4+), за акт отряд не повторяется.
 const ELITES_PER_RUN: int = 1        # на ветку: одна обязательная элита перед привалом (вторая — только через событие)
 
 var is_active: bool = false
@@ -151,7 +117,9 @@ var shop_removal_used: bool = false
 var shop_upgrade_used: bool = false   # в этой лавке уже улучшили карту
 var last_run_won: bool = false
 var bell: int = 0                 # Звон (сложность) текущего забега
-var act: int = 1
+var act: int = 1                 # текущий акт (1…FINAL_ACT)
+var final_act: int = FINAL_ACT   # на каком акте кончается забег (замер ботом может взять 1 — только акт 1)
+var act_cleared: bool = false    # босс акта побеждён, впереди награда, трофей и переход в следующий акт
 var rows_passed: int = 0         # сколько рядов карты пройдено (для Отзвуков)
 var elite_kills: int = 0
 var boss_kills: int = 0
@@ -223,6 +191,7 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	last_battle_big = false
 	bell = Meta.bell_chosen if bell_level < 0 else bell_level
 	act = 1
+	act_cleared = false
 	rows_passed = 0
 	elite_kills = 0
 	boss_kills = 0
@@ -320,6 +289,126 @@ func goto(scene_path: String) -> void:
 	get_tree().change_scene_to_file.call_deferred(scene_path)
 
 
+# ---------- Акты ----------
+
+func act_data() -> ActData:
+	return ACTS[clampi(act, 1, ACTS.size()) - 1]
+
+
+# Акт, у которого текущий берёт недостающее (сам он, если брать не у кого)
+func _lender() -> ActData:
+	var a: ActData = act_data()
+	return ACTS[a.borrow_from - 1] if a.borrow_from > 0 and a.borrow_from <= ACTS.size() else a
+
+
+func encounters() -> Array[EncounterData]:
+	var a: ActData = act_data()
+	return a.encounters if not a.encounters.is_empty() else _lender().encounters
+
+
+func elite_pool() -> Array[EncounterData]:
+	var a: ActData = act_data()
+	return a.elite_pool if not a.elite_pool.is_empty() else _lender().elite_pool
+
+
+func boss_pool() -> Array[EncounterData]:
+	var a: ActData = act_data()
+	return a.boss_pool if not a.boss_pool.is_empty() else _lender().boss_pool
+
+
+# Названия двух веток карты текущего акта
+func branch_titles() -> Array[String]:
+	return act_data().branch_titles
+
+
+# Арены обычных боёв ветки (MapNode.BOG — левая, MapNode.FOREST — правая)
+func arena_pool(branch: int) -> Array[String]:
+	var right: bool = branch == MapNode.FOREST
+	for a: ActData in [act_data(), _lender()]:
+		var pool: Array[String] = a.arenas_right if right else a.arenas_left
+		if not pool.is_empty():
+			return pool
+	return BattleLogic.FOREST_ARENA_POOL if right else BattleLogic.ARENA_POOL
+
+
+# Арена босса: своя у отряда босса, иначе — арена босса акта
+func boss_arena() -> String:
+	if run_boss != null and run_boss.arena != "":
+		return run_boss.arena
+	for a: ActData in [act_data(), _lender()]:
+		if a.boss_arena != "":
+			return a.boss_arena
+	return BattleLogic.BOSS_ARENA
+
+
+# Рисунок карты пути текущего акта (своего ещё нет — рисунок акта 1)
+func map_background() -> String:
+	var path: String = act_data().map_bg
+	return path if path != "" and ResourceLoader.exists(path) else ACTS[0].map_bg
+
+
+# Копия врага для акта, который пока живёт на чужих врагах: крепче и бьёт сильнее (общий файл не меняется)
+func _act_scaled(d: EnemyData) -> EnemyData:
+	var a: ActData = act_data()
+	if is_equal_approx(a.enemy_hp_mult, 1.0) and a.enemy_damage_add == 0:
+		return d
+	var copy: EnemyData = d.duplicate() as EnemyData
+	copy.max_hp = ceili(d.max_hp * a.enemy_hp_mult)
+	if copy.damage > 0:
+		copy.damage += a.enemy_damage_add
+	var cyc: Array[EnemyAttackData] = []
+	for atk in d.cycle:
+		var c: EnemyAttackData = atk.duplicate() as EnemyAttackData
+		if c.damage > 0:
+			c.damage += a.enemy_damage_add
+		cyc.append(c)
+	copy.cycle = cyc
+	return copy
+
+
+# После награды: босс акта побеждён — трофей и следующий акт, иначе — обратно на карту
+func after_reward() -> void:
+	if act_cleared:
+		_offer_trophy()
+	else:
+		goto(MAP_SCENE)
+
+
+# После трофея: финальный босс — итог забега, иначе — переход в следующий акт
+func after_trophy() -> void:
+	if run_complete:
+		game_over(true)
+	else:
+		next_act()
+
+
+# Переход в следующий акт: отряд переводит дух, новая карта, новые элиты и босс.
+# Колоды, духи, золото, реликвии и Раны остаются.
+func next_act() -> void:
+	act_cleared = false
+	act = mini(act + 1, mini(final_act, ACTS.size()))
+	for rh in party:
+		rh.heal(ceili((rh.data.max_hp - rh.hp) * ACT_HEAL_PERCENT))
+	current = null
+	pending_enemies.clear()
+	pending_encounter = null
+	pending_event_elite = null
+	forced_encounter = null
+	used_encounters.clear()
+	_last_arena = ""
+	fog_bonus = 0
+	keepers_calm = false
+	keepers_fewer = 0
+	_pick_act_bosses()
+	_generate_map()
+	goto(ACT_SCENE)
+
+
+# Награда после этого боя — большая (элита или босс акта): редкие карты, улучшение, реликвия
+func is_big_reward() -> bool:
+	return is_elite_battle() or act_cleared
+
+
 # ---------- Карта ----------
 
 func find_map_node(row: int, col: int) -> MapNode:
@@ -354,7 +443,7 @@ func enter_node(n: MapNode) -> void:
 	forced_encounter = null
 	current = n
 	n.visited = true
-	rows_passed = maxi(rows_passed, n.row + 1)
+	rows_passed = maxi(rows_passed, (act - 1) * MAP_ROWS + n.row + 1)   # ряды считаются через все акты
 	match n.type:
 		MapNode.Type.BATTLE:
 			pending_enemies = _make_encounter(n.row, false)
@@ -462,11 +551,9 @@ func _encounter_arena(is_boss: bool) -> String:
 # Выбирает арену для боя: у босса своя, обычные не повторяются два раза подряд
 func pick_arena(is_boss: bool) -> String:
 	if is_boss:
-		if run_boss != null and run_boss.arena != "":
-			return run_boss.arena
-		return BattleLogic.BOSS_ARENA
-	# Арены по ветке карты: в Густых лесах — лесные, иначе — болотные
-	var pool: Array[String] = BattleLogic.FOREST_ARENA_POOL if current_branch() == MapNode.FOREST else BattleLogic.ARENA_POOL
+		return boss_arena()
+	# Арены по ветке карты (у каждого акта свои; в акте 1 справа — лесные, слева — болотные)
+	var pool: Array[String] = arena_pool(current_branch())
 	var options: Array[String] = pool.duplicate()
 	options.erase(_last_arena)
 	_last_arena = options[rng.randi_range(0, options.size() - 1)]
@@ -513,7 +600,7 @@ func _assign_arenas() -> void:
 		for n in row_nodes(row):
 			match n.type:
 				MapNode.Type.BOSS:
-					n.arena = run_boss.arena if run_boss.arena != "" else BattleLogic.BOSS_ARENA
+					n.arena = boss_arena()
 				MapNode.Type.ELITE:
 					var enc: EncounterData = elite_for_row(row, n.branch)
 					n.arena = enc.arena if enc.arena != "" else _arena_for(n)
@@ -522,7 +609,7 @@ func _assign_arenas() -> void:
 
 
 func _arena_for(n: MapNode) -> String:
-	var pool: Array[String] = BattleLogic.FOREST_ARENA_POOL if n.branch == MapNode.FOREST else BattleLogic.ARENA_POOL
+	var pool: Array[String] = arena_pool(n.branch)
 	var options: Array[String] = pool.duplicate()
 	for prev in row_nodes(n.row - 1):
 		if prev.next.has(n.col):
@@ -702,18 +789,19 @@ func _pick_act_bosses() -> void:
 	var taken: Array[String] = []
 	for branch in [MapNode.BOG, MapNode.FOREST]:
 		var pool: Array[EncounterData] = []
-		for enc in ELITE_POOL:
+		for enc in elite_pool():
 			if enc.fits_branch(branch) and not taken.has(enc.id):
 				pool.append(enc)
 		for i in ELITES_PER_RUN:
 			if pool.is_empty():   # кандидатов мало — берём из своей ветки повторно
-				for enc in ELITE_POOL:
+				for enc in elite_pool():
 					if enc.fits_branch(branch):
 						pool.append(enc)
 			var picked: EncounterData = pool.pop_at(rng.randi_range(0, pool.size() - 1))
 			run_elites.append(picked)
 			taken.append(picked.id)
-	run_boss = BOSS_POOL[rng.randi_range(0, BOSS_POOL.size() - 1)]
+	var bosses: Array[EncounterData] = boss_pool()
+	run_boss = bosses[rng.randi_range(0, bosses.size() - 1)]
 
 
 # Элита ветки (ряд перед привалом). Ветка — текущая (вне карты считаем Болота).
@@ -736,7 +824,7 @@ func event_elite() -> EncounterData:
 	if branch == MapNode.COMMON:
 		branch = MapNode.BOG
 	var options: Array[EncounterData] = []
-	for enc in ELITE_POOL:
+	for enc in elite_pool():
 		if enc.fits_branch(branch) and not run_elites.has(enc) and not used_encounters.has(enc.id):
 			options.append(enc)
 	if options.is_empty():
@@ -765,9 +853,13 @@ func start_event_battle(enc: EncounterData, elite: bool) -> void:
 
 # Обычный отряд по id (для боёв из событий)
 func encounter_by_id(id: String) -> EncounterData:
-	for enc in ENCOUNTERS:
+	for enc in encounters():
 		if enc.id == id:
 			return enc
+	for a: ActData in ACTS:   # событие может звать отряд другого акта
+		for enc in a.encounters:
+			if enc.id == id:
+				return enc
 	return null
 
 
@@ -810,17 +902,18 @@ func _pick_encounter(row: int) -> EncounterData:
 	if forced_encounter != null:
 		return forced_encounter
 	var branch: int = current_branch()
+	var pool: Array[EncounterData] = encounters()
 	var options: Array[EncounterData] = []
-	for enc in ENCOUNTERS:
+	for enc in pool:
 		var arena_ok: bool = enc.arena == "" or current == null or current.arena == "" or enc.arena == current.arena
 		if enc.fits_row(row) and enc.fits_branch(branch) and not used_encounters.has(enc.id) and arena_ok:
 			options.append(enc)
 	if options.is_empty():   # все отряды ступени и ветки уже были — можно повторить
-		for enc in ENCOUNTERS:
+		for enc in pool:
 			if enc.fits_row(row) and enc.fits_branch(branch):
 				options.append(enc)
 	if options.is_empty():
-		options = ENCOUNTERS.duplicate()
+		options = pool.duplicate()
 	var picked: EncounterData = options[rng.randi_range(0, options.size() - 1)]
 	used_encounters.append(picked.id)
 	return picked
@@ -847,6 +940,8 @@ func _make_encounter(row: int, boss: bool, elite: bool = false) -> Array[EnemyDa
 			result.append(_roll_filler(enc, result))
 	if enc.kind != EncounterData.Kind.BOSS:
 		_keeper_adjust(result)
+	for i in result.size():
+		result[i] = _act_scaled(result[i])   # акт на чужих врагах — они крепче
 	_apply_modifiers(result, row, enc.kind != EncounterData.Kind.NORMAL)
 	return result
 
@@ -959,8 +1054,15 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 	if current != null and current.type == MapNode.Type.BOSS:
 		boss_kills += 1
 		last_battle_big = true
-		run_complete = act >= FINAL_ACT
-		_offer_trophy()
+		run_complete = act >= final_act
+		if run_complete:
+			_offer_trophy()   # финальный босс: трофей и итог забега
+			return
+		# Босс акта: золото и большая награда, потом трофей и переход в следующий акт (after_reward)
+		act_cleared = true
+		last_gold_reward = rng.randi_range(BOSS_GOLD.x, BOSS_GOLD.y)
+		gold += last_gold_reward
+		goto(REWARD_SCENE)
 	else:
 		last_gold_reward = rng.randi_range(12, 20)
 		if pending_objective != BattleLogic.Objective.KILL_ALL:
@@ -976,8 +1078,8 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 func _offer_trophy() -> void:
 	var closed: Array[RelicData] = Meta.closed_charms()
 	if closed.is_empty():
-		trophy_echoes = Meta.TROPHY_FALLBACK_ECHOES
-		game_over(true)
+		trophy_echoes += Meta.TROPHY_FALLBACK_ECHOES   # за каждого босса без трофея
+		after_trophy()
 		return
 	trophy_choices.clear()
 	while trophy_choices.size() < 3 and not closed.is_empty():
@@ -1171,7 +1273,7 @@ func _roll_lair_spirit() -> SpiritData:
 # Может ли событие оказаться «Тлеющей расщелиной»: ряды 1–4, духа огня нет, раз за забег
 func cave_possible() -> bool:
 	var row: int = current.row if current != null else 0
-	return not cave_seen and not party_has_spirit("fire") and spirit_data("fire") != null \
+	return act == 1 and not cave_seen and not party_has_spirit("fire") and spirit_data("fire") != null \
 			and row >= CAVE_ROWS.x and row <= CAVE_ROWS.y
 
 

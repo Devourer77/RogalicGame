@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ActData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/act_data.gd" id="1_act"]
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+
+[resource]
+script = ExtResource("1_act")
+number = 3
+title = "Ледяной Шпиль"
+intro = "Обледенелые ступени к самому Шпилю. Здесь Культ хранит Пустой Венец."
+branch_titles = Array[String](["Западный склон", "Восточный склон"])
+fork_title = "Подножие Шпиля"
+common_title = "У вершины"
+map_bg = "res://assets/textures/map/map_bg_act3.jpg"
+encounters = Array[ExtResource("1_enc")]([])
+elite_pool = Array[ExtResource("1_enc")]([])
+boss_pool = Array[ExtResource("1_enc")]([])
+arenas_left = Array[String]([])
+arenas_right = Array[String]([])
+boss_arena = ""
+borrow_from = 1
+enemy_hp_mult = 1.6
+enemy_damage_add = 1

@@ -101,11 +101,11 @@ func _initialize() -> void:
 	check("Без строя враги в верхних рядах", free.enemies.all(func(e: BattleUnit) -> bool: return e.cell.y <= free._enemy_last_row()))
 	# Ранние отряды получили строй, новые отряды в пуле
 	var early: Array[String] = []
-	for e: EncounterData in run.ENCOUNTERS:
+	for e: EncounterData in run.encounters():
 		if e.max_row <= 1 and e.formation == BattleLogic.Formation.FREE:
 			early.append(e.id)
 	check("У всех отрядов рядов 0–1 есть строй " + str(early), early.is_empty())
-	check("Облава и Жабья кочка в пуле обычных боёв", run.ENCOUNTERS.has(enc("hunt")) and run.ENCOUNTERS.has(enc("toad_mound")))
+	check("Облава и Жабья кочка в пуле обычных боёв", run.encounters().has(enc("hunt")) and run.encounters().has(enc("toad_mound")))
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)
 

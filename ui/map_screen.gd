@@ -1,6 +1,6 @@
 extends Control
 # Карта забега (тз-карта-пути.md): старая карта на пергаменте, рисунок Gemini (assets/textures/map/).
-# Слева Гнилые топи, справа Густые леса, между ними овраг с мостом — тропа-переход на ряду Run.CROSS_ROW.
+# Две ветки акта (в акте 1 слева Гнилые топи, справа Густые леса; названия — Run.branch_titles()), между ними овраг с мостом — тропа-переход на ряду Run.CROSS_ROW.
 # Тропы извилистые, нарисованы «чернилами» — пунктиром следов. Туман войны: что за точка, видно на
 # Run.FOG_SIGHT рядов вперёд; дальше — плывущий туман и размытые силуэты. Босс — корона в тумане,
 # его имя открывается, когда до него остаётся FOG_SIGHT рядов.
@@ -8,7 +8,7 @@ extends Control
 
 const AREA_RATIO: float = 1024.0 / 572.0     # пропорции рисунка карты
 const RESERVED_HEIGHT: float = 178.0         # над и под картой: полоса отряда, заголовок, памятка
-const BG_PATH: String = "res://assets/textures/map/map_bg_act1.jpg"
+const ROMAN: Array[String] = ["", "I", "II", "III", "IV"]
 const NODE_SIZE: float = 34.0
 const BOSS_SIZE: float = 46.0
 const INK := Color(0.8, 0.72, 0.54, 0.78)       # «следы» троп: светлая выцветшая охра (фон карты тёмный)
@@ -50,7 +50,7 @@ func _ready() -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 14)
 	head.add_child(UiKit.make_title(_area_title(), 28, UiKit.BRASS.lightened(0.2)))
-	var seed_label: Label = UiKit.make_label("акт I  ·  Звон %d  ·  сид %d" % [Run.bell, Run.seed_value], 14, UiKit.TEXT_DIM)
+	var seed_label: Label = UiKit.make_label("акт %s · %s  ·  Звон %d  ·  сид %d" % [ROMAN[Run.act], Run.act_data().title, Run.bell, Run.seed_value], 14, UiKit.TEXT_DIM)
 	seed_label.size_flags_vertical = Control.SIZE_SHRINK_END
 	seed_label.tooltip_text = "Сид забега: введи его в главном меню, чтобы повторить этот же забег."
 	seed_label.mouse_filter = Control.MOUSE_FILTER_PASS
@@ -64,7 +64,7 @@ func _ready() -> void:
 	column.add_child(_area)
 
 	var bg := TextureRect.new()
-	bg.texture = load(BG_PATH) as Texture2D
+	bg.texture = load(Run.map_background()) as Texture2D
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	bg.size = AREA_SIZE
@@ -189,13 +189,13 @@ func _make_node(n: MapNode) -> Control:
 func _hint(n: MapNode, revealed: bool) -> String:
 	if not revealed:
 		if n.type == MapNode.Type.BOSS:
-			return "Там, у Шпиля, ждёт хозяин этих мест. Кто — откроется, когда подойдёшь ближе.\nПодсказки — знаки на первых аренах."
+			return "В конце пути ждёт хозяин этих мест. Кто — откроется, когда подойдёшь ближе.\nПодсказки — знаки на первых аренах."
 		return "Туман: что здесь — не видно. Подойди ближе."
 	var text: String = HINTS[n.type]
 	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
 		text = "Босс: %s — последний бой акта.\n%s" % [Run.run_boss.title, _boss_hint(Run.run_boss)]
 	if n.branch != MapNode.COMMON:
-		text += "\n%s." % Run.BRANCH_TITLES[n.branch]
+		text += "\n%s." % Run.branch_titles()[n.branch]
 		if _crosses_from(n):
 			text += "\nОтсюда тропа через мост в другую ветку."
 	if n == Run.current:
@@ -333,13 +333,13 @@ func _hide_card(_n: Variant) -> void:
 func _area_title() -> String:
 	var branch: int = Run.current_branch()
 	if branch == MapNode.COMMON:
-		return "Развилка: топи или чаща" if Run.current == null else "Окраина Марки"
-	return Run.BRANCH_TITLES[branch]
+		return Run.act_data().fork_title if Run.current == null else Run.act_data().common_title
+	return Run.branch_titles()[branch]
 
 
 # Подпись ветки внизу её половины
 func _branch_label(branch: int) -> Label:
-	var label: Label = UiKit.make_label(Run.BRANCH_TITLES[branch], 19, BRANCH_TEXT[branch])
+	var label: Label = UiKit.make_label(Run.branch_titles()[branch], 19, BRANCH_TEXT[branch])
 	label.add_theme_font_override("font", UiKit.font_title())
 	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	label.add_theme_constant_override("shadow_offset_y", 2)

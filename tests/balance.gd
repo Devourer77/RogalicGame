@@ -45,9 +45,9 @@ func _initialize() -> void:
 	for r in FIRST_ROWS:
 		configs.append({"name": "ряд %d" % r, "row": r, "boss": false, "elite": false})
 	# Каждая элита и каждый босс из пулов акта — своей строкой
-	for enc: EncounterData in run.ELITE_POOL:
+	for enc: EncounterData in run.elite_pool():
 		configs.append({"name": enc.title.left(9), "row": ELITE_ROW, "boss": false, "elite": true, "encounter": enc})
-	for enc: EncounterData in run.BOSS_POOL:
+	for enc: EncounterData in run.boss_pool():
 		configs.append({"name": enc.title.left(9), "row": BOSS_ROW, "boss": true, "elite": false, "encounter": enc})
 	# Бои с особой целью (ряд 3). Бот целей не понимает и просто дерётся — строка показывает,
 	# насколько цель усложняет обычную драку (ритуал призывает, вода замедляет и т. д.)

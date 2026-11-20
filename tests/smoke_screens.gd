@@ -36,4 +36,18 @@ func _initialize() -> void:
 	current_scene._choose(load("res://ui/event_screen.gd").EVENTS[2]["options"][0])   # Утопленный идол: снять амулет
 	for i in 10: await process_frame
 	print("event idol ok, relics=", run.relics.size())
+	# Босс акта 1: награда босса → трофей → экран акта 2 → карта акта 2
+	run.start_new_run(12)
+	for n: MapNode in run.map:
+		if n.type == MapNode.Type.BOSS:
+			run.current = n
+	run.finish_battle(true, [20, 20] as Array[int])
+	for i in 30: await process_frame
+	print("boss reward ok, act_cleared=", run.act_cleared, " elite_step=", current_scene._elite)
+	run.next_act()
+	for i in 30: await process_frame
+	print("act screen ok: ", current_scene.name, " act=", run.act)
+	change_scene_to_file("res://ui/map_screen.tscn")
+	for i in 30: await process_frame
+	print("act 2 map ok, nodes=", run.map.size())
 	quit()

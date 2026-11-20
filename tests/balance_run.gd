@@ -9,6 +9,8 @@ var squad_losses: Dictionary = {}   # id отряда → [потеря HP, бо
 #   godot --headless --path . -s tests/balance_run.gd -- 100           — 100 забегов
 #   godot --headless --path . -s tests/balance_run.gd -- 100 nowound   — то же без Ран (сравнить)
 #   godot --headless --path . -s tests/balance_run.gd -- 100 bell3     — на Звоне 3
+#   godot --headless --path . -s tests/balance_run.gd -- 100 act1      — только акт 1 (как замеры до 20 ноября)
+# Забег идёт через все акты (Run.FINAL_ACT): после босса акта — награда, переход, новая карта.
 # Результат — в консоль и в user://balance_run.txt.
 #
 # Как бот ведёт забег (просто и одинаково до и после правок):
@@ -33,6 +35,8 @@ func _initialize() -> void:
 		if a.begins_with("bell"):
 			bell = a.trim_prefix("bell").to_int()
 	run.sim_no_scenes = true
+	run.final_act = 1 if args.has("act1") else run.FINAL_ACT
+	var reached_act: Dictionary = {}   # акт → сколько забегов до него дошли
 	run.wounds_per_fall = 0 if args.has("nowound") else run.WOUNDS_PER_FALL
 
 	var started: int = Time.get_ticks_msec()
@@ -55,8 +59,10 @@ func _initialize() -> void:
 		bandages += res["bandages"]
 		wounds_end += res["wounds_end"]
 		for k: String in res["losses"]:
-			losses[k][0] += res["losses"][k][0]
-			losses[k][1] += res["losses"][k][1]
+			var cur: Array = losses.get(k, [0, 0])
+			losses[k] = [cur[0] + res["losses"][k][0], cur[1] + res["losses"][k][1]]
+		for a in range(1, res["act"] + 1):
+			reached_act[a] = reached_act.get(a, 0) + 1
 		if res.has("hp_elite"):
 			reached_elite += 1
 			hp_before_elite += res["hp_elite"]
@@ -73,13 +79,19 @@ func _initialize() -> void:
 	var lines: PackedStringArray = []
 	lines.append("Замер забега: %d забегов, Звон %d, Раны: %s" % [runs, bell, "нет" if run.wounds_per_fall == 0 else "%d за падение" % run.wounds_per_fall])
 	lines.append("Выиграно забегов: %.0f%%   (цель 40–60%%)" % (100.0 * won / n))
-	lines.append("Дошли до обязательной элиты (ряд 5): %.0f%%, до босса: %.0f%%" % [100.0 * reached_elite / n, 100.0 * reached_boss / n])
+	if run.final_act > 1:
+		var acts_text: PackedStringArray = []
+		for a in range(1, run.final_act + 1):
+			acts_text.append("акт %d: %.0f%%" % [a, 100.0 * reached_act.get(a, 0) / n])
+		lines.append("Дошли до акта: %s" % ", ".join(acts_text))
+	lines.append("Дошли до обязательной элиты (ряд 5, акт 1): %.0f%%, до босса акта 1: %.0f%%" % [100.0 * reached_elite / n, 100.0 * reached_boss / n])
 	lines.append("HP отряда перед элитой: %.1f из 75, перед боссом: %.1f из 75" % [
 			hp_before_elite / maxf(1.0, reached_elite), hp_before_boss / maxf(1.0, reached_boss)])
 	var rows_text: PackedStringArray = []
-	for r in range(8):
-		if died_rows.has(r):
-			rows_text.append("ряд %d: %d" % [r, died_rows[r]])
+	var row_keys: Array = died_rows.keys()
+	row_keys.sort()
+	for r in row_keys:
+		rows_text.append("%s: %d" % [r, died_rows[r]])
 	lines.append("Где кончились проигранные: %s" % (", ".join(rows_text) if not rows_text.is_empty() else "—"))
 	var kind_text: PackedStringArray = []
 	for k: String in died_kind:
@@ -111,8 +123,8 @@ func _initialize() -> void:
 func _play_run(run: Node, seed_value: int, bell: int) -> Dictionary:
 	run.start_new_run(seed_value, bell)
 	bot_rng.seed = seed_value
-	var res: Dictionary = {"won": false, "row": 0, "kind": "", "falls": 0, "bandages": 0, "wounds_end": 0,
-			"stuck": 0, "losses": {}}
+	var res: Dictionary = {"won": false, "row": "", "kind": "", "falls": 0, "bandages": 0, "wounds_end": 0,
+			"stuck": 0, "losses": {}, "act": 1}
 	while true:
 		var options: Array[MapNode] = run.available_nodes()
 		if options.is_empty():
@@ -121,15 +133,17 @@ func _play_run(run: Node, seed_value: int, bell: int) -> Dictionary:
 		var party_hp: int = 0
 		for rh in run.party:
 			party_hp += rh.hp
-		if node.type == MapNode.Type.ELITE and node.row == run.MAP_ROWS - 3:
+		if node.type == MapNode.Type.ELITE and node.row == run.MAP_ROWS - 3 and run.act == 1:
 			res["hp_elite"] = party_hp
-		if node.type == MapNode.Type.BOSS:
+		if node.type == MapNode.Type.BOSS and run.act == 1:
 			res["hp_boss"] = party_hp
 		run.enter_node(node)
 		match node.type:
 			MapNode.Type.BATTLE, MapNode.Type.ELITE, MapNode.Type.LAIR, MapNode.Type.BOSS:
 				var kind: String = {MapNode.Type.BATTLE: "бой", MapNode.Type.ELITE: "элита",
 						MapNode.Type.LAIR: "логово", MapNode.Type.BOSS: "босс"}[node.type]
+				if run.act > 1:
+					kind += " (акт %d)" % run.act
 				var battle: Dictionary = _run_battle(run)
 				res["stuck"] += 1 if battle["stuck"] else 0
 				res["falls"] += battle["falls"]
@@ -139,17 +153,22 @@ func _play_run(run: Node, seed_value: int, bell: int) -> Dictionary:
 					var key: String = "отряд " + run.pending_encounter.id   # потери по отрядам (печать — SQUADS=1)
 					var ls: Array = squad_losses.get(key, [0, 0, 0])
 					squad_losses[key] = [ls[0] + battle["lost"], ls[1] + 1, ls[2] + run.pending_enemies.size()]
-				if node.type == MapNode.Type.BATTLE and node.branch == MapNode.FOREST:
+				if node.type == MapNode.Type.BATTLE and node.branch == MapNode.FOREST and run.act == 1:
 					var lf: Array = res["losses"].get("бой в лесу", [0, 0])   # отдельно — лес (Хранители)
 					res["losses"]["бой в лесу"] = [lf[0] + battle["lost"], lf[1] + 1]
 				if not battle["won"]:
-					res["row"] = node.row
+					res["row"] = "акт %d ряд %d" % [run.act, node.row] if run.final_act > 1 else "ряд %d" % node.row
 					res["kind"] = kind
 					break
 				run.finish_battle(true, battle["hp_left"])
 				if node.type == MapNode.Type.BOSS:
-					res["won"] = true
-					break
+					if run.run_complete:
+						res["won"] = true
+						break
+					_take_reward(run)   # босс акта: награда и сразу следующий акт (трофей бот пропускает)
+					run.next_act()
+					res["act"] = run.act
+					continue
 				_take_reward(run)
 			MapNode.Type.REST:
 				_rest(run, res)

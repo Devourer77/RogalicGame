@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="ActData" load_steps=38 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/act_data.gd" id="1_act"]
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Resource" path="res://resources/encounters/gang.tres" id="2_e"]
+[ext_resource type="Resource" path="res://resources/encounters/pack.tres" id="3_e"]
+[ext_resource type="Resource" path="res://resources/encounters/hunt.tres" id="4_e"]
+[ext_resource type="Resource" path="res://resources/encounters/toad_mound.tres" id="5_e"]
+[ext_resource type="Resource" path="res://resources/encounters/choir.tres" id="6_e"]
+[ext_resource type="Resource" path="res://resources/encounters/gas_ambush.tres" id="7_e"]
+[ext_resource type="Resource" path="res://resources/encounters/shaman_guard.tres" id="8_e"]
+[ext_resource type="Resource" path="res://resources/encounters/web.tres" id="9_e"]
+[ext_resource type="Resource" path="res://resources/encounters/rift_mix.tres" id="10_e"]
+[ext_resource type="Resource" path="res://resources/encounters/drivers.tres" id="11_e"]
+[ext_resource type="Resource" path="res://resources/encounters/rising_bog.tres" id="12_e"]
+[ext_resource type="Resource" path="res://resources/encounters/novices.tres" id="13_e"]
+[ext_resource type="Resource" path="res://resources/encounters/spores.tres" id="14_e"]
+[ext_resource type="Resource" path="res://resources/encounters/torches.tres" id="15_e"]
+[ext_resource type="Resource" path="res://resources/encounters/reed_ambush.tres" id="16_e"]
+[ext_resource type="Resource" path="res://resources/encounters/stone_line.tres" id="17_e"]
+[ext_resource type="Resource" path="res://resources/encounters/bog_folk.tres" id="18_e"]
+[ext_resource type="Resource" path="res://resources/encounters/drowned.tres" id="19_e"]
+[ext_resource type="Resource" path="res://resources/encounters/bombers.tres" id="20_e"]
+[ext_resource type="Resource" path="res://resources/encounters/grove_patrol.tres" id="21_e"]
+[ext_resource type="Resource" path="res://resources/encounters/saplings.tres" id="22_e"]
+[ext_resource type="Resource" path="res://resources/encounters/grove_hunt.tres" id="23_e"]
+[ext_resource type="Resource" path="res://resources/encounters/grove_poison.tres" id="24_e"]
+[ext_resource type="Resource" path="res://resources/encounters/grove_rain.tres" id="25_e"]
+[ext_resource type="Resource" path="res://resources/encounters/bark_wall.tres" id="26_e"]
+[ext_resource type="Resource" path="res://resources/encounters/skin_pack.tres" id="27_e"]
+[ext_resource type="Resource" path="res://resources/encounters/hive_keepers.tres" id="28_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_treant.tres" id="29_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_queen.tres" id="30_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_alpha.tres" id="31_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_singer.tres" id="32_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_voice.tres" id="33_e"]
+[ext_resource type="Resource" path="res://resources/encounters/boss_ogre.tres" id="34_e"]
+[ext_resource type="Resource" path="res://resources/encounters/boss_mother.tres" id="35_e"]
+[ext_resource type="Resource" path="res://resources/encounters/boss_captain.tres" id="36_e"]
+
+[resource]
+script = ExtResource("1_act")
+number = 1
+title = "Гнилые топи"
+intro = "Окраина Марки: топь, мёртвые деревья и Роща Хранителей. Где-то у Шпиля ждёт хозяин этих мест."
+branch_titles = Array[String](["Гнилые топи", "Густые леса"])
+fork_title = "Развилка: топи или чаща"
+common_title = "Окраина Марки"
+map_bg = "res://assets/textures/map/map_bg_act1.jpg"
+encounters = Array[ExtResource("1_enc")]([ExtResource("2_e"), ExtResource("3_e"), ExtResource("4_e"), ExtResource("5_e"), ExtResource("6_e"), ExtResource("7_e"), ExtResource("8_e"), ExtResource("9_e"), ExtResource("10_e"), ExtResource("11_e"), ExtResource("12_e"), ExtResource("13_e"), ExtResource("14_e"), ExtResource("15_e"), ExtResource("16_e"), ExtResource("17_e"), ExtResource("18_e"), ExtResource("19_e"), ExtResource("20_e"), ExtResource("21_e"), ExtResource("22_e"), ExtResource("23_e"), ExtResource("24_e"), ExtResource("25_e"), ExtResource("26_e"), ExtResource("27_e"), ExtResource("28_e")])
+elite_pool = Array[ExtResource("1_enc")]([ExtResource("29_e"), ExtResource("30_e"), ExtResource("31_e"), ExtResource("32_e"), ExtResource("33_e")])
+boss_pool = Array[ExtResource("1_enc")]([ExtResource("34_e"), ExtResource("35_e"), ExtResource("36_e")])
+arenas_left = Array[String](["gat", "grove", "reeds", "camp", "ruins", "pump"])
+arenas_right = Array[String](["thicket", "sanctum", "hollow", "windfall"])
+boss_arena = "lair"
+borrow_from = 0
+enemy_hp_mult = 1.0
+enemy_damage_add = 0

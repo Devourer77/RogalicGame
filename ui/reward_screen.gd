@@ -22,7 +22,7 @@ const CARD_SCALE: float = 0.7                # карты на экране ум
 func _ready() -> void:
 	_column = UiKit.make_screen(self)
 	_column.add_theme_constant_override("separation", 10)
-	_elite = Run.is_elite_battle()
+	_elite = Run.is_big_reward()   # элита или босс акта — награда в два шага
 	_build_head()
 	if Run.tamed_spirit != null:
 		_build_spirit_choice(_column, Run.tamed_spirit)
@@ -35,7 +35,7 @@ func _build_head() -> void:
 	var head := HBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 18)
-	head.add_child(UiKit.make_title("Победа!", 40, UiKit.BRASS.lightened(0.25)))
+	head.add_child(UiKit.make_title("Босс повержен!" if Run.act_cleared else "Победа!", 40, UiKit.BRASS.lightened(0.25)))
 	var gold: HBoxContainer = UiKit.chip("coin", "+%d" % Run.last_gold_reward, UiKit.GOLD, "", 22, 24)
 	gold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(gold)
@@ -76,8 +76,9 @@ func _build_main() -> void:
 	var skip: Button = UiKit.make_button("Пропустить (каждому +%d HP)" % Run.SKIP_HEAL, _skip)
 	_all_buttons.append(skip)
 	# После элиты «Дальше» ведёт ко второму шагу, иначе — на карту
-	var go: Callable = _build_elite_step if _elite else Run.goto.bind(Run.MAP_SCENE)
-	_next_button = UiKit.make_button("Дальше: награда элиты" if _elite else "Дальше", go, "", true)
+	var go: Callable = _build_elite_step if _elite else Run.after_reward
+	var big_title: String = "Дальше: награда босса" if Run.act_cleared else "Дальше: награда элиты"
+	_next_button = UiKit.make_button(big_title if _elite else "Дальше", go, "", true)
 	_next_button.disabled = true
 	column.add_child(_bottom_row(skip))
 
@@ -99,7 +100,7 @@ func _build_elite_step() -> void:
 		if not offer.is_empty():
 			_relic_done = false
 			_column.add_child(_build_relic_choice(offer))
-	_next_button = UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE), "", true)
+	_next_button = UiKit.make_button("Дальше", Run.after_reward, "", true)   # на карту или, после босса, — к трофею
 	_column.add_child(_bottom_row(_refuse_relic))
 	_update_next()
 
@@ -334,10 +335,13 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_note)
 	# После элиты (Хозяин трясины) дальше — обычная награда элиты
-	var after_elite: bool = Run.is_elite_battle()
+	var after_elite: bool = Run.is_big_reward()
 	_next_button = UiKit.make_button("Дальше", func() -> void:
 		Run.tamed_spirit = null
-		Run.goto(Run.REWARD_SCENE if after_elite else Run.MAP_SCENE), "", true)
+		if after_elite:
+			Run.goto(Run.REWARD_SCENE)
+		else:
+			Run.after_reward(), "", true)
 	_next_button.disabled = true
 	column.add_child(_next_button)
 

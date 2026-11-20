@@ -259,7 +259,7 @@ func _keepers() -> void:
 	check("Саженец погиб — на клетке живое дерево", l.object_at(C(5, 5)) == O.LIVE_TREE)
 	# Отряды леса берутся только в лесу
 	var forest: int = 0
-	for enc: EncounterData in run.ENCOUNTERS:
+	for enc: EncounterData in run.encounters():
 		if enc.branch == EncounterData.Branch.FOREST:
 			forest += 1
 			if not enc.fits_branch(MapNode.FOREST) or enc.fits_branch(MapNode.BOG):

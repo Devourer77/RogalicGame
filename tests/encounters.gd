@@ -85,9 +85,9 @@ func _packs() -> void:
 	check("Врагов в бою 4 + ряд/2", count_ok)
 	check("За забег отряд не повторяется", repeat_ok)
 	check("Шаман — не больше одного на бой", shaman_ok)
-	check("Встречаются все %d отрядов" % run.ENCOUNTERS.size(), packs_seen.size() == run.ENCOUNTERS.size())
+	check("Встречаются все %d отрядов" % run.encounters().size(), packs_seen.size() == run.encounters().size())
 	var expect: Dictionary = {}
-	for enc: EncounterData in run.ENCOUNTERS:
+	for enc: EncounterData in run.encounters():
 		for d in enc.core + enc.filler: expect[d.id] = true
 	check("В обычных боях встречаются все виды из отрядов (%d)" % expect.size(), seen.size() == expect.size())
 	# Тот же сид — тот же отряд
@@ -112,8 +112,8 @@ func _elites_and_bosses() -> void:
 		for e in run.run_elites: elites[e.id] = true
 		bosses[run.run_boss.id] = true
 	check("По одной элите на ветку, разные", distinct_ok)
-	check("За 100 забегов встречаются все элиты (%d)" % run.ELITE_POOL.size(), elites.size() == run.ELITE_POOL.size())
-	check("За 100 забегов встречаются все боссы (%d)" % run.BOSS_POOL.size(), bosses.size() == run.BOSS_POOL.size())
+	check("За 100 забегов встречаются все элиты (%d)" % run.elite_pool().size(), elites.size() == run.elite_pool().size())
+	check("За 100 забегов встречаются все боссы (%d)" % run.boss_pool().size(), bosses.size() == run.boss_pool().size())
 	run.start_new_run(9); var b1: String = run.run_boss.id; var el1: String = run.run_elites[0].id
 	run.start_new_run(9)
 	check("Тот же сид — тот же босс и элиты", run.run_boss.id == b1 and run.run_elites[0].id == el1)
