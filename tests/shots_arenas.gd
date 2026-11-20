@@ -13,6 +13,11 @@ func _initialize() -> void:
 			run.next_act()   # арены акта 2 — с врагами акта 2
 			run.sim_no_scenes = false
 		run.pending_enemies = run._make_encounter(4, arena == "lair")
+		var squad: String = OS.get_environment("ENEMIES")   # ENEMIES=sleeping_sphere,glass_spitter — свой состав
+		if squad != "":
+			run.pending_enemies.clear()
+			for id in squad.split(","):
+				run.pending_enemies.append(load("res://resources/enemies/%s.tres" % id) as EnemyData)
 		run.pending_arena = arena
 		change_scene_to_file(run.BATTLE_SCENE)
 		for i in 40: await process_frame

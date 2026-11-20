@@ -13,6 +13,7 @@ const PUSH_TIME_PER_CELL: float = 0.1
 
 var board: Board          # поле, на котором стоит фигурка (задаёт сцена боя)
 var is_moving: bool = false
+var _plate_hidden: bool = false   # плашку не показывать (Спящая сфера спит)
 var _plate: UnitPlate     # плашка над головой: полоса HP, блок, намерение врага
 var _plate_height: float = 2.0   # на какой высоте над клеткой она висит (в метрах)
 var _idle_speed: float = 1.0   # личный темп анимации покоя
@@ -52,7 +53,7 @@ func setup_animations() -> void:
 	if players.is_empty():
 		return
 	_anim = players[0] as AnimationPlayer
-	for anim_name: String in ["Idle", "Walk"]:
+	for anim_name: String in ["Idle", "Walk", "Sleep"]:
 		if _anim.has_animation(anim_name):
 			_anim.get_animation(anim_name).loop_mode = Animation.LOOP_LINEAR
 	_play_loop("Idle")
@@ -203,9 +204,12 @@ func setup_label(height: float) -> void:
 # info — что показать на плашке (собирает сцена боя, см. Battle._plate_info)
 func set_status(info: Dictionary) -> void:
 	set_sleeping(info.get("asleep", false))
+	if info.has("glow_color"):
+		set_glow_color(info["glow_color"])
 	if _plate != null:
 		_plate.set_info(info)
 		_plate.modulate.a = 1.0 if info["hp"] > 0 else 0.0   # у павших плашки нет
+		_plate_hidden = info.get("asleep", false)   # Спящая сфера прячется среди постаментов
 
 
 func _process(_delta: float) -> void:
@@ -218,7 +222,7 @@ func _update_plate() -> void:
 		return
 	var camera: Camera3D = get_viewport().get_camera_3d() if is_inside_tree() else null
 	var point: Vector3 = global_position + Vector3(0.0, _plate_height, 0.0)
-	if camera == null or not visible or camera.is_position_behind(point):
+	if camera == null or not visible or _plate_hidden or camera.is_position_behind(point):
 		_plate.visible = false
 		return
 	_plate.visible = true
@@ -237,6 +241,54 @@ func _shake() -> void:
 
 
 # Зацикленная анимация (покой, ходьба)
+# Светящаяся деталь поверх модели, привязанная к кости (зоб Плевуна): её цвет меняется в бою.
+# pos — точка в осях модели Godot (из Blender: x, z, -y), radius — размер в метрах.
+var _glow_mat: StandardMaterial3D = null
+func add_glow_part(model: Node3D, bone: String, pos: Vector3, radius: float, stretch: Vector3) -> void:
+	var skels: Array[Node] = model.find_children("*", "Skeleton3D", true, false)
+	if skels.is_empty():
+		return
+	var skel: Skeleton3D = skels[0]
+	var idx: int = skel.find_bone(bone)
+	if idx < 0:
+		return
+	# Из осей модели — в оси скелета, потом в оси кости (в позе покоя)
+	var to_skel := Transform3D.IDENTITY
+	var n: Node = skel
+	while n != null and n != model:
+		to_skel = (n as Node3D).transform * to_skel
+		n = n.get_parent()
+	var local: Vector3 = skel.get_bone_global_rest(idx).affine_inverse() * (to_skel.affine_inverse() * pos)
+	var attach := BoneAttachment3D.new()
+	attach.bone_name = bone
+	skel.add_child(attach)
+	var mesh := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = radius
+	sphere.height = radius * 2.0
+	sphere.radial_segments = 10
+	sphere.rings = 6
+	mesh.mesh = sphere
+	mesh.position = local
+	mesh.scale = stretch
+	_glow_mat = StandardMaterial3D.new()
+	_glow_mat.emission_enabled = true
+	_glow_mat.roughness = 0.25
+	_glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mesh.material_override = _glow_mat
+	mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	attach.add_child(mesh)
+	set_glow_color(Color(0.35, 0.9, 0.82))
+
+
+func set_glow_color(c: Color) -> void:
+	if _glow_mat == null:
+		return
+	_glow_mat.albedo_color = Color(c, 0.9)
+	_glow_mat.emission = c
+	_glow_mat.emission_energy_multiplier = 0.6
+
+
 # Спящая сфера: пока спит — анимация Sleep вместо Idle; проснулась — Wake и обычный Idle
 var _sleeping: bool = false
 func set_sleeping(on: bool) -> void:

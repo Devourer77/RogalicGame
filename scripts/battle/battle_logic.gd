@@ -430,6 +430,30 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		e.cell = c
 		_init_enemy(e)
 		enemies.append(e)
+	_hide_sleepers()
+
+
+# Зал сфер: Спящие сферы встают среди грозовых постаментов — с виду такой же постамент.
+# Ищем свободную клетку рядом с постаментом, ближайшую к месту из строя отряда.
+func _hide_sleepers() -> void:
+	if arena_id != "sphere_hall":
+		return
+	var spots: Array[Vector2i] = []
+	for c: Vector2i in objects:
+		if objects[c] == Obj.SPHERE_STORM or objects[c] == Obj.BARREL or objects[c] == Obj.VALVE:
+			for n: Vector2i in HexMath.neighbors(c):
+				if is_inside(n) and _is_empty(n) and n.y <= height - HERO_ROWS - 2 and not spots.has(n):
+					spots.append(n)
+	for e in enemies:
+		if not e.asleep or spots.is_empty():
+			continue
+		var best: Vector2i = spots[0]
+		for c in spots:
+			if HexMath.distance(c, e.cell) < HexMath.distance(best, e.cell):
+				best = c
+		if unit_at(best) == null:
+			e.cell = best
+			spots.erase(best)
 
 
 # Особенности врага в начале его жизни: сон, сфера-панцирь; медуза садится в лужу

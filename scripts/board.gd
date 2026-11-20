@@ -1432,8 +1432,15 @@ func _make_object(kind: int, cell: Vector2i) -> Node3D:
 			root = (basin if basin != null else OBJ_BARREL).instantiate()
 			_add_light(root, Vector3(0.0, 0.6, 0.0), Color(0.5, 0.75, 1.0), 0.5, 2.0)
 		BattleLogic.Obj.SPHERE_STORM:
-			var orb: PackedScene = _ash_scene("obj_sphere_storm")
-			root = (orb if orb != null else OBJ_BARREL).instantiate()
+			# Грозовой постамент — та же модель, что Спящая сфера, в позе сна: ловушку от него не отличить
+			var decoy: PackedScene = SLEEPING_SPHERE if ResourceLoader.exists(SLEEPING_SPHERE_PATH) else null
+			if decoy != null:
+				root = decoy.instantiate()
+				root.rotation.y = deg_to_rad(float(hash_value % 360))
+				_play_sleep(root, hash_value)
+			else:
+				var orb: PackedScene = _ash_scene("obj_sphere_storm")
+				root = (orb if orb != null else OBJ_BARREL).instantiate()
 			_add_light(root, Vector3(0.0, 0.9, 0.0), Color(1.0, 0.92, 0.5), 0.8, 2.4)
 		BattleLogic.Obj.STONE_WALL:
 			var stone: PackedScene = _ash_scene("rock_basalt")   # камни Каменника
@@ -1475,6 +1482,31 @@ func _make_object(kind: int, cell: Vector2i) -> Node3D:
 			root = OBJ_VALVE.instantiate()
 			root.rotation.y = (hash_value % 6) * PI / 3.0
 	return root
+
+
+const SLEEPING_SPHERE_PATH: String = "res://assets/models/sleeping_sphere.glb"
+var SLEEPING_SPHERE: PackedScene:
+	get:
+		return _ash_scene_abs(SLEEPING_SPHERE_PATH)
+
+
+func _ash_scene_abs(path: String) -> PackedScene:
+	if not _ash_scenes.has(path):
+		_ash_scenes[path] = load(path) as PackedScene if ResourceLoader.exists(path) else null
+	return _ash_scenes[path]
+
+
+# Постамент-приманка «дышит» анимацией сна, как настоящая Спящая сфера
+func _play_sleep(root: Node, seed_value: int) -> void:
+	var players: Array[Node] = root.find_children("*", "AnimationPlayer", true, false)
+	if players.is_empty():
+		return
+	var anim: AnimationPlayer = players[0]
+	if not anim.has_animation("Sleep"):
+		return
+	anim.get_animation("Sleep").loop_mode = Animation.LOOP_LINEAR
+	anim.play("Sleep")
+	anim.seek(float(seed_value % 100) / 100.0 * anim.get_animation("Sleep").length, true)
 
 
 # Плоская плита с самоподсветкой (для лавы и корки)

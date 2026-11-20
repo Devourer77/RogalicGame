@@ -182,17 +182,33 @@ func _ready() -> void:
 # ---------- Создание фигурок ----------
 
 # Фигурка врага: модель (или капсула-заглушка), лицом к героям, с плашкой над головой
+# Светящиеся детали поверх моделей: [кость, точка в осях модели, радиус, растяжение]
+const GLOW_PARTS: Dictionary = {
+	"glass_spitter": ["Head", Vector3(0.0, 1.52, 0.4), 0.088, Vector3(1.0, 1.2, 1.1)],   # зоб Плевуна
+}
+const GLOW_WATER := Color(0.3, 0.6, 1.0)    # зоб полон воды — следующий плевок водяной
+const GLOW_FIRE := Color(1.0, 0.42, 0.08)    # зоб раскалён — следующий плевок огненный
+
+
 func _make_enemy_view(e: BattleUnit) -> Unit:
 	var view: Unit = _spawn_view(e.data.id.capitalize(), e.cell)
 	if e.data.model != null:
-		view.add_child(e.data.model.instantiate())
+		var model: Node3D = e.data.model.instantiate()
+		view.add_child(model)
 		view.setup_animations()   # Idle, Walk, Attack, Hit, Death из модели
+		if GLOW_PARTS.has(e.data.id):
+			var g: Array = GLOW_PARTS[e.data.id]
+			view.add_glow_part(model, g[0], g[1], g[2], g[3])
 	else:
 		view.add_child(_make_capsule_model(e.data.color, e.data.size, false))
 	view.face_dir(HexMath.direction_to(e.cell, logic.heroes[0].cell))
-	vfx.add_rim(view)   # светлая кайма по контуру — фигурка отделяется от плит
+	if e.asleep:
+		view.set_meta("no_rim", true)   # спящая сфера неотличима от постамента: каймы нет, пока не проснётся
+	else:
+		vfx.add_rim(view)   # светлая кайма по контуру — фигурка отделяется от плит
 	_put_on_unit_layer(view)
 	view.setup_label(1.4 * e.data.size + 0.55)
+	view.set_status(_plate_info(e, logic.snapshot(e)))
 	_views[e] = view
 	_last_hp[e] = e.hp
 	vfx.enemy_ambient(view, e.data.id if e.data != null else "", _unit_height(e))   # споры у споровика
@@ -350,6 +366,10 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		info["ritual_turns"] = logic.ritual_timer
 	info["marks"] = marks
 	info["asleep"] = state.get("asleep", false)
+	if not u.is_hero and GLOW_PARTS.has(u.data.id):
+		# Зоб показывает, каким будет плевок в этом раунде
+		var spit: EnemyAttackData = logic.enemy_attack(u)
+		info["glow_color"] = GLOW_FIRE if spit.ignite else GLOW_WATER
 	if _fire_forecast.has(u.id):
 		info["fire"] = _fire_forecast[u.id]
 	return info
@@ -547,6 +567,9 @@ func _on_fx_hint(kind: String, unit: BattleUnit, other: BattleUnit) -> void:
 
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
 	var view: Unit = _views[unit]
+	if view.has_meta("no_rim") and not state.get("asleep", false):
+		view.remove_meta("no_rim")
+		vfx.add_rim(view)   # сфера проснулась — теперь видна как враг
 	var info: Dictionary = _plate_info(unit, state)
 	var hp: int = state.get("hp", unit.hp)
 	var healed: int = hp - _last_hp.get(unit, hp)

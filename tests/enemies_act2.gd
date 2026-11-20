@@ -133,6 +133,22 @@ func _sleeper() -> void:
 	l.heroes[0].cell = e.cell + Vector2i(0, 1)
 	l._start_enemy_phase()
 	check("Герой вплотную — просыпается", not e.asleep)
+	var hidden_ok: bool = true
+	for sd in 10:
+		var r := RandomNumberGenerator.new(); r.seed = 500 + sd
+		var list: Array[EnemyData] = [load("res://resources/enemies/sleeping_sphere.tres") as EnemyData,
+				load("res://resources/enemies/sleeping_sphere.tres") as EnemyData, load("res://resources/enemies/repair_bot.tres") as EnemyData]
+		var b := BattleLogic.new(); b.setup(12, 12, r, run.party, list, "sphere_hall")
+		for u in b.enemies:
+			if not u.asleep:
+				continue
+			var near: bool = false
+			for n in HexMath.neighbors(u.cell):
+				if b.object_at(n) != O.NONE:
+					near = true
+			if not near:
+				hidden_ok = false
+	check("В Зале сфер спящие встают среди постаментов", hidden_ok)
 	check("В снимке намерение «Спит», пока спит", fresh(["sleeping_sphere"]).snapshot(fresh(["sleeping_sphere"]).enemies[0])["intent"] == "Спит")
 
 
