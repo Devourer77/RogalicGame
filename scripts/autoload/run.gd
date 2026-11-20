@@ -108,7 +108,11 @@ var keepers_calm: bool = false                  # Хранители приня�
 var keepers_fewer: int = 0                      # в стольких следующих боях с Хранителями — на одного меньше
 var gold_after_battle: int = 0                  # золото, обещанное событием за следующий бой («Дым над топью»)
 var fog_bonus: int = 0                       # насколько дальше видно сквозь туман (события «запомнить следы», «рассказ дозорного»)
-var run_boss: EncounterData = null           # босс этого забега (виден на карте с самого начала)
+var run_boss: EncounterData = null           # босс акта на текущей ветке (виден на карте с ряда 5)
+# Босс по ветке (MapNode.BOG / FOREST → отряд босса). В акте 1 у обеих веток один босс; в акте 2 —
+# свой босс ветки (Исполин — Тракт, Колосс — Подземье) или, с шансом BOSS_SHARED_CHANCE, общий (Сосуд) у обеих.
+var branch_bosses: Dictionary[int, EncounterData] = {}
+const BOSS_SHARED_CHANCE: float = 1.0 / 3.0
 var used_encounters: Array[String] = []      # какие обычные отряды уже были (не повторяются)
 var _last_arena: String = ""                 # прошлая арена — чтобы не повторялась подряд
 var last_gold_reward: int = 0
@@ -444,6 +448,8 @@ func enter_node(n: MapNode) -> void:
 	current = n
 	n.visited = true
 	rows_passed = maxi(rows_passed, (act - 1) * MAP_ROWS + n.row + 1)   # ряды считаются через все акты
+	if n.branch != MapNode.COMMON and branch_bosses.has(n.branch):
+		_set_boss(branch_bosses[n.branch])   # ветка выбрана — в конце её ждёт свой босс
 	match n.type:
 		MapNode.Type.BATTLE:
 			pending_enemies = _make_encounter(n.row, false)
@@ -800,8 +806,50 @@ func _pick_act_bosses() -> void:
 			var picked: EncounterData = pool.pop_at(rng.randi_range(0, pool.size() - 1))
 			run_elites.append(picked)
 			taken.append(picked.id)
+	_pick_branch_bosses()
+
+
+# Босс каждой ветки: свой или общий (EncounterData.branch: ANY — общий, BOG/FOREST — только своей ветки)
+func _pick_branch_bosses() -> void:
 	var bosses: Array[EncounterData] = boss_pool()
-	run_boss = bosses[rng.randi_range(0, bosses.size() - 1)]
+	var common: Array[EncounterData] = bosses.filter(func(e: EncounterData) -> bool: return e.branch == EncounterData.Branch.ANY)
+	var own: Dictionary[int, Array] = {MapNode.BOG: [], MapNode.FOREST: []}
+	for enc in bosses:
+		if enc.branch == EncounterData.Branch.BOG:
+			own[MapNode.BOG].append(enc)
+		elif enc.branch == EncounterData.Branch.FOREST:
+			own[MapNode.FOREST].append(enc)
+	branch_bosses.clear()
+	var no_own: bool = own[MapNode.BOG].is_empty() and own[MapNode.FOREST].is_empty()
+	if not common.is_empty() and (no_own or rng.randf() < BOSS_SHARED_CHANCE):
+		var shared: EncounterData = common[rng.randi_range(0, common.size() - 1)]   # общий босс у обеих веток
+		branch_bosses[MapNode.BOG] = shared
+		branch_bosses[MapNode.FOREST] = shared
+	else:
+		for branch: int in [MapNode.BOG, MapNode.FOREST]:
+			var pool: Array = own[branch] if not own[branch].is_empty() else (common if not common.is_empty() else bosses)
+			branch_bosses[branch] = pool[rng.randi_range(0, pool.size() - 1)]
+	run_boss = branch_bosses[MapNode.BOG]
+
+
+# Сменить босса акта (переход на другую ветку): арена точки босса — его
+func _set_boss(enc: EncounterData) -> void:
+	if enc == run_boss:
+		return
+	run_boss = enc
+	for m: MapNode in map:
+		if m.type == MapNode.Type.BOSS:
+			m.arena = boss_arena()
+
+
+# Босс, который ждёт в конце этой ветки
+func boss_for_branch(branch: int) -> EncounterData:
+	return branch_bosses.get(branch, run_boss)
+
+
+# У веток разные боссы (акт 2 без общего босса)
+func bosses_differ() -> bool:
+	return branch_bosses.get(MapNode.BOG) != branch_bosses.get(MapNode.FOREST)
 
 
 # Элита ветки (ряд перед привалом). Ветка — текущая (вне карты считаем Болота).

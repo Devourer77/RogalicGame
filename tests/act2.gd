@@ -4,6 +4,12 @@ extends SceneTree
 # Запуск: godot --headless --path . -s tests/act2.gd
 
 var fails := 0
+var act1_same: bool = true
+
+
+func check_quiet_act1(run: Node) -> void:
+	if run.boss_for_branch(MapNode.BOG) != run.boss_for_branch(MapNode.FOREST):
+		act1_same = false
 
 
 func check(name: String, ok: bool) -> void:
@@ -49,6 +55,7 @@ func _initialize() -> void:
 					lava_ok = false
 			if b.ground.is_empty():
 				built_ok = false
+		check("Арена %s: есть картинка карточки карты" % id, ResourceLoader.exists("res://assets/textures/map_cards/card_%s.jpg" % id))
 		check("Арена %s строится 25 раз из 25 (%s)" % [id, detail if detail != "" else "ок"], built_ok)
 		check("Арена %s: герои стоят на свободных клетках" % id, hero_rows_free)
 		check("Арена %s: лава постоянная" % id, lava_ok)
@@ -134,6 +141,39 @@ func _initialize() -> void:
 				break
 			b.end_turn()
 	check("Все отряды акта 2 встают на поле и ходят 3 раунда", battles_ok)
+
+	# --- Босс по ветке: свой у каждой или общий Сосуд ---
+	var shared_n: int = 0
+	var split_ok: bool = true
+	var switch_ok: bool = true
+	for sd in 40:
+		run.start_new_run(500 + sd)
+		check_quiet_act1(run)
+		run.next_act()
+		var l: EncounterData = run.boss_for_branch(MapNode.BOG)
+		var r: EncounterData = run.boss_for_branch(MapNode.FOREST)
+		if l == r:
+			shared_n += 1
+			if l.id != "boss_vessel":
+				split_ok = false
+		elif l.id != "boss_giant" or r.id != "boss_colossus":
+			split_ok = false
+		else:
+			# зашли в Подземье — босс акта и арена его точки сменились на Колосса
+			for n: MapNode in run.available_nodes():
+				if n.branch == MapNode.FOREST:
+					run.enter_node(n)
+					break
+			var boss_node: MapNode = null
+			for n: MapNode in run.map:
+				if n.type == MapNode.Type.BOSS:
+					boss_node = n
+			if run.run_boss.id != "boss_colossus" or boss_node.arena != "reactor":
+				switch_ok = false
+	check("Тракт — Исполин, Подземье — Колосс, или общий Сосуд у обеих", split_ok)
+	check("Общий Сосуд выпадает иногда (%d из 40), но не всегда" % shared_n, shared_n > 3 and shared_n < 30)
+	check("Ветка выбрана — босс и арена его точки — этой ветки", switch_ok)
+	check("В акте 1 у обеих веток один босс", act1_same)
 
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)

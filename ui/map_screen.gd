@@ -189,11 +189,16 @@ func _make_node(n: MapNode) -> Control:
 func _hint(n: MapNode, revealed: bool) -> String:
 	if not revealed:
 		if n.type == MapNode.Type.BOSS:
+			if Run.bosses_differ():
+				return "В конце пути ждёт хозяин этих мест — у каждой ветки свой. Кто — откроется, когда подойдёшь ближе."
 			return "В конце пути ждёт хозяин этих мест. Кто — откроется, когда подойдёшь ближе.\nПодсказки — знаки на первых аренах."
 		return "Туман: что здесь — не видно. Подойди ближе."
 	var text: String = HINTS[n.type]
 	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
 		text = "Босс: %s — последний бой акта.\n%s" % [Run.run_boss.title, _boss_hint(Run.run_boss)]
+		if Run.bosses_differ():   # босс зависит от ветки — говорим, кто ждёт на другой
+			var other: int = MapNode.FOREST if Run.current_branch() == MapNode.BOG else MapNode.BOG
+			text += "\nНа ветке «%s» ждёт другой: %s." % [Run.branch_titles()[other], Run.boss_for_branch(other).title]
 	if n.branch != MapNode.COMMON:
 		text += "\n%s." % Run.branch_titles()[n.branch]
 		if _crosses_from(n):
