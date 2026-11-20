@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "ash_m4+1"
+icon = "dash"
+title = "Шаг сквозь дым+I"
+description = "Маг переносится на клетку с дымом или огнём до 7. +1 шаг."
+shape = 1
+cost = 0
+cast_range = 7
+special = "fire_step"
+bonus_moves = 1
+card_set = "s_ash"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["ash"])
+spirit_slot = 4
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "ash_m4+2"
+icon = "dash"
+title = "Шаг сквозь дым+II"
+description = "Маг переносится на клетку с дымом или огнём до 5. +2 шага."
+shape = 1
+cost = 0
+cast_range = 5
+special = "fire_step"
+bonus_moves = 2
+card_set = "s_ash"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["ash"])
+spirit_slot = 4
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "ash_m4"
+icon = "dash"
+title = "Шаг сквозь дым"
+description = "Маг переносится на клетку с дымом или огнём до 5. +1 шаг."
+shape = 1
+cost = 0
+cast_range = 5
+special = "fire_step"
+bonus_moves = 1
+card_set = "s_ash"
+owner_hero = "mage"
+role = 1
+spirit_ids = Array[String](["ash"])
+spirit_slot = 4
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

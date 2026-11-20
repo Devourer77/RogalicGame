@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "magma_m1+1"
+icon = "fire"
+title = "Прорыв лавы+I"
+description = "Клетка до 6 — лава на 2 раунда: стена, обжигает того, кто там стоит."
+shape = 1
+cast_range = 6
+special = "eruption"
+card_set = "s_magma"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 1
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "magma_m1+2"
+icon = "fire"
+title = "Прорыв лавы+II"
+description = "Клетка до 4 — лава на 2 раунда."
+shape = 1
+cost = 0
+cast_range = 4
+special = "eruption"
+card_set = "s_magma"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 1
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "magma_m1"
+icon = "fire"
+title = "Прорыв лавы"
+description = "Клетка до 4 — лава на 2 раунда: стена, обжигает того, кто там стоит."
+shape = 1
+cast_range = 4
+special = "eruption"
+card_set = "s_magma"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 1
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

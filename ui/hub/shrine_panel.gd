@@ -47,16 +47,17 @@ func _rebuild() -> void:
 
 # Вкладки духов: значок и имя (или «???», если дух ещё не встречен)
 func _make_tabs() -> Control:
-	var tabs := HBoxContainer.new()
-	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
-	tabs.add_theme_constant_override("separation", 8)
+	var tabs := HFlowContainer.new()   # духов много — вкладки переносятся во второй ряд
+	tabs.alignment = FlowContainer.ALIGNMENT_CENTER
+	tabs.add_theme_constant_override("h_separation", 8)
+	tabs.add_theme_constant_override("v_separation", 6)
 	for id in Run.ALL_SPIRIT_IDS:
 		var sp: SpiritData = Run.spirit_data(id)
 		if sp == null:
 			continue
 		var seen: bool = Meta.is_spirit_seen(id)
 		var b: Button = UiKit.make_button(sp.title if seen else "???", _select.bind(id), sp.icon if seen else "help")
-		b.custom_minimum_size = Vector2(200, 42)
+		b.custom_minimum_size = Vector2(170, 38)
 		b.add_theme_color_override("icon_normal_color", sp.color if seen else UNKNOWN_COLOR)
 		b.add_theme_color_override("icon_hover_color", sp.color if seen else UNKNOWN_COLOR)
 		if Meta.is_spirit_tamed(id):

@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "rust_k5+1"
+icon = "poison"
+title = "Ржавчина вокруг+I"
+description = "Враги вокруг теряют блок, удары −2. Блок 6."
+shape = 10
+cast_range = 0
+special = "rust_area"
+block = 6
+card_set = "s_rust"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["rust"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "rust_k5+2"
+icon = "poison"
+title = "Ржавчина вокруг+II"
+description = "Враги вокруг теряют блок, удары −2. Блок 3."
+shape = 10
+cost = 0
+cast_range = 0
+special = "rust_area"
+block = 3
+card_set = "s_rust"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["rust"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "rust_k5"
+icon = "poison"
+title = "Ржавчина вокруг"
+description = "Враги на 6 клетках вокруг теряют блок, удары −2. Блок 3."
+shape = 10
+cast_range = 0
+special = "rust_area"
+block = 3
+card_set = "s_rust"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["rust"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

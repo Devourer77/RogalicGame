@@ -875,7 +875,7 @@ func show_enemy(e: BattleUnit, logic: BattleLogic) -> void:
 		reason_label.custom_minimum_size.x = width
 		_enemy_box.add_child(reason_label)
 	if d.cycle.size() > 1:
-		_enemy_box.add_child(_attack_row("Потом", d.attack_on_turn(logic.turn + 1), 0, false, width))
+		_enemy_box.add_child(_attack_row("Потом", logic.enemy_attack_on(e, logic.turn + 1), 0, false, width))
 	for t: String in d.traits():
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)

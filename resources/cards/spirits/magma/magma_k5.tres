@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "magma_k5+1"
+icon = "fire"
+title = "Стена магмы+I"
+description = "Стена из 3 клеток лавы до 3 на 2 раунда."
+shape = 8
+cost = 0
+cast_range = 3
+special = "eruption"
+card_set = "s_magma"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "magma_k5+2"
+icon = "fire"
+title = "Стена магмы+II"
+description = "Стена из 3 клеток лавы до 3 на 2 раунда. Блок 5."
+shape = 8
+cast_range = 3
+special = "eruption"
+block = 5
+card_set = "s_magma"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "magma_k5"
+icon = "fire"
+title = "Стена магмы"
+description = "Стена из 3 клеток лавы до 3 на 2 раунда."
+shape = 8
+cast_range = 3
+special = "eruption"
+card_set = "s_magma"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

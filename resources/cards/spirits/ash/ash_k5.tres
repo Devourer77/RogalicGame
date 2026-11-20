@@ -1,0 +1,56 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "ash_k5+1"
+icon = "wind"
+title = "Стена дыма+I"
+description = "Стена из 3 клеток дыма до 3 на 2 раунда. Блок 6."
+shape = 8
+cast_range = 3
+special = "smoke"
+block = 6
+card_set = "s_ash"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["ash"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "ash_k5+2"
+icon = "wind"
+title = "Стена дыма+II"
+description = "Стена из 3 клеток дыма до 4 на 3 раунда. Блок 3."
+shape = 8
+cast_range = 4
+special = "smoke"
+block = 3
+bonus_amount = 3
+card_set = "s_ash"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["ash"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "ash_k5"
+icon = "wind"
+title = "Стена дыма"
+description = "Стена из 3 клеток дыма до 3 на 2 раунда. Блок 3."
+shape = 8
+cast_range = 3
+special = "smoke"
+block = 3
+card_set = "s_ash"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["ash"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

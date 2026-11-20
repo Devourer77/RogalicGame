@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "rust_m3+1"
+icon = "meteor"
+title = "Железный ливень+I"
+description = "Круг 1 до 5: 5 урона сквозь блок +1 за звено."
+shape = 3
+cost = 2
+cast_range = 5
+damage = 5
+per_link_damage = 1
+pierce_block = true
+card_set = "s_rust"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "rust_m3+2"
+icon = "meteor"
+title = "Железный ливень+II"
+description = "Круг 1 до 5: 4 урона сквозь блок +1 за звено.\nЦепь 3: стоит 1."
+shape = 3
+cost = 2
+cast_range = 5
+damage = 4
+per_link_damage = 1
+pierce_block = true
+chain_need = 3
+chain_cost = 1
+card_set = "s_rust"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "rust_m3"
+icon = "meteor"
+title = "Железный ливень"
+description = "Круг 1 до 5: 4 урона сквозь блок +1 за звено Цепи."
+shape = 3
+cost = 2
+cast_range = 5
+damage = 4
+per_link_damage = 1
+pierce_block = true
+card_set = "s_rust"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

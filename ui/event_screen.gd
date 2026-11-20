@@ -300,6 +300,16 @@ const EVENTS: Array[Dictionary] = [
 			{"label": "Обойти", "result": "Дым ещё долго висит над топью."},
 		],
 	},
+	# Секрет акта 2 (ветка Тракт): по своему шансу, раз за забег (см. _pick_event)
+	{
+		"title": "Кипящий источник",
+		"id": "spring",
+		"text": "Среди пепла бьёт ключ — вода в нём кипит, хотя огня рядом нет. Пар поднимается столбом и вдруг складывается в широкие плечи и тяжёлую голову. Над водой гудит, как в котле, у которого заклинило крышку. Ошпаренные крабы пятятся от края.",
+		"options": [
+			{"label": "Подойти к воде", "hint": "бой с хозяином источника, награда — дух пара", "action": "spring_enter"},
+			{"label": "Обойти стороной", "result": "Вы обходите источник по широкой дуге. Пар провожает вас, пока не теряется в пепле."},
+		],
+	},
 ]
 
 const CARD_SCALE: float = 0.72   # карты-награды на экране итога
@@ -348,6 +358,9 @@ func _pick_event() -> Dictionary:
 	if Run.cave_possible() and Run.rng.randf() < Run.CAVE_EVENT_CHANCE:
 		Run.cave_seen = true
 		return event_by_id("cave")
+	if Run.spring_possible() and Run.rng.randf() < Run.CAVE_EVENT_CHANCE:
+		Run.spring_seen = true
+		return event_by_id("spring")
 	var pool: Array[Dictionary] = []
 	for e in EVENTS:
 		if event_allowed(e) and not Run.events_seen.has(e["title"]):
@@ -364,6 +377,8 @@ func _pick_event() -> Dictionary:
 
 
 static func event_allowed(e: Dictionary) -> bool:
+	if e.has("branch") and Run.act != 1:
+		return false   # события веток топь/лес — только в акте 1
 	if e.has("branch"):
 		var want: int = MapNode.FOREST if e["branch"] == "forest" else MapNode.BOG
 		if Run.current_branch() != want:
@@ -374,8 +389,8 @@ static func event_allowed(e: Dictionary) -> bool:
 	if e.get("need", "") == "event_elite" and (Run.event_elite() == null or Run.pending_event_elite != null):
 		return false
 	match e.get("id", ""):
-		"cave":
-			return false   # расщелина — только по шансу в _pick_event
+		"cave", "spring":
+			return false   # секреты — только по шансу в _pick_event
 		"cache":
 			return not Run.cache_seen and not Meta.closed_charms().is_empty()
 		"cage":
@@ -708,6 +723,12 @@ func _special(action: String) -> void:
 			_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
 			_column.add_child(_story("Чем глубже, тем суше воздух. Вода, что стекала по стенам, шипит и исчезает, не долетев до пола."))
 			_column.add_child(UiKit.make_button("В бой", Run.enter_cave, "", true))
+		"spring_enter":
+			Sfx.play("magic", 0.05)
+			UiKit.clear(_column)
+			_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+			_column.add_child(_story("Вода вскипает сильнее. Пар встаёт стеной, и из него на вас смотрят две бирюзовые искры."))
+			_column.add_child(UiKit.make_button("В бой", Run.enter_spring, "", true))
 
 
 static func _hero_static(hero_id: String) -> RunHero:

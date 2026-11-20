@@ -616,7 +616,7 @@ static func _best_aura(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 			if other == e or HexMath.distance(other.cell, c) > atk.attack_range:
 				continue
 			allies += 1
-			var next_attack: EnemyAttackData = other.data.attack_on_turn(l.turn + 1)
+			var next_attack: EnemyAttackData = l.enemy_attack_on(other, l.turn + 1)
 			score += ALLY_BUFF_NEXT_AURA if next_attack.shape == EnemyData.Attack.AURA else ALLY_BUFF_NEXT_ATTACK
 		score += _place_value(l, c, ctx) - (options[c].size() - 1)
 		if score > best_score:

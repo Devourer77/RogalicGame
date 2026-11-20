@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "ash_m6+1"
+icon = "fire"
+title = "Пепельная буря+I"
+description = "Круг 1 до 5: 8 урона огнём +1 за звено, потом дым.\nЦепь 4: стоит 2."
+shape = 3
+element = 1
+cost = 3
+cast_range = 5
+damage = 8
+per_link_damage = 1
+special = "smoke_after"
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_ash"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["ash"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "ash_m6+2"
+icon = "fire"
+title = "Пепельная буря+II"
+description = "Круг 1 до 5: 6 урона огнём +1 за звено, потом дым."
+shape = 3
+element = 1
+cost = 2
+cast_range = 5
+damage = 6
+per_link_damage = 1
+special = "smoke_after"
+is_rare = true
+card_set = "s_ash"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["ash"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "ash_m6"
+icon = "fire"
+title = "Пепельная буря"
+description = "Круг 1 до 5: 6 урона огнём +1 за звено, потом всё затягивает дымом.\nЦепь 4: стоит 2."
+shape = 3
+element = 1
+cost = 3
+cast_range = 5
+damage = 6
+per_link_damage = 1
+special = "smoke_after"
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_ash"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["ash"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

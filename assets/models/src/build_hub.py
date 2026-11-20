@@ -891,6 +891,29 @@ def _sign(part: Part, kind: str, x: float, y: float, z: float) -> None:
 		part.box((x - 0.05, y, z - 0.01), (0.022, 0.02, 0.13), "dark_stone", rot_y=20.0)
 		part.box((x + 0.05, y, z - 0.01), (0.022, 0.02, 0.13), "dark_stone", rot_y=-20.0)
 		part.box((x, y, z - 0.11), (0.16, 0.02, 0.025), "dark_stone")
+	elif kind == "ash":
+		# дым: три волнистых штриха вверх
+		for k in range(3):
+			part.box((x - 0.06 + 0.06 * k, y, z), (0.02, 0.02, 0.2), "dark_stone", rot_y=15.0 * (1 if k % 2 else -1))
+	elif kind == "stone":
+		# кладка: два ряда блоков
+		for dx, dz in ((-0.05, 0.05), (0.05, 0.05), (0.0, -0.05)):
+			part.box((x + dx, y, z + dz), (0.08, 0.02, 0.07), "dark_stone")
+	elif kind == "steam":
+		# пар: столбик над чертой воды
+		part.box((x, y, z - 0.1), (0.18, 0.02, 0.025), "dark_stone")
+		for dz in (0.0, 0.08):
+			part.box((x, y, z + dz), (0.06 + dz * 0.5, 0.02, 0.025), "dark_stone")
+	elif kind == "magma":
+		# жерло: треугольник горы и капля сверху
+		part.box((x - 0.05, y, z - 0.03), (0.022, 0.02, 0.16), "dark_stone", rot_y=-25.0)
+		part.box((x + 0.05, y, z - 0.03), (0.022, 0.02, 0.16), "dark_stone", rot_y=25.0)
+		part.box((x, y, z + 0.1), (0.04, 0.02, 0.04), "dark_stone")
+	elif kind == "rust":
+		# шестерня: крест и кольцо из штрихов
+		part.box((x, y, z), (0.16, 0.02, 0.025), "dark_stone")
+		part.box((x, y, z), (0.025, 0.02, 0.16), "dark_stone")
+		part.box((x, y, z), (0.11, 0.02, 0.025), "dark_stone", rot_y=45.0)
 	elif kind == "forest":
 		# дерево: ствол и две пары ветвей вверх, внизу корни
 		part.box((x, y, z), (0.025, 0.02, 0.24), "dark_stone")
@@ -905,7 +928,7 @@ def _sign(part: Part, kind: str, x: float, y: float, z: float) -> None:
 		part.box((x + 0.05, y, z + 0.02), (0.02, 0.02, 0.14), "dark_stone", rot_y=30.0)
 
 
-SHRINE_SPIRITS: list = ["tide", "storm", "wind", "bog", "fire", "forest"]
+SHRINE_SPIRITS: list = ["tide", "storm", "wind", "bog", "fire", "forest", "ash", "stone", "steam", "magma", "rust"]
 
 
 def build_shrine() -> None:
@@ -933,14 +956,15 @@ def build_shrine() -> None:
 		a = math.pi + math.pi * (i + 0.5) / n
 		x, y, _ = g(1.5 * math.cos(a), 1.5 * math.sin(a))
 		h = 1.3 + 0.25 * (i % 2)
+		k = 1.0 if n <= 6 else 0.7   # духов много — камни тоньше, чтобы встали полукругом
 		stone = Part(f"Stone{i}")
-		stone.lathe([(0.25, 0.0), (0.23, h - 0.12), (0.2, h), (0.2, h + 0.06), (0.15, h + 0.06), (0.1, h + 0.02)],
+		stone.lathe([(0.25 * k, 0.0), (0.23 * k, h - 0.12), (0.2 * k, h), (0.2 * k, h + 0.06), (0.15 * k, h + 0.06), (0.1 * k, h + 0.02)],
 			6, "tex_stone", base=(x, y, 0.0), cap_bottom=False, phase=0.5)
-		_sign(stone, SHRINE_SPIRITS[i], x, y - 0.24, h * 0.55)
+		_sign(stone, SHRINE_SPIRITS[i], x, y - 0.24 * k, h * 0.55)
 		stone.build(origin=(x, y, 0))
 		orb = Part(f"Orb{i}")
 		center = (x, y, h + 0.05 + 0.17)
-		orb.sphere(center, 0.17, 8, 5, "orb")
+		orb.sphere(center, 0.17 * k, 8, 5, "orb")
 		orb.build(origin=center)
 
 

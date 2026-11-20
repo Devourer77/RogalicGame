@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "stone_m1+1"
+icon = "shield"
+title = "Каменная стена+I"
+description = "Стена из 3 камней до 4: преграды на 3 раунда, закрывают линии."
+shape = 8
+cost = 0
+cast_range = 4
+special = "stone_wall"
+card_set = "s_stone"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["stone"])
+spirit_slot = 1
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "stone_m1+2"
+icon = "shield"
+title = "Каменная стена+II"
+description = "Стена из 3 камней до 4: преграды на 5 раундов, закрывают линии."
+shape = 8
+cast_range = 4
+special = "stone_wall"
+bonus_amount = 5
+card_set = "s_stone"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["stone"])
+spirit_slot = 1
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "stone_m1"
+icon = "shield"
+title = "Каменная стена"
+description = "Стена из 3 камней до 4: преграды на 3 раунда, закрывают линии."
+shape = 8
+cast_range = 4
+special = "stone_wall"
+card_set = "s_stone"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["stone"])
+spirit_slot = 1
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

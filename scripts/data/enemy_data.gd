@@ -77,6 +77,7 @@ enum Remains { DEFAULT, NOTHING, PUDDLE, FIRE, STONE }
 @export var death_wind: bool = false            # сфера ветра бьётся: всех соседей отбрасывает на 1
 @export var death_summon: EnemyData = null      # погибая, выпускает этого врага на соседнюю клетку (огненная сфера — Искру)
 @export var fire_trail: bool = false            # Головёшка: клетка, с которой ушла, загорается
+@export var half_burst: Array[EnemyData] = []   # Колосс: на половине HP лопается сфера (по удару круга) и выходит этот дух
 
 var _basic: EnemyAttackData   # удар простого врага, собранный из полей выше
 

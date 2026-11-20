@@ -24,6 +24,7 @@ extends Resource
 @export var ignite: bool = false     # поджигает клетки удара: горят земля, бочки, деревья и камыш
 @export var summon: EnemyData       # призыв: кто появляется на свободных клетках рядом (удар формы «зов»)
 @export var summon_count: int = 0   # сколько их появляется (меньше, если рядом нет места)
+@export var puddle_lightning: bool = false  # молния по всем лужам, связанным с героями в воде (Колосс)
 @export var stoke: int = 0          # «Раздуть угли»: огонь в 3 клетках вокруг горит на столько раундов дольше
 
 
@@ -55,6 +56,8 @@ func describe() -> String:
 				parts.append("зовёт: %s ×%d рядом" % [summon.title.to_lower(), summon_count])
 		4:
 			parts.append("%d урона по 6 клеткам вокруг себя" % damage)
+	if puddle_lightning:
+		parts = PackedStringArray(["%d урона молнией по всем лужам, где стоят герои" % damage])
 	if first_only:
 		parts.append("до первой цели")
 	if pierce:

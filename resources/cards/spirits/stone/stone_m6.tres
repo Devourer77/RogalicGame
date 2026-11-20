@@ -1,0 +1,70 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "stone_m6+1"
+icon = "hammer"
+title = "Сокрушение+I"
+description = "Линия 5: 8 урона +1 за звено, толчок 1.\nЦепь 4: стоит 2."
+shape = 2
+cost = 3
+cast_range = 5
+damage = 8
+push = 1
+per_link_damage = 1
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_stone"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["stone"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "stone_m6+2"
+icon = "hammer"
+title = "Сокрушение+II"
+description = "Линия 5: 6 урона +1 за звено, толчок 2.\nЦепь 4: стоит 2."
+shape = 2
+cost = 3
+cast_range = 5
+damage = 6
+push = 2
+per_link_damage = 1
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_stone"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["stone"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "stone_m6"
+icon = "hammer"
+title = "Сокрушение"
+description = "Линия 5: 6 урона +1 за звено, толчок 1.\nЦепь 4: стоит 2."
+shape = 2
+cost = 3
+cast_range = 5
+damage = 6
+push = 1
+per_link_damage = 1
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_stone"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["stone"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

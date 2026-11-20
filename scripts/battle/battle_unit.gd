@@ -3,6 +3,9 @@ extends RefCounted
 # Участник боя в «логике» — без графики. Только числа и клетка.
 # 3D-фигурку для него создаёт сцена боя (scripts/unit.gd).
 
+var rust: int = 0
+var burst_done: bool = false                       # Колосс: сфера на половине здоровья уже лопнула
+var lost_attacks: Array[EnemyAttackData] = []      # удары лопнувших сфер (выпали из круга)   # «Ржавчина» (дух железа): столько раундов удары врага слабее на RUST_WEAKEN
 var id: int = 0              # номер юнита в бою (по нему копия боя узнаёт «своих»)
 var title: String = ""
 var is_hero: bool = false
@@ -70,6 +73,9 @@ func is_alive() -> bool:
 # Копия юнита для прогноза. Колоды не копируем — враги их не трогают.
 func copy() -> BattleUnit:
 	var u := BattleUnit.new()
+	u.rust = rust
+	u.burst_done = burst_done
+	u.lost_attacks = lost_attacks.duplicate()
 	u.id = id
 	u.title = title
 	u.is_hero = is_hero

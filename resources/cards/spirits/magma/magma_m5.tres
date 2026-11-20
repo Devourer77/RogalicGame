@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "magma_m5+1"
+icon = "fire"
+title = "Лавовое кольцо+I"
+description = "Круг 1 до 5 — лава на 2 раунда."
+shape = 3
+cast_range = 5
+special = "eruption"
+card_set = "s_magma"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 5
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "magma_m5+2"
+icon = "fire"
+title = "Лавовое кольцо+II"
+description = "Круг 1 до 5 — лава на 3 раунда."
+shape = 3
+cost = 2
+cast_range = 5
+special = "eruption"
+bonus_amount = 3
+card_set = "s_magma"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 5
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "magma_m5"
+icon = "fire"
+title = "Лавовое кольцо"
+description = "Круг 1 до 5 — лава на 2 раунда (под героями не поднимается)."
+shape = 3
+cost = 2
+cast_range = 5
+special = "eruption"
+card_set = "s_magma"
+owner_hero = "mage"
+role = 2
+spirit_ids = Array[String](["magma"])
+spirit_slot = 5
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

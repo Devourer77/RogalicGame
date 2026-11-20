@@ -1,0 +1,53 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "rust_k1+1"
+icon = "shield"
+title = "Железная стойка+I"
+description = "Блок 10."
+shape = 0
+cast_range = 0
+block = 10
+card_set = "s_rust"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["rust"])
+spirit_slot = 1
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "rust_k1+2"
+icon = "shield"
+title = "Железная стойка+II"
+description = "Блок 7; провокация."
+shape = 0
+cast_range = 0
+block = 7
+taunt = true
+card_set = "s_rust"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["rust"])
+spirit_slot = 1
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "rust_k1"
+icon = "shield"
+title = "Железная стойка"
+description = "Блок 7 (с Ржавником до 3 блока переходят на следующий ход)."
+shape = 0
+cast_range = 0
+block = 7
+card_set = "s_rust"
+owner_hero = "knight"
+role = 2
+spirit_ids = Array[String](["rust"])
+spirit_slot = 1
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

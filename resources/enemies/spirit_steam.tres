@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/spirit_steam.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk0"]
+script = ExtResource("2_attack")
+title = "Струя кипятка"
+shape = 1
+attack_range = 4
+damage = 4
+first_only = true
+puddle = true
+
+[sub_resource type="Resource" id="atk1"]
+script = ExtResource("2_attack")
+title = "Гейзер"
+anim = "Attack2"
+shape = 4
+damage = 5
+push = 1
+
+[sub_resource type="Resource" id="atk2"]
+script = ExtResource("2_attack")
+title = "Пар клубами"
+anim = "Attack"
+shape = 3
+attack_range = 2
+damage = 0
+ally_block = 3
+ally_damage = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "spirit_steam"
+title = "Котловик"
+description = "Кипит в ключах у тракта. Кто не боится обжечься, тому он тёплый."
+max_hp = 60
+move_range = 2
+damage = 4
+color = Color(0.82, 0.86, 0.88, 1)
+size = 1.1
+tamable = true
+is_boss = true
+turn_block = 3
+bog_damage = 8
+always_wet = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk0"), SubResource("atk1"), SubResource("atk2")])
+model = ExtResource("9_model")

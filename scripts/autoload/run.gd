@@ -50,8 +50,12 @@ const MAX_RELICS: int = 4             # больше порченых релик
 const RELIC_CHOICES: int = 3          # из скольких выбирать после элиты
 const RELIC_DIR: String = "res://resources/relics/"
 const SPIRIT_DIR: String = "res://resources/spirits/"
-const SPIRIT_IDS: Array[String] = ["tide", "storm", "wind"]   # обычные духи, которые встречаются в логове
-const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog", "fire", "forest"]   # все духи по порядку Святилища
+const SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "ash", "stone"]   # обычные духи (логово, «Приманка»)
+# Кто ждёт в логове в каком акте (ActData.lair_spirits): своя пара акта, а если она уже в отряде — духи прошлых актов
+const ALL_SPIRIT_IDS: Array[String] = ["tide", "storm", "wind", "bog", "fire", "forest",
+		"ash", "stone", "steam", "magma", "rust"]   # все духи по порядку Святилища
+# Духи акта 2 по веткам: в логове Тракта — Пепельник, в логове Подземья — Каменник
+const LAIR_BRANCH_SPIRIT: Dictionary[String, int] = {"ash": MapNode.BOG, "stone": MapNode.FOREST}
 # Тлеющая расщелина (секретный бой с Жаровиком, тз-дух-огня.md)
 const CAVE_EVENT_CHANCE: float = 0.25   # шанс, что событие окажется расщелиной
 const CAVE_ROWS: Vector2i = Vector2i(1, 4)   # в каких рядах карты она может встретиться
@@ -92,6 +96,8 @@ var current: MapNode = null              # где герой сейчас (null 
 var pending_enemies: Array[EnemyData] = []  # враги для ближайшего боя
 var pending_spirit: SpiritData = null      # дух в логове (бой за него)
 var last_drowned: int = 0                  # сколько врагов утонуло в последнем бою
+var last_vessel_water: int = 0            # сколько раз облили Сосуд водой в последнем бою (Сердце Жерла)
+var last_colossus_fast: bool = false      # Колосса добили быстро после сферы (Ржавник)
 var last_forest_burnt: int = 0             # сколько живых деревьев и клеток лозы сгорело в последнем бою (условие Лешего)
 const BOG_SPIRIT_DROWNS: int = 2            # условие Хозяина трясины: утопить столько врагов в бою с корягачом
 var tamed_spirit: SpiritData = null        # дух, покорённый в последнем бою (ждёт выбора героя)
@@ -138,6 +144,8 @@ var wounds_per_fall: int = WOUNDS_PER_FALL   # сколько Ран за пад
 var sim_no_scenes: bool = false        # замер забега ботом: goto() ничего не открывает
 var events_seen: Array[String] = []   # названия событий, уже выпавших в этом забеге (не повторяются)
 var cave_seen: bool = false      # «Тлеющая расщелина» уже встречалась в этом забеге
+var spring_seen: bool = false    # «Кипящий источник» (акт 2, Тракт) уже встречался
+var in_spring: bool = false      # идёт бой у Кипящего источника (Котловик)
 var in_cave: bool = false        # идёт бой в пещере Жаровика
 var rest_used: bool = false      # первый привал уже был (для «Чистого бинта»)
 var candle_used: bool = false    # «Свеча у колокола» уже сработала
@@ -182,6 +190,8 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	last_wounded.clear()
 	events_seen.clear()
 	cave_seen = false
+	spring_seen = false
+	in_spring = false
 	in_cave = false
 	rest_used = false
 	candle_used = false
@@ -1096,6 +1106,14 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 	if is_elite_battle() and forest_spirit_offered() \
 			and last_forest_burnt == 0:
 		offer_spirit(spirit_data("forest"))   # Леший: Роща не горела — он идёт с отрядом
+	if vessel_spirit_offered() and last_vessel_water >= BattleLogic.VESSEL_WATER_HITS:
+		offer_spirit(spirit_data("magma"))   # Сердце Жерла освобождено водой
+	if _boss_core_has("sphere_colossus") and not party_has_spirit("rust") and last_colossus_fast:
+		offer_spirit(spirit_data("rust"))   # Ржавник: Колосса добили за 3 раунда после сферы
+	if in_spring:
+		in_spring = false
+		offer_spirit(spirit_data("steam"))   # Котловик из Кипящего источника
+		last_battle_big = true
 	if is_elite_battle():
 		elite_kills += 1
 		last_battle_big = true
@@ -1307,10 +1325,15 @@ func _roll_lair_spirit() -> SpiritData:
 		Meta.mark_spirit_seen(bait)
 		return spirit_data(bait)
 	var free: Array[SpiritData] = []
-	for id in SPIRIT_IDS:
+	for id in act_data().lair_spirits:   # сначала — духи своего акта (в акте 2 — дух своей ветки)
 		var sp: SpiritData = spirit_data(id)
-		if sp != null and not party_has_spirit(id):
+		if sp != null and not party_has_spirit(id) and LAIR_BRANCH_SPIRIT.get(id, current_branch()) == current_branch():
 			free.append(sp)
+	if free.is_empty():
+		for id in SPIRIT_IDS:   # своих уже нет — кто-то из обычных духов прошлых актов
+			var sp: SpiritData = spirit_data(id)
+			if sp != null and not party_has_spirit(id) and (act_data().lair_spirits.has(id) or _lair_spirit_of_past_act(id)):
+				free.append(sp)
 	if free.is_empty():
 		return null
 	var picked: SpiritData = free[rng.randi_range(0, free.size() - 1)]
@@ -1318,11 +1341,40 @@ func _roll_lair_spirit() -> SpiritData:
 	return picked
 
 
+# Обычный дух из логова прошлых актов (в акте 2 в логове могут ждать и Омутник, Грозовик, Вихорь)
+func _lair_spirit_of_past_act(id: String) -> bool:
+	for i in range(0, act - 1):
+		if ACTS[i].lair_spirits.has(id):
+			return true
+	return false
+
+
 # Может ли событие оказаться «Тлеющей расщелиной»: ряды 1–4, духа огня нет, раз за забег
 func cave_possible() -> bool:
 	var row: int = current.row if current != null else 0
 	return act == 1 and not cave_seen and not party_has_spirit("fire") and spirit_data("fire") != null \
 			and row >= CAVE_ROWS.x and row <= CAVE_ROWS.y
+
+
+# Может ли событие оказаться «Кипящим источником»: акт 2, ветка Тракт, Котловика нет, раз за забег
+func spring_possible() -> bool:
+	return act == 2 and current_branch() == MapNode.BOG and not spring_seen \
+			and not party_has_spirit("steam") and spirit_data("steam") != null
+
+
+# Бой у источника: Котловик и 2 ошпаренных краба на арене «Кипящие ключи»
+func enter_spring() -> void:
+	in_spring = true
+	pending_spirit = null
+	pending_encounter = null
+	pending_enemies.clear()
+	pending_enemies.append(_act_scaled(spirit_data("steam").enemy))
+	for id: String in ["scalded_crab", "scalded_crab"]:
+		pending_enemies.append(_act_scaled(load("res://resources/enemies/%s.tres" % id) as EnemyData))
+	pending_arena = "springs"
+	pending_objective = BattleLogic.Objective.KILL_ALL
+	Meta.mark_spirit_seen("steam")
+	goto(BATTLE_SCENE)
 
 
 # Спуск в расщелину: сразу бой в пещере (Жаровик, 2 факельщика, 2 гоблина). Карта стоит на месте.
@@ -1351,6 +1403,19 @@ func bog_spirit_offered() -> bool:
 
 
 # В этом элитном бою живёт Леший (бой с Голосом Рощи, а Лешего ещё нет)
+func vessel_spirit_offered() -> bool:
+	return _boss_core_has("crown_vessel") and not party_has_spirit("magma")
+
+
+func _boss_core_has(enemy_id: String) -> bool:
+	if pending_encounter == null:
+		return false
+	for e in pending_encounter.core:
+		if e.id == enemy_id:
+			return true
+	return false
+
+
 func forest_spirit_offered() -> bool:
 	if party_has_spirit("forest") or pending_encounter == null:
 		return false

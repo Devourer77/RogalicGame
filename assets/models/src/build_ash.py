@@ -37,6 +37,7 @@ FIRE_GLASS = (1.0, 0.5, 0.12)
 GAS = (0.46, 0.80, 0.42)
 SHROOM = (0.62, 0.66, 0.58)
 SHROOM_GLOW = (0.35, 0.92, 0.82)
+STORM_GLASS = (0.95, 0.88, 0.35)   # грозовая сфера — заметно жёлтая
 
 MODELS = {}
 
@@ -162,6 +163,27 @@ def obj_sphere_fire(m):
 def obj_sphere_water(m):
     """Зал сфер: водяная сфера на постаменте (удар — пар и лужа, как клапан)."""
     sphere_on_pedestal(m, WATER)
+
+
+@model
+def obj_sphere_storm(m):
+    """Зал сфер: грозовая сфера на постаменте (удар — разряд по соседям и по воде рядом)."""
+    sphere_on_pedestal(m, STORM_GLASS)
+    for k in range(3):   # искры-разряды по прутьям
+        a = math.radians(20 + 120 * k)
+        m.box((0.02, 0.02, 0.14), (0.2 * math.cos(a), 0.2 * math.sin(a), 0.95), STORM_GLASS, rot=(0, 30, 0), emit=1.6)
+
+
+@model
+def obj_basin(m):
+    """Край жерла: каменная купель с водой (удар — вода плещет на соседей и тушит огонь)."""
+    m.cyl(0.4, 0.34, 0.12, (0, 0, 0), BASALT, seg=8)
+    m.cyl(0.36, 0.4, 0.34, (0, 0, 0.1), BASALT_L, seg=8)
+    m.cyl(0.33, 0.33, 0.03, (0, 0, 0.4), WATER, seg=8, rough=0.15)
+    for k in range(4):   # медные скобы
+        a = math.radians(45 + 90 * k)
+        m.box((0.06, 0.04, 0.3), (0.39 * math.cos(a), 0.39 * math.sin(a), 0.26), BRONZE, metal=0.6)
+    m.blob(0.07, (0.3, -0.2, 0.45), ASH_L, jit=0.3)
 
 
 @model

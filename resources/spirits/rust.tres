@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SpiritData" load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spirit_data.gd" id="1_spirit"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_call.tres" id="c1"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_m1.tres" id="c2"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_m2.tres" id="c3"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_m3.tres" id="c4"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_m4.tres" id="c5"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_m5.tres" id="c6"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_m6.tres" id="c7"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_k1.tres" id="c8"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_k2.tres" id="c9"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_k3.tres" id="c10"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_k4.tres" id="c11"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_k5.tres" id="c12"]
+[ext_resource type="Resource" path="res://resources/cards/spirits/rust/rust_k6.tres" id="c13"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_rust_tide_m1.tres" id="c14"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_rust_tide_m2.tres" id="c15"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_rust_tide_k1.tres" id="c16"]
+[ext_resource type="Resource" path="res://resources/cards/mixed/mix_rust_tide_k2.tres" id="c17"]
+
+[resource]
+script = ExtResource("1_spirit")
+id = "rust"
+title = "Ржавник"
+description = "Сердце Колосса. Железо, которое устало служить."
+passive_text = "до 3 блока переходят на следующий ход."
+color = Color(0.55, 0.38, 0.26, 1)
+icon = "poison"
+is_unique = true
+call_card = ExtResource("c1")
+mage_cards = Array[ExtResource("2_card")]([ExtResource("c2"), ExtResource("c3"), ExtResource("c4"), ExtResource("c5"), ExtResource("c6"), ExtResource("c7")])
+knight_cards = Array[ExtResource("2_card")]([ExtResource("c8"), ExtResource("c9"), ExtResource("c10"), ExtResource("c11"), ExtResource("c12"), ExtResource("c13")])
+mixed_cards = Array[ExtResource("2_card")]([ExtResource("c14"), ExtResource("c15"), ExtResource("c16"), ExtResource("c17")])

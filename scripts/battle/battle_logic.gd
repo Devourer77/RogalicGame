@@ -33,7 +33,7 @@ signal fx_hint(kind: String, unit: BattleUnit, other: BattleUnit)
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
 # SWAMP — проходимая трясина (вход отнимает шаг, проводит молнию); GAS — ядовитый газ (взрывается от огня)
-enum Tile { NONE, FIRE, WATER, ICE, SWAMP, GAS }
+enum Tile { NONE, FIRE, WATER, ICE, SWAMP, GAS, SMOKE }   # SMOKE — дым (Пепельник): закрывает линии, рассеивается
 
 # Объекты поля (Гнилые топи). Один объект на клетку.
 enum Obj {
@@ -57,6 +57,11 @@ enum Obj {
 	HIVE,          # дикий улей: преграда; удар или огонь — рой жалит клетку и 6 соседей (урон и яд)
 	# --- Болота: следы технарей ---
 	VALVE,         # паровой клапан брошенного насоса: преграда; удар — выброс пара по 6 соседям, клапан ломается в лужу
+	# --- Акт 2 ---
+	STONE_WALL,    # камни Каменника: преграда, закрывает линии, через несколько раундов осыпается
+	CART,          # вагонетка Шахтного туннеля: преграда; удар — катится по прямой и сбивает первого на пути
+	BASIN,         # купель Края жерла: преграда; удар — вода плещет на соседей, тушит огонь, купель пустеет
+	SPHERE_STORM,  # грозовая сфера Зала сфер: преграда; удар — разряд по соседям и по воде рядом
 }
 
 const LAVA_TURNS: int = 3        # сколько раундов держится лава
@@ -66,6 +71,19 @@ const TREE_BURN_TURNS: int = 2   # сколько раундов горит кр
 const TREE_BURN_DAMAGE: int = 2  # горящее дерево обжигает соседей в конце раунда
 const HIVE_DAMAGE: int = 2       # рой из улья: урон каждому на клетке и рядом
 const HIVE_POISON: int = 2       # …и столько раундов яда
+# --- Духи акта 2 (тз-духи-акт-2.md) ---
+const SMOKE_TURNS: int = 2        # сколько раундов держится дым
+const STONE_WALL_TURNS: int = 3   # сколько раундов стоят камни Каменника
+const RUST_WEAKEN: int = 2        # «Ржавчина»: на столько слабее удары врага
+const ASH_BLOCK: int = 2          # пассив Пепельника: рядом огонь или дым — +блок
+const STEAM_WET_BLOCK: int = 2    # пассив Котловика: мокрый герой — +блок
+const RUST_KEEP_BLOCK: int = 3    # пассив Ржавника: столько блока переходит на следующий ход
+const STONE_BLOCK_MAX: int = 3    # пассив Каменника: +1 блок за соседнюю преграду, не больше
+const CART_ROLL: int = 5          # на сколько клеток катится вагонетка
+const CART_DAMAGE: int = 5        # урон тому, в кого она врезалась
+const BASIN_WEAK_DAMAGE: int = 6  # купель по тому, кто боится воды (Сосуд, Жаровик)
+const STORM_SPHERE_DAMAGE: int = 4  # разряд грозовой сферы по соседям и по воде рядом
+const PUFF_DAMAGE: int = 2        # дождевик лопается: урон соседям (потом — газ)
 const VALVE_DAMAGE: int = 4      # выброс пара из клапана: урон соседям (вдвое — тем, кто боится воды)
 const GROWN_TREE_TURNS: int = 3  # сколько раундов стоит дерево, выращенное картой Лешего
 const LESHY_BLOCK: int = 2       # пассив Лешего: столько блока в начале хода, если рядом живое дерево
@@ -249,18 +267,18 @@ const ARENA_HINTS: Dictionary[String, String] = {
 	"springs": "Ключи: удар по гейзеру — пар обжигает и отбрасывает соседей, вокруг вода.",
 	"tower": "Башня: треснувшая стена от удара падает и бьёт линию из 3 клеток.",
 	"dunes": "Дюны: в сыпучем пепле вязнут, как в топи.",
-	"pass": "Перевал: узкая седловина между гребнями, огонь у края.",
+	"pass": "Перевал: дует ветер — в конце раунда огонь перекидывается на клетку по ветру (стрелки на поле).",
 	"embers": "Пещеры: торф раз в 3 раунда снова вспыхивает, лава не остывает сама.",
-	"sphere_hall": "Зал сфер: огненная сфера от удара взрывается огнём, водяная — паром и лужей.",
+	"sphere_hall": "Зал сфер: от удара огненная сфера взрывается огнём, водяная — паром и лужей, грозовая — разрядом по воде рядом.",
 	"steamworks": "Цех: удар по клапану — пар обжигает и отбрасывает соседей.",
-	"mine": "Туннель: узкие коридоры — бойцам негде обойти друг друга.",
+	"mine": "Туннель: узкие коридоры. Ударь вагонетку — покатится и собьёт первого на пути.",
 	"rift_lab": "Разлом: посреди зала провал с лавой — толкай туда врагов.",
 	"lake": "Озеро: тёмная вода глубока — столкнутый туда тонет.",
-	"assembly": "Сборочный цех: бочки топлива взрываются огнём.",
-	"fungus": "Грибная пещера: дождевик от удара или огня лопается вспышкой газа.",
+	"assembly": "Сборочный цех: ленты конвейера в конце раунда везут всех, кто на них стоит (стрелки). Бочки топлива взрываются.",
+	"fungus": "Грибная пещера: дождевик от удара или огня лопается облаком газа (яд), огонь рядом гаснет.",
 	"cliff": "Обрыв: вдоль края — лава. Не стой спиной к обрыву.",
 	"reactor": "Реакторный зал: удар по клапану — пар обжигает и отбрасывает соседей.",
-	"crater": "Край жерла: торф вспыхивает, купели с водой — главная защита от огня.",
+	"crater": "Край жерла: торф вспыхивает. Ударь купель — вода плеснёт на соседей, потушит огонь и обожжёт Сосуд.",
 }
 const ARENA_POOL: Array[String] = ["gat", "grove", "reeds", "camp", "ruins", "pump"]   # обычные бои Болот
 const FOREST_ARENA_POOL: Array[String] = ["thicket", "sanctum", "hollow", "windfall"]   # обычные бои Густых лесов
@@ -296,6 +314,17 @@ var objects: Dictionary[Vector2i, int] = {}    # клетка -> Obj
 var tiles: Dictionary[Vector2i, int] = {}      # клетка -> Tile (огонь/вода/лёд)
 var fire_timers: Dictionary[Vector2i, int] = {}  # сколько раундов ещё горит клетка
 var obj_timers: Dictionary[Vector2i, int] = {}   # сколько раундов ещё простоит временный объект
+var smoke_timers: Dictionary[Vector2i, int] = {} # сколько раундов ещё держится дым
+var vessel_water_hits: int = 0     # сколько раз Сосуд облили водой (условие Сердца Жерла)
+var burst_turn: int = 0            # в каком раунде у Колосса лопнула сфера (0 — ещё нет)
+var colossus_fast_kill: bool = false  # Колосса добили за RUST_KILL_TURNS раунда после сферы (условие Ржавника)
+const RUST_KILL_TURNS: int = 3
+const VESSEL_WATER_HITS: int = 3   # столько раз облить Сосуд водой
+var party_has_rust: bool = false   # Ржавник уже в отряде — условие не объявляем (ставит battle.gd)
+var party_has_magma: bool = false
+var wind_dir: Vector2i = Vector2i.ZERO   # Перевал: куда дует ветер (огонь перекидывается на клетку по ветру)
+var belts: Dictionary[Vector2i, Vector2i] = {}   # Сборочный цех: клетка ленты → куда она везёт стоящего
+var dry_lava: Dictionary[Vector2i, bool] = {}    # лава на сухой земле (Сердце Жерла): остывает в землю, а не в трясину
 var ground: Dictionary[Vector2i, int] = {}     # клетка -> Ground (вид плиты)
 var arena_id: String = ""                      # какая арена (ключ из ARENAS)
 var peat: Array[Vector2i] = []                 # Тлеющая пещера: торфяные клетки (по порядку — кто вспыхнет)
@@ -1057,6 +1086,7 @@ func _arena_pass() -> void:
 		for c in _grow_patch(2, 2, ASH_LAST_ROW):
 			_smolder(c)
 	_place(2, 6, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+	wind_dir = HexMath.DIRS[0] if rng.randf() < 0.5 else HexMath.DIRS[3]   # ветер вдоль седловины: вправо или влево
 
 
 # «Зал сфер»: клёпаный пол, постаменты со сферами в два ряда. Огненная (бочка) — взрыв огнём,
@@ -1067,7 +1097,7 @@ func _arena_sphere_hall() -> void:
 	for y: int in [3, 6]:
 		for x: int in [2, 5, 8]:
 			var c := _cell(x + rng.randi_range(0, 1), y + rng.randi_range(-1, 0))
-			if _put(c, Obj.BARREL if (k + y) % 2 == 0 else Obj.VALVE):
+			if _put(c, [Obj.BARREL, Obj.VALVE, Obj.SPHERE_STORM][(k + y) % 3]):
 				k += 1
 	for c in _grow_patch(3, 3, ASH_LAST_ROW):
 		tiles[c] = Tile.WATER
@@ -1107,8 +1137,8 @@ func _arena_mine() -> void:
 				ground[c] = Ground.PLANKS   # шпалы
 				continue
 			rocks[c] = true
-	for i in 2:   # вагонетки в выработке наверху
-		_place(1, 2, func(c: Vector2i) -> void: rocks[c] = true)
+	for i in 3:   # вагонетки на рельсах коридоров: удар — катятся
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: objects[c] = Obj.CART)
 	_place(1, 2, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
 
 
@@ -1141,9 +1171,12 @@ func _arena_lake() -> void:
 # «Сборочный цех»: две ленты конвейера поперёк (пока — только рисунок пола), детали машин, бочки топлива.
 func _arena_assembly() -> void:
 	_floor_all(Ground.METAL)
+	var step: int = 1 if rng.randf() < 0.5 else -1
 	for row: int in [3, 6]:
 		for x in range(1, width - 1):
 			ground[_cell(x, row)] = Ground.PLANKS   # лента
+			belts[_cell(x, row)] = _cell(x + step, row)
+		step = -step   # две ленты едут навстречу друг другу
 		for i in 2:
 			_put_rock(_cell(rng.randi_range(1, width - 2), row))   # недособранные машины на ленте
 	for i in 3:
@@ -1204,7 +1237,7 @@ func _arena_crater() -> void:
 	_peat_patches([3, 3, 2], 3, ASH_LAST_ROW)
 	for c: Vector2i in [_cell(2, rng.randi_range(4, 6)), _cell(6, rng.randi_range(5, 7)), _cell(9, rng.randi_range(3, 5))]:
 		if _is_empty(c):
-			tiles[c] = Tile.WATER
+			objects[c] = Obj.BASIN   # купель: удар — вода на соседей
 	for i in 2:
 		_place(2, 6, func(c: Vector2i) -> void: rocks[c] = true)   # знамёна
 
@@ -1370,7 +1403,7 @@ func snapshot(u: BattleUnit) -> Dictionary:
 			"holding_line": u.holding_line,
 			"charge": u.charge, "momentum": u.momentum, "entangled": u.entangled,
 			"wet": wet_turns(u), "poison": u.poison, "rune": u.rune, "rune_hits": u.rune_hits,
-			"inflation": u.inflation}
+			"inflation": u.inflation, "rust": u.rust}
 	if u.data != null:
 		# Что враг собирается сделать в этом раунде — для надписи над головой
 		var atk: EnemyAttackData = enemy_attack(u)
@@ -1422,7 +1455,8 @@ func _is_obstacle(c: Vector2i) -> bool:
 		return true
 	var o: int = object_at(c)
 	return o == Obj.BOG or o == Obj.TREE or o == Obj.BARREL or o == Obj.ICE_BLOCK or o == Obj.STAKES or o == Obj.LAVA \
-			or o == Obj.LIVE_TREE or o == Obj.BURNING_TREE or o == Obj.HIVE or o == Obj.VALVE
+			or o == Obj.LIVE_TREE or o == Obj.BURNING_TREE or o == Obj.HIVE or o == Obj.VALVE or o == Obj.STONE_WALL \
+			or o == Obj.CART or o == Obj.BASIN or o == Obj.SPHERE_STORM
 
 
 # Клетка занята: преграда или кто-то стоит
@@ -1449,6 +1483,8 @@ func _fireproof(u: BattleUnit) -> bool:
 func _is_obstacle_for(u: BattleUnit, c: Vector2i) -> bool:
 	if _walks_fire(u) and is_inside(c) and not rocks.has(c) and object_at(c) == Obj.LAVA:
 		return false
+	if u != null and u.is_hero and u.spirits.has("magma") and is_inside(c) and not rocks.has(c) and object_at(c) == Obj.LAVA:
+		return false   # Сердце Жерла: лава под героем остывает коркой — по ней можно идти
 	if _walks_bog(u) and is_inside(c) and not rocks.has(c) and object_at(c) == Obj.BOG:
 		return false
 	return _is_obstacle(c)
@@ -1472,7 +1508,8 @@ func _bog_damage(u: BattleUnit) -> int:
 # Можно ли разбить объект ударом (дерево, бочка, улей, клапан)
 func _is_breakable(c: Vector2i) -> bool:
 	var o: int = object_at(c)
-	return o == Obj.TREE or o == Obj.BARREL or o == Obj.HIVE or o == Obj.VALVE
+	return o == Obj.TREE or o == Obj.BARREL or o == Obj.HIVE or o == Obj.VALVE \
+			or o == Obj.CART or o == Obj.BASIN or o == Obj.SPHERE_STORM
 
 
 # Заросль, которая прячет от линий и горит: камыш и подлесок
@@ -1494,6 +1531,77 @@ func _vine_free(u: BattleUnit) -> bool:
 	return u.data != null and (u.data.vine_walker or u.data.is_boss)
 
 
+# ---------- Духи акта 2 ----------
+
+# Пассивы духов акта 2 в начале хода героя
+func _act2_spirit_passives(h: BattleUnit) -> void:
+	if h.spirits.has("ash") and (tile_at(h.cell) == Tile.SMOKE or _near_tile(h.cell, Tile.FIRE) or _near_tile(h.cell, Tile.SMOKE)):
+		h.block += ASH_BLOCK   # Пепельник: рядом огонь или дым
+	if h.spirits.has("stone"):
+		var walls: int = 0
+		for n: Vector2i in HexMath.neighbors(h.cell):
+			if _is_obstacle(n):
+				walls += 1
+		h.block += mini(walls, STONE_BLOCK_MAX)   # Каменник: +1 за каждую преграду рядом
+	if h.spirits.has("steam") and is_wet(h):
+		h.block += STEAM_WET_BLOCK   # Котловик: мокрый — +блок
+
+
+# Есть ли такой покров на соседней клетке
+func _near_tile(c: Vector2i, kind: int) -> bool:
+	for n: Vector2i in HexMath.neighbors(c):
+		if tile_at(n) == kind:
+			return true
+	return false
+
+
+# Пар не ранит героя с Котловиком
+func _steamproof(u: BattleUnit) -> bool:
+	return u != null and u.is_hero and u.spirits.has("steam")
+
+
+# Дым на клетках: не на камнях, объектах и лаве; огонь под дымом гаснет
+func _make_smoke(cells: Array[Vector2i], turns: int) -> void:
+	for c in cells:
+		if not is_inside(c) or rocks.has(c) or object_at(c) != Obj.NONE:
+			continue
+		if tile_at(c) == Tile.FIRE:
+			fire_timers.erase(c)
+		_set_tile(c, Tile.SMOKE)
+		smoke_timers[c] = turns
+
+
+# Лава Сердца Жерла на сухой земле: на turns раундов, потом уходит в землю
+func _erupt(cells: Array[Vector2i], turns: int) -> void:
+	for c in cells:
+		if not is_inside(c) or rocks.has(c):
+			continue
+		var o: int = object_at(c)
+		if o != Obj.NONE and o != Obj.BOG and o != Obj.PLANKS and o != Obj.REEDS and o != Obj.BUSH:
+			continue
+		var u: BattleUnit = unit_at(c)
+		if u != null and u.is_hero:
+			continue   # под героем лава не поднимается
+		_set_tile(c, Tile.NONE)
+		if o != Obj.BOG:
+			dry_lava[c] = true
+		_set_object(c, Obj.LAVA, Vector2i.ZERO)
+		obj_timers[c] = turns
+		reaction.emit(c, "lava")
+		if u != null and u.is_alive() and not _fireproof(u):
+			_hint_damage(u, LAVA_DAMAGE, "lava")
+
+
+# «Ржавчина»: враг теряет блок, удары слабее на RUST_WEAKEN до конца следующего раунда
+func _rust(e: BattleUnit) -> void:
+	if e == null or not e.is_alive():
+		return
+	e.block = 0
+	e.rust = 1
+	message.emit("%s ржавеет: без блока, удар −%d" % [e.title, RUST_WEAKEN])
+	status_changed.emit(e, snapshot(e))
+
+
 # Что останавливает удар по линии: камень, дерево, бочка, камыш.
 # Возвращает "stop" (дальше не летит, саму клетку не задевает),
 # "hit" (задевает эту клетку и останавливается) или "" (летит дальше).
@@ -1501,10 +1609,14 @@ func _line_blocker(c: Vector2i) -> String:
 	if not is_inside(c) or rocks.has(c):
 		return "stop"
 	var o: int = object_at(c)
-	if o == Obj.TREE or o == Obj.BARREL or o == Obj.HIVE or o == Obj.VALVE:
+	if o == Obj.TREE or o == Obj.BARREL or o == Obj.HIVE or o == Obj.VALVE \
+			or o == Obj.CART or o == Obj.BASIN or o == Obj.SPHERE_STORM:
 		return "hit"
-	if is_cover(o) or o == Obj.ICE_BLOCK or o == Obj.STAKES or o == Obj.LIVE_TREE or o == Obj.BURNING_TREE:
-		return "stop"   # камыш, подлесок, лёд, частокол и живые деревья закрывают: кто за ними — того линия не достанет
+	if is_cover(o) or o == Obj.ICE_BLOCK or o == Obj.STAKES or o == Obj.LIVE_TREE or o == Obj.BURNING_TREE \
+			or o == Obj.STONE_WALL:
+		return "stop"   # камыш, подлесок, лёд, частокол, живые деревья и камни закрывают: кто за ними — того линия не достанет
+	if tile_at(c) == Tile.SMOKE:
+		return "stop"   # дым Пепельника: сквозь него не видно
 	return ""
 
 
@@ -1642,6 +1754,13 @@ func move_hero(h: BattleUnit, cell: Vector2i) -> bool:
 		return false
 	var path: Array[Vector2i] = targets[cell]
 	h.moves_left -= path.size() - 1
+	if h.spirits.has("magma"):
+		for pc: Vector2i in path:
+			if object_at(pc) == Obj.LAVA:   # Сердце Жерла: лава под ногами застывает
+				dry_lava.erase(pc)
+				_set_object(pc, Obj.CRUST, Vector2i.ZERO)
+				obj_timers[pc] = CRUST_TURNS
+				reaction.emit(pc, "crust")
 	if object_at(cell) == Obj.CRUST:
 		h.moves_left = 0   # корка: шаги кончились
 	h.cell = cell
@@ -1792,7 +1911,7 @@ func _special_target_ok(special: String, c: Vector2i) -> bool:
 			# не меняться с тем, кто стоит в трясине (топляк, пиявка): герой оказался бы в ней
 			return su != null and su.is_alive() and (su.is_hero or not _is_heavy(su)) and object_at(c) != Obj.BOG
 		"fire_step":
-			return tile_at(c) == Tile.FIRE and unit_at(c) == null and not _is_obstacle(c)
+			return (tile_at(c) == Tile.FIRE or tile_at(c) == Tile.SMOKE) and unit_at(c) == null and not _is_obstacle(c)
 		"scald":
 			var sc: BattleUnit = unit_at(c)
 			return sc != null and not sc.is_hero and (is_wet(sc) or tile_at(c) == Tile.WATER)
@@ -2367,6 +2486,35 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 		"outpost":
 			h.outpost = true
 			message.emit("%s держит заставу" % h.title)
+		"self_wet":
+			_set_wet(h, WET_TURNS)   # «Мокрый щит»: герой мокнет (с Котловиком это блок каждый ход)
+		"smoke", "smoke_after":
+			# Пепельник: клетки затягивает дымом на bonus_amount раундов (по умолчанию SMOKE_TURNS)
+			_make_smoke(area, card.bonus_amount if card.bonus_amount > 0 else SMOKE_TURNS)
+		"stone_wall":
+			# Каменник: камни-преграды на пустых клетках, через несколько раундов осыпаются
+			for c in area:
+				if _can_build(c) and object_at(c) == Obj.NONE:
+					_set_tile(c, Tile.NONE)
+					_set_object(c, Obj.STONE_WALL, Vector2i.ZERO)
+					obj_timers[c] = card.bonus_amount if card.bonus_amount > 0 else STONE_WALL_TURNS
+		"eruption":
+			# Сердце Жерла: клетки становятся лавой на bonus_amount раундов; кто там стоял — обжигается
+			_erupt(area, card.bonus_amount if card.bonus_amount > 0 else 2)
+		"rust", "rust_area", "rust_hit":
+			# Ржавник: враги теряют блок, их удары слабее до конца следующего раунда
+			var rusted: Array[BattleUnit] = []
+			if card.special == "rust":
+				for e in living_enemies():
+					if HexMath.distance(e.cell, h.cell) <= maxi(card.bonus_amount, 2):
+						rusted.append(e)
+			else:
+				for c in area:
+					var ru: BattleUnit = unit_at(c)
+					if ru != null and not ru.is_hero and ru.is_alive():
+						rusted.append(ru)
+			for e in rusted:
+				_rust(e)
 		"ice_wall":
 			for c in area:
 				if _can_build(c) and object_at(c) == Obj.NONE:
@@ -2997,7 +3145,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 					break
 		"fire_step":
 			# «Тяга»: маг переносится на горящую клетку
-			if tile_at(target) == Tile.FIRE and unit_at(target) == null and not _is_obstacle(target):
+			if (tile_at(target) == Tile.FIRE or tile_at(target) == Tile.SMOKE) and unit_at(target) == null and not _is_obstacle(target):
 				var origin: Vector2i = h.cell
 				var path_f: Array[Vector2i] = [h.cell, target]
 				h.cell = target
@@ -3229,6 +3377,12 @@ func _hit_object(c: Vector2i, from: Vector2i) -> void:
 			_burst_hive(c)
 		Obj.VALVE:
 			_vent_valve(c)
+		Obj.CART:
+			_roll_cart(c, HexMath.direction_to(from, c))
+		Obj.BASIN:
+			_splash_basin(c)
+		Obj.SPHERE_STORM:
+			_burst_storm_sphere(c)
 
 
 # Дерево падает в сторону dir и бьёт всех на TREE_LENGTH клетках
@@ -3265,6 +3419,9 @@ func _can_be_knocked_down(u: BattleUnit) -> bool:
 
 # Бочка взрывается: урон по клетке и 6 соседям, поджог
 func _explode_barrel(c: Vector2i) -> void:
+	if arena_id == "fungus":
+		_burst_puffball(c)   # в Грибной пещере «бочка» — дождевик: газ, а не огонь
+		return
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
 	message.emit("Бочка с газом взрывается!")
 	var cells: Array[Vector2i] = []
@@ -3335,7 +3492,7 @@ func _apply_element(c: Vector2i, element: CardData.Element, from: Vector2i, hero
 		if element == CardData.Element.WATER or element == CardData.Element.ICE:
 			_cool_lava(c)
 		return   # огню лава не страшна и не нужна
-	if obj == Obj.CRUST:
+	if obj == Obj.CRUST or obj == Obj.STONE_WALL:
 		return
 	if element == CardData.Element.FIRE:
 		if obj == Obj.BOG:
@@ -3350,7 +3507,7 @@ func _apply_element(c: Vector2i, element: CardData.Element, from: Vector2i, hero
 		if obj == Obj.LIVE_TREE:
 			_ignite_tree(c)
 			return
-		if obj == Obj.BURNING_TREE or obj == Obj.VALVE:
+		if obj == Obj.BURNING_TREE or obj == Obj.VALVE or obj == Obj.CART or obj == Obj.BASIN or obj == Obj.SPHERE_STORM:
 			return
 		if obj == Obj.PLANKS or obj == Obj.BRIDGE:
 			return   # мокрое не горит
@@ -3452,7 +3609,7 @@ func _reaction_hurt(u: BattleUnit, amount: int, hero_card: bool) -> void:
 func _steam_burst(c: Vector2i, from: Vector2i, hero_card: bool) -> void:
 	reaction.emit(c, "steam")
 	var u: BattleUnit = unit_at(c)
-	if u == null or (hero_card and u.is_hero):
+	if u == null or (hero_card and u.is_hero) or _steamproof(u):
 		return
 	message.emit("Паровой взрыв!")
 	_hint_damage(u, STEAM_DAMAGE * (2 if u.data != null and u.data.water_weak else 1), "steam")
@@ -3563,7 +3720,7 @@ func _vent_valve(c: Vector2i) -> void:
 	for t in cells:
 		reaction.emit(t, "steam")
 		var u: BattleUnit = unit_at(t)
-		if u != null and u.is_alive():
+		if u != null and u.is_alive() and not _steamproof(u):
 			_hint_damage(u, VALVE_DAMAGE * (2 if u.data != null and u.data.water_weak else 1), "steam")
 			if u.is_alive():
 				_push(u, HexMath.direction_to(c, t), 1)
@@ -3571,6 +3728,138 @@ func _vent_valve(c: Vector2i) -> void:
 	for t in cells:
 		if is_inside(t) and not rocks.has(t) and object_at(t) == Obj.NONE and tile_at(t) == Tile.NONE:
 			_set_tile(t, Tile.WATER)
+
+
+# Дождевик лопается: облако спор — немного урона соседям, клетка и соседи становятся газом
+func _burst_puffball(c: Vector2i) -> void:
+	_set_object(c, Obj.NONE, Vector2i.ZERO)
+	message.emit("Дождевик лопается: облако газа!")
+	var cells: Array[Vector2i] = []
+	for t in HexMath.cluster(c):
+		if is_inside(t):
+			cells.append(t)
+	effect_cells.emit(cells, "gas")
+	for t in cells:
+		var u: BattleUnit = unit_at(t)
+		if u != null and u.is_alive():
+			_damage(u, PUFF_DAMAGE)
+	for t in cells:
+		if tile_at(t) == Tile.FIRE:
+			fire_timers.erase(t)
+			_set_tile(t, Tile.NONE)
+	_gas_cloud(cells)
+	for t in cells:
+		if t != c and object_at(t) == Obj.BARREL:
+			_hit_object(t, c)   # соседний дождевик лопается следом
+
+
+# Вагонетка катится по направлению удара: до CART_ROLL клеток, до первой преграды.
+# Врезалась в кого-то — CART_DAMAGE урона ему, вагонетка встаёт перед ним.
+func _roll_cart(c: Vector2i, dir: Vector2i) -> void:
+	if dir == Vector2i.ZERO:
+		return
+	var at: Vector2i = c
+	var victim: BattleUnit = null
+	for i in CART_ROLL:
+		var t: Vector2i = at + dir
+		if not is_inside(t) or _is_obstacle(t):
+			break
+		var u: BattleUnit = unit_at(t)
+		if u != null:
+			victim = u
+			break
+		at = t
+	if at != c:
+		objects.erase(c)
+		objects[at] = Obj.CART
+		object_moved.emit(c, at)
+		message.emit("Вагонетка катится!")
+	if victim != null:
+		effect_cells.emit([victim.cell], "explosion")
+		message.emit("Вагонетка врезается в %s" % victim.title)
+		_damage(victim, CART_DAMAGE)
+
+
+# Купель: вода плещет на соседей — лужи, огонь гаснет, все рядом мокрые; кто боится воды — получает урон
+func _splash_basin(c: Vector2i) -> void:
+	_set_object(c, Obj.NONE, Vector2i.ZERO)
+	_set_tile(c, Tile.WATER)
+	message.emit("Купель опрокинута: вода плещет вокруг!")
+	var cells: Array[Vector2i] = []
+	for t in HexMath.neighbors(c):
+		if is_inside(t) and not rocks.has(t):
+			cells.append(t)
+	effect_cells.emit(cells, "splash")
+	for t in cells:
+		_apply_element(t, CardData.Element.WATER, c, false)
+		var u: BattleUnit = unit_at(t)
+		if u == null or not u.is_alive():
+			continue
+		_set_wet(u, WET_TURNS)
+		if u.data != null and u.data.id == "crown_vessel":
+			vessel_water_hits += 1   # купель тоже считается — условие Сердца Жерла
+		if u.data != null and u.data.water_weak:
+			_damage(u, BASIN_WEAK_DAMAGE)
+
+
+# Грозовая сфера: разряд по 6 соседям и по всей воде, что с ними связана
+func _burst_storm_sphere(c: Vector2i) -> void:
+	_set_object(c, Obj.NONE, Vector2i.ZERO)
+	message.emit("Грозовая сфера лопается: разряд!")
+	var ring: Array[Vector2i] = []
+	for t in HexMath.neighbors(c):
+		if is_inside(t):
+			ring.append(t)
+	var body: Array[Vector2i] = _spread_through_water(ring)
+	effect_cells.emit(body, "lightning")
+	for t in body:
+		var u: BattleUnit = unit_at(t)
+		if u != null and u.is_alive():
+			_damage(u, STORM_SPHERE_DAMAGE + (WET_SHOCK_BONUS if is_wet(u) else 0))
+
+
+# Перевал: огонь перекидывается ветром на соседнюю клетку (только на пустую землю или сухую заросль)
+func _wind_round_end() -> void:
+	if wind_dir == Vector2i.ZERO:
+		return
+	var spread: Array[Vector2i] = []
+	for c: Vector2i in fire_timers.keys():
+		var t: Vector2i = c + wind_dir
+		if not is_inside(t) or rocks.has(t) or tile_at(t) != Tile.NONE:
+			continue
+		var o: int = object_at(t)
+		if o != Obj.NONE and not is_cover(o):
+			continue
+		spread.append(t)
+	if spread.is_empty():
+		return
+	message.emit("Ветер перекидывает огонь")
+	effect_cells.emit(spread, "wind")
+	for t in spread:
+		_apply_element(t, CardData.Element.FIRE, t - wind_dir, false)
+
+
+# Сборочный цех: лента сдвигает всех, кто на ней стоит, на клетку вперёд (кто упёрся — стоит)
+func _belts_round_end() -> void:
+	if belts.is_empty():
+		return
+	var riders: Array[BattleUnit] = []
+	for u in heroes + enemies:
+		if u.is_alive() and belts.has(u.cell):
+			riders.append(u)
+	var moved: bool = true
+	while moved and not riders.is_empty():
+		moved = false
+		for u in riders.duplicate():
+			var t: Vector2i = belts[u.cell]
+			if not is_inside(t) or _is_obstacle_for(u, t) or unit_at(t) != null:
+				continue
+			var from: Vector2i = u.cell
+			u.cell = t
+			var path: Array[Vector2i] = [from, t]
+			unit_pushed.emit(u, path, false)
+			riders.erase(u)
+			moved = true
 
 
 # Лоза вырастает на клетке (карты Лешего): только на пустой земле без объекта;
@@ -3703,7 +3992,13 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 		message.emit("%s врезается!" % unit.title)
 		var bump_damage: int = _bump_damage(unit)
 		var other: BattleUnit = unit_at(bump_cell)
-		if other == null and object_at(bump_cell) == Obj.LAVA:
+		if other == null and object_at(bump_cell) == Obj.LAVA and unit.is_hero and unit.spirits.has("magma"):
+			bump_damage = 0   # Сердце Жерла: лава, куда толкнули героя, застывает коркой
+			dry_lava.erase(bump_cell)
+			_set_object(bump_cell, Obj.CRUST, Vector2i.ZERO)
+			obj_timers[bump_cell] = CRUST_TURNS
+			reaction.emit(bump_cell, "crust")
+		elif other == null and object_at(bump_cell) == Obj.LAVA:
 			bump_damage = 0 if _fireproof(unit) else LAVA_DAMAGE
 			message.emit("%s обжигается о лаву" % unit.title if bump_damage > 0 else "%s упирается в лаву, но огонь его не берёт" % unit.title)
 		elif other == null and object_at(bump_cell) == Obj.BOG:
@@ -3777,6 +4072,9 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		status_changed.emit(unit, snapshot(unit))
 	if unit.is_alive():
 		_mod_after_hit(unit, direct)
+		_check_half_burst(unit)
+	if not unit.is_alive() and unit.burst_done and burst_turn > 0 and turn - burst_turn < RUST_KILL_TURNS:
+		colossus_fast_kill = true
 	if not unit.is_alive():
 		unit_died.emit(unit)
 		message.emit("%s падает" % unit.title)
@@ -3843,6 +4141,39 @@ func _remains_on_death(unit: BattleUnit) -> void:
 
 
 const SPHERE_SHOCK: int = 3   # разряд грозовой сферы по лужам рядом с ней
+
+
+# «Грозовая сфера» Колосса: все лужи, связанные с лужами под героями (герой не в воде — мимо)
+func puddle_lightning_cells() -> Array[Vector2i]:
+	var start: Array[Vector2i] = []
+	for h in living_heroes():
+		if tile_at(h.cell) == Tile.WATER:
+			start.append(h.cell)
+	if start.is_empty():
+		return start
+	return _spread_through_water(start)
+
+
+# Колосс на половине здоровья: лопается сфера последнего удара — её удар выпадает из круга,
+# из осколков выходит одичавший дух этой стихии
+func _check_half_burst(unit: BattleUnit) -> void:
+	if unit.data == null or unit.data.half_burst.is_empty() or unit.burst_done:
+		return
+	if unit.hp * 2 > unit.max_hp:
+		return
+	unit.burst_done = true
+	var idx: int = posmod(turn - 2, unit.data.cycle.size()) if turn > 1 else 0   # сфера, что била последней
+	var atk: EnemyAttackData = unit.data.cycle[idx]
+	unit.lost_attacks.append(atk)
+	burst_turn = maxi(turn, 1)
+	effect_cells.emit([unit.cell], "explosion")
+	message.emit("%s: %s лопается!" % [unit.title, atk.title.to_lower()])
+	var spirit: EnemyData = unit.data.half_burst[mini(idx, unit.data.half_burst.size() - 1)]
+	if spirit != null:
+		_summon_around(unit, spirit, 1)
+	if not party_has_rust:
+		message.emit("В груди Колосса ржавое сердце. Добей его за %d раунда — и дух пойдёт с тобой." % RUST_KILL_TURNS)
+	status_changed.emit(unit, snapshot(unit))
 
 
 # Сфера разбилась: огонь поджигает соседние клетки, вода разливает лужи, молния бьёт по соседним лужам
@@ -4347,8 +4678,14 @@ func mod_active(u: BattleUnit) -> bool:
 	return false
 
 
-# Прибавка к удару врага от модификатора
+# Прибавка к удару врага от модификатора (и убавка от «Ржавчины» Ржавника)
 func mod_damage(e: BattleUnit) -> int:
+	if e != null and e.rust > 0:
+		return _mod_damage_raw(e) - RUST_WEAKEN
+	return _mod_damage_raw(e)
+
+
+func _mod_damage_raw(e: BattleUnit) -> int:
 	match _mod_kind(e):
 		EnemyModifier.Kind.FRENZY:
 			return e.data.modifier.value if e.mod_on else 0
@@ -4417,6 +4754,9 @@ func _mod_on_death(unit: BattleUnit, burst: bool) -> void:
 func _special_damage_bonus(h: BattleUnit, card: CardData) -> int:
 	var bonus: int = 0
 	match card.special:
+		"smoke_strike":
+			if tile_at(h.cell) == Tile.SMOKE or tile_at(h.cell) == Tile.FIRE or _near_tile(h.cell, Tile.SMOKE):
+				bonus += card.bonus_amount   # удар из дыма
 		"axis_ram":
 			bonus += 3 * _cur_straight   # +3 за каждую клетку разгона по прямой
 		"crescent":
@@ -4680,7 +5020,8 @@ func _start_heroes_turn() -> void:
 	_aether = false
 	for h in living_heroes():
 		if h.block > 0 or h.taunt:
-			h.block = 0
+			# пассив Ржавника: часть блока переходит на следующий ход
+			h.block = mini(h.block, RUST_KEEP_BLOCK) if h.spirits.has("rust") else 0
 			h.taunt = false
 			status_changed.emit(h, snapshot(h))
 		h.guarding = false
@@ -4718,6 +5059,7 @@ func _start_heroes_turn() -> void:
 					break
 		if h.spirits.has("tide") and tile_at(h.cell) == Tile.WATER:
 			h.block += 3   # пассив Омутника: стоишь в луже — +3 блока
+		_act2_spirit_passives(h)
 		h.outpost = false
 		h.momentum = 0
 		if h.entangled > 0:
@@ -4805,6 +5147,18 @@ func end_turn() -> void:
 		fire_timers[c] -= 1
 		if fire_timers[c] <= 0:
 			_set_tile(c, Tile.NONE)
+	_wind_round_end()
+	_belts_round_end()
+	for c: Vector2i in smoke_timers.keys():   # дым рассеивается
+		smoke_timers[c] -= 1
+		if smoke_timers[c] <= 0:
+			smoke_timers.erase(c)
+			if tile_at(c) == Tile.SMOKE:
+				_set_tile(c, Tile.NONE)
+	for e in living_enemies():
+		if e.rust > 0:
+			e.rust -= 1
+			status_changed.emit(e, snapshot(e))
 	_cave_round_end()
 	_burning_trees_round_end()
 	# Лава жжёт всех, кто в ней стоит (например, топляка)
@@ -4855,7 +5209,17 @@ func _tick_objects() -> void:
 		if obj_timers[c] <= 0:
 			var kind: int = object_at(c)
 			if kind == Obj.LAVA:
+				if dry_lava.has(c):
+					dry_lava.erase(c)
+					obj_timers.erase(c)
+					_set_object(c, Obj.NONE, Vector2i.ZERO)   # лава Сердца Жерла ушла в землю
+					continue
 				_set_object(c, Obj.BOG, Vector2i.ZERO)   # лава остыла — снова трясина
+				continue
+			if kind == Obj.STONE_WALL:
+				obj_timers.erase(c)
+				_set_object(c, Obj.NONE, Vector2i.ZERO)
+				message.emit("Камни осыпаются")
 				continue
 			if kind == Obj.BURNING_TREE:
 				_set_object(c, Obj.TREE, Vector2i.ZERO)   # крона прогорела — сухое дерево, его можно повалить
@@ -4916,7 +5280,21 @@ func _enemies_act() -> bool:
 
 # Какой удар у врага в этом раунде (у врагов с циклом они чередуются)
 func enemy_attack(e: BattleUnit) -> EnemyAttackData:
-	return e.data.attack_on_turn(turn)
+	return enemy_attack_on(e, turn)
+
+
+# Удар врага в раунде t (с учётом лопнувших сфер Колосса)
+func enemy_attack_on(e: BattleUnit, t: int) -> EnemyAttackData:
+	if e.lost_attacks.is_empty():
+		return e.data.attack_on_turn(t)
+	# Колосс: удар лопнувшей сферы выпал из круга — круг короче
+	var left: Array[EnemyAttackData] = []
+	for a in e.data.cycle:
+		if not e.lost_attacks.has(a):
+			left.append(a)
+	if left.is_empty():
+		return e.data.attack_on_turn(t)
+	return left[posmod(t - 1, left.size())]
 
 
 # Начало хода врагов: старый блок сгорает (как у героев в начале их хода),
@@ -5154,6 +5532,13 @@ func clone() -> BattleLogic:
 	c.tiles = tiles.duplicate()
 	c.fire_timers = fire_timers.duplicate()
 	c.obj_timers = obj_timers.duplicate()
+	c.smoke_timers = smoke_timers.duplicate()
+	c.dry_lava = dry_lava.duplicate()
+	c.vessel_water_hits = vessel_water_hits
+	c.wind_dir = wind_dir
+	c.belts = belts.duplicate()
+	c.burst_turn = burst_turn
+	c.colossus_fast_kill = colossus_fast_kill
 	c.turn = turn
 	c.is_over = is_over
 	c.objective = objective
@@ -5257,6 +5642,8 @@ func get_threat_cells(e: BattleUnit) -> Array[Vector2i]:
 # Клетки, по которым придётся удар atk врага e, если он встанет на from и ударит в сторону dir
 func _attack_cells(e: BattleUnit, atk: EnemyAttackData, from: Vector2i, dir: Vector2i) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
+	if atk.puddle_lightning:
+		return puddle_lightning_cells()   # куда бы враг ни встал — молния бьёт по воде у героев
 	match atk.shape:
 		EnemyData.Attack.MELEE:
 			cells.append(from + dir)
@@ -5617,6 +6004,10 @@ func _set_wet(u: BattleUnit, turns: int) -> void:
 
 # Урон карты героя по врагу: молния по мокрому сильнее; запоминаем задетых для рун
 func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
+	if _cur_card != null and _cur_card.element == CardData.Element.WATER and u.data != null and u.data.id == "crown_vessel":
+		vessel_water_hits += 1   # условие Сердца Жерла
+		if vessel_water_hits == VESSEL_WATER_HITS and not party_has_magma:
+			message.emit("Пламя в клетке стихает и слушает. Добей Сосуд — Сердце Жерла уйдёт с тобой.")
 	if _lightning_now and ctx.rot_storm and u.entangled > 0:
 		amount *= 2   # «Гнилая гроза»
 	if _cur_card != null and _cur_card.special == "thorn" and (u.entangled > 0 or object_at(u.cell) == Obj.VINE):

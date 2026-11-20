@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "rust_k3+1"
+icon = "hammer"
+title = "Сломать броню+I"
+description = "Соседний враг: 7 урона сквозь блок +1 за звено."
+shape = 1
+cost = 2
+damage = 7
+per_link_damage = 1
+pierce_block = true
+card_set = "s_rust"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 3
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "rust_k3+2"
+icon = "hammer"
+title = "Сломать броню+II"
+description = "Соседний враг: 5 урона сквозь блок +1 за звено, толчок 2."
+shape = 1
+cost = 2
+damage = 5
+per_link_damage = 1
+pierce_block = true
+push = 2
+card_set = "s_rust"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 3
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "rust_k3"
+icon = "hammer"
+title = "Сломать броню"
+description = "Соседний враг: 5 урона сквозь блок +1 за звено Цепи."
+shape = 1
+cost = 2
+damage = 5
+per_link_damage = 1
+pierce_block = true
+card_set = "s_rust"
+owner_hero = "knight"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 3
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

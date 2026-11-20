@@ -53,6 +53,7 @@ boss_pool = Array[ExtResource("1_enc")]([ExtResource("34_e"), ExtResource("35_e"
 arenas_left = Array[String](["gat", "grove", "reeds", "camp", "ruins", "pump"])
 arenas_right = Array[String](["thicket", "sanctum", "hollow", "windfall"])
 boss_arena = "lair"
+lair_spirits = Array[String](["tide", "storm", "wind"])
 borrow_from = 0
 enemy_hp_mult = 1.0
 enemy_damage_add = 0

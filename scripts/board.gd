@@ -214,6 +214,8 @@ const LAYER_HEIGHT: Dictionary = {
 	"ghost_kill": 0.166,  # кто погибнет от карты
 	"flash": 0.17,    # вспышка удара
 	"routes": 0.2,    # линии маршрутов врагов
+	"flow": 0.11,
+	"belts": 0.11,     # стрелки ветра и лент конвейера (под подсветкой ходов)
 }
 
 const IMPACT_FX_SCALE: float = 1.5   # во сколько раз крупнее частицы взрыва бочки и падения дерева (подкрути, если мало или много)
@@ -843,6 +845,28 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 				# Клубы газа над клеткой; плоский диск бледнее — клетку под газом видно
 				cloud_mat.albedo_color.a = 0.25
 				vfx.loop("gas_loop", root, Vector3(0.0, 0.45, 0.0))
+		BattleLogic.Tile.SMOKE:
+			# Дым Пепельника: густое серое облако, сквозь которое не видно
+			var smoke := _flat_disc(0.46 * CELL_STEP, Color(0.42, 0.4, 0.38, 0.7), 0.4)
+			smoke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(smoke)
+			var puff := MeshInstance3D.new()
+			var ball := SphereMesh.new()
+			ball.radius = 0.42 * CELL_STEP
+			ball.height = 0.5 * CELL_STEP
+			ball.radial_segments = 8
+			ball.rings = 4
+			puff.mesh = ball
+			puff.position.y = 0.55
+			var puff_mat := StandardMaterial3D.new()
+			puff_mat.albedo_color = Color(0.5, 0.48, 0.46, 0.55)
+			puff_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			puff_mat.roughness = 1.0
+			puff.material_override = puff_mat
+			puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(puff)
+			if vfx != null:
+				vfx.loop("smoke_loop", root, Vector3(0.0, 0.7, 0.0))
 		BattleLogic.Tile.FIRE:
 			# Тлеющая земля, языки пламени из частиц и оранжевый свет
 			var embers := _flat_disc(0.42 * CELL_STEP, Color(1.0, 0.4, 0.08, 0.75), 0.03)
@@ -1399,6 +1423,23 @@ func _make_object(kind: int, cell: Vector2i) -> Node3D:
 		BattleLogic.Obj.ICE_BLOCK:
 			root = OBJ_ICE.instantiate()
 			root.rotation.y = deg_to_rad(float(hash_value))
+		BattleLogic.Obj.CART:
+			var cart: PackedScene = _ash_scene("rock_cart")
+			root = (cart if cart != null else ROCK_BOULDER).instantiate()
+			root.rotation.y = (hash_value % 2) * PI
+		BattleLogic.Obj.BASIN:
+			var basin: PackedScene = _ash_scene("obj_basin")
+			root = (basin if basin != null else OBJ_BARREL).instantiate()
+			_add_light(root, Vector3(0.0, 0.6, 0.0), Color(0.5, 0.75, 1.0), 0.5, 2.0)
+		BattleLogic.Obj.SPHERE_STORM:
+			var orb: PackedScene = _ash_scene("obj_sphere_storm")
+			root = (orb if orb != null else OBJ_BARREL).instantiate()
+			_add_light(root, Vector3(0.0, 0.9, 0.0), Color(1.0, 0.92, 0.5), 0.8, 2.4)
+		BattleLogic.Obj.STONE_WALL:
+			var stone: PackedScene = _ash_scene("rock_basalt")   # камни Каменника
+			root = (stone if stone != null else ROCK_BOULDER).instantiate()
+			root.rotation.y = deg_to_rad(float(hash_value))
+			root.scale = Vector3.ONE * 0.85
 		BattleLogic.Obj.STAKES:
 			root = OBJ_STAKES.instantiate()
 		BattleLogic.Obj.BRIDGE:
@@ -1528,6 +1569,28 @@ func _sink(node: Node3D) -> void:
 
 # Рисует пути врагов тонкими линиями со стрелкой на конце.
 # paths — массив путей (каждый — массив клеток от врага до точки, куда он встанет).
+# Плоские стрелки на полу: arrows — список пар [откуда, куда]. Ветер, ленты конвейера.
+func show_flow_arrows(layer: String, arrows: Array, color: Color, size: float = 0.36) -> void:
+	clear_layer(layer)
+	var holder := Node3D.new()
+	add_child(holder)
+	_layers[layer] = holder
+	var y: float = LAYER_HEIGHT.get(layer, 0.11)
+	var mat: StandardMaterial3D = _get_flat_material(color)
+	for pair: Array in arrows:
+		var a: Vector3 = grid_to_world(pair[0])
+		var heading: Vector3 = grid_to_world(pair[1]) - a
+		var arrow := MeshInstance3D.new()
+		var prism := PrismMesh.new()
+		prism.size = Vector3(size * 0.85, size, 0.02)
+		arrow.mesh = prism
+		arrow.material_override = mat
+		arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		arrow.position = a + heading * 0.18 + Vector3(0, y, 0)
+		arrow.rotation = Vector3(-PI / 2.0, atan2(-heading.x, -heading.z), 0.0)
+		holder.add_child(arrow)
+
+
 func show_routes(paths: Array) -> void:
 	clear_layer("routes")
 	var holder := Node3D.new()

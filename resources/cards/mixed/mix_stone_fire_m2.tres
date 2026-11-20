@@ -1,0 +1,60 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "mix_stone_fire_m2+1"
+icon = "meteor"
+title = "Шлаковый обвал+I"
+description = "Круг 1 до 5: 6 урона огнём +1 за звено, всё горит."
+shape = 3
+element = 1
+cost = 2
+cast_range = 5
+damage = 6
+per_link_damage = 1
+card_set = "x_stone_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["stone", "fire"])
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "mix_stone_fire_m2+2"
+icon = "meteor"
+title = "Шлаковый обвал+II"
+description = "Круг 1 до 5: 5 урона огнём +1 за звено.\nЦепь 3: стоит 1."
+shape = 3
+element = 1
+cost = 2
+cast_range = 5
+damage = 5
+per_link_damage = 1
+chain_need = 3
+chain_cost = 1
+card_set = "x_stone_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["stone", "fire"])
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "mix_stone_fire_m2"
+icon = "meteor"
+title = "Шлаковый обвал"
+description = "Круг 1 до 5: 5 урона огнём +1 за звено, всё горит."
+shape = 3
+element = 1
+cost = 2
+cast_range = 5
+damage = 5
+per_link_damage = 1
+card_set = "x_stone_fire"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["stone", "fire"])
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")

@@ -1,8 +1,11 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
 [ext_resource type="PackedScene" path="res://assets/models/sphere_colossus.glb" id="9_model"]
+[ext_resource type="Resource" path="res://resources/enemies/wild_tide.tres" id="10_tide"]
+[ext_resource type="Resource" path="res://resources/enemies/wild_storm.tres" id="11_storm"]
+[ext_resource type="Resource" path="res://resources/enemies/wild_fire.tres" id="12_fire"]
 
 [sub_resource type="Resource" id="atk_0"]
 script = ExtResource("2_attack")
@@ -21,6 +24,7 @@ shape = 1
 attack_range = 4
 damage = 5
 pierce = true
+puddle_lightning = true
 
 [sub_resource type="Resource" id="atk_2"]
 script = ExtResource("2_attack")
@@ -48,3 +52,4 @@ cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1
 turn_block = 4
 bog_damage = 8
 is_boss = true
+half_burst = Array[ExtResource("1_enemy")]([ExtResource("10_tide"), ExtResource("11_storm"), ExtResource("12_fire")])

@@ -118,6 +118,7 @@ func _ready() -> void:
 		board.boss_sign = sign[0]
 		_boss_sign_hint = sign[1]
 	board.build(layout_seed, logic.arena_id, logic.ground)
+	_show_flow_arrows()   # ветер Перевала и ленты Сборочного цеха
 	var biome: String = BattleLogic.arena_biome(logic.arena_id)
 	if biome == "deep":
 		_warm_cave_light()   # Тлеющая пещера и всё Подземье акта 2
@@ -156,6 +157,8 @@ func _ready() -> void:
 	logic.card_played.connect(func(_c: BattleUnit, _card: CardData, is_scrap: bool) -> void:
 		if is_scrap: _cards_scrapped += 1
 		else: _cards_played += 1)
+	logic.party_has_rust = Run.party_has_spirit("rust")
+	logic.party_has_magma = Run.party_has_spirit("magma")
 	_mode = Mode.BUSY
 	logic.start()
 	if Run.is_elite_battle() and Run.bog_spirit_offered():
@@ -167,6 +170,8 @@ func _ready() -> void:
 		logic.message.emit(BattleLogic.ARENA_HINTS[logic.arena_id])
 	elif logic.arena_id == "pump":
 		logic.message.emit("Насосная: удар по клапану — пар обжигает и отбрасывает соседей, вокруг разливается вода.")
+	if Run.vessel_spirit_offered():
+		logic.message.emit("В клетке Сосуда бьётся Сердце Жерла: облей Сосуд водой %d раза до победы — и оно пойдёт с тобой." % BattleLogic.VESSEL_WATER_HITS)
 	if Run.is_elite_battle() and Run.forest_spirit_offered():
 		logic.message.emit("Леший смотрит из чащи: победи Голос Рощи, не спалив ни дерева, ни лозы, — и он пойдёт с тобой.")
 	await _play_queue()
@@ -599,6 +604,25 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 	)
 
 
+# Стрелки на полу: куда дует ветер (Перевал) и куда везут ленты (Сборочный цех)
+func _show_flow_arrows() -> void:
+	var arrows: Array = []
+	if logic.wind_dir != Vector2i.ZERO:
+		for row: int in [1, 4, 7]:
+			for col: int in [2, 6, 10]:
+				var c: Vector2i = HexMath.from_column(col, row)
+				if logic.rocks.has(c):
+					continue
+				arrows.append([c, c + logic.wind_dir])
+	if not arrows.is_empty():   # ветер — крупные тёмные стрелки, на светлом пепле так виднее
+		board.show_flow_arrows("flow", arrows, Color(0.2, 0.24, 0.3), 0.75)
+	arrows = []
+	for c: Vector2i in logic.belts:
+		arrows.append([c, logic.belts[c]])
+	if not arrows.is_empty():
+		board.show_flow_arrows("belts", arrows, Color(0.62, 0.7, 0.78))
+
+
 func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 	var color: Color = COLOR_TREE_FALL
 	if kind == "explosion":
@@ -615,6 +639,8 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 		color = Color(0.95, 0.92, 0.55)
 	elif kind == "wind":
 		color = Color(0.75, 0.88, 0.78)
+	elif kind == "splash":
+		color = COLOR_STEAM
 	# Цифры урона над задетыми теперь показывает сам урон (_on_unit_damaged → VfxPlayer)
 	var world: Array[Vector3] = []
 	for c in cells:
@@ -1107,6 +1133,8 @@ func _finish_battle() -> void:
 	var hp_left: Array[int] = []
 	for h in logic.heroes:
 		hp_left.append(h.hp)
+	Run.last_vessel_water = logic.vessel_water_hits   # условие Сердца Жерла
+	Run.last_colossus_fast = logic.colossus_fast_kill   # условие Ржавника
 	Run.last_drowned = logic.drowned_count   # условие уникального духа (Хозяин трясины)
 	Run.last_forest_burnt = logic.trees_burnt + logic.vines_burnt   # условие Лешего: Роща не должна гореть
 	Run.finish_battle(logic.won, hp_left)

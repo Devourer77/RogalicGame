@@ -1,0 +1,71 @@
+[gd_resource type="Resource" script_class="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="1_card"]
+
+[sub_resource type="Resource" id="up1"]
+script = ExtResource("1_card")
+id = "rust_m6+1"
+icon = "poison"
+title = "Распад+I"
+description = "Враг до 5: 11 урона сквозь блок +1 за звено; ржавеет.\nЦепь 4: стоит 2."
+shape = 1
+cost = 3
+cast_range = 5
+damage = 11
+per_link_damage = 1
+pierce_block = true
+special = "rust_hit"
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_rust"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 6
+upgrade_level = 1
+
+[sub_resource type="Resource" id="up2"]
+script = ExtResource("1_card")
+id = "rust_m6+2"
+icon = "poison"
+title = "Распад+II"
+description = "Враг до 5: 8 урона сквозь блок +1 за звено; ржавеет."
+shape = 1
+cost = 2
+cast_range = 5
+damage = 8
+per_link_damage = 1
+pierce_block = true
+special = "rust_hit"
+is_rare = true
+card_set = "s_rust"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 6
+upgrade_level = 2
+
+[resource]
+script = ExtResource("1_card")
+id = "rust_m6"
+icon = "poison"
+title = "Распад"
+description = "Враг до 5: 8 урона сквозь блок +1 за звено; ржавеет (удары −2).\nЦепь 4: стоит 2."
+shape = 1
+cost = 3
+cast_range = 5
+damage = 8
+per_link_damage = 1
+pierce_block = true
+special = "rust_hit"
+chain_need = 4
+chain_cost = 2
+is_rare = true
+card_set = "s_rust"
+owner_hero = "mage"
+role = 4
+spirit_ids = Array[String](["rust"])
+spirit_slot = 6
+upgrade_1 = SubResource("up1")
+upgrade_2 = SubResource("up2")
