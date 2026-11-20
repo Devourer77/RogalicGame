@@ -218,6 +218,38 @@ func _initialize() -> void:
 	check("Ветка выбрана — босс и арена его точки — этой ветки", switch_ok)
 	check("В акте 1 у обеих веток один босс", act1_same)
 
+	# --- События акта 2 ---
+	var screen = load("res://ui/event_screen.gd")
+	run.start_new_run(41)
+	run.next_act()
+	var on_tract: Array[String] = []
+	var on_deep: Array[String] = []
+	for n: MapNode in run.map:
+		if n.row != 3 or n.branch == MapNode.COMMON:
+			continue
+		run.current = n
+		for e: Dictionary in screen.EVENTS:
+			if screen.event_allowed(e):
+				(on_tract if n.branch == MapNode.BOG else on_deep).append(e["title"])
+	check("Акт 2, Тракт: события Тракта есть, Подземья нет", on_tract.has("Застава мародёров") and not on_tract.has("Журнал лаборатории"))
+	check("Акт 2, Подземье: события Подземья есть, Тракта нет", on_deep.has("Журнал лаборатории") and not on_deep.has("Застава мародёров"))
+	check("Акт 2: общие события акта 2 и старые общие есть", on_tract.has("Пепельный дождь") and on_tract.has("Колодец желаний"))
+	check("Акт 2: болотных и лесных событий нет", not on_tract.has("Фонарь у переправы") and not on_deep.has("Пасека в дупле"))
+	run.start_new_run(42)
+	var act1: Array[String] = []
+	for e: Dictionary in screen.EVENTS:
+		if screen.event_allowed(e):
+			act1.append(e["title"])
+	check("Акт 1: событий акта 2 нет", not act1.has("Пепельный дождь") and not act1.has("Застава мародёров"))
+	var fights_ok: bool = true
+	for e: Dictionary in screen.EVENTS:
+		for o: Dictionary in e["options"]:
+			var steps: Array = o.get("effects", []) + o.get("win", {}).get("effects", []) + o.get("lose", {}).get("effects", [])
+			for st: Dictionary in steps:
+				if st.has("fight") and st["fight"] != "elite" and run.encounter_by_id(st["fight"]) == null:
+					fights_ok = false
+	check("Все бои из событий находят свой отряд", fights_ok)
+
 	# --- Особые арены: не больше двух за акт и не подряд ---
 	var rows_ok: bool = true
 	var pairs_ok: bool = true

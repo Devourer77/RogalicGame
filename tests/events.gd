@@ -133,6 +133,10 @@ func _matches(o: Dictionary, before: Dictionary, after: Dictionary, s: Control) 
 				want[who + "_deck"] += 1
 			if st.has("remove"):
 				want[(st["remove"] if st["remove"] != "random" else s._random.data.id) + "_deck"] -= 1
+			if st.has("heal_pct"):
+				for rh in run.party:
+					var gain: int = ceili(rh.data.max_hp * int(st["heal_pct"]) / 100.0)
+					want[rh.data.id + "_hp"] = mini(want[rh.data.id + "_hp"] + gain, rh.data.max_hp)
 			if st.has("hp"):
 				var ids: Array = ["knight", "mage"] if st["who"] == "all" else [st["who"] if st["who"] != "random" else s._random.data.id]
 				for id: String in ids:
