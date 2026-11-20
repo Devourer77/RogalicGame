@@ -50,3 +50,4 @@ cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1
 turn_block = 2
 bog_damage = 6
 is_elite = true
+machine = true

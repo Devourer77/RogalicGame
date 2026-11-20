@@ -19,3 +19,5 @@ size = 1.0
 model = ExtResource("9_model")
 attack_title = "Искровое жало"
 first_only = true
+machine = true
+sleeper = true

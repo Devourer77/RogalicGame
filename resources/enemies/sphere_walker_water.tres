@@ -28,3 +28,4 @@ size = 1.0
 model = ExtResource("9_model")
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])
 death_element = 2
+machine = true

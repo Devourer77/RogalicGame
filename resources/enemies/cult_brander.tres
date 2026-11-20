@@ -11,12 +11,13 @@ shape = 1
 attack_range = 3
 damage = 3
 ignite = true
+brand = true
 
 [resource]
 script = ExtResource("1_enemy")
 id = "cult_brander"
 title = "Угольный Клеймитель"
-description = "Он не жжёт людей. Он метит их для Венца."
+description = "Метит тех, кого Венец заберёт следующим."
 max_hp = 10
 move_range = 2
 damage = 3

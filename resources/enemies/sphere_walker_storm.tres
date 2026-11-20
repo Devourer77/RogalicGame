@@ -1,14 +1,23 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
 [ext_resource type="PackedScene" path="res://assets/models/sphere_walker_storm.glb" id="9_model"]
 
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Разряд"
+shape = 1
+attack_range = 4
+damage = 3
+first_only = true
+shock_water = true
+
 [resource]
 script = ExtResource("1_enemy")
 id = "sphere_walker_storm"
 title = "Грозовой сферник"
-description = "Ищет лужу под твоими ногами."
+description = "Ищет лужу под твоими ногами. Мокрый — значит, твой."
 max_hp = 9
 move_range = 2
 damage = 3
@@ -21,3 +30,5 @@ attack_title = "Разряд"
 first_only = true
 death_element = 4
 keep_distance = 3
+machine = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])

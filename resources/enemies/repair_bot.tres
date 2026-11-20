@@ -10,7 +10,8 @@ title = "Починка"
 shape = 3
 attack_range = 2
 damage = 0
-ally_block = 4
+ally_block = 2
+ally_heal = 4
 
 [resource]
 script = ExtResource("1_enemy")
@@ -27,3 +28,4 @@ size = 1.0
 model = ExtResource("9_model")
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])
 ai_style = 2
+machine = true

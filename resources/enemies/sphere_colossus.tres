@@ -53,3 +53,4 @@ turn_block = 4
 bog_damage = 8
 is_boss = true
 half_burst = Array[ExtResource("1_enemy")]([ExtResource("10_tide"), ExtResource("11_storm"), ExtResource("12_fire")])
+machine = true

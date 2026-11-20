@@ -33,6 +33,8 @@ const MAP_ROWS: int = 8        # последний ряд — босс, пре�
 # Две ветки рядом (мир.md, раздел 2): колонки 0–2 — Болота, 3–5 — Лес. Сходятся на привале перед боссом.
 const BRANCH_COLS: int = 4     # дорожек-колонок в одной ветке (в ряду 2–4 точки — где прошли тропы)
 const MAP_COLS: int = BRANCH_COLS * 2
+const SPECIAL_ROWS: Array[int] = [2, 4]   # только в этих рядах бывают арены с особым правилом (не больше 2 за акт, не подряд)
+const SPECIAL_ARENA_CHANCE: float = 0.5   # шанс, что бой такого ряда — на особой арене
 const CROSS_ROW: int = 3       # с этого ряда — тропа-переход между ветками через мост (на ряд выше)
 const PATHS_PER_BRANCH: int = 4   # сколько троп идёт снизу вверх в каждой ветке (сливаются и расходятся)
 const FOG_SIGHT: int = 2          # туман: тип точки виден на столько рядов вперёд от текущей
@@ -97,6 +99,7 @@ var pending_enemies: Array[EnemyData] = []  # враги для ближайше
 var pending_spirit: SpiritData = null      # дух в логове (бой за него)
 var last_drowned: int = 0                  # сколько врагов утонуло в последнем бою
 var last_vessel_water: int = 0            # сколько раз облили Сосуд водой в последнем бою (Сердце Жерла)
+var last_freed_spirit: bool = false       # в последнем бою разбили сферу Полусвободного духа
 var last_colossus_fast: bool = false      # Колосса добили быстро после сферы (Ржавник)
 var last_forest_burnt: int = 0             # сколько живых деревьев и клеток лозы сгорело в последнем бою (условие Лешего)
 const BOG_SPIRIT_DROWNS: int = 2            # условие Хозяина трясины: утопить столько врагов в бою с корягачом
@@ -569,9 +572,11 @@ func pick_arena(is_boss: bool) -> String:
 	if is_boss:
 		return boss_arena()
 	# Арены по ветке карты (у каждого акта свои; в акте 1 справа — лесные, слева — болотные)
-	var pool: Array[String] = arena_pool(current_branch())
+	var pool: Array[String] = _arenas_by_kind(arena_pool(current_branch()), false)
 	var options: Array[String] = pool.duplicate()
 	options.erase(_last_arena)
+	if options.is_empty():
+		options = pool.duplicate()
 	_last_arena = options[rng.randi_range(0, options.size() - 1)]
 	return _last_arena
 
@@ -625,7 +630,8 @@ func _assign_arenas() -> void:
 
 
 func _arena_for(n: MapNode) -> String:
-	var pool: Array[String] = arena_pool(n.branch)
+	var pool: Array[String] = _arenas_by_kind(arena_pool(n.branch),
+			_special_row(n) and rng.randf() < SPECIAL_ARENA_CHANCE)
 	var options: Array[String] = pool.duplicate()
 	for prev in row_nodes(n.row - 1):
 		if prev.next.has(n.col):
@@ -633,6 +639,29 @@ func _arena_for(n: MapNode) -> String:
 	if options.is_empty():
 		options = pool.duplicate()
 	return options[rng.randi_range(0, options.size() - 1)]
+
+
+# Может ли бой этой точки быть на особой арене. Ряд перед элитой — нет, если сама элита ветки
+# дерётся на особой арене (Ловчий автомат — Зал сфер, Матка — Грибная пещера): иначе две особые подряд.
+func _special_row(n: MapNode) -> bool:
+	if not SPECIAL_ROWS.has(n.row):
+		return false
+	if n.row == MAP_ROWS - 4 and n.branch != MapNode.COMMON:
+		var elite: EncounterData = elite_for_row(MAP_ROWS - 3, n.branch)
+		if elite != null and BattleLogic.SPECIAL_ARENAS.has(elite.arena):
+			return false
+	return true
+
+
+# Только особые арены (special = true) или только обычные; если таких в пуле нет — весь пул
+func _arenas_by_kind(pool: Array[String], special: bool) -> Array[String]:
+	var result: Array[String] = []
+	for a in pool:
+		if BattleLogic.SPECIAL_ARENAS.has(a) == special:
+			result.append(a)
+	if result.is_empty() and special:
+		return _arenas_by_kind(pool, false)
+	return result if not result.is_empty() else pool
 
 
 # Одна ветка: тропы по дорожкам-колонкам своей ветки. false — если в каком-то ряду меньше 2 точек.
@@ -1110,6 +1139,9 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 		offer_spirit(spirit_data("magma"))   # Сердце Жерла освобождено водой
 	if _boss_core_has("sphere_colossus") and not party_has_spirit("rust") and last_colossus_fast:
 		offer_spirit(spirit_data("rust"))   # Ржавник: Колосса добили за 3 раунда после сферы
+	if last_freed_spirit and tamed_spirit == null:
+		offer_spirit(_freed_spirit_pick())   # Полусвободный дух: сферу разбили — он идёт к отряду
+	last_freed_spirit = false
 	if in_spring:
 		in_spring = false
 		offer_spirit(spirit_data("steam"))   # Котловик из Кипящего источника
@@ -1339,6 +1371,16 @@ func _roll_lair_spirit() -> SpiritData:
 	var picked: SpiritData = free[rng.randi_range(0, free.size() - 1)]
 	Meta.mark_spirit_seen(picked.id)
 	return picked
+
+
+# Кем окажется Полусвободный дух: дух воды (Омутник), а если он уже в отряде — обычный дух, которого нет
+func _freed_spirit_pick() -> SpiritData:
+	if not party_has_spirit("tide") and spirit_data("tide") != null:
+		return spirit_data("tide")
+	for id in SPIRIT_IDS:
+		if not party_has_spirit(id) and spirit_data(id) != null:
+			return spirit_data(id)
+	return null
 
 
 # Обычный дух из логова прошлых актов (в акте 2 в логове могут ждать и Омутник, Грозовик, Вихорь)

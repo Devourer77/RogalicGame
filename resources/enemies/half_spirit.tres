@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/half_spirit.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Выплеск"
+shape = 2
+attack_range = 1
+damage = 3
+puddle = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "half_spirit"
+title = "Полусвободный дух"
+description = "Наполовину вырвался из сферы. Разбей её до конца — и он твой. Не успеешь — улетит."
+max_hp = 14
+move_range = 2
+damage = 3
+attack = 2
+attack_range = 1
+color = Color(0.42, 0.62, 0.78, 1)
+size = 1.0
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])
+always_wet = true
+shell_hits = 3
+frees_spirit = true

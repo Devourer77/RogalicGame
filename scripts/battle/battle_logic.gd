@@ -84,6 +84,8 @@ const CART_DAMAGE: int = 5        # урон тому, в кого она вре
 const BASIN_WEAK_DAMAGE: int = 6  # купель по тому, кто боится воды (Сосуд, Жаровик)
 const STORM_SPHERE_DAMAGE: int = 4  # разряд грозовой сферы по соседям и по воде рядом
 const PUFF_DAMAGE: int = 2        # дождевик лопается: урон соседям (потом — газ)
+const BRAND_BONUS: int = 3        # клеймо Культа: удар врага по клеймёному герою сильнее на столько
+const JELLY_DRY_DAMAGE: int = 2   # медуза на сухом теряет столько HP в конце раунда
 const VALVE_DAMAGE: int = 4      # выброс пара из клапана: урон соседям (вдвое — тем, кто боится воды)
 const GROWN_TREE_TURNS: int = 3  # сколько раундов стоит дерево, выращенное картой Лешего
 const LESHY_BLOCK: int = 2       # пассив Лешего: столько блока в начале хода, если рядом живое дерево
@@ -248,6 +250,9 @@ const ARENAS: Dictionary[String, String] = {
 	"crater": "Край жерла",         # Сосуд Венца: кромка кратера с лавой, торф, 3 купели с водой
 }
 # Арены акта 2 по веткам (resources/acts/act_2.tres берёт отсюда же) и вид места вокруг поля
+# Арены с особым правилом (ветер, ленты, вагонетки, грозовые сферы, газовые грибы). На карте их
+# не больше двух за акт и не подряд (Run.SPECIAL_ROWS), остальные бои — на обычных аренах.
+const SPECIAL_ARENAS: Array[String] = ["pass", "sphere_hall", "mine", "assembly", "fungus"]
 const TRACT_ARENA_POOL: Array[String] = ["wagons", "ashfield", "shrine", "lava_beds", "springs", "tower", "dunes", "pass"]
 const DEEP_ARENA_POOL: Array[String] = ["embers", "sphere_hall", "steamworks", "mine", "rift_lab", "lake", "assembly", "fungus"]
 # Вид места: "ash" — поверхность выжженного тракта, "deep" — под землёй (стены пещеры, свет углей).
@@ -315,6 +320,7 @@ var tiles: Dictionary[Vector2i, int] = {}      # клетка -> Tile (огон�
 var fire_timers: Dictionary[Vector2i, int] = {}  # сколько раундов ещё горит клетка
 var obj_timers: Dictionary[Vector2i, int] = {}   # сколько раундов ещё простоит временный объект
 var smoke_timers: Dictionary[Vector2i, int] = {} # сколько раундов ещё держится дым
+var freed_spirit: bool = false     # Полусвободный дух: сферу разбили до гибели — после боя дух идёт к отряду
 var vessel_water_hits: int = 0     # сколько раз Сосуд облили водой (условие Сердца Жерла)
 var burst_turn: int = 0            # в каком раунде у Колосса лопнула сфера (0 — ещё нет)
 var colossus_fast_kill: bool = false  # Колосса добили за RUST_KILL_TURNS раунда после сферы (условие Ржавника)
@@ -422,7 +428,23 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		e.max_hp = enemy_data.max_hp
 		e.block = enemy_data.start_block
 		e.cell = c
+		_init_enemy(e)
 		enemies.append(e)
+
+
+# Особенности врага в начале его жизни: сон, сфера-панцирь; медуза садится в лужу
+func _init_enemy(e: BattleUnit) -> void:
+	if e.data == null:
+		return
+	e.asleep = e.data.sleeper
+	e.shell_hits = e.data.shell_hits
+	if e.data.water_bound and is_inside(e.cell) and not _is_water_cell(e.cell) and object_at(e.cell) == Obj.NONE:
+		tiles[e.cell] = Tile.WATER
+
+
+# Вода, по которой ходит медуза: лужа или топь
+func _is_water_cell(c: Vector2i) -> bool:
+	return tile_at(c) == Tile.WATER or tile_at(c) == Tile.SWAMP
 
 
 func _new_unit(title: String) -> BattleUnit:
@@ -1403,7 +1425,8 @@ func snapshot(u: BattleUnit) -> Dictionary:
 			"holding_line": u.holding_line,
 			"charge": u.charge, "momentum": u.momentum, "entangled": u.entangled,
 			"wet": wet_turns(u), "poison": u.poison, "rune": u.rune, "rune_hits": u.rune_hits,
-			"inflation": u.inflation, "rust": u.rust}
+			"inflation": u.inflation, "rust": u.rust, "stunned": u.stunned, "asleep": u.asleep,
+			"brand": u.brand, "shell": u.shell_hits}
 	if u.data != null:
 		# Что враг собирается сделать в этом раунде — для надписи над головой
 		var atk: EnemyAttackData = enemy_attack(u)
@@ -1414,7 +1437,13 @@ func snapshot(u: BattleUnit) -> Dictionary:
 		state["mod"] = u.data.modifier.icon if u.data.modifier != null else ""
 		state["mod_on"] = mod_active(u)
 		state["smoldering"] = is_smoldering(u)
-		if u.fuse > 0:
+		if u.asleep:
+			state["intent"] = "Спит"
+			state["damage"] = 0
+		elif u.stunned > 0:
+			state["intent"] = "Замыкание"
+			state["damage"] = 0
+		elif u.fuse > 0:
 			state["intent"] = "Взрыв!"
 			state["damage"] = INFLATION_DAMAGE
 		elif state["smoldering"]:
@@ -1481,6 +1510,8 @@ func _fireproof(u: BattleUnit) -> bool:
 
 # Преграда для конкретного юнита: для топляка трясина — не преграда, для Жаровика — лава
 func _is_obstacle_for(u: BattleUnit, c: Vector2i) -> bool:
+	if u != null and u.data != null and u.data.water_bound and is_inside(c) and not _is_water_cell(c):
+		return true   # медуза — только по воде
 	if _walks_fire(u) and is_inside(c) and not rocks.has(c) and object_at(c) == Obj.LAVA:
 		return false
 	if u != null and u.is_hero and u.spirits.has("magma") and is_inside(c) and not rocks.has(c) and object_at(c) == Obj.LAVA:
@@ -1703,6 +1734,8 @@ func _aimed_line_cells(from: Vector2i, target: Vector2i, length: int, pierce: bo
 # ignore_heroes = true — считать клетки героев проходимыми (нужно для зоны
 # угрозы: герои за ход сдвинутся, и враг сможет пройти).
 func reachable_cells(unit: BattleUnit, steps: int, ignore_heroes: bool = false) -> Dictionary[Vector2i, Array]:
+	if _flies(unit):
+		return _flight_cells(unit, steps)
 	var result: Dictionary[Vector2i, Array] = {}
 	var start_path: Array[Vector2i] = [unit.cell]
 	result[unit.cell] = start_path
@@ -1726,6 +1759,37 @@ func reachable_cells(unit: BattleUnit, steps: int, ignore_heroes: bool = false) 
 			result[next] = new_path
 			if object_at(next) != Obj.CRUST and not (object_at(next) == Obj.VINE and not _vine_free(unit)):
 				frontier.append(next)   # на корке и на лозе ход заканчивается: дальше не идём
+	return result
+
+
+# Летает ли юнит (падальщик): преграды, лава, трясина и чужие фигурки ему не мешают по пути
+func _flies(u: BattleUnit) -> bool:
+	return u != null and u.data != null and u.data.flier
+
+
+# Клетки, куда может сесть летун: в пределах шагов по полю, садится только на свободную землю
+func _flight_cells(unit: BattleUnit, steps: int) -> Dictionary[Vector2i, Array]:
+	var result: Dictionary[Vector2i, Array] = {}
+	var paths: Dictionary[Vector2i, Array] = {}
+	var start: Array[Vector2i] = [unit.cell]
+	paths[unit.cell] = start
+	result[unit.cell] = start
+	var frontier: Array[Vector2i] = [unit.cell]
+	while not frontier.is_empty():
+		var current: Vector2i = frontier.pop_front()
+		var path: Array[Vector2i] = paths[current]
+		if path.size() - 1 >= steps:
+			continue
+		for d: Vector2i in HexMath.DIRS:
+			var next: Vector2i = current + d
+			if paths.has(next) or not is_inside(next):
+				continue
+			var new_path: Array[Vector2i] = path.duplicate()
+			new_path.append(next)
+			paths[next] = new_path
+			frontier.append(next)
+			if not _is_obstacle(next) and unit_at(next) == null:
+				result[next] = new_path
 	return result
 
 
@@ -1754,6 +1818,7 @@ func move_hero(h: BattleUnit, cell: Vector2i) -> bool:
 		return false
 	var path: Array[Vector2i] = targets[cell]
 	h.moves_left -= path.size() - 1
+	h.moved_cells += path.size() - 1   # шум шагов: слепыш идёт к тому, кто прошёл больше всех
 	if h.spirits.has("magma"):
 		for pc: Vector2i in path:
 			if object_at(pc) == Obj.LAVA:   # Сердце Жерла: лава под ногами застывает
@@ -3815,6 +3880,7 @@ func _burst_storm_sphere(c: Vector2i) -> void:
 	for t in body:
 		var u: BattleUnit = unit_at(t)
 		if u != null and u.is_alive():
+			_short_circuit(u)
 			_damage(u, STORM_SPHERE_DAMAGE + (WET_SHOCK_BONUS if is_wet(u) else 0))
 
 
@@ -4026,6 +4092,13 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if amount <= 0 or not unit.is_alive():
 		return
 	var direct: bool = _dmg_source == ""   # удар картой, а не яд, огонь или взрыв
+	if unit.asleep:
+		_wake(unit)   # Спящая сфера просыпается от удара
+	if unit.shell_hits > 0:
+		unit.shell_hits -= 1   # сфера Полусвободного духа держит удар (урон всё равно проходит)
+		if unit.shell_hits == 0:
+			message.emit("Сфера %s разбита — дух почти свободен!" % unit.title)
+			effect_cells.emit([unit.cell], "explosion")
 	# «Живой бастион»: Рыцарь рядом принимает половину урона по напарнику вместо него
 	if unit.is_hero and not unit.guarding:
 		for g in living_heroes():
@@ -4078,6 +4151,12 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if not unit.is_alive():
 		unit_died.emit(unit)
 		message.emit("%s падает" % unit.title)
+		if unit.data != null and unit.data.frees_spirit:
+			if unit.shell_hits == 0:
+				freed_spirit = true
+				message.emit("Дух вырвался из сферы и остаётся с отрядом")
+			else:
+				message.emit("Дух в целой сфере улетает: сферу не успели разбить")
 		_death_blast(unit)
 		_pass_crown(unit)
 		_root_on_death(unit)
@@ -4141,6 +4220,27 @@ func _remains_on_death(unit: BattleUnit) -> void:
 
 
 const SPHERE_SHOCK: int = 3   # разряд грозовой сферы по лужам рядом с ней
+
+
+# Механизм мокрый и попал под молнию — «замыкание»: пропускает следующий ход (босс — нет)
+func _short_circuit(u: BattleUnit) -> void:
+	if u == null or u.data == null or not u.data.machine or u.data.is_boss or not u.is_alive():
+		return
+	if u.stunned > 0 or not is_wet(u):
+		return
+	u.stunned = 1
+	message.emit("%s: замыкание! Пропустит ход" % u.title)
+	effect_cells.emit([u.cell], "lightning")
+	status_changed.emit(u, snapshot(u))
+
+
+# Спящая сфера просыпается
+func _wake(u: BattleUnit) -> void:
+	if not u.asleep:
+		return
+	u.asleep = false
+	message.emit("%s просыпается!" % u.title)
+	status_changed.emit(u, snapshot(u))
 
 
 # «Грозовая сфера» Колосса: все лужи, связанные с лужами под героями (герой не в воде — мимо)
@@ -4452,6 +4552,7 @@ func spawn_enemy(enemy_data: EnemyData, at: Vector2i = NO_CELL) -> BattleUnit:
 	e.max_hp = enemy_data.max_hp
 	e.block = enemy_data.start_block
 	e.cell = c
+	_init_enemy(e)
 	enemies.append(e)
 	unit_spawned.emit(e)
 	return e
@@ -5013,6 +5114,8 @@ func _shuffle(cards: Array[CardData]) -> void:
 func _start_heroes_turn() -> void:
 	turn += 1
 	_enemy_phase = false
+	for h in heroes:
+		h.moved_cells = 0
 	for e in living_enemies():
 		if _mod_kind(e) == EnemyModifier.Kind.SPITE:
 			e.mod_used = false   # «Злопамятный» снова может ответить
@@ -5159,6 +5262,10 @@ func end_turn() -> void:
 		if e.rust > 0:
 			e.rust -= 1
 			status_changed.emit(e, snapshot(e))
+	for e in living_enemies():
+		if e.data.water_bound and not _is_water_cell(e.cell):
+			message.emit("%s сохнет на суше" % e.title)
+			_damage(e, JELLY_DRY_DAMAGE, true)   # медуза вне воды
 	_cave_round_end()
 	_burning_trees_round_end()
 	# Лава жжёт всех, кто в ней стоит (например, топляка)
@@ -5245,6 +5352,13 @@ func _enemies_act() -> bool:
 			if _check_end():
 				return true
 			continue
+		if e.stunned > 0:
+			e.stunned -= 1   # замыкание: механизм стоит и искрит
+			message.emit("%s: замыкание — пропускает ход" % e.title)
+			status_changed.emit(e, snapshot(e))
+			continue
+		if e.asleep:
+			continue   # Спящая сфера ещё спит
 		var atk: EnemyAttackData = enemy_attack(e)
 		var start: Vector2i = e.cell
 		var tangled_before: bool = e.entangled > 0   # опутан до хода (лоза на этом ходу держит до следующего)
@@ -5302,6 +5416,12 @@ func enemy_attack_on(e: BattleUnit, t: int) -> EnemyAttackData:
 func _start_enemy_phase() -> void:
 	_enemy_phase = true
 	for e in living_enemies():
+		if e.asleep:
+			for h in living_heroes():
+				if HexMath.distance(h.cell, e.cell) <= 1:
+					_wake(e)
+					break
+	for e in living_enemies():
 		e.mod_step = 1 if e.mod_step_next else 0   # «Отклик на зов»: лишний шаг в этот ход
 		e.mod_step_next = false
 		var block: int = e.data.turn_block
@@ -5336,7 +5456,12 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 		var u: BattleUnit = unit_at(c)
 		if u != null and u != e:
 			victims.append(u)
-			_damage(u, damage)          # по пути можно задеть и других
+			var hit: int = damage
+			if u.is_hero and u.brand > 0:
+				hit += BRAND_BONUS   # клеймо Культа: удар по меченому сильнее, метка сгорает
+				u.brand = 0
+				message.emit("Клеймо на %s вспыхивает: +%d" % [u.title, BRAND_BONUS])
+			_damage(u, hit)          # по пути можно задеть и других
 		elif _is_breakable(c) and not atk.pierce:
 			_hit_object(c, e.cell)      # промах по бочке — тоже взрыв
 		if object_at(c) == Obj.RUNE and not atk.pierce:
@@ -5352,6 +5477,10 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 			status_changed.emit(u, snapshot(u))
 		if atk.poison > 0:
 			_set_poison(u, atk.poison)
+		if atk.brand and u.is_hero:
+			u.brand = 1
+			message.emit("%s заклеймён: следующий удар по нему +%d" % [u.title, BRAND_BONUS])
+			status_changed.emit(u, snapshot(u))
 	if atk.gas_cloud:
 		_gas_cloud(cells)
 	if atk.ignite:
@@ -5384,6 +5513,9 @@ func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
 		enemy_buffed.emit(e, cells)
 		for ally in living_enemies():
 			if cells.has(ally.cell):
+				if atk.ally_heal > 0 and ally.data.machine and ally.hp < ally.max_hp:
+					ally.hp = mini(ally.max_hp, ally.hp + atk.ally_heal)   # Ремонтник чинит механизм
+					message.emit("%s починен: +%d HP" % [ally.title, atk.ally_heal])
 				ally.block += atk.ally_block
 				ally.bonus_damage = maxi(ally.bonus_damage, atk.ally_damage)
 				if _mod_kind(ally) == EnemyModifier.Kind.RALLY:
@@ -5429,6 +5561,7 @@ func _summon_around(e: BattleUnit, enemy_data: EnemyData, count: int) -> void:
 		u.max_hp = enemy_data.max_hp
 		u.block = enemy_data.start_block
 		u.cell = c
+		_init_enemy(u)
 		enemies.append(u)
 		unit_spawned.emit(u)
 	message.emit("%s зовёт подмогу: %s ×%d" % [e.title, enemy_data.title.to_lower(), cells.size()])
@@ -5535,6 +5668,7 @@ func clone() -> BattleLogic:
 	c.smoke_timers = smoke_timers.duplicate()
 	c.dry_lava = dry_lava.duplicate()
 	c.vessel_water_hits = vessel_water_hits
+	c.freed_spirit = freed_spirit
 	c.wind_dir = wind_dir
 	c.belts = belts.duplicate()
 	c.burst_turn = burst_turn
@@ -5661,6 +5795,11 @@ func _attack_cells(e: BattleUnit, atk: EnemyAttackData, from: Vector2i, dir: Vec
 					if u != null and u != e:
 						cells = cells.slice(0, i + 1)
 						break
+			if atk.lob and not cells.is_empty():
+				cells = HexMath.cluster(cells[cells.size() - 1])   # бутыль разбивается: цель и 6 клеток вокруг
+				cells.erase(from)
+			if atk.shock_water:
+				cells = _spread_through_water(cells)   # молния уходит по всей луже
 	var inside: Array[Vector2i] = []
 	for c in cells:
 		if is_inside(c) and not rocks.has(c):
@@ -5720,7 +5859,7 @@ func _distance_map(from_units: Array[BattleUnit], walker: BattleUnit = null) -> 
 		var cur: Vector2i = frontier.pop_front()
 		for d: Vector2i in HexMath.DIRS:
 			var n: Vector2i = cur + d
-			if not dist.has(n) and not _is_obstacle_for(walker, n):
+			if not dist.has(n) and (not _is_obstacle_for(walker, n) or (_flies(walker) and is_inside(n))):
 				dist[n] = dist[cur] + 1
 				frontier.append(n)
 	return dist
@@ -6004,6 +6143,8 @@ func _set_wet(u: BattleUnit, turns: int) -> void:
 
 # Урон карты героя по врагу: молния по мокрому сильнее; запоминаем задетых для рун
 func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
+	if _lightning_now:
+		_short_circuit(u)
 	if _cur_card != null and _cur_card.element == CardData.Element.WATER and u.data != null and u.data.id == "crown_vessel":
 		vessel_water_hits += 1   # условие Сердца Жерла
 		if vessel_water_hits == VESSEL_WATER_HITS and not party_has_magma:

@@ -318,6 +318,15 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		if state.get("fuse", 0) > 0 or state.get("smoldering", false):
 			info["intent_icon"] = "fuse"
 			info["intent_color"] = UiKit.THREAT
+		# Спит (Спящая сфера) или «замыкание» механизма: в этот ход не ударит
+		if state.get("asleep", false):
+			info["intent_icon"] = "hourglass"
+			info["intent_color"] = UiKit.TEXT_DIM
+		elif state.get("stunned", 0) > 0:
+			info["intent_icon"] = "bolt"
+			info["intent_color"] = UiKit.TEXT_DIM
+		if state.get("shell", 0) > 0:
+			marks.append("num:orb:%d" % state["shell"])   # сколько ударов ещё держит сфера духа
 		# Модификатор врага: значок бирюзы — тусклый, пока не сработал, яркий — когда сработал
 		if state.get("mod", "") != "":
 			marks.append(("mod_on:" if state.get("mod_on", false) else "mod:") + state["mod"])
@@ -331,11 +340,16 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		marks.append("wet")
 	if state.get("poison", 0) > 0:
 		marks.append("poison")
+	if state.get("brand", 0) > 0:
+		marks.append("num:target:+%d" % BattleLogic.BRAND_BONUS)   # клеймо Культа
+	if state.get("rust", 0) > 0:
+		marks.append("num:drain:-%d" % BattleLogic.RUST_WEAKEN)   # ржавчина: удар слабее
 	# «Ритуал»: над ритуалистом — сколько раундов до призыва
 	if logic.objective == BattleLogic.Objective.RITUAL and u.id == logic.ritual_caster_id and u.is_alive():
 		marks.append("ritual")
 		info["ritual_turns"] = logic.ritual_timer
 	info["marks"] = marks
+	info["asleep"] = state.get("asleep", false)
 	if _fire_forecast.has(u.id):
 		info["fire"] = _fire_forecast[u.id]
 	return info
@@ -1135,6 +1149,7 @@ func _finish_battle() -> void:
 		hp_left.append(h.hp)
 	Run.last_vessel_water = logic.vessel_water_hits   # условие Сердца Жерла
 	Run.last_colossus_fast = logic.colossus_fast_kill   # условие Ржавника
+	Run.last_freed_spirit = logic.freed_spirit   # Полусвободный дух вырвался из сферы
 	Run.last_drowned = logic.drowned_count   # условие уникального духа (Хозяин трясины)
 	Run.last_forest_burnt = logic.trees_burnt + logic.vines_burnt   # условие Лешего: Роща не должна гореть
 	Run.finish_battle(logic.won, hp_left)

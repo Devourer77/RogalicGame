@@ -202,6 +202,7 @@ func setup_label(height: float) -> void:
 
 # info — что показать на плашке (собирает сцена боя, см. Battle._plate_info)
 func set_status(info: Dictionary) -> void:
+	set_sleeping(info.get("asleep", false))
 	if _plate != null:
 		_plate.set_info(info)
 		_plate.modulate.a = 1.0 if info["hp"] > 0 else 0.0   # у павших плашки нет
@@ -236,7 +237,24 @@ func _shake() -> void:
 
 
 # Зацикленная анимация (покой, ходьба)
+# Спящая сфера: пока спит — анимация Sleep вместо Idle; проснулась — Wake и обычный Idle
+var _sleeping: bool = false
+func set_sleeping(on: bool) -> void:
+	if on == _sleeping or _anim == null or not has_anim("Sleep"):
+		return
+	_sleeping = on
+	if on:
+		_anim.play("Sleep", 0.15)
+	elif has_anim("Wake"):
+		_anim.play("Wake", 0.1)
+		_anim.queue("Idle")
+	else:
+		_play_loop("Idle")
+
+
 func _play_loop(anim_name: String, speed: float = 1.0) -> void:
+	if anim_name == "Idle" and _sleeping and has_anim("Sleep"):
+		anim_name = "Sleep"
 	if has_anim(anim_name):
 		_anim.play(anim_name, 0.15, speed)   # 0.15 сек — плавный переход из прошлой анимации
 

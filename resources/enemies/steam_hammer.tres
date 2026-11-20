@@ -36,3 +36,4 @@ size = 1.0
 model = ExtResource("9_model")
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1")])
 turn_block = 3
+machine = true

@@ -20,3 +20,4 @@ model = ExtResource("9_model")
 attack_title = "Болт"
 first_only = true
 keep_distance = 3
+tactician = true

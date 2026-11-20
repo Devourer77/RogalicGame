@@ -83,6 +83,11 @@ static func turn_order(l: BattleLogic) -> Array[BattleUnit]:
 #   path — путь до клетки, reason — причина для игрока («Добьёт Мага»),
 #   notable — стоит ли писать её в журнал.
 static func choose(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData) -> Dictionary:
+	if e.asleep or e.stunned > 0:
+		# Спит или замкнуло: стоит на месте и не бьёт
+		var path: Array[Vector2i] = [e.cell]
+		return {"cell": e.cell, "dir": Vector2i.ZERO, "path": path, "notable": false,
+				"reason": "Спит: проснётся от удара или если подойти вплотную" if e.asleep else "Замыкание: пропускает ход"}
 	# Опутанный враг стоит на месте, но ударить может
 	var options: Dictionary[Vector2i, Array] = l.reachable_cells(e, 0 if e.entangled > 0 else l.enemy_move_range(e))
 	var result: Dictionary = _decide(l, e, atk, options)
@@ -276,6 +281,14 @@ static func _has_aura(d: EnemyData) -> bool:
 
 # Добыча охотника: самый раненый герой (по доле HP); если все ранены одинаково — ближайший
 static func _prey(l: BattleLogic, e: BattleUnit) -> BattleUnit:
+	if e.data.blind:
+		# Слепыш идёт на шум: к герою, который за свой ход прошёл больше всех клеток (стояли все — к ближнему)
+		var loud: BattleUnit = null
+		for h in l.living_heroes():
+			if loud == null or h.moved_cells > loud.moved_cells \
+					or (h.moved_cells == loud.moved_cells and HexMath.distance(e.cell, h.cell) < HexMath.distance(e.cell, loud.cell)):
+				loud = h
+		return loud
 	if e.data.ai_style != EnemyData.AiStyle.HUNTER:
 		return null
 	var prey: BattleUnit = null
@@ -592,6 +605,8 @@ static func _best_approach(l: BattleLogic, e: BattleUnit, options: Dictionary[Ve
 		reason = "Провокация: идёт к %s" % _dat(near.title)
 	elif guarding:
 		reason = "Телохранитель: прикрывает %s" % _acc(ward.title)
+	elif hunting and e.data.blind:
+		reason = "Слепой: идёт на шум шагов к %s" % _dat(prey.title)
 	elif hunting:
 		reason = "Охотник: к раненому %s" % _dat(prey.title)
 	elif ctx.get("wounded", false):

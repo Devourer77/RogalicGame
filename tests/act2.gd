@@ -218,5 +218,34 @@ func _initialize() -> void:
 	check("Ветка выбрана — босс и арена его точки — этой ветки", switch_ok)
 	check("В акте 1 у обеих веток один босс", act1_same)
 
+	# --- Особые арены: не больше двух за акт и не подряд ---
+	var rows_ok: bool = true
+	var pairs_ok: bool = true
+	var seen_special: int = 0
+	var seen_plain: int = 0
+	for sd in 40:
+		run.start_new_run(300 + sd)
+		run.next_act()
+		for n: MapNode in run.map:
+			if n.arena == "" or n.type == MapNode.Type.BOSS:
+				continue
+			if BattleLogic.SPECIAL_ARENAS.has(n.arena):
+				seen_special += 1
+				if not [2, 4, 5].has(n.row):
+					rows_ok = false
+			elif n.type == MapNode.Type.BATTLE:
+				seen_plain += 1
+		for b in [MapNode.BOG, MapNode.FOREST]:
+			var row4: bool = false
+			var row5: bool = false
+			for n: MapNode in run.map:
+				if n.branch == b and BattleLogic.SPECIAL_ARENAS.has(n.arena):
+					row4 = row4 or n.row == 4
+					row5 = row5 or n.row == 5
+			if row4 and row5:
+				pairs_ok = false
+	check("Особые арены — только в рядах 2 и 4 (и у элиты)", rows_ok)
+	check("Особые арены не идут подряд (ряд 4 и элита ряда 5)", pairs_ok)
+	check("На карте есть и особые, и обычные арены (%d / %d)" % [seen_special, seen_plain], seen_special > 0 and seen_plain > seen_special * 2)
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)

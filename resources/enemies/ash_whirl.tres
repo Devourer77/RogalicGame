@@ -19,3 +19,4 @@ size = 1.0
 model = ExtResource("9_model")
 attack_title = "Круговерть"
 push = 1
+fire_walker = true

@@ -5,7 +5,12 @@ extends RefCounted
 
 var rust: int = 0
 var burst_done: bool = false                       # Колосс: сфера на половине здоровья уже лопнула
-var lost_attacks: Array[EnemyAttackData] = []      # удары лопнувших сфер (выпали из круга)   # «Ржавчина» (дух железа): столько раундов удары врага слабее на RUST_WEAKEN
+var lost_attacks: Array[EnemyAttackData] = []      # удары лопнувших сфер (выпали из круга)
+var stunned: int = 0          # «Замыкание» механизма: столько ходов врагов пропускает
+var asleep: bool = false      # Спящая сфера ещё спит
+var brand: int = 0            # клеймо Культа на герое: следующий удар врага по нему сильнее
+var shell_hits: int = 0       # сколько ударов ещё держит сфера Полусвободного духа
+var moved_cells: int = 0      # сколько клеток герой прошёл за свой ход (на шум идёт слепыш)   # «Ржавчина» (дух железа): столько раундов удары врага слабее на RUST_WEAKEN
 var id: int = 0              # номер юнита в бою (по нему копия боя узнаёт «своих»)
 var title: String = ""
 var is_hero: bool = false
@@ -76,6 +81,11 @@ func copy() -> BattleUnit:
 	u.rust = rust
 	u.burst_done = burst_done
 	u.lost_attacks = lost_attacks.duplicate()
+	u.stunned = stunned
+	u.asleep = asleep
+	u.brand = brand
+	u.shell_hits = shell_hits
+	u.moved_cells = moved_cells
 	u.id = id
 	u.title = title
 	u.is_hero = is_hero

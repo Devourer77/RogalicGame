@@ -21,3 +21,4 @@ attack_title = "Укус"
 remains = 1
 death_blast = 4
 ai_style = 1
+fire_walker = true

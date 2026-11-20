@@ -19,3 +19,6 @@ size = 1.0
 model = ExtResource("9_model")
 attack_title = "Клюв"
 ai_style = 1
+fire_walker = true
+flier = true
+tactician = true

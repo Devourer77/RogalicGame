@@ -48,3 +48,4 @@ turn_block = 2
 bog_damage = 6
 is_elite = true
 ai_style = 1
+fire_walker = true

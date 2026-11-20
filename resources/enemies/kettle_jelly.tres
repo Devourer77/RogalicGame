@@ -29,3 +29,4 @@ model = ExtResource("9_model")
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])
 always_wet = true
 aquatic = true
+water_bound = true

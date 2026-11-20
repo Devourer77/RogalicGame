@@ -8,10 +8,11 @@
 script = ExtResource("2_attack")
 title = "Бутыль масла"
 shape = 1
-attack_range = 3
+attack_range = 4
 damage = 2
 first_only = true
 ignite = true
+lob = true
 
 [resource]
 script = ExtResource("1_enemy")
@@ -22,10 +23,11 @@ max_hp = 9
 move_range = 3
 damage = 2
 attack = 1
-attack_range = 3
+attack_range = 4
 color = Color(0.4, 0.33, 0.25, 1)
 size = 1.0
 model = ExtResource("9_model")
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])
 remains = 3
 death_blast = 3
+tactician = true

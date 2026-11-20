@@ -78,6 +78,13 @@ enum Remains { DEFAULT, NOTHING, PUDDLE, FIRE, STONE }
 @export var death_summon: EnemyData = null      # погибая, выпускает этого врага на соседнюю клетку (огненная сфера — Искру)
 @export var fire_trail: bool = false            # Головёшка: клетка, с которой ушла, загорается
 @export var half_burst: Array[EnemyData] = []   # Колосс: на половине HP лопается сфера (по удару круга) и выходит этот дух
+@export var machine: bool = false        # механизм технарей: мокрый от молнии — «замыкание», пропускает ход
+@export var sleeper: bool = false        # Спящая сфера: спит, пока её не ударят или герой не встанет вплотную
+@export var blind: bool = false          # Пещерный слепыш: идёт на шум — к герою, который прошёл больше всех клеток
+@export var flier: bool = false          # Пепельный падальщик: перелетает преграды, лаву и чужие фигурки
+@export var water_bound: bool = false    # Котловая медуза: ходит только по воде; на сухом теряет HP каждый раунд
+@export var shell_hits: int = 0          # Полусвободный дух: сфера держит столько ударов (урон всё равно проходит)
+@export var frees_spirit: bool = false   # Полусвободный дух: сфера разбита до гибели — дух уходит к отряду
 
 var _basic: EnemyAttackData   # удар простого врага, собранный из полей выше
 
@@ -139,6 +146,26 @@ func traits() -> PackedStringArray:
 		t.append("Дитя огня: огонь и лава его не ранят, по лаве ходит")
 	if water_weak:
 		t.append("Боится воды: мокрый или в луже — без брони, вода и пар ранят вдвое")
+	if machine and not is_boss:
+		t.append("Механизм: мокрый от молнии — замыкание, пропускает ход")
+	if sleeper:
+		t.append("Спит, пока его не ударят или герой не встанет вплотную")
+	if blind:
+		t.append("Слепой: идёт на шум — к герою, который прошёл за ход больше клеток")
+	if flier:
+		t.append("Летает: преграды, лава и фигурки ему не мешают")
+	if water_bound:
+		t.append("Живёт в воде: ходит только по лужам, на суше теряет 2 HP за раунд")
+	if shell_hits > 0:
+		t.append("Сфера держит %d удара (урон проходит). Разбей до гибели — дух уйдёт с тобой" % shell_hits)
+	if remains == Remains.STONE:
+		t.append("погибая, оставляет камень-преграду")
+	elif remains == Remains.FIRE:
+		t.append("погибая, оставляет огонь")
+	if death_element != CardData.Element.NONE or death_wind:
+		t.append("погибая, сфера бьётся и выплёскивает стихию")
+	if fire_trail:
+		t.append("за ним горит след")
 	if move_range <= 0:
 		t.append("не двигается")
 	return t
