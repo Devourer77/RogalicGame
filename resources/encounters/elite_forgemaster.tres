@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_forgemaster.tres" id="2_cult_forgemaster"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_brander.tres" id="3_cult_brander"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_bannerman.tres" id="4_cult_bannerman"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "elite_forgemaster"
+title = "Горновой Венца"
+kind = 1
+core = Array[ExtResource("1_enemy")]([ExtResource("2_cult_forgemaster"), ExtResource("3_cult_brander"), ExtResource("3_cult_brander"), ExtResource("4_cult_bannerman")])
+branch = 1

@@ -1,7 +1,38 @@
-[gd_resource type="Resource" script_class="ActData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="ActData" load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/act_data.gd" id="1_act"]
 [ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_scavengers.tres" id="2_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_hounds.tres" id="3_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_patrol.tres" id="4_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_branders.tres" id="5_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_porters.tres" id="6_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_jailers.tres" id="7_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_lava.tres" id="8_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_springs.tres" id="9_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_pass.tres" id="10_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_fallen.tres" id="11_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_grinders.tres" id="12_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_crater.tres" id="13_e"]
+[ext_resource type="Resource" path="res://resources/encounters/tr_vultures.tres" id="14_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_walkers.tres" id="15_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_scarabs.tres" id="16_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_prospectors.tres" id="17_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_spitters.tres" id="18_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_storm.tres" id="19_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_stalkers.tres" id="20_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_sleepers.tres" id="21_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_hammers.tres" id="22_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_lurkers.tres" id="23_e"]
+[ext_resource type="Resource" path="res://resources/encounters/dp_rift.tres" id="24_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_archivist.tres" id="25_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_forgemaster.tres" id="26_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_serpent.tres" id="27_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_matriarch.tres" id="28_e"]
+[ext_resource type="Resource" path="res://resources/encounters/elite_catcher.tres" id="29_e"]
+[ext_resource type="Resource" path="res://resources/encounters/boss_giant.tres" id="30_e"]
+[ext_resource type="Resource" path="res://resources/encounters/boss_colossus.tres" id="31_e"]
+[ext_resource type="Resource" path="res://resources/encounters/boss_vessel.tres" id="32_e"]
 
 [resource]
 script = ExtResource("1_act")
@@ -12,12 +43,12 @@ branch_titles = Array[String](["Тракт", "Подземье"])
 fork_title = "Развилка: тракт или подземье"
 common_title = "У жерла вулкана"
 map_bg = "res://assets/textures/map/map_bg_act2.jpg"
-encounters = Array[ExtResource("1_enc")]([])
-elite_pool = Array[ExtResource("1_enc")]([])
-boss_pool = Array[ExtResource("1_enc")]([])
-arenas_left = Array[String]([])
-arenas_right = Array[String]([])
-boss_arena = ""
-borrow_from = 1
-enemy_hp_mult = 1.3
+encounters = Array[ExtResource("1_enc")]([ExtResource("2_e"), ExtResource("3_e"), ExtResource("4_e"), ExtResource("5_e"), ExtResource("6_e"), ExtResource("7_e"), ExtResource("8_e"), ExtResource("9_e"), ExtResource("10_e"), ExtResource("11_e"), ExtResource("12_e"), ExtResource("13_e"), ExtResource("14_e"), ExtResource("15_e"), ExtResource("16_e"), ExtResource("17_e"), ExtResource("18_e"), ExtResource("19_e"), ExtResource("20_e"), ExtResource("21_e"), ExtResource("22_e"), ExtResource("23_e"), ExtResource("24_e")])
+elite_pool = Array[ExtResource("1_enc")]([ExtResource("25_e"), ExtResource("26_e"), ExtResource("27_e"), ExtResource("28_e"), ExtResource("29_e")])
+boss_pool = Array[ExtResource("1_enc")]([ExtResource("30_e"), ExtResource("31_e"), ExtResource("32_e")])
+arenas_left = Array[String](["wagons", "ashfield", "shrine", "lava_beds", "springs", "tower", "dunes", "pass"])
+arenas_right = Array[String](["embers", "sphere_hall", "steamworks", "mine", "rift_lab", "lake", "assembly", "fungus"])
+boss_arena = "crater"
+borrow_from = 0
+enemy_hp_mult = 1.0
 enemy_damage_add = 0

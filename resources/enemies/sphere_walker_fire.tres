@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/sphere_walker_fire.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Огненный взмах"
+shape = 2
+attack_range = 1
+damage = 3
+ignite = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "sphere_walker_fire"
+title = "Огненный сферник"
+description = "Учёные мертвы. Их машины всё ещё носят пленный огонь."
+max_hp = 10
+move_range = 2
+damage = 3
+attack = 2
+attack_range = 1
+color = Color(0.44, 0.33, 0.21, 1)
+size = 1.0
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])

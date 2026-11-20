@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/convoy_giant.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Обвал"
+shape = 2
+attack_range = 1
+damage = 6
+push = 2
+
+[sub_resource type="Resource" id="atk_1"]
+script = ExtResource("2_attack")
+title = "Град шлака"
+anim = "Attack2"
+shape = 4
+attack_range = 1
+damage = 4
+ignite = true
+
+[sub_resource type="Resource" id="atk_2"]
+script = ExtResource("2_attack")
+title = "Швырок колеса"
+anim = "Attack3"
+shape = 1
+attack_range = 5
+damage = 5
+push = 3
+first_only = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "convoy_giant"
+title = "Обозный Исполин"
+description = "Тракт помнит каждый обоз, что не дошёл. Теперь обозы идут за тобой."
+max_hp = 85
+move_range = 1
+damage = 6
+attack = 2
+attack_range = 1
+color = Color(0.27, 0.22, 0.18, 1)
+size = 1.3
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1"), SubResource("atk_2")])
+turn_block = 4
+bog_damage = 8
+is_boss = true

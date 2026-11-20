@@ -144,6 +144,8 @@ enum Ground {
 	PLANKS,  # деревянный настил (гать, помост заставы)
 	BASALT,  # тёмный базальт пещеры
 	PEAT,    # торф пещеры: тлеет и снова вспыхивает
+	ASH,     # акт 2, Тракт: пепельно-серая плита в саже
+	METAL,   # акт 2, Подземье: клёпаный пол лаборатории технарей
 }
 
 # Цель боя. KILL_ALL — обычный бой; остальные добавляют условие и не дают затягивать бой.
@@ -203,6 +205,61 @@ const ARENAS: Dictionary[String, String] = {
 	"sanctum": "Круг Хранителей",   # лес: кольцо деревьев и тотемов, лоза в центре (Голос Рощи)
 	"hollow": "Паучья лощина",      # лес: склоны с корнями, сухие деревья, лоза на дне (Прядильщица)
 	"windfall": "Бурелом у ручья",  # лес: ручей поперёк поля, поваленные стволы, дикие ульи
+	# --- Акт 2 «Пепельный тракт» (тз-арены-акт-2.md): ветка Тракт ---
+	"wagons": "Сгоревший обоз",     # тракт по диагонали, перевёрнутые повозки (укрытие), бочки масла
+	"ashfield": "Пепелище",         # обугленные стволы падают цепочкой, тлеющий торф снова вспыхивает
+	"shrine": "Капище Венца",       # частокол Культа с воротами, жаровни (взрываются огнём), алтарь
+	"lava_beds": "Лавовые русла",   # две полосы постоянной лавы поперёк, переправы по корке
+	"springs": "Кипящие ключи",     # много воды, гейзеры (удар — пар и лужа), мокрые камни
+	"tower": "Павшая сторожевая башня",   # кольцо стен башни, треснувшие стены падают по линии
+	"dunes": "Пепельные дюны",      # сыпучий пепел вязнет (как топь), засыпанные повозки и шлак
+	"pass": "Ветреный перевал",     # седловина между гребнями, клочья огня
+	# --- ветка Подземье ---
+	"embers": "Тлеющие пещеры",     # как Тлеющая пещера: лава, торф, газ, сталагмиты
+	"sphere_hall": "Зал сфер",      # постаменты со сферами: огненная взрывается, водяная — пар и лужа
+	"steamworks": "Паровой цех",    # трубы и котлы делят поле, паровые клапаны, лужи
+	"mine": "Шахтный туннель",      # стены оставляют узкие коридоры, рельсы, вагонетки
+	"rift_lab": "Разлом в лаборатории",   # провал в полу над лавой посреди поля
+	"lake": "Подземное озеро",      # тёмная глубокая вода, островки, лава у края
+	"assembly": "Сборочный цех",    # ленты конвейера, детали машин, бочки топлива
+	"fungus": "Грибная пещера Раскола",   # грибы-дождевики лопаются, газ, сталагмиты
+	# --- арены боссов акта 2 ---
+	"cliff": "Обрыв на тракте",     # Обозный Исполин: лава вдоль края поля, повозки
+	"reactor": "Реакторный зал",    # Колосс Сфер: решётчатый пол, 4 клапана, лужи протечек
+	"crater": "Край жерла",         # Сосуд Венца: кромка кратера с лавой, торф, 3 купели с водой
+}
+# Арены акта 2 по веткам (resources/acts/act_2.tres берёт отсюда же) и вид места вокруг поля
+const TRACT_ARENA_POOL: Array[String] = ["wagons", "ashfield", "shrine", "lava_beds", "springs", "tower", "dunes", "pass"]
+const DEEP_ARENA_POOL: Array[String] = ["embers", "sphere_hall", "steamworks", "mine", "rift_lab", "lake", "assembly", "fungus"]
+# Вид места: "ash" — поверхность выжженного тракта, "deep" — под землёй (стены пещеры, свет углей).
+# Остальные арены — болото (вода вокруг) или лес.
+const ARENA_BIOME: Dictionary[String, String] = {
+	"cave": "deep", "embers": "deep", "sphere_hall": "deep", "steamworks": "deep", "mine": "deep",
+	"rift_lab": "deep", "lake": "deep", "assembly": "deep", "fungus": "deep", "reactor": "deep",
+	"wagons": "ash", "ashfield": "ash", "shrine": "ash", "lava_beds": "ash", "springs": "ash",
+	"tower": "ash", "dunes": "ash", "pass": "ash", "cliff": "ash", "crater": "ash",
+}
+# Одна строка в журнале в начале боя: что особенного на этой арене
+const ARENA_HINTS: Dictionary[String, String] = {
+	"wagons": "Обоз: повозки — укрытие от выстрелов, бочки масла взрываются огнём.",
+	"ashfield": "Пепелище: обугленный ствол от удара падает и бьёт линию; торф раз в 3 раунда снова вспыхивает.",
+	"shrine": "Капище: жаровни от удара или огня опрокидываются взрывом огня.",
+	"lava_beds": "Русла: лава — стена. Переправы по корке: встал на корку — ход окончен. Вода и лёд остужают лаву.",
+	"springs": "Ключи: удар по гейзеру — пар обжигает и отбрасывает соседей, вокруг вода.",
+	"tower": "Башня: треснувшая стена от удара падает и бьёт линию из 3 клеток.",
+	"dunes": "Дюны: в сыпучем пепле вязнут, как в топи.",
+	"pass": "Перевал: узкая седловина между гребнями, огонь у края.",
+	"embers": "Пещеры: торф раз в 3 раунда снова вспыхивает, лава не остывает сама.",
+	"sphere_hall": "Зал сфер: огненная сфера от удара взрывается огнём, водяная — паром и лужей.",
+	"steamworks": "Цех: удар по клапану — пар обжигает и отбрасывает соседей.",
+	"mine": "Туннель: узкие коридоры — бойцам негде обойти друг друга.",
+	"rift_lab": "Разлом: посреди зала провал с лавой — толкай туда врагов.",
+	"lake": "Озеро: тёмная вода глубока — столкнутый туда тонет.",
+	"assembly": "Сборочный цех: бочки топлива взрываются огнём.",
+	"fungus": "Грибная пещера: дождевик от удара или огня лопается вспышкой газа.",
+	"cliff": "Обрыв: вдоль края — лава. Не стой спиной к обрыву.",
+	"reactor": "Реакторный зал: удар по клапану — пар обжигает и отбрасывает соседей.",
+	"crater": "Край жерла: торф вспыхивает, купели с водой — главная защита от огня.",
 }
 const ARENA_POOL: Array[String] = ["gat", "grove", "reeds", "camp", "ruins", "pump"]   # обычные бои Болот
 const FOREST_ARENA_POOL: Array[String] = ["thicket", "sanctum", "hollow", "windfall"]   # обычные бои Густых лесов
@@ -359,6 +416,8 @@ func _generate_field() -> void:
 		objects.clear()
 		tiles.clear()
 		ground.clear()
+		fire_timers.clear()
+		peat.clear()
 		match arena_id:
 			"gat": _arena_gat()
 			"grove": _arena_grove()
@@ -372,6 +431,25 @@ func _generate_field() -> void:
 			"sanctum": _arena_sanctum()
 			"hollow": _arena_hollow()
 			"windfall": _arena_windfall()
+			"wagons": _arena_wagons()
+			"ashfield": _arena_ashfield()
+			"shrine": _arena_shrine()
+			"lava_beds": _arena_lava_beds()
+			"springs": _arena_springs()
+			"tower": _arena_tower()
+			"dunes": _arena_dunes()
+			"pass": _arena_pass()
+			"embers": _arena_cave()
+			"sphere_hall": _arena_sphere_hall()
+			"steamworks": _arena_steamworks()
+			"mine": _arena_mine()
+			"rift_lab": _arena_rift_lab()
+			"lake": _arena_lake()
+			"assembly": _arena_assembly()
+			"fungus": _arena_fungus()
+			"cliff": _arena_cliff()
+			"reactor": _arena_reactor()
+			"crater": _arena_crater()
 			_: _arena_lair()
 		_sprinkle_swamp_gas()
 		if _field_is_open() and _free_enemy_cells() >= MIN_ENEMY_CELLS:
@@ -388,8 +466,8 @@ func _generate_field() -> void:
 
 # Проходимая трясина и ядовитый газ: по пятну на каждой арене, кроме руин
 func _sprinkle_swamp_gas() -> void:
-	if arena_id == "ruins" or arena_id == "cave" or arena_id == "pump":
-		return
+	if arena_id == "ruins" or arena_id == "cave" or arena_id == "pump" or ARENA_BIOME.has(arena_id):
+		return   # в руинах, насосной и на аренах акта 2 своя вода и свой газ
 	if is_forest_arena(arena_id):
 		return   # в лесу вместо топи и газа — лоза и подлесок самой арены
 	for pair: Array in [[Tile.SWAMP, 5], [Tile.GAS, 3]]:
@@ -406,6 +484,13 @@ func arena_title() -> String:
 # Лесная ли арена (вокруг поля не вода, а лесная земля; деревья живые)
 static func is_forest_arena(id: String) -> bool:
 	return FOREST_ARENA_POOL.has(id)
+
+
+# Вид места вокруг поля: "bog", "forest", "ash" (Тракт) или "deep" (Подземье, пещеры)
+static func arena_biome(id: String) -> String:
+	if ARENA_BIOME.has(id):
+		return ARENA_BIOME[id]
+	return "forest" if is_forest_arena(id) else "bog"
 
 
 # ---------- Арены Густых лесов и новые болотные ----------
@@ -761,7 +846,7 @@ func _arena_cave() -> void:
 # Какие клетки торфа вспыхнут в конце этого раунда (раз в CAVE_PEAT_EVERY раундов, по порядку списка, без случайности)
 func peat_flare_cells() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
-	if arena_id != "cave" or peat.is_empty() or turn % CAVE_PEAT_EVERY != 0:
+	if peat.is_empty() or turn % CAVE_PEAT_EVERY != 0:   # торф есть в пещерах, на Пепелище и у жерла
 		return result
 	var start: int = (turn / CAVE_PEAT_EVERY) * CAVE_PEAT_FLARES
 	for i in peat.size():
@@ -780,6 +865,347 @@ func _cave_round_end() -> void:
 		_set_tile(c, Tile.FIRE)
 	if not cells.is_empty():
 		message.emit("Торф снова вспыхивает")
+
+
+# ---------- Арены акта 2 «Пепельный тракт» (тз-арены-акт-2.md) ----------
+# Собраны из того, что поле уже умеет: постоянная лава и корка, торф, бочки (масло, жаровни, сферы,
+# грибы — одна механика взрыва, свой вид у каждой арены в board.gd), клапаны (гейзеры, водяные сферы),
+# падающие деревья (обугленные стволы, треснувшие стены), трясина (глубокая вода озера).
+# Особые механики из ТЗ — ветер, конвейер, вагонетки, купели — позже; сейчас это рисунок поля.
+
+const ASH_LAST_ROW: int = 8   # ниже этого ряда (ряды героев) арены акта 2 ничего не ставят
+
+
+# Тлеющий огонь на пустой клетке (горит FIRE_DURATION раундов)
+func _smolder(c: Vector2i) -> void:
+	if _is_empty(c) and c.y <= ASH_LAST_ROW:
+		tiles[c] = Tile.FIRE
+		fire_timers[c] = FIRE_DURATION
+
+
+# Постоянная лава на клетке (без таймера — сама не остывает)
+func _lava(c: Vector2i) -> void:
+	if is_inside(c) and c.y <= ASH_LAST_ROW and not rocks.has(c):
+		objects[c] = Obj.LAVA
+		tiles.erase(c)
+
+
+# Пятна торфа: часть уже тлеет, остальное вспыхнет раз в CAVE_PEAT_EVERY раундов (как в Тлеющей пещере)
+func _peat_patches(sizes: Array, min_row: int, max_row: int) -> void:
+	for n: int in sizes:
+		for c in _grow_patch(n, min_row, max_row):
+			if _is_empty(c) and not peat.has(c):
+				peat.append(c)
+	peat.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y or (a.y == b.y and a.x < b.x))
+	for i in peat.size():
+		if i % 2 == 0:
+			tiles[peat[i]] = Tile.FIRE
+			fire_timers[peat[i]] = FIRE_DURATION
+
+
+# Весь пол — одним покрытием (клёпаный металл лаборатории)
+func _floor_all(kind: int) -> void:
+	for c: Vector2i in HexMath.rect_cells(width, height):
+		ground[c] = kind
+
+
+# «Сгоревший обоз»: тракт по диагонали, вдоль него перевёрнутые повозки (укрытие от выстрелов),
+# у повозок бочки масла, кое-где ещё тлеет. Тактика: прятаться за повозками, взрывать бочки у врагов.
+func _arena_wagons() -> void:
+	var shift: int = rng.randi_range(0, 2)
+	var road: Array[Vector2i] = []
+	for y in range(0, height):
+		var x: int = clampi(shift + floori(y * 0.75), 0, width - 2)
+		for dx in 2:
+			var c := _cell(x + dx, y)
+			ground[c] = Ground.MUD   # укатанная колея
+			road.append(c)
+	var wagons: int = 0
+	for attempt in 30:
+		if wagons >= 4:
+			break
+		var y: int = rng.randi_range(1, ASH_LAST_ROW)
+		var base: Vector2i = road[mini(y * 2, road.size() - 1)]
+		var c: Vector2i = base + Vector2i(-2 if rng.randf() < 0.5 else 3, 0)   # повозки на обочине
+		if _put_rock(c):
+			_put_rock(c + HexMath.DIRS[rng.randi_range(0, 5)])   # повозка — на две клетки
+			wagons += 1
+			var b: Vector2i = c + HexMath.DIRS[rng.randi_range(0, 5)]
+			if wagons % 2 == 1:
+				_put(b, Obj.BARREL)
+			else:
+				_smolder(b)
+	for i in 2:
+		_place(2, ASH_LAST_ROW, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+
+
+# «Пепелище»: сгоревший лес. Обугленные стволы стоят кольцом и внутри (удар — падает на линию из 3),
+# один уже лежит поперёк (неразрушимый), пятна тлеющего торфа снова вспыхивают.
+func _arena_ashfield() -> void:
+	var cx: float = width / 2.0
+	for i in 12:
+		var a: float = TAU * i / 12.0 + rng.randf_range(-0.2, 0.2)
+		var x: int = clampi(roundi(cx + cos(a) * 4.2), 0, width - 1)
+		var y: int = clampi(roundi(4.5 + sin(a) * 3.2), 1, ASH_LAST_ROW)
+		if rng.randf() < 0.75:
+			_put(_cell(x, y), Obj.TREE)
+	for i in 3:
+		_place(2, 7, func(c: Vector2i) -> void: objects[c] = Obj.TREE)
+	var fallen: Vector2i = _cell(rng.randi_range(3, 7), rng.randi_range(3, 6))
+	for k in 3:   # упавший ствол поперёк трёх клеток
+		_put_rock(fallen + HexMath.DIRS[0] * k)
+	_peat_patches([4, 3, 3], 2, ASH_LAST_ROW)
+
+
+# «Капище Венца»: частокол Культа с широкими воротами поперёк поля, за ним знамёна и алтарь.
+# Жаровни (бочки) взрываются огнём; одна уже опрокинута — угли рассыпаны по плитам.
+func _arena_shrine() -> void:
+	var row: int = rng.randi_range(4, 5)
+	var gate: int = rng.randi_range(4, 6)
+	for x in range(0, width):
+		if x == gate or x == gate + 1:
+			continue
+		if rng.randf() < 0.9:
+			objects[_cell(x, row)] = Obj.STAKES
+	for x in range(gate - 1, gate + 3):
+		ground[_cell(x, row)] = Ground.PLANKS   # настил в воротах
+	_put_rock(_cell(gate, 1))   # алтарь
+	_put_rock(_cell(gate + 1, 1))
+	_put(_cell(gate - 2, row - 1), Obj.BARREL)   # жаровни у ворот
+	_put(_cell(gate + 3, row - 1), Obj.BARREL)
+	var spill: Vector2i = _random_free_cell(row + 1, ASH_LAST_ROW)
+	if spill != NO_CELL:
+		_put(spill, Obj.BARREL)
+		for d: Vector2i in HexMath.DIRS.slice(0, 3):
+			_smolder(spill + d)   # опрокинутая жаровня: угли вокруг
+	for i in 2:
+		_place(1, 3, func(c: Vector2i) -> void: rocks[c] = true)   # знамёна
+
+
+# «Лавовые русла»: две полосы постоянной лавы поперёк поля, через каждую — 2 переправы по корке.
+# Корка проходима, но шаги на ней кончаются. Вода и лёд остужают лаву в корку.
+func _arena_lava_beds() -> void:
+	for band: int in [rng.randi_range(2, 3), rng.randi_range(6, 7)]:
+		var row: int = band
+		var crossings: Array[int] = [rng.randi_range(1, 4), rng.randi_range(7, 10)]
+		for x in width:
+			if x > 0 and rng.randf() < 0.3:
+				row = clampi(row + (1 if rng.randf() < 0.5 else -1), band - 1, band + 1)
+			var c := _cell(x, row)
+			if crossings.has(x):
+				objects[c] = Obj.CRUST
+			else:
+				_lava(c)
+	for i in 4:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)   # базальтовые глыбы на берегах
+	for i in 2:
+		_place(4, ASH_LAST_ROW, func(c: Vector2i) -> void: tiles[c] = Tile.WATER)
+
+
+# «Кипящие ключи»: много горячей воды, три гейзера (клапаны: удар — пар и лужа), мокрые камни.
+# Тактика: молния по воде достаёт многих; пар бьёт и своих.
+func _arena_springs() -> void:
+	for i in 5:
+		for c in _grow_patch(rng.randi_range(3, 5), 1, ASH_LAST_ROW):
+			tiles[c] = Tile.WATER
+	for i in 3:
+		_place(2, 7, func(c: Vector2i) -> void: objects[c] = Obj.VALVE)
+	for i in 3:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)
+
+
+# «Павшая сторожевая башня»: в середине — кольцо стен башни с двумя проломами,
+# вокруг треснувшие стены (деревья по механике: удар — падают на линию из 3), обломки.
+func _arena_tower() -> void:
+	var center := _cell(rng.randi_range(5, 6), rng.randi_range(4, 5))
+	var ring: Array[Vector2i] = HexMath.ring(center, 2)
+	var gaps: Array[int] = [rng.randi_range(0, 2), rng.randi_range(6, 8)]
+	for i in ring.size():
+		if not gaps.has(i):
+			_put_rock(ring[i])
+	for i in 4:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: objects[c] = Obj.TREE)   # треснувшие стены
+	for i in 2:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)   # обломки
+	_smolder(center)
+
+
+# «Пепельные дюны»: сыпучий пепел (вязнет, как топь), засыпанные повозки и кучи шлака.
+func _arena_dunes() -> void:
+	for i in 5:
+		for c in _grow_patch(rng.randi_range(4, 6), 1, ASH_LAST_ROW):
+			tiles[c] = Tile.SWAMP
+	for i in 4:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)
+	_place(2, ASH_LAST_ROW, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+
+
+# «Ветреный перевал»: поле в седловине между двумя каменными гребнями, клочья огня у края.
+# (Ветер, гонящий огонь, — позже, тз-арены-акт-2.md.)
+func _arena_pass() -> void:
+	for y in range(0, ASH_LAST_ROW + 1):
+		var depth_l: int = 1 + (1 if absi(y - 4) > 2 and rng.randf() < 0.7 else 0)
+		var depth_r: int = 1 + (1 if absi(y - 4) > 2 and rng.randf() < 0.7 else 0)
+		for x in depth_l:
+			if rng.randf() < 0.85:
+				rocks[_cell(x, y)] = true
+		for x in depth_r:
+			if rng.randf() < 0.85:
+				rocks[_cell(width - 1 - x, y)] = true
+	for i in 3:
+		for c in _grow_patch(2, 2, ASH_LAST_ROW):
+			_smolder(c)
+	_place(2, 6, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+
+
+# «Зал сфер»: клёпаный пол, постаменты со сферами в два ряда. Огненная (бочка) — взрыв огнём,
+# водяная (клапан) — пар и лужа. Одна сфера уже разбита — вода разлита.
+func _arena_sphere_hall() -> void:
+	_floor_all(Ground.METAL)
+	var k: int = 0
+	for y: int in [3, 6]:
+		for x: int in [2, 5, 8]:
+			var c := _cell(x + rng.randi_range(0, 1), y + rng.randi_range(-1, 0))
+			if _put(c, Obj.BARREL if (k + y) % 2 == 0 else Obj.VALVE):
+				k += 1
+	for c in _grow_patch(3, 3, ASH_LAST_ROW):
+		tiles[c] = Tile.WATER
+	for x: int in [0, width - 1]:   # трубы вдоль стен
+		_put_rock(_cell(x, rng.randi_range(2, 6)))
+
+
+# «Паровой цех»: две линии труб на опорах делят поле, на них клапаны, под ними лужи, котлы.
+func _arena_steamworks() -> void:
+	_floor_all(Ground.METAL)
+	for row: int in [3, 6]:
+		var valves: int = 0
+		for x in width:
+			var c := _cell(x, row)
+			if x % 4 == 1 and valves < 2:
+				if _put(c, Obj.VALVE):
+					valves += 1
+			elif rng.randf() < 0.5:
+				_put_rock(c)
+	for i in 3:
+		for c in _grow_patch(2, 2, ASH_LAST_ROW):
+			tiles[c] = Tile.WATER
+	for i in 2:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)   # котлы
+
+
+# «Шахтный туннель»: толща породы с узкими коридорами (рельсы), сверху открытая выработка.
+# Тактика: в коридорах бойцам не обойти друг друга, линии ударов длинные.
+func _arena_mine() -> void:
+	var cols: Array[int] = [rng.randi_range(1, 2), rng.randi_range(5, 6), rng.randi_range(9, 10)]
+	var cross: int = rng.randi_range(5, 6)
+	for y in range(3, ASH_LAST_ROW + 1):
+		for x in width:
+			var c := _cell(x, y)
+			var open_col: bool = cols.has(x) or cols.has(x - 1)
+			if open_col or y == cross:
+				ground[c] = Ground.PLANKS   # шпалы
+				continue
+			rocks[c] = true
+	for i in 2:   # вагонетки в выработке наверху
+		_place(1, 2, func(c: Vector2i) -> void: rocks[c] = true)
+	_place(1, 2, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+
+
+# «Разлом в лаборатории»: посреди клёпаного пола провал с лавой; трубы, разлитая вода.
+func _arena_rift_lab() -> void:
+	_floor_all(Ground.METAL)
+	var hole := _cell(rng.randi_range(4, 7), rng.randi_range(4, 5))
+	for c in _grow_from(hole, rng.randi_range(7, 9), 3, 7):
+		_lava(c)
+	for i in 3:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)
+	for i in 2:
+		_place(2, ASH_LAST_ROW, func(c: Vector2i) -> void: tiles[c] = Tile.WATER)
+
+
+# «Подземное озеро»: тёмная глубокая вода (столкнутый тонет), поле — островки и каменные гряды,
+# у дальнего края лава подогревает воду.
+func _arena_lake() -> void:
+	for i in 4:
+		for c in _grow_patch(rng.randi_range(6, 9), 2, ASH_LAST_ROW):
+			objects[c] = Obj.BOG
+	for c in _grow_patch(2, 1, 2):
+		_lava(c)
+	for i in 3:
+		_place(2, ASH_LAST_ROW, func(c: Vector2i) -> void: tiles[c] = Tile.WATER)
+	for i in 3:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)   # сталагмиты
+
+
+# «Сборочный цех»: две ленты конвейера поперёк (пока — только рисунок пола), детали машин, бочки топлива.
+func _arena_assembly() -> void:
+	_floor_all(Ground.METAL)
+	for row: int in [3, 6]:
+		for x in range(1, width - 1):
+			ground[_cell(x, row)] = Ground.PLANKS   # лента
+		for i in 2:
+			_put_rock(_cell(rng.randi_range(1, width - 2), row))   # недособранные машины на ленте
+	for i in 3:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)
+	for i in 3:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+
+
+# «Грибная пещера Раскола»: грибы-дождевики (бочки: удар или огонь — вспышка), щели с газом, сталагмиты.
+func _arena_fungus() -> void:
+	for i in 6:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+	for i in 3:
+		for c in _grow_patch(rng.randi_range(2, 3), 2, ASH_LAST_ROW):
+			tiles[c] = Tile.GAS
+	for i in 5:
+		_place(1, ASH_LAST_ROW, func(c: Vector2i) -> void: rocks[c] = true)
+
+
+# «Обрыв на тракте» (Обозный Исполин): левый край поля обрывается в реку лавы, дорога вдоль обрыва,
+# перевёрнутые повозки и бочки. Тактика: Исполин толкает далеко — не стоять спиной к лаве.
+func _arena_cliff() -> void:
+	for y in range(0, ASH_LAST_ROW + 1):
+		_lava(_cell(0, y))
+		if rng.randf() < 0.45:
+			_lava(_cell(1, y))
+	for y in height:
+		for x in range(3, 5):
+			ground[_cell(x, y)] = Ground.MUD   # дорога
+	for i in 3:
+		var c: Vector2i = _random_free_cell(2, ASH_LAST_ROW)
+		if c != NO_CELL and c.x >= 5:
+			_put_rock(c)
+			_put_rock(c + HexMath.DIRS[0])
+	for i in 2:
+		_place(2, ASH_LAST_ROW, func(c: Vector2i) -> void: objects[c] = Obj.BARREL)
+
+
+# «Реакторный зал» (Колосс Сфер): круглый зал, решётчатый пол, по краям 4 паровых клапана,
+# лужи протечек, у стен — пустые постаменты.
+func _arena_reactor() -> void:
+	_floor_all(Ground.METAL)
+	for c: Vector2i in [_cell(1, 2), _cell(width - 2, 2), _cell(1, 7), _cell(width - 2, 7)]:
+		_put(c, Obj.VALVE)
+	for i in 4:
+		_place(3, ASH_LAST_ROW, func(c: Vector2i) -> void: tiles[c] = Tile.WATER)
+	_put_rock(_cell(0, 5))
+	_put_rock(_cell(width - 1, 4))
+
+
+# «Край жерла» (Сосуд Венца): верхний край поля — кромка кратера с лавой, торф вспыхивает,
+# знамёна Культа, три купели с водой (лужи-острова) — главная защита от огня.
+func _arena_crater() -> void:
+	for x in width:
+		_lava(_cell(x, 0))
+		if rng.randf() < 0.3:
+			_lava(_cell(x, 1))
+	_peat_patches([3, 3, 2], 3, ASH_LAST_ROW)
+	for c: Vector2i in [_cell(2, rng.randi_range(4, 6)), _cell(6, rng.randi_range(5, 7)), _cell(9, rng.randi_range(3, 5))]:
+		if _is_empty(c):
+			tiles[c] = Tile.WATER
+	for i in 2:
+		_place(2, 6, func(c: Vector2i) -> void: rocks[c] = true)   # знамёна
 
 
 # Ставит объект, только если клетка пустая и не в рядах героев
@@ -832,6 +1258,18 @@ func _paint_ground() -> void:
 	if arena_id == "cave":
 		for c: Vector2i in HexMath.rect_cells(width, height):
 			ground[c] = Ground.PEAT if peat.has(c) else Ground.BASALT
+		return
+	var biome: String = arena_biome(arena_id)
+	if biome == "ash" or biome == "deep":
+		# Акт 2: пепельные плиты на Тракте, базальт под землёй; то, что задала сама арена
+		# (дорога, рельсы, клёпаный пол), остаётся
+		for c: Vector2i in HexMath.rect_cells(width, height):
+			var kind: int = ground.get(c, Ground.ASH if biome == "ash" else Ground.BASALT)
+			if peat.has(c):
+				kind = Ground.PEAT
+			elif tiles.get(c, Tile.NONE) == Tile.WATER and kind != Ground.METAL:
+				kind = Ground.MUD
+			ground[c] = kind
 		return
 	var moss_chance: float = 0.45 if arena_id == "grove" else (0.08 if arena_id == "ruins" or arena_id == "pump" else 0.22)
 	if is_forest_arena(arena_id):

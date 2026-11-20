@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_colossus.tres" id="2_sphere_colossus"]
+[ext_resource type="Resource" path="res://resources/enemies/repair_bot.tres" id="3_repair_bot"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "boss_colossus"
+title = "Колосс Сфер"
+kind = 2
+core = Array[ExtResource("1_enemy")]([ExtResource("2_sphere_colossus"), ExtResource("3_repair_bot"), ExtResource("3_repair_bot")])
+arena = "reactor"
+branch = 2

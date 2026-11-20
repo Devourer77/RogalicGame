@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_hound.tres" id="2_ash_hound"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_moth.tres" id="3_ash_moth"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "tr_hounds"
+title = "Пепельная свора"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_ash_hound"), ExtResource("2_ash_hound"), ExtResource("2_ash_hound")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("2_ash_hound"), ExtResource("3_ash_moth")])
+min_row = 0
+max_row = 1
+formation = 1
+branch = 1

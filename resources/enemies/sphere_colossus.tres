@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/sphere_colossus.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Водяная сфера"
+shape = 1
+attack_range = 4
+damage = 3
+first_only = true
+puddle = true
+
+[sub_resource type="Resource" id="atk_1"]
+script = ExtResource("2_attack")
+title = "Грозовая сфера"
+anim = "Attack2"
+shape = 1
+attack_range = 4
+damage = 5
+pierce = true
+
+[sub_resource type="Resource" id="atk_2"]
+script = ExtResource("2_attack")
+title = "Огненная сфера"
+anim = "Attack3"
+shape = 4
+attack_range = 1
+damage = 5
+ignite = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "sphere_colossus"
+title = "Колосс Сфер"
+description = "Учёные мертвы. Машина всё ещё работает."
+max_hp = 80
+move_range = 1
+damage = 3
+attack = 1
+attack_range = 4
+color = Color(0.44, 0.33, 0.21, 1)
+size = 1.2
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1"), SubResource("atk_2")])
+turn_block = 4
+bog_damage = 8
+is_boss = true

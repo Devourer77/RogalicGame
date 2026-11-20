@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_porter.tres" id="2_cult_porter"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="3_cultist"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_novice.tres" id="4_cult_novice"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_hound.tres" id="5_ash_hound"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "tr_porters"
+title = "Носильщики углей"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_cult_porter"), ExtResource("2_cult_porter"), ExtResource("3_cultist")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("4_cult_novice"), ExtResource("3_cultist"), ExtResource("5_ash_hound")])
+min_row = 2
+max_row = 3
+branch = 1

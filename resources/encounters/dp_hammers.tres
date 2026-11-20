@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/steam_hammer.tres" id="2_steam_hammer"]
+[ext_resource type="Resource" path="res://resources/enemies/repair_bot.tres" id="3_repair_bot"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_wind.tres" id="4_sphere_walker_wind"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_fire.tres" id="5_sphere_walker_fire"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "dp_hammers"
+title = "Паровые молоты"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_steam_hammer"), ExtResource("3_repair_bot"), ExtResource("3_repair_bot"), ExtResource("4_sphere_walker_wind")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("5_sphere_walker_fire"), ExtResource("3_repair_bot")])
+min_row = 4
+max_row = 99
+branch = 2

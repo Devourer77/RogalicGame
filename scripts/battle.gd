@@ -118,8 +118,11 @@ func _ready() -> void:
 		board.boss_sign = sign[0]
 		_boss_sign_hint = sign[1]
 	board.build(layout_seed, logic.arena_id, logic.ground)
-	if logic.arena_id == "cave":
-		_warm_cave_light()
+	var biome: String = BattleLogic.arena_biome(logic.arena_id)
+	if biome == "deep":
+		_warm_cave_light()   # Тлеющая пещера и всё Подземье акта 2
+	elif biome == "ash":
+		_ash_road_light()    # Пепельный тракт: бурая дымка, рыжий отсвет у горизонта
 	_add_vignette()
 	_add_reflection_probe()
 	_update_camera()
@@ -160,6 +163,8 @@ func _ready() -> void:
 	# Подсказка про новые объекты арены — одной строкой в журнале в начале боя
 	if BattleLogic.is_forest_arena(logic.arena_id):
 		logic.message.emit("Лес: лоза держит того, кто на неё встал (удар картой срубает), деревья с лентой закрывают линии и горят, улей — рой с ядом.")
+	elif BattleLogic.ARENA_HINTS.has(logic.arena_id):
+		logic.message.emit(BattleLogic.ARENA_HINTS[logic.arena_id])
 	elif logic.arena_id == "pump":
 		logic.message.emit("Насосная: удар по клапану — пар обжигает и отбрасывает соседей, вокруг разливается вода.")
 	if Run.is_elite_battle() and Run.forest_spirit_offered():
@@ -1265,6 +1270,26 @@ func _add_vignette() -> void:
 	mat.shader = VIGNETTE_SHADER
 	rect.material = mat
 	layer.add_child(rect)
+
+
+# Пепельный тракт (акт 2): пепельно-бурый воздух, тусклое солнце сквозь дым, рыжее зарево у горизонта
+func _ash_road_light() -> void:
+	var we: WorldEnvironment = get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if we != null and we.environment != null:
+		var env: Environment = we.environment.duplicate() as Environment
+		env.background_color = Color(0.13, 0.1, 0.08)
+		env.ambient_light_color = Color(0.58, 0.56, 0.55)
+		env.fog_light_color = Color(0.36, 0.29, 0.23)
+		if env.sky != null:
+			env.sky = env.sky.duplicate(true) as Sky
+			var sky_mat: ShaderMaterial = env.sky.sky_material as ShaderMaterial
+			sky_mat.set_shader_parameter("zenith_color", Color(0.12, 0.1, 0.09))
+			sky_mat.set_shader_parameter("horizon_color", Color(0.48, 0.28, 0.13))
+		we.environment = env
+	var sun: DirectionalLight3D = get_node_or_null("Sun") as DirectionalLight3D
+	if sun != null:
+		sun.light_color = Color(0.92, 0.86, 0.8)   # тусклое солнце сквозь дым: чуть тёплое, но плиты остаются серыми
+		sun.light_energy = 0.8
 
 
 # Тлеющая пещера: вместо зелёного болотного тумана — тёплый тёмный воздух и рыжий свет

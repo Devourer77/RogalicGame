@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/rift_grinder.glb" id="9_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "rift_grinder"
+title = "Бирюзовый Жернов"
+description = "Он не обходит преграды. Он делает из тебя преграду."
+max_hp = 18
+move_range = 2
+damage = 4
+attack = 1
+attack_range = 2
+color = Color(0.42, 0.41, 0.4, 1)
+size = 1.0
+model = ExtResource("9_model")
+attack_title = "Удар тараном"
+push = 2
+first_only = true
+turn_block = 3
+bog_damage = 6

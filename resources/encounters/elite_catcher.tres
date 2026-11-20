@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/spirit_catcher.tres" id="2_spirit_catcher"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_water.tres" id="3_sphere_walker_water"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_storm.tres" id="4_sphere_walker_storm"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "elite_catcher"
+title = "Ловчий автомат"
+kind = 1
+core = Array[ExtResource("1_enemy")]([ExtResource("2_spirit_catcher"), ExtResource("3_sphere_walker_water"), ExtResource("4_sphere_walker_storm")])
+arena = "sphere_hall"
+branch = 2

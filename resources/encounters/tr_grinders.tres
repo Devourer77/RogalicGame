@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/rift_grinder.tres" id="2_rift_grinder"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_catcher.tres" id="3_cult_catcher"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_hound.tres" id="4_ash_hound"]
+[ext_resource type="Resource" path="res://resources/enemies/ember_slug.tres" id="5_ember_slug"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "tr_grinders"
+title = "Жернова"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_rift_grinder"), ExtResource("2_rift_grinder"), ExtResource("3_cult_catcher")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("4_ash_hound"), ExtResource("5_ember_slug")])
+min_row = 4
+max_row = 99
+branch = 1

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_fire.tres" id="2_sphere_walker_fire"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_water.tres" id="3_sphere_walker_water"]
+[ext_resource type="Resource" path="res://resources/enemies/repair_bot.tres" id="4_repair_bot"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_wind.tres" id="5_sphere_walker_wind"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "dp_walkers"
+title = "Сферники"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_sphere_walker_fire"), ExtResource("3_sphere_walker_water"), ExtResource("4_repair_bot")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("5_sphere_walker_wind"), ExtResource("3_sphere_walker_water")])
+min_row = 0
+max_row = 1
+branch = 2

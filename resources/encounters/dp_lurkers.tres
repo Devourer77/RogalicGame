@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/blind_lurker.tres" id="2_blind_lurker"]
+[ext_resource type="Resource" path="res://resources/enemies/glass_spitter.tres" id="3_glass_spitter"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_scarab.tres" id="4_ash_scarab"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "dp_lurkers"
+title = "Слепыши"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_blind_lurker"), ExtResource("2_blind_lurker"), ExtResource("3_glass_spitter")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("2_blind_lurker"), ExtResource("4_ash_scarab")])
+min_row = 4
+max_row = 99
+formation = 4
+branch = 2

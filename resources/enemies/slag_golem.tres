@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/slag_golem.glb" id="9_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "slag_golem"
+title = "Шлаковый голем"
+description = "Стоит, как камень. Бьёт, как обвал."
+max_hp = 16
+move_range = 1
+damage = 5
+attack = 0
+attack_range = 1
+color = Color(0.2, 0.19, 0.19, 1)
+size = 1.0
+model = ExtResource("9_model")
+attack_title = "Удар кулаком"
+fire_walker = true

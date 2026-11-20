@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_prospector.tres" id="2_cult_prospector"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="3_cultist"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_fire.tres" id="4_sphere_walker_fire"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "dp_prospectors"
+title = "Старатели"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_cult_prospector"), ExtResource("2_cult_prospector"), ExtResource("3_cultist")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("3_cultist"), ExtResource("4_sphere_walker_fire")])
+min_row = 0
+max_row = 2
+branch = 2

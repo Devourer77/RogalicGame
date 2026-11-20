@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/spark.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Ожог"
+shape = 0
+attack_range = 1
+damage = 2
+ignite = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "spark"
+title = "Искра"
+description = "Обломок духа огня на обрывке цепи."
+max_hp = 4
+move_range = 3
+damage = 2
+attack = 0
+attack_range = 1
+color = Color(1.0, 0.5, 0.15, 1)
+size = 1.0
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0")])
+fire_walker = true
+water_weak = true

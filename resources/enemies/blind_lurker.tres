@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/blind_lurker.glb" id="9_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "blind_lurker"
+title = "Пещерный слепыш"
+description = "Он не видит. Он слышит, кто бежит."
+max_hp = 13
+move_range = 3
+damage = 5
+attack = 0
+attack_range = 1
+color = Color(0.48, 0.52, 0.58, 1)
+size = 1.0
+model = ExtResource("9_model")
+attack_title = "Укус"
+ai_style = 1

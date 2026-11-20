@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_serpent.tres" id="2_ash_serpent"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_hound.tres" id="3_ash_hound"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_moth.tres" id="4_ash_moth"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "elite_serpent"
+title = "Пепельная змея"
+kind = 1
+core = Array[ExtResource("1_enemy")]([ExtResource("2_ash_serpent"), ExtResource("3_ash_hound"), ExtResource("3_ash_hound"), ExtResource("4_ash_moth")])

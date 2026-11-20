@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/crater_walker.tres" id="2_crater_walker"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_censer.tres" id="3_cult_censer"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="4_cultist"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_brander.tres" id="5_cult_brander"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "tr_crater"
+title = "Огнеходы"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_crater_walker"), ExtResource("2_crater_walker"), ExtResource("3_cult_censer"), ExtResource("4_cultist")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("4_cultist"), ExtResource("5_cult_brander")])
+min_row = 4
+max_row = 99
+branch = 1

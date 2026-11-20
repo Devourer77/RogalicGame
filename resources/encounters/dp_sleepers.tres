@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/sleeping_sphere.tres" id="2_sleeping_sphere"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_storm.tres" id="3_sphere_walker_storm"]
+[ext_resource type="Resource" path="res://resources/enemies/repair_bot.tres" id="4_repair_bot"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "dp_sleepers"
+title = "Спящие сферы"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_sleeping_sphere"), ExtResource("2_sleeping_sphere"), ExtResource("3_sphere_walker_storm")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("2_sleeping_sphere"), ExtResource("4_repair_bot")])
+min_row = 1
+max_row = 99
+arena = "sphere_hall"
+branch = 2

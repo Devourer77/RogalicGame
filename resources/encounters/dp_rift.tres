@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/spark_stalker.tres" id="2_spark_stalker"]
+[ext_resource type="Resource" path="res://resources/enemies/glass_spitter.tres" id="3_glass_spitter"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_fire.tres" id="4_sphere_walker_fire"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_prospector.tres" id="5_cult_prospector"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_scarab.tres" id="6_ash_scarab"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_water.tres" id="7_sphere_walker_water"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "dp_rift"
+title = "Дети Разлома"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_spark_stalker"), ExtResource("3_glass_spitter"), ExtResource("4_sphere_walker_fire"), ExtResource("5_cult_prospector")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("6_ash_scarab"), ExtResource("7_sphere_walker_water")])
+min_row = 4
+max_row = 99
+branch = 2

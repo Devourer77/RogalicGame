@@ -1,0 +1,40 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/glass_spitter.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Водяной плевок"
+shape = 1
+attack_range = 4
+damage = 2
+first_only = true
+puddle = true
+
+[sub_resource type="Resource" id="atk_1"]
+script = ExtResource("2_attack")
+title = "Огненный плевок"
+anim = "Attack2"
+shape = 1
+attack_range = 4
+damage = 3
+first_only = true
+ignite = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "glass_spitter"
+title = "Стеклянный Плевун"
+description = "Сначала он тебя намочит. Потом ты пожалеешь, что не сгорел сразу."
+max_hp = 9
+move_range = 3
+damage = 2
+attack = 1
+attack_range = 4
+color = Color(0.2, 0.22, 0.24, 1)
+size = 1.0
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1")])
+keep_distance = 3

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/lava_crawler.tres" id="2_lava_crawler"]
+[ext_resource type="Resource" path="res://resources/enemies/ember_slug.tres" id="3_ember_slug"]
+[ext_resource type="Resource" path="res://resources/enemies/slag_golem.tres" id="4_slag_golem"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "tr_lava"
+title = "Лавовые твари"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_lava_crawler"), ExtResource("2_lava_crawler"), ExtResource("3_ember_slug")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("4_slag_golem"), ExtResource("2_lava_crawler")])
+min_row = 1
+max_row = 3
+formation = 4
+branch = 1

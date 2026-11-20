@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/glass_spitter.tres" id="2_glass_spitter"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_scarab.tres" id="3_ash_scarab"]
+[ext_resource type="Resource" path="res://resources/enemies/spark_stalker.tres" id="4_spark_stalker"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "dp_spitters"
+title = "Плевуны"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_glass_spitter"), ExtResource("2_glass_spitter"), ExtResource("3_ash_scarab")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("3_ash_scarab"), ExtResource("4_spark_stalker")])
+min_row = 2
+max_row = 3
+formation = 2
+branch = 2

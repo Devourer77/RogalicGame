@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/spirit_catcher.glb" id="9_model"]
+[ext_resource type="Resource" path="res://resources/enemies/sphere_walker_fire.tres" id="3_sphere_walker_fire"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Сеть"
+shape = 1
+attack_range = 4
+damage = 2
+pull = 2
+entangle = 1
+first_only = true
+
+[sub_resource type="Resource" id="atk_1"]
+script = ExtResource("2_attack")
+title = "Клешня"
+anim = "Attack2"
+shape = 0
+attack_range = 1
+damage = 6
+
+[sub_resource type="Resource" id="atk_2"]
+script = ExtResource("2_attack")
+title = "Сборка"
+anim = "Attack3"
+shape = 3
+attack_range = 0
+damage = 0
+summon_count = 2
+summon = ExtResource("3_sphere_walker_fire")
+
+[resource]
+script = ExtResource("1_enemy")
+id = "spirit_catcher"
+title = "Ловчий автомат"
+description = "Он ловит духов. Тебя он тоже поймает — для порядка."
+max_hp = 36
+move_range = 1
+damage = 2
+attack = 1
+attack_range = 4
+color = Color(0.44, 0.33, 0.21, 1)
+size = 1.0
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1"), SubResource("atk_2")])
+turn_block = 2
+bog_damage = 6
+is_elite = true

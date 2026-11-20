@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/burnt_sentry.glb" id="9_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "burnt_sentry"
+title = "Обгоревший дозорный"
+description = "Он всё ещё стоит в дозоре. Только теперь стреляет по своим."
+max_hp = 10
+move_range = 2
+damage = 4
+attack = 1
+attack_range = 5
+color = Color(0.2, 0.19, 0.19, 1)
+size = 1.0
+model = ExtResource("9_model")
+attack_title = "Арбалетный болт"
+first_only = true
+keep_distance = 3

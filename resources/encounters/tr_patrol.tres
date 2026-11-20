@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_catcher.tres" id="2_cult_catcher"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="3_cultist"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_novice.tres" id="4_cult_novice"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "tr_patrol"
+title = "Дозор Венца"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_cult_catcher"), ExtResource("3_cultist"), ExtResource("3_cultist")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("3_cultist"), ExtResource("4_cult_novice")])
+min_row = 0
+max_row = 1
+branch = 1

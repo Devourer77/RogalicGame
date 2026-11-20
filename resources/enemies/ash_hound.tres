@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/ash_hound.glb" id="9_model"]
+
+[resource]
+script = ExtResource("1_enemy")
+id = "ash_hound"
+title = "Пепельная гончая"
+description = "Она бежит, пока не сгорит изнутри. Или пока не сожжёт тебя."
+max_hp = 9
+move_range = 4
+damage = 4
+attack = 0
+attack_range = 1
+color = Color(0.2, 0.2, 0.21, 1)
+size = 1.0
+model = ExtResource("9_model")
+attack_title = "Укус"
+death_blast = 4
+ai_style = 1

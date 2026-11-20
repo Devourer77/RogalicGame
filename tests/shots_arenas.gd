@@ -6,8 +6,12 @@ func _initialize() -> void:
 	var run = root.get_node("Run")
 	var only: String = OS.get_environment("ARENA")
 	for arena: String in BattleLogic.ARENAS:
-		if only != "" and only != arena: continue
+		if only != "" and not only.split(",").has(arena): continue   # ARENA=wagons,mine — несколько через запятую
 		run.start_new_run(21)
+		if BattleLogic.ARENA_BIOME.has(arena) and arena != "cave":
+			run.sim_no_scenes = true
+			run.next_act()   # арены акта 2 — с врагами акта 2
+			run.sim_no_scenes = false
 		run.pending_enemies = run._make_encounter(4, arena == "lair")
 		run.pending_arena = arena
 		change_scene_to_file(run.BATTLE_SCENE)

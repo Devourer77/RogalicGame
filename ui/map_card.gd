@@ -99,7 +99,11 @@ static func build(n: MapNode) -> MapCard:
 	var bar: Rect2 = rect.call("bar")
 	# рисунок под рамкой: в окошко, с запасом на край
 	var pic := TextureRect.new()
-	pic.texture = load(DIR + "card_%s.jpg" % picture_for(n)) as Texture2D
+	var pic_path: String = DIR + "card_%s.jpg" % picture_for(n)
+	if not ResourceLoader.exists(pic_path):
+		# Рисунка арены ещё нет (акт 2: картинки Gemini у Ромы) — похожее место: Подземье — насосная, Тракт — застава
+		pic_path = DIR + ("card_pump.jpg" if BattleLogic.arena_biome(n.arena) == "deep" else "card_camp.jpg")
+	pic.texture = load(pic_path) as Texture2D
 	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	pic.position = win.position - Vector2(3, 3)

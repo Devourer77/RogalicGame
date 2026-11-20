@@ -30,9 +30,8 @@ func _initialize() -> void:
 		var a: ActData = run.ACTS[i]
 		check("Акт %d: номер, название и две ветки" % (i + 1), a.number == i + 1 and a.title != "" and a.branch_titles.size() == 2)
 	check("Акт 1 на своих врагах", not run.ACTS[0].is_placeholder())
-	check("Акты 2 и 3 пока в работе и берут врагов у акта 1",
-			run.ACTS[1].is_placeholder() and run.ACTS[2].is_placeholder()
-			and run.ACTS[1].borrow_from == 1 and run.ACTS[2].borrow_from == 1)
+	check("Акт 2 на своих врагах, акт 3 пока берёт врагов у акта 2",
+			not run.ACTS[1].is_placeholder() and run.ACTS[2].is_placeholder() and run.ACTS[2].borrow_from == 2)
 
 	# --- Акт 1 ---
 	run.final_act = run.FINAL_ACT
@@ -63,24 +62,15 @@ func _initialize() -> void:
 	check("Колода осталась с отрядом", run.party[0].deck.size() == deck_size)
 	check("Новая карта, отряд в её начале", run.map != old_map and run.current == null and not run.available_nodes().is_empty())
 	check("Ветки акта 2 — тракт и подземье", run.branch_titles()[0] == "Тракт" and run.branch_titles()[1] == "Подземье")
-	check("Пока своих врагов нет — отряды акта 1", run.encounters() == run.ACTS[0].encounters and run.boss_pool() == run.ACTS[0].boss_pool)
+	check("Отряды и боссы акта 2 — свои", run.encounters() == run.ACTS[1].encounters and run.boss_pool() == run.ACTS[1].boss_pool)
 	check("Рисунок карты есть всегда", ResourceLoader.exists(run.map_background()))
 	check("Расщелины Жаровика в акте 2 нет", not run.cave_possible())
 	var first: MapNode = run.available_nodes()[0]
 	run.enter_node(first)
 	check("Ряды для Отзвуков считаются через акты", run.rows_passed == run.MAP_ROWS + first.row + 1)
-	var scaled_ok: bool = true
-	for e: EnemyData in run.pending_enemies:
-		var base: EnemyData = load(e.resource_path) as EnemyData if e.resource_path != "" else null
-		if base != null:
-			scaled_ok = false   # усиленный враг — копия без пути к файлу
-	check("Враги акта 2 — усиленные копии", scaled_ok)
 	var goblin: EnemyData = load("res://resources/enemies/goblin.tres") as EnemyData
 	var g2: EnemyData = run._act_scaled(goblin)
-	var a2: ActData = run.act_data()
-	check("Гоблин в акте 2 крепче по данным акта",
-			g2.max_hp == ceili(goblin.max_hp * a2.enemy_hp_mult) and g2.max_hp > goblin.max_hp
-			and g2.damage == goblin.damage + a2.enemy_damage_add)
+	check("Враги акта 2 не усиливаются (свои)", g2 == goblin)
 	check("Файл гоблина не изменился", (load("res://resources/enemies/goblin.tres") as EnemyData).max_hp == goblin.max_hp)
 
 	# --- Акт 3 и конец забега ---
@@ -91,7 +81,9 @@ func _initialize() -> void:
 	run.next_act()
 	check("Теперь акт 3 — Ледяной Шпиль", run.act == 3 and run.act_data().title == "Ледяной Шпиль")
 	var g3: EnemyData = run._act_scaled(goblin)
-	check("Гоблин в акте 3 ещё крепче", g3.max_hp > g2.max_hp and g3.damage == goblin.damage + run.act_data().enemy_damage_add)
+	check("В акте 3 (заглушка) враги крепче по данным акта", g3.max_hp == ceili(goblin.max_hp * run.act_data().enemy_hp_mult)
+			and g3.damage == goblin.damage + run.act_data().enemy_damage_add)
+	check("Акт 3 пока на отрядах акта 2", run.encounters() == run.ACTS[1].encounters)
 	var boss3: MapNode = _boss_node(run)
 	run.enter_node(boss3)
 	run.finish_battle(true, [10, 10] as Array[int])

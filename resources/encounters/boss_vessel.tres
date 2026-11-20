@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/crown_vessel.tres" id="2_crown_vessel"]
+[ext_resource type="Resource" path="res://resources/enemies/cult_jailer.tres" id="3_cult_jailer"]
+[ext_resource type="Resource" path="res://resources/enemies/cultist.tres" id="4_cultist"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "boss_vessel"
+title = "Сосуд Венца"
+kind = 2
+core = Array[ExtResource("1_enemy")]([ExtResource("2_crown_vessel"), ExtResource("3_cult_jailer"), ExtResource("4_cultist"), ExtResource("4_cultist")])
+arena = "crater"

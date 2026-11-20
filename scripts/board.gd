@@ -19,6 +19,8 @@ const TILE_COLORS: Dictionary[int, Color] = {
 	BattleLogic.Ground.PLANKS: Color(0.34, 0.26, 0.17),
 	BattleLogic.Ground.BASALT: Color(0.21, 0.20, 0.20),   # Тлеющая пещера: тёмный базальт
 	BattleLogic.Ground.PEAT: Color(0.27, 0.19, 0.13),     # торф (на нём снова вспыхивает огонь)
+	BattleLogic.Ground.ASH: Color(0.33, 0.33, 0.33),      # акт 2, Тракт: пепельная плита
+	BattleLogic.Ground.METAL: Color(0.30, 0.23, 0.16),    # акт 2, Подземье: клёпаный пол
 }
 const TILE_STONE_ALT: Color = Color(0.26, 0.29, 0.29)   # второй оттенок камня для разнообразия
 
@@ -44,6 +46,9 @@ const TILE_MODELS: Dictionary[int, Array] = {
 	BattleLogic.Ground.PLANKS: ["tile_hex_planks", "tile_hex_planks_b", "tile_hex_planks_c"],
 	BattleLogic.Ground.BASALT: ["tile_hex_basalt", "tile_hex_basalt_b"],
 	BattleLogic.Ground.PEAT: ["tile_hex_peat", "tile_hex_peat_b"],
+	# акт 2 (assets/models/src/build_ash.py)
+	BattleLogic.Ground.ASH: ["tile_hex_ash", "tile_hex_ash", "tile_hex_ash_b", "tile_hex_ash_c", "tile_hex_ash"],
+	BattleLogic.Ground.METAL: ["tile_hex_metal", "tile_hex_metal", "tile_hex_metal_b"],
 }
 const TILE_STONE_ALT_MODEL: String = "tile_hex_stone_b"
 # (квадратные плиты tile_*.glb от старой квадратной сетки не используются)
@@ -96,6 +101,56 @@ const D_SHORE: Array[PackedScene] = [preload(DIR + "decor_shore_a.glb"), preload
 		preload(DIR + "decor_shore_c.glb")]
 const D_CAVE_WALL: PackedScene = preload(DIR + "decor_cave_wall.glb")
 const D_EMBERS: PackedScene = preload(DIR + "decor_embers.glb")
+# Акт 2 «Пепельный тракт» (assets/models/src/build_ash.py). Пути, а не preload: нет файла — берётся замена.
+const ASH_ROCKS: Dictionary[String, Array] = {
+	"wagons": ["rock_wagon", "rock_wagon", "rock_slag"],
+	"ashfield": ["rock_charred_log"],
+	"shrine": ["rock_altar", "rock_banner"],
+	"lava_beds": ["rock_basalt"],
+	"springs": ["rock_basalt"],
+	"tower": ["rock_tower_block"],
+	"dunes": ["rock_slag", "rock_wagon"],
+	"pass": ["rock_basalt", "rock_basalt", "rock_slag"],
+	"embers": ["rock_stalagmite"],
+	"sphere_hall": ["rock_pipe"],
+	"steamworks": ["rock_pipe", "rock_pipe", "rock_boiler"],
+	"mine": ["rock_basalt", "rock_basalt", "rock_cart"],
+	"rift_lab": ["rock_machine", "rock_pipe"],
+	"lake": ["rock_stalagmite"],
+	"assembly": ["rock_machine", "rock_crates"],
+	"fungus": ["rock_stalagmite"],
+	"cliff": ["rock_wagon", "rock_basalt"],
+	"reactor": ["rock_boiler"],
+	"crater": ["rock_banner", "rock_basalt"],
+}
+# Вид объектов клеток на аренах акта 2: механика та же, модель другая (бочка — масло, жаровня, сфера, гриб…)
+const ASH_SKINS: Dictionary[String, Dictionary] = {
+	"wagons": {BattleLogic.Obj.BARREL: "obj_oil_barrel"},
+	"ashfield": {BattleLogic.Obj.TREE: "obj_tree_charred"},
+	"shrine": {BattleLogic.Obj.BARREL: "obj_brazier"},
+	"springs": {BattleLogic.Obj.VALVE: "obj_geyser"},
+	"tower": {BattleLogic.Obj.TREE: "obj_wall_cracked"},
+	"dunes": {BattleLogic.Obj.BARREL: "obj_oil_barrel"},
+	"pass": {BattleLogic.Obj.BARREL: "obj_oil_barrel"},
+	"sphere_hall": {BattleLogic.Obj.BARREL: "obj_sphere_fire", BattleLogic.Obj.VALVE: "obj_sphere_water"},
+	"mine": {BattleLogic.Obj.BARREL: "obj_oil_barrel"},
+	"assembly": {BattleLogic.Obj.BARREL: "obj_oil_barrel"},
+	"fungus": {BattleLogic.Obj.BARREL: "obj_puffball"},
+	"cliff": {BattleLogic.Obj.BARREL: "obj_oil_barrel"},
+}
+# Россыпь вокруг арен акта 2: [имя модели, сколько]
+const ASH_SCATTER: Dictionary[String, Array] = {
+	"ash": [["decor_dune", 6], ["obj_tree_charred_a", 6], ["obj_tree_charred_b", 5], ["rock_slag", 5], ["decor_wheel", 3],
+			["rock_basalt", 4], ["decor_embers", 5]],
+	"deep": [["rock_stalagmite", 14], ["decor_embers", 6], ["rock_basalt", 4]],
+	"fungus": [["decor_mushroom_giant", 8], ["rock_stalagmite", 10], ["decor_embers", 2]],
+	"lab": [["rock_boiler", 4], ["rock_pipe", 6], ["rock_machine", 3], ["rock_stalagmite", 6], ["decor_embers", 3]],
+}
+const LAB_ARENAS: Array[String] = ["sphere_hall", "steamworks", "rift_lab", "assembly", "reactor"]
+const COLOR_ASH_FLOOR := Color(0.15, 0.145, 0.14)       # пепельная земля вокруг полей Тракта
+const COLOR_ASH_SAND := Color(0.42, 0.41, 0.4)        # сыпучий пепел Дюн (клетка «топи» на Тракте)
+var _ash_scenes: Dictionary[String, PackedScene] = {}
+
 const ARENA_ROCKS: Dictionary[String, Array] = {
 	"gat": [ROCK_BOULDER, ROCK_MARKER],
 	"grove": [ROCK_BOULDER],
@@ -244,7 +299,7 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 
 	_build_ground_joints(ground)
 	_build_decorations(rng)
-	if _arena != "cave" and not BattleLogic.is_forest_arena(_arena):
+	if _biome() == "bog":
 		_build_shore_edge(layout_seed)
 	_build_wisps()
 
@@ -297,9 +352,9 @@ func _build_shore() -> void:
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(220.0, 220.0)
 	water.mesh = plane
-	if _arena == "cave" or BattleLogic.is_forest_arena(_arena):   # в пещере и в лесу вместо воды — сухая земля
+	if _biome() != "bog":   # в пещере, в лесу и на Тракте вместо воды — сухая земля
 		var floor_mat := StandardMaterial3D.new()
-		floor_mat.albedo_color = COLOR_FOREST_FLOOR if _arena != "cave" else COLOR_CAVE_FLOOR
+		floor_mat.albedo_color = {"forest": COLOR_FOREST_FLOOR, "ash": COLOR_ASH_FLOOR}.get(_biome(), COLOR_CAVE_FLOOR)
 		floor_mat.roughness = 1.0
 		water.material_override = floor_mat
 	else:
@@ -367,7 +422,7 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 	var w: float = width * CELL_STEP     # ширина поля в метрах
 	var h: float = height * ROW_STEP     # глубина поля в метрах
 
-	if _arena == "cave":
+	if _biome() == "deep":
 		_build_cave_walls(decor, rng)   # под землёй Шпиля и фонарей Стражи не видно
 	else:
 		# Шпиль далеко на севере: цель всего пути. Трещина в небе над ним светится.
@@ -376,8 +431,12 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 
 		# Фонари Стражи у дальних углов и один сбоку — тёплые островки света (в глухом лесу их нет)
 		var lanterns: Array[Vector3] = [Vector3(-1.4, 0.0, -1.2), Vector3(w + 0.4, 0.0, -1.2), Vector3(-1.5, 0.0, h * 0.62)]
-		if BattleLogic.is_forest_arena(_arena):
-			lanterns.clear()
+		if _biome() != "bog":
+			lanterns.clear()   # в глухом лесу и на выжженном тракте фонарей Стражи нет
+		if _biome() == "ash":   # вулкан за полем — к нему ведёт тракт
+			var volcano: PackedScene = _ash_scene("decor_volcano")
+			if volcano != null:
+				_spawn_prop(decor, volcano, Vector3(w * 0.5 + 22.0 + rng.randf_range(-4.0, 4.0), -0.5, -48.0), 0.0)
 		for pos: Vector3 in lanterns:
 			var lantern: Node3D = _spawn_prop(decor, D_LANTERN, pos, rng.randf_range(-0.4, 0.4) + (PI if pos.x > 0.0 else 0.0))
 			_add_light(lantern, Vector3(0.66 * (-1.0 if pos.x > 0.0 else 1.0), 1.7, 0.0), COLOR_LAMP_LIGHT, 2.2, 6.0)
@@ -411,6 +470,15 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 			for pos: Vector3 in [Vector3(-1.6, 0.0, 1.5), Vector3(w + 0.6, 0.0, 2.5), Vector3(w * 0.5 - 2.0, 0.0, -1.8),
 					Vector3(w * 0.5 + 1.5, 0.0, -1.8)]:
 				_spawn_prop(decor, D_TOTEM, pos, rng.randf_range(-0.5, 0.5))
+		"shrine", "crater":
+			var banner: PackedScene = _ash_scene("rock_banner")
+			if banner != null:
+				for pos: Vector3 in [Vector3(-1.5, 0.0, 1.2), Vector3(w + 0.5, 0.0, 2.0), Vector3(w * 0.5 - 2.5, 0.0, -1.8),
+						Vector3(w * 0.5 + 2.0, 0.0, -1.8)]:
+					_spawn_prop(decor, banner, pos, rng.randf_range(-0.4, 0.4))
+		"tower":
+			var bell_ruin: Node3D = _spawn_prop(decor, D_BELL, Vector3(w * 0.5 + 1.5, -0.1, -1.6), 0.6)
+			bell_ruin.rotation.z = 0.5   # колокол лежит в обломках
 		"lair":
 			_spawn_prop(decor, D_RIBS, Vector3(w * 0.5 - 0.5, -0.05, -2.6), 0.15)
 			for pos: Vector3 in [Vector3(-1.6, 0.0, 2.0), Vector3(w + 0.6, 0.0, 3.5), Vector3(w * 0.5 + 3.0, 0.0, -1.6)]:
@@ -429,7 +497,10 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 	var taken: Array[Vector3] = []
 	for child in decor.get_children():
 		taken.append((child as Node3D).position)
-	for entry: Array in ARENA_SCATTER.get(_arena, ARENA_SCATTER["gat"]):
+	var scatter: Array = ARENA_SCATTER.get(_arena, ARENA_SCATTER["gat"])
+	if BattleLogic.ARENA_BIOME.has(_arena) and _arena != "cave":
+		scatter = _ash_scatter()
+	for entry: Array in scatter:
 		var scene: PackedScene = entry[0]
 		var tall: bool = scene == D_TREE_BIG or scene == D_ROCK_BIG or scene == D_TREE_GREEN or scene == D_PUMP
 		for i: int in entry[1]:
@@ -444,6 +515,8 @@ func _build_decorations(rng: RandomNumberGenerator) -> void:
 				_add_light(prop, Vector3(0.0, 0.4, 0.0), Color(0.35, 0.92, 0.82), 0.5, 2.5)
 			if scene == D_EMBERS:
 				_add_light(prop, Vector3(0.0, 0.4, 0.0), COLOR_EMBER_LIGHT, 1.2, 4.0)
+			if scene.resource_path.ends_with("decor_mushroom_giant.glb"):
+				_add_light(prop, Vector3(0.0, 1.3, 0.0), Color(0.35, 0.92, 0.82), 0.9, 4.0)
 
 
 # Тлеющая пещера: кольцо базальтовых стен вокруг поля (кроме ближней к камере стороны)
@@ -536,7 +609,7 @@ func _build_wisps() -> void:
 	dot.height = 0.07
 	dot.radial_segments = 6
 	dot.rings = 3
-	dot.material = _glow_material(COLOR_EMBER_LIGHT if _arena == "cave" else COLOR_WISP, 3.0)   # в пещере — искры
+	dot.material = _glow_material(COLOR_EMBER_LIGHT if _biome() == "deep" or _biome() == "ash" else COLOR_WISP, 3.0)   # в пещере и на Тракте — искры
 	wisps.mesh = dot
 	wisps.position = field_center() + Vector3(0.0, 0.9, 0.0)
 	wisps.name = "Wisps"
@@ -564,9 +637,12 @@ func _add_ground_mist() -> void:
 		mat.set_shader_parameter("field_rect", rect)
 		mat.set_shader_parameter("density", layer[1])
 		mat.set_shader_parameter("scale", layer[2])
-		if _arena == "cave":   # в пещере — бурый дым от тлеющего торфа, пореже
+		if _biome() == "deep":   # в пещере — бурый дым от тлеющего торфа, пореже
 			mat.set_shader_parameter("mist_color", Color(0.3, 0.22, 0.16))
 			mat.set_shader_parameter("density", layer[1] * 0.6)
+		elif _biome() == "ash":   # на Тракте — серо-бурая пепельная дымка
+			mat.set_shader_parameter("mist_color", Color(0.36, 0.31, 0.27))
+			mat.set_shader_parameter("density", layer[1] * 0.7)
 		plane.material_override = mat
 		add_child(plane)
 
@@ -583,8 +659,8 @@ func add_atmosphere(rain: bool) -> void:
 	var air := Node3D.new()
 	air.name = "Atmosphere"
 	add_child(air)
-	if _arena == "cave":
-		# В пещере вместо огоньков — искры углей, тумана и дождя нет
+	if _biome() == "deep" or _biome() == "ash":
+		# В пещере и на выжженном тракте вместо огоньков — искры углей, дождя и мошкары нет
 		vfx.loop("wisp_loop", air, center + Vector3(0.0, 1.0, 0.0), 1.0, COLOR_EMBER_LIGHT,
 			Vector3(half.x + 2.0, 0.8, half.z + 2.0))
 		return
@@ -866,6 +942,10 @@ func burst(cell: Vector2i, color: Color, amount: int = 24, speed: float = 4.0, g
 func add_rock(cell: Vector2i) -> void:
 	var options: Array = ARENA_ROCKS.get(_arena, [ROCK_BOULDER])
 	var scene: PackedScene = options[posmod(cell.x * 7 + cell.y * 13, options.size())]
+	if ASH_ROCKS.has(_arena):   # акт 2: своя преграда у каждой арены
+		var names: Array = ASH_ROCKS[_arena]
+		var ash: PackedScene = _ash_scene(names[posmod(cell.x * 7 + cell.y * 13, names.size())])
+		scene = ash if ash != null else ROCK_BOULDER
 	var prop: Node3D = scene.instantiate()
 	prop.position = grid_to_world(cell)
 	prop.rotation.y = posmod(cell.x * 3 + cell.y * 17, 4) * (PI / 2.0)
@@ -1189,7 +1269,38 @@ func _get_swamp_material() -> StandardMaterial3D:
 		_swamp_mat.emission_enabled = true
 		_swamp_mat.emission = Color(0.2, 0.32, 0.1)
 		_swamp_mat.emission_energy_multiplier = 0.2
+		if _biome() == "ash":   # на Тракте «топь» — сыпучий пепел: матовый, светлый, без отсвета
+			_swamp_mat.albedo_color = COLOR_ASH_SAND
+			_swamp_mat.roughness = 1.0
+			_swamp_mat.emission_enabled = false
 	return _swamp_mat
+
+
+# Вид места вокруг поля (BattleLogic.arena_biome): "bog", "forest", "ash" или "deep"
+func _biome() -> String:
+	return BattleLogic.arena_biome(_arena)
+
+
+# Модель акта 2 по имени (assets/models/topi/<имя>.glb); null — если её ещё нет
+func _ash_scene(model_name: String) -> PackedScene:
+	if _ash_scenes.has(model_name):
+		return _ash_scenes[model_name]
+	var path: String = DIR + model_name + ".glb"
+	var scene: PackedScene = load(path) as PackedScene if ResourceLoader.exists(path) else null
+	_ash_scenes[model_name] = scene
+	return scene
+
+
+# Россыпь вокруг арены акта 2: по виду места (Тракт, пещера, лаборатория, грибная пещера)
+func _ash_scatter() -> Array:
+	var key: String = "fungus" if _arena == "fungus" else ("lab" if LAB_ARENAS.has(_arena) else _biome())
+	var result: Array = []
+	for entry: Array in ASH_SCATTER.get(key, ASH_SCATTER["ash"]):
+		var name: String = entry[0]
+		var scene: PackedScene = D_EMBERS if name == "decor_embers" else _ash_scene(name)
+		if scene != null:
+			result.append([scene, entry[1]])
+	return result
 
 
 func _refresh_puddles_around(cell: Vector2i) -> void:
@@ -1246,6 +1357,21 @@ func _refresh_puddle_links(cell: Vector2i) -> void:
 func _make_object(kind: int, cell: Vector2i) -> Node3D:
 	var hash_value: int = posmod(cell.x * 37 + cell.y * 91, 360)
 	var root: Node3D = null
+	# Акт 2: та же механика, другой вид (масло, жаровня, сфера, гриб, гейзер, обугленный ствол, стена)
+	var skin_name: String = (ASH_SKINS.get(_arena, {}) as Dictionary).get(kind, "")
+	if skin_name == "obj_tree_charred":
+		skin_name += "_a" if hash_value % 2 == 0 else "_b"
+	var skin: PackedScene = _ash_scene(skin_name) if skin_name != "" else null
+	if skin != null:
+		root = skin.instantiate()
+		root.rotation.y = deg_to_rad(float(hash_value))
+		if skin_name == "obj_brazier" or skin_name == "obj_sphere_fire" or skin_name == "obj_oil_barrel":
+			_add_light(root, Vector3(0.0, 0.8, 0.0), COLOR_EMBER_LIGHT, 0.8 if skin_name != "obj_oil_barrel" else 0.0, 2.6)
+		elif skin_name == "obj_sphere_water":
+			_add_light(root, Vector3(0.0, 0.9, 0.0), Color(0.5, 0.75, 1.0), 0.7, 2.4)
+		elif skin_name == "obj_puffball":
+			_add_light(root, Vector3(0.0, 0.5, 0.0), COLOR_GAS_LIGHT, 0.6, 2.2)
+		return root
 	match kind:
 		BattleLogic.Obj.BOG:
 			root = OBJ_BOG.instantiate()

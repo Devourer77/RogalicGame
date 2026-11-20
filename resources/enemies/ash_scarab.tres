@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/ash_scarab.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Укус"
+shape = 0
+attack_range = 1
+damage = 3
+
+[sub_resource type="Resource" id="atk_1"]
+script = ExtResource("2_attack")
+title = "Выдох"
+shape = 4
+attack_range = 1
+damage = 1
+gas_cloud = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "ash_scarab"
+title = "Зольный Скарабей"
+description = "Мокрый, как трясина, из которой вылез. Дышит тем, что в ней гниёт."
+max_hp = 8
+move_range = 3
+damage = 3
+attack = 0
+attack_range = 1
+color = Color(0.22, 0.24, 0.24, 1)
+size = 1.0
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1")])
+always_wet = true

@@ -1,0 +1,50 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/ash_serpent.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_0"]
+script = ExtResource("2_attack")
+title = "Удушье"
+shape = 0
+attack_range = 1
+damage = 4
+entangle = 1
+
+[sub_resource type="Resource" id="atk_1"]
+script = ExtResource("2_attack")
+title = "Хлёст хвостом"
+anim = "Attack2"
+shape = 2
+attack_range = 1
+damage = 5
+push = 2
+
+[sub_resource type="Resource" id="atk_2"]
+script = ExtResource("2_attack")
+title = "Пепельный выдох"
+anim = "Attack3"
+shape = 1
+attack_range = 3
+damage = 3
+gas_cloud = true
+
+[resource]
+script = ExtResource("1_enemy")
+id = "ash_serpent"
+title = "Пепельная змея"
+description = "Она спит в пепле у дороги. Ты наступил ей на хвост."
+max_hp = 38
+move_range = 3
+damage = 4
+attack = 0
+attack_range = 1
+color = Color(0.17, 0.17, 0.18, 1)
+size = 1.15
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1"), SubResource("atk_2")])
+turn_block = 2
+bog_damage = 6
+is_elite = true
+ai_style = 1

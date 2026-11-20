@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_vulture.tres" id="2_ash_vulture"]
+[ext_resource type="Resource" path="res://resources/enemies/slag_golem.tres" id="3_slag_golem"]
+[ext_resource type="Resource" path="res://resources/enemies/ash_moth.tres" id="4_ash_moth"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "tr_vultures"
+title = "Падальщики"
+core = Array[ExtResource("1_enemy")]([ExtResource("2_ash_vulture"), ExtResource("2_ash_vulture"), ExtResource("3_slag_golem")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("2_ash_vulture"), ExtResource("4_ash_moth")])
+min_row = 2
+max_row = 5
+formation = 4
+branch = 1
