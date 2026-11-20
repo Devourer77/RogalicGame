@@ -19,4 +19,5 @@ size = 1.0
 model = ExtResource("9_model")
 attack_title = "Разряд"
 first_only = true
+death_element = 4
 keep_distance = 3

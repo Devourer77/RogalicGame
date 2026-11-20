@@ -70,6 +70,13 @@ enum AiStyle { NORMAL, HUNTER, GUARD, AMBUSH }
 @export var tactician: bool = false   # Хранители Рощи — люди, а не звери: укрытия, не толпятся, связки ударов, берегут своих
 @export var death_tree: bool = false  # Саженец: погибая, пускает корни — на клетке вырастает живое дерево
 @export var water_weak: bool = false  # «Боится воды» (Жаровик): мокрый — без брони, вода и пар ранят вдвое
+# Что остаётся после гибели (утонувший в трясине — ничего). DEFAULT: у взрывающегося при смерти — лужа (жаба).
+enum Remains { DEFAULT, NOTHING, PUDDLE, FIRE, STONE }
+@export var remains: Remains = Remains.DEFAULT   # FIRE — клетка и взрыв загораются; STONE — клетка становится камнем-преградой (на лаве — корка)
+@export var death_element: CardData.Element = CardData.Element.NONE   # сфера бьётся: стихия выплёскивается на 6 соседних клеток
+@export var death_wind: bool = false            # сфера ветра бьётся: всех соседей отбрасывает на 1
+@export var death_summon: EnemyData = null      # погибая, выпускает этого врага на соседнюю клетку (огненная сфера — Искру)
+@export var fire_trail: bool = false            # Головёшка: клетка, с которой ушла, загорается
 
 var _basic: EnemyAttackData   # удар простого врага, собранный из полей выше
 

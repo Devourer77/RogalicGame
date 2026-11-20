@@ -33,5 +33,6 @@ color = Color(0.4, 0.36, 0.32, 1)
 size = 1.0
 model = ExtResource("9_model")
 cycle = Array[ExtResource("2_attack")]([SubResource("atk_0"), SubResource("atk_1")])
+remains = 3
 death_blast = 4
 cult = true

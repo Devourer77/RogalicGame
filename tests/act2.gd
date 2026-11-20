@@ -142,6 +142,49 @@ func _initialize() -> void:
 			b.end_turn()
 	check("Все отряды акта 2 встают на поле и ходят 3 раунда", battles_ok)
 
+	# --- Что остаётся после гибели ---
+	var rem := func(enemy_id: String) -> BattleLogic:
+		var r := RandomNumberGenerator.new()
+		r.seed = 3
+		var bl := BattleLogic.new()
+		bl.setup(12, 12, r, run.party, [load("res://resources/enemies/%s.tres" % enemy_id)] as Array[EnemyData], "gat")
+		bl.start()
+		var e: BattleUnit = bl.enemies[0]
+		var c := Vector2i(5, 4)
+		for d: Vector2i in [Vector2i.ZERO] + HexMath.DIRS:   # расчистить место вокруг
+			bl.rocks.erase(c + d)
+			bl.objects.erase(c + d)
+			bl.tiles.erase(c + d)
+		e.cell = c
+		bl._damage(e, 999)
+		return bl
+	var c0 := Vector2i(5, 4)
+	var hound: BattleLogic = rem.call("ash_hound")
+	check("Гончая взрывается без лужи", hound.tile_at(c0) != BattleLogic.Tile.WATER)
+	var porter: BattleLogic = rem.call("cult_porter")
+	var fires: int = 0
+	for d: Vector2i in HexMath.DIRS:
+		if porter.tile_at(c0 + d) == BattleLogic.Tile.FIRE:
+			fires += 1
+	check("Котёл Носильщика лопается огнём вокруг (%d клеток)" % fires, fires >= 5 and porter.tile_at(c0) == BattleLogic.Tile.FIRE)
+	var golem: BattleLogic = rem.call("slag_golem")
+	check("Шлаковый голем застывает глыбой", golem.rocks.has(c0))
+	var fw: BattleLogic = rem.call("sphere_walker_fire")
+	var sparks: int = fw.living_enemies().filter(func(u: BattleUnit) -> bool: return u.data.id == "spark").size()
+	check("Огненный сферник: огонь вокруг и Искра", sparks == 1)
+	var ww: BattleLogic = rem.call("sphere_walker_water")
+	var puddles: int = 0
+	for d: Vector2i in HexMath.DIRS:
+		if ww.tile_at(c0 + d) == BattleLogic.Tile.WATER:
+			puddles += 1
+	check("Водяной сферник: лужи вокруг", puddles >= 5)
+	var slug_data: EnemyData = load("res://resources/enemies/ember_slug.tres")
+	check("Головёшка оставляет огненный след", slug_data.fire_trail)
+	check("Грозовой сферник бьёт разрядом по лужам, ветряной — отбрасывает",
+			(load("res://resources/enemies/sphere_walker_storm.tres") as EnemyData).death_element == CardData.Element.LIGHTNING
+			and (load("res://resources/enemies/sphere_walker_wind.tres") as EnemyData).death_wind)
+	check("У жабы без нового флага — прежняя лужа", (load("res://resources/enemies/bloated_toad.tres") as EnemyData).remains == EnemyData.Remains.DEFAULT)
+
 	# --- Босс по ветке: свой у каждой или общий Сосуд ---
 	var shared_n: int = 0
 	var split_ok: bool = true

@@ -939,9 +939,16 @@ func burst(cell: Vector2i, color: Color, amount: int = 24, speed: float = 4.0, g
 
 # Неразрушимая преграда на клетке. Какая — зависит от арены:
 # в руинах колонны, на заставе ящики, в логове кости, в остальных местах валуны.
-func add_rock(cell: Vector2i) -> void:
+func add_rock(cell: Vector2i, model_name: String = "") -> void:
 	var options: Array = ARENA_ROCKS.get(_arena, [ROCK_BOULDER])
 	var scene: PackedScene = options[posmod(cell.x * 7 + cell.y * 13, options.size())]
+	if model_name != "":   # своя преграда (павший голем — куча шлака)
+		var own: PackedScene = _ash_scene(model_name)
+		if own != null:
+			var p: Node3D = own.instantiate()
+			p.position = grid_to_world(cell)
+			add_child(p)
+			return
 	if ASH_ROCKS.has(_arena):   # акт 2: своя преграда у каждой арены
 		var names: Array = ASH_ROCKS[_arena]
 		var ash: PackedScene = _ash_scene(names[posmod(cell.x * 7 + cell.y * 13, names.size())])

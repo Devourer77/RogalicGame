@@ -18,5 +18,6 @@ color = Color(0.44, 0.4, 0.38, 1)
 size = 1.0
 model = ExtResource("9_model")
 attack_title = "Ожог"
+fire_trail = true
 fire_walker = true
 water_weak = true

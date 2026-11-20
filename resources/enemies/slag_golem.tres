@@ -18,4 +18,5 @@ color = Color(0.2, 0.19, 0.19, 1)
 size = 1.0
 model = ExtResource("9_model")
 attack_title = "Удар кулаком"
+remains = 4
 fire_walker = true

@@ -28,6 +28,7 @@ signal unit_spawned(unit: BattleUnit)   # посреди боя появился
 signal objective_changed()              # цель боя обновилась (счётчик ритуала, прибывающая вода)
 # Подсказка для эффектов (только показ, на правила не влияет): "absorb" — шаман поглощает магию
 # героя other; "armor_burnt" — у корягача сгорела броня; "bequest" — unit принял венец от павшего other
+signal rock_added(cell: Vector2i)   # посреди боя появилась неразрушимая преграда (павший шлаковый голем)
 signal fx_hint(kind: String, unit: BattleUnit, other: BattleUnit)
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
@@ -3782,6 +3783,7 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		_death_blast(unit)
 		_pass_crown(unit)
 		_root_on_death(unit)
+		_remains_on_death(unit)
 		_mod_on_death(unit, true)
 	elif unit.data != null and unit.data.inflation and _cur_attack and _cur_card != null \
 			and _cur_card.special != "harpoon":
@@ -3800,6 +3802,76 @@ func _ambush_bonus(e: BattleUnit) -> int:
 	if e.data == null or e.data.ambush <= 0 or not is_cover(object_at(e.cell)):
 		return 0
 	return e.data.ambush
+
+
+# Что остаётся после гибели, кроме взрыва (EnemyData): камень, огонь на клетке, выплеск стихии сферы,
+# порыв ветра, выпущенная Искра. Утонувший (_kill) сюда не попадает.
+func _remains_on_death(unit: BattleUnit) -> void:
+	var d: EnemyData = unit.data
+	if d == null:
+		return
+	var c: Vector2i = unit.cell
+	if d.remains == EnemyData.Remains.STONE and is_inside(c):
+		if object_at(c) == Obj.LAVA:
+			_cool_lava(c)   # голем в лаве: лава застывает коркой
+		elif object_at(c) == Obj.NONE and not rocks.has(c):
+			_set_tile(c, Tile.NONE)
+			rocks[c] = true
+			rock_added.emit(c)
+			message.emit("%s застывает глыбой" % unit.title)
+	elif d.remains == EnemyData.Remains.FIRE and d.death_blast <= 0:
+		_apply_element(c, CardData.Element.FIRE, c, false)
+	var ring: Array[Vector2i] = []
+	for dir: Vector2i in HexMath.DIRS:
+		if is_inside(c + dir):
+			ring.append(c + dir)
+	if d.death_element != CardData.Element.NONE:
+		_sphere_burst(unit, d.death_element, ring)
+	if d.death_wind:
+		message.emit("Сфера %s лопается: порыв ветра!" % unit.title.to_lower())
+		effect_cells.emit(ring, "wind")
+		for dir: Vector2i in HexMath.DIRS:
+			var u: BattleUnit = unit_at(c + dir)
+			if u != null and u.is_alive():
+				_push(u, dir, 1)
+	if d.death_summon != null:
+		for t in ring:
+			if not is_blocked(t) and object_at(t) != Obj.BOG and object_at(t) != Obj.LAVA:
+				spawn_enemy(d.death_summon, t)
+				message.emit("Из разбитой сферы вырывается %s" % d.death_summon.title.to_lower())
+				break
+
+
+const SPHERE_SHOCK: int = 3   # разряд грозовой сферы по лужам рядом с ней
+
+
+# Сфера разбилась: огонь поджигает соседние клетки, вода разливает лужи, молния бьёт по соседним лужам
+# (и по всей воде, связанной с ними) — всех, кто в ней стоит
+func _sphere_burst(unit: BattleUnit, element: CardData.Element, ring: Array[Vector2i]) -> void:
+	match element:
+		CardData.Element.FIRE:
+			message.emit("Сфера %s лопается: огонь вокруг!" % unit.title.to_lower())
+			effect_cells.emit(ring, "explosion")
+			for t in ring:
+				_apply_element(t, CardData.Element.FIRE, unit.cell, false)
+		CardData.Element.WATER:
+			message.emit("Сфера %s лопается: вода разливается" % unit.title.to_lower())
+			for t in ring:
+				_apply_element(t, CardData.Element.WATER, unit.cell, false)
+		CardData.Element.LIGHTNING:
+			var wet: Array[Vector2i] = []
+			for t in ring:
+				if tile_at(t) == Tile.WATER:
+					wet.append(t)
+			if wet.is_empty():
+				return
+			var body: Array[Vector2i] = _spread_through_water(wet)
+			message.emit("Сфера %s лопается: разряд по лужам!" % unit.title.to_lower())
+			effect_cells.emit(body, "lightning")
+			for t in body:
+				var u: BattleUnit = unit_at(t)
+				if u != null and u.is_alive() and u != unit:
+					_damage(u, SPHERE_SHOCK)
 
 
 # Саженец: погибая, пускает корни — на его клетке вырастает живое дерево (преграда, горит)
@@ -3852,8 +3924,14 @@ func _death_blast(unit: BattleUnit) -> void:
 	for t in cells:
 		if _is_breakable(t):
 			_hit_object(t, unit.cell)
-	if object_at(unit.cell) == Obj.NONE:
-		_apply_element(unit.cell, CardData.Element.WATER, unit.cell)
+	match unit.data.remains:
+		EnemyData.Remains.DEFAULT, EnemyData.Remains.PUDDLE:
+			if object_at(unit.cell) == Obj.NONE:
+				_apply_element(unit.cell, CardData.Element.WATER, unit.cell)   # жаба: на её клетке лужа
+		EnemyData.Remains.FIRE:   # котёл, бутыли масла: взрыв поджигает клетку и всё вокруг
+			message.emit("Огонь разлетается вокруг")
+			for t in [unit.cell] + cells:
+				_apply_element(t, CardData.Element.FIRE, unit.cell, false)
 
 
 # Взрыв раздутой жабы: 12 урона и яд всем вокруг; при 2+ стаках — в два кольца (18 клеток)
@@ -4814,6 +4892,8 @@ func _enemies_act() -> bool:
 			continue
 		if e.cell != start and e.data.wet_trail:
 			_leave_puddle(start)
+		if e.cell != start and e.data.fire_trail and object_at(start) == Obj.NONE and unit_at(start) == null:
+			_apply_element(start, CardData.Element.FIRE, start, false)   # Головёшка: позади горит
 		if tangled_before and e.entangled > 0:
 			e.entangled -= 1
 			status_changed.emit(e, snapshot(e))

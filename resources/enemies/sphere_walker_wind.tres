@@ -20,3 +20,4 @@ model = ExtResource("9_model")
 attack_title = "Порыв"
 push = 2
 first_only = true
+death_wind = true

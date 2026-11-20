@@ -346,6 +346,7 @@ func _connect_logic() -> void:
 	logic.status_changed.connect(_on_status_changed)
 	logic.tile_changed.connect(_on_tile_changed)
 	logic.object_changed.connect(_on_object_changed)
+	logic.rock_added.connect(func(c: Vector2i) -> void: _queue(func() -> void: board.add_rock(c, "rock_slag")))
 	logic.object_moved.connect(_on_object_moved)
 	logic.effect_cells.connect(_on_effect_cells)
 	logic.reaction.connect(_on_reaction)
@@ -610,6 +611,10 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 		color = COLOR_GAS
 	elif kind == "steam_vent":
 		color = COLOR_STEAM
+	elif kind == "lightning":
+		color = Color(0.95, 0.92, 0.55)
+	elif kind == "wind":
+		color = Color(0.75, 0.88, 0.78)
 	# Цифры урона над задетыми теперь показывает сам урон (_on_unit_damaged → VfxPlayer)
 	var world: Array[Vector3] = []
 	for c in cells:
