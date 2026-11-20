@@ -22,6 +22,7 @@ extends Resource
 @export var arenas_right: Array[String] = []         # арены правой ветки
 @export var boss_arena: String = ""                  # арена босса, если у его отряда нет своей
 @export var lair_spirits: Array[String] = []         # кто ждёт в логове этого акта (Run.SPIRIT_IDS)
+@export var bridge_point: Vector2 = Vector2.ZERO   # где на рисунке карты мост (доли ширины и высоты); 0 — тропа-переход по своей кривой
 
 @export var borrow_from: int = 0                     # чего нет — брать у этого акта (0 — ничего не брать)
 @export var enemy_hp_mult: float = 1.0               # во сколько раз крепче враги акта (пока он на чужих врагах)

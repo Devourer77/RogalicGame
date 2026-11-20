@@ -283,6 +283,10 @@ func _draw_trails() -> void:
 			var dirv: Vector2 = b - a
 			var perp: Vector2 = Vector2(-dirv.y, dirv.x).normalized()
 			var ctrl: Vector2 = (a + b) / 2.0 + perp * dirv.length() * bend
+			var bridge: Vector2 = Run.act_data().bridge_point
+			if bridge != Vector2.ZERO and target.branch != MapNode.COMMON and target.branch != n.branch:
+				# Переход между ветками идёт точно через мост на рисунке акта (середина кривой — в мосту)
+				ctrl = bridge * AREA_SIZE * 2.0 - (a + b) / 2.0
 			var length: float = dirv.length() * 1.1
 			var steps: int = maxi(3, int(length / STEP_DOT))
 			for i in range(1, steps):
