@@ -312,6 +312,7 @@ const EVENTS: Array[Dictionary] = [
 	# Секрет акта 2 (ветка Тракт): по своему шансу, раз за забег (см. _pick_event)
 	{
 		"title": "Кипящий источник",
+		"art": "boiling_spring",
 		"id": "spring",
 		"text": "Среди пепла бьёт ключ — вода в нём кипит, хотя огня рядом нет. Пар поднимается столбом и вдруг складывается в широкие плечи и тяжёлую голову. Над водой гудит, как в котле, у которого заклинило крышку. Ошпаренные крабы пятятся от края.",
 		"options": [
@@ -323,6 +324,7 @@ const EVENTS: Array[Dictionary] = [
 	# «branch»: "tract" — левая ветка (Тракт), "deep" — правая (Подземье); без ветки — обе. Акт 3 их тоже берёт.
 	{
 		"title": "Застава мародёров",
+		"art": "marauder_toll",
 		"branch": "tract",
 		"text": "Поперёк тракта — перевёрнутая телега и мешки с песком. Из-за них поднимается человек с самострелом. «Дорога платная. Платите — проходите. Не платите — оставляете всё».",
 		"options": [
@@ -336,6 +338,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Сгоревший обоз",
+		"art": "burnt_convoy",
 		"branch": "tract",
 		"text": "Десяток повозок стоит, как стоял, — только от них остались чёрные рёбра. Пепел ещё тёплый. Под днищем головной телеги поблёскивает окованный сундук казначея.",
 		"options": [
@@ -349,6 +352,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Тёплые ключи",
+		"art": "warm_springs",
 		"branch": "tract",
 		"text": "Между камнями парят мелкие озерца. Вода тёплая, пахнет серой, на дне шевелятся тени — то ли водоросли, то ли что-то с щупальцами. После пепла и жара она манит.",
 		"options": [
@@ -362,6 +366,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Беглецы с тракта",
+		"art": "refugees",
 		"branch": "tract",
 		"text": "У придорожного камня жмутся трое: старик, женщина и мальчишка с узлом. Их обоз сгорел, лошадей увели мародёры. «Мы не просим многого. Хотя бы дорогу назад».",
 		"options": [
@@ -374,6 +379,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Журнал лаборатории",
+		"art": "lab_journal",
 		"branch": "deep",
 		"text": "В пустом зале — стол, заваленный бумагами, и кресло с ремнями. Под стеклом — толстый журнал в кожаном переплёте. Последняя запись обрывается на полуслове: «Сфера номер девять не держит. Если вы это читаете —».",
 		"options": [
@@ -386,6 +392,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Треснувшая сфера",
+		"art": "cracked_sphere",
 		"branch": "deep",
 		"min_row": 1,
 		"text": "В нише стоит сфера в железной клетке. Стекло треснуло, изнутри бьётся вода — живая, с двумя бирюзовыми огоньками. Дух почти вырвался. Рядом дремлет сферник-сторож.",
@@ -399,6 +406,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Чёрное озеро",
+		"art": "black_lake",
 		"branch": "deep",
 		"text": "Подземное озеро гладкое, как стекло. На дне, в двух саженях, что-то отсвечивает медью. Слепые рыбы кружат у берега и не боятся света.",
 		"options": [
@@ -412,6 +420,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Мастерская технарей",
+		"art": "workshop",
 		"branch": "deep",
 		"text": "Станок ещё крутится: паровой привод стучит, ремень шлёпает по колесу. На верстаке — заготовки, ключи, пустые кожухи сферников. Никого. Только Ремонтник в углу чинит сам себя.",
 		"options": [
@@ -424,6 +433,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Старатель Венца",
+		"art": "prospector",
 		"act": 2,
 		"text": "Культист в пыльной рясе тащит за спиной сферу с огненным духом. Увидев вас, он не бежит: садится на камень и вытирает лоб. «Я только носильщик. Хотите — купите у меня. Хотите — отнимите. Мне всё равно, сфера тяжёлая».",
 		"options": [
@@ -436,6 +446,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Пепельный дождь",
+		"art": "ash_rain",
 		"act": 2,
 		"text": "Небо темнеет, и с него начинает сыпаться серый пепел. Сначала редкий, потом всё гуще. Дышать трудно, дорогу засыпает на глазах. Рядом — пустой каменный навес.",
 		"options": [
@@ -447,6 +458,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Алтарь у жерла",
+		"art": "crater_altar",
 		"act": 2,
 		"min_row": 3,
 		"text": "На чёрной скале — алтарь из костей и шлака. На нём лежит венец, точь-в-точь как над головами культистов, только больше. Земля под ним дрожит в такт с вулканом.",
@@ -460,6 +472,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 	{
 		"title": "Мародёр-торговец",
+		"art": "marauder_trader",
 		"act": 2,
 		"text": "У костра — тощий человек в латаном плаще, рядом мешок с добычей. «Не стреляйте, я торгую. Мечи, свитки, снадобья — всё честно снято с мёртвых. Ну, почти честно».",
 		"options": [
@@ -497,9 +510,13 @@ var relic_offer: Array[RelicData] = [] # реликвии на выбор, ко�
 func _ready() -> void:
 	_column = UiKit.make_screen(self)
 	var event: Dictionary = _pick_event()
-	var sign: TextureRect = UiKit.icon_rect("event", 56, Color(0.62, 0.62, 1.0))
-	sign.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_column.add_child(sign)
+	var art: Texture2D = event_art(event)
+	if art != null:
+		_add_picture(art)   # рисунок события слева, текст и выборы справа
+	else:
+		var sign: TextureRect = UiKit.icon_rect("event", 56, Color(0.62, 0.62, 1.0))
+		sign.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		_column.add_child(sign)
 	_title = event["title"]
 	_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
 	_column.add_child(_story(event["text"]))
@@ -512,6 +529,39 @@ func _ready() -> void:
 			b.disabled = true
 			b.tooltip_text = why
 		_column.add_child(b)
+
+
+const ART_DIR: String = "res://assets/textures/events/"
+const ART_SIZE: float = 440.0   # сторона рисунка события на экране
+
+
+# Рисунок события («art» — имя файла в assets/textures/events/ без .jpg); нет рисунка — null
+static func event_art(e: Dictionary) -> Texture2D:
+	var path: String = ART_DIR + String(e.get("art", "")) + ".jpg"
+	if not e.has("art") or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
+
+
+# Рисунок в латунной рамке слева от колонки с текстом: колонку переносим в ряд рядом с картинкой
+func _add_picture(art: Texture2D) -> void:
+	var center: Node = _column.get_parent()
+	center.remove_child(_column)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 36)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_child(row)
+	var frame: PanelContainer = UiKit.make_panel(UiKit.PANEL, UiKit.BRASS.darkened(0.25), 3)
+	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var pic := TextureRect.new()
+	pic.texture = art
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	pic.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
+	frame.add_child(pic)
+	row.add_child(frame)
+	row.add_child(_column)
+	_column.custom_minimum_size.x = 720
 
 
 # Случайное событие. Секретная расщелина — по своему шансу; «Тайник» — только если остались закрытые
