@@ -487,7 +487,7 @@ const EVENTS: Array[Dictionary] = [
 	},
 ]
 
-const CARD_SCALE: float = 0.72   # карты-награды на экране итога
+const CARD_SCALE: float = 0.8   # карты-награды на экране итога
 const NAMES: Dictionary = {   # как называть героя: кто / кому / кого
 	"knight": ["Рыцарь", "Рыцарю", "Рыцаря"],
 	"mage": ["Маг", "Магу", "Мага"],
@@ -508,60 +508,362 @@ var relic_offer: Array[RelicData] = [] # реликвии на выбор, ко�
 
 
 func _ready() -> void:
-	_column = UiKit.make_screen(self)
 	var event: Dictionary = _pick_event()
-	var art: Texture2D = event_art(event)
-	if art != null:
-		_add_picture(art)   # рисунок события слева, текст и выборы справа
-	else:
-		var sign: TextureRect = UiKit.icon_rect("event", 56, Color(0.62, 0.62, 1.0))
-		sign.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		_column.add_child(sign)
 	_title = event["title"]
-	_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+	_build_book(event_art(event))
+	_page_header()
 	_column.add_child(_story(event["text"]))
-	_column.add_child(UiKit.party_bar())
 	for option: Dictionary in event["options"]:
-		var b: Button = UiKit.make_button(option_label(option), _choose.bind(option))
-		b.custom_minimum_size.x = 640
-		var why: String = blocked_reason(option)
-		if why != "":
-			b.disabled = true
-			b.tooltip_text = why
-		_column.add_child(b)
+		_column.add_child(_choice_plaque(option))
+
+
+# ---------- Вид: раскрытая книга (макет Gemini, 21 ноября) ----------
+# Слева — рисунок события в раме из тёмного дерева и латуни, справа — страница: название, текст, плашки выбора.
+# Внизу — полоса отряда на коже. Пергамент и кожа — assets/textures/ui/ (скрипт src/build_book.py).
+const INK := Color(0.2, 0.14, 0.09)            # чернила на пергаменте
+const INK_ACCENT := Color(0.36, 0.24, 0.1)     # строки «что получили» — темнее латуни
+const TITLE_INK := Color(0.32, 0.21, 0.1)      # заголовок страницы
+const WOOD := Color(0.2, 0.14, 0.09)           # плашки и рама — тёмное дерево
+const BRASS_EDGE := Color(0.62, 0.47, 0.24)    # латунная кромка
+const BRASS_HOT := Color(0.95, 0.76, 0.4)      # кромка под курсором
+const PLAQUE_TEXT := Color(0.93, 0.86, 0.72)   # надпись на плашке
+const PAGE_SIZE := Vector2(550, 590)
+const PAGE_TEXT_WIDTH: float = 450.0
+const PARCHMENT: Texture2D = preload("res://assets/textures/ui/parchment.jpg")
+const LEATHER: Texture2D = preload("res://assets/textures/ui/leather.jpg")
+var _party_holder: Control
+
+
+# Книга: кожаный фон, две страницы, полоса отряда внизу. _column — колонка правой страницы.
+func _build_book(art: Texture2D) -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var bg := TextureRect.new()
+	bg.texture = LEATHER
+	bg.stretch_mode = TextureRect.STRETCH_TILE
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.modulate = Color(0.55, 0.55, 0.55)   # стол тёмный, книга светлее
+	add_child(bg)
+	var outer := VBoxContainer.new()
+	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	outer.add_theme_constant_override("separation", 0)
+	add_child(outer)
+	var center := CenterContainer.new()
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	outer.add_child(center)
+	# Обложка: тёмная кожа с латунной кромкой, на ней две страницы
+	var cover := PanelContainer.new()
+	cover.add_theme_stylebox_override("panel", _cover_style())
+	center.add_child(cover)
+	var spread := HBoxContainer.new()
+	spread.add_theme_constant_override("separation", 6)   # корешок
+	cover.add_child(spread)
+	var left: PanelContainer = _page()
+	spread.add_child(left)
+	var lc := CenterContainer.new()
+	left.add_child(lc)
+	lc.add_child(_art_frame(art))
+	var right: PanelContainer = _page()
+	spread.add_child(right)
+	var margin := MarginContainer.new()
+	for side in ["left", "right"]:
+		margin.add_theme_constant_override("margin_" + side, 42)
+	margin.add_theme_constant_override("margin_top", 30)
+	margin.add_theme_constant_override("margin_bottom", 26)
+	right.add_child(margin)
+	_column = VBoxContainer.new()
+	_column.add_theme_constant_override("separation", 11)
+	margin.add_child(_column)
+	# Полоса отряда
+	var strip := PanelContainer.new()
+	var ss := StyleBoxFlat.new()   # тёмная кожа с латунной нитью по верху
+	ss.bg_color = Color(0.1, 0.07, 0.05, 0.92)
+	ss.border_color = BRASS_EDGE.darkened(0.2)
+	ss.border_width_top = 2
+	ss.content_margin_top = 8
+	ss.content_margin_bottom = 8
+	strip.add_theme_stylebox_override("panel", ss)
+	outer.add_child(strip)
+	_party_holder = CenterContainer.new()
+	strip.add_child(_party_holder)
+	_refresh_party()
+
+
+func _refresh_party() -> void:
+	if _party_holder == null:
+		return
+	UiKit.clear(_party_holder)
+	_party_holder.add_child(UiKit.party_bar())
+
+
+func _cover_style() -> StyleBoxFlat:
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color(0.13, 0.09, 0.065)
+	st.border_color = BRASS_EDGE.darkened(0.2)
+	st.set_border_width_all(3)
+	st.set_corner_radius_all(10)
+	st.set_content_margin_all(10)
+	st.shadow_color = Color(0, 0, 0, 0.6)
+	st.shadow_size = 24
+	return st
+
+
+# Страница: пергамент с тенью к корешку
+func _page() -> PanelContainer:
+	var page := PanelContainer.new()
+	var st := StyleBoxTexture.new()
+	st.texture = PARCHMENT
+	page.add_theme_stylebox_override("panel", st)
+	page.custom_minimum_size = PAGE_SIZE
+	return page
+
+
+# Рама рисунка: тёмное дерево, латунная кромка в два ряда. Нет рисунка — большой знак события.
+func _art_frame(art: Texture2D) -> Control:
+	var frame := PanelContainer.new()
+	var st := StyleBoxFlat.new()
+	st.bg_color = WOOD
+	st.border_color = BRASS_EDGE
+	st.set_border_width_all(5)
+	st.set_corner_radius_all(3)
+	st.set_content_margin_all(11)
+	st.shadow_color = Color(0, 0, 0, 0.45)
+	st.shadow_size = 10
+	st.shadow_offset = Vector2(4, 6)
+	frame.add_theme_stylebox_override("panel", st)
+	var inner := PanelContainer.new()
+	var ist := StyleBoxFlat.new()
+	ist.bg_color = Color(0.08, 0.06, 0.05)
+	ist.border_color = BRASS_EDGE.darkened(0.35)
+	ist.set_border_width_all(2)
+	ist.set_content_margin_all(2)
+	inner.add_theme_stylebox_override("panel", ist)
+	frame.add_child(inner)
+	if art != null:
+		var pic := TextureRect.new()
+		pic.texture = art
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		pic.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
+		inner.add_child(pic)
+	else:
+		var holder := CenterContainer.new()
+		holder.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
+		holder.add_child(UiKit.icon_rect("event", 130, BRASS_EDGE))
+		inner.add_child(holder)
+	return frame
+
+
+# Заголовок страницы с завитком-разделителем
+func _page_header() -> void:
+	var title: Label = UiKit.make_title(_title, 32, TITLE_INK)
+	title.add_theme_color_override("font_shadow_color", Color(1, 0.95, 0.8, 0.35))
+	title.add_theme_constant_override("shadow_offset_x", 0)
+	title.add_theme_constant_override("shadow_offset_y", 1)
+	_column.add_child(title)
+	var div := HBoxContainer.new()
+	div.alignment = BoxContainer.ALIGNMENT_CENTER
+	div.add_theme_constant_override("separation", 8)
+	for i in 3:
+		if i == 1:
+			div.add_child(UiKit.icon_rect("star", 11, TITLE_INK))
+			continue
+		var bar := ColorRect.new()
+		bar.color = Color(TITLE_INK, 0.6)
+		bar.custom_minimum_size = Vector2(90, 2)
+		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		div.add_child(bar)
+	_column.add_child(div)
+
+
+func _plaque_style(border: Color, width: int, glow: float) -> StyleBoxFlat:
+	var st := StyleBoxFlat.new()
+	st.bg_color = WOOD
+	st.border_color = border
+	st.set_border_width_all(width)
+	st.set_corner_radius_all(4)
+	st.content_margin_left = 16
+	st.content_margin_right = 12
+	st.content_margin_top = 6
+	st.content_margin_bottom = 6
+	if glow > 0.0:
+		st.shadow_color = Color(BRASS_HOT, glow)
+		st.shadow_size = 9
+	return st
+
+
+# Плашка выбора: название слева, цена и награда значками справа. small — скромная «Уйти».
+func _plaque(text: String, on_pressed: Callable, chips: Array, tip: String = "", small: bool = false) -> Button:
+	var b := Button.new()
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.add_theme_stylebox_override("normal", _plaque_style(BRASS_EDGE, 2, 0.0))
+	b.add_theme_stylebox_override("hover", _plaque_style(BRASS_HOT, 3, 0.35))
+	b.add_theme_stylebox_override("pressed", _plaque_style(BRASS_HOT, 3, 0.15))
+	b.add_theme_stylebox_override("disabled", _plaque_style(BRASS_EDGE.darkened(0.5), 2, 0.0))
+	# Длинное название и много значков не влезают в строку — значки уходят во вторую строку, справа
+	var chips_len: int = 0
+	for c: Control in chips:
+		chips_len += 3
+		for l in c.find_children("*", "Label", true, false):
+			chips_len += (l as Label).text.length()
+	var two_lines: bool = not small and text.length() + chips_len > 40
+	var width: float = maxf(190.0, text.length() * 10.0 + 70.0) if small else PAGE_TEXT_WIDTH
+	b.custom_minimum_size = Vector2(width, 38 if small else (68 if two_lines else 46))
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	b.tooltip_text = tip
+	Sfx.bind_button(b)
+	b.pressed.connect(on_pressed)
+	var row := HBoxContainer.new()
+	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 16
+	row.offset_right = -12
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(row)
+	var chip_row: HBoxContainer = row
+	if two_lines:
+		var lines := VBoxContainer.new()
+		lines.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		lines.offset_left = 16
+		lines.offset_right = -12
+		lines.offset_top = 5
+		lines.offset_bottom = -5
+		lines.add_theme_constant_override("separation", 0)
+		lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.remove_child(row)
+		b.add_child(lines)
+		row.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+		lines.add_child(row)
+		chip_row = HBoxContainer.new()
+		chip_row.alignment = BoxContainer.ALIGNMENT_END
+		chip_row.add_theme_constant_override("separation", 8)
+		chip_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lines.add_child(chip_row)
+	var name_label: Label = UiKit.make_label(text, 17 if small else 19, PLAQUE_TEXT)
+	name_label.add_theme_font_override("font", UiKit.font_title())
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL if not small else Control.SIZE_SHRINK_CENTER
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if small:
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(name_label)
+	for c: Control in chips:
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chip_row.add_child(c)
+	if small:
+		row.add_child(UiKit.make_label("→", 17, PLAQUE_TEXT))
+	return b
+
+
+# Главная кнопка страницы («Дальше», «В бой»): крупная латунная плашка
+func _main_button(text: String, on_pressed: Callable) -> Button:
+	var b: Button = _plaque(text, on_pressed, [], "", true)
+	b.custom_minimum_size = Vector2(230, 44)
+	b.add_theme_stylebox_override("normal", _plaque_style(BRASS_HOT, 3, 0.25))
+	return b
+
+
+# Плашка выбора события: значки цены и награды, нельзя нажать — тусклая с замком
+func _choice_plaque(option: Dictionary) -> Button:
+	var plain: bool = not option.has("action") and not option.has("chance") and option.get("effects", []).is_empty() \
+			and option.get("hint", "") == ""
+	var b: Button = _plaque(option["label"], _choose.bind(option), [] if plain else option_chips(option),
+			option_label(option), plain)
+	var why: String = blocked_reason(option)
+	if why != "":
+		b.disabled = true
+		b.tooltip_text = why
+		b.modulate = Color(1, 1, 1, 0.55)
+		var row: Node = b.get_child(0)
+		if row is VBoxContainer:
+			row = row.get_child(1)
+		row.add_child(UiKit.icon_rect("lock", 16, PLAQUE_TEXT))
+	return b
+
+
+# Значки «цена → награда» для плашки. Подсказка (hint) и шанс — коротким текстом.
+func option_chips(option: Dictionary) -> Array:
+	var chips: Array = []
+	var costs: Array = []
+	var gains: Array = []
+	for st: Dictionary in option.get("effects", []):
+		var c: Control = _step_chip(st)
+		if c == null:
+			continue
+		if int(st.get("hp", 0)) < 0 or int(st.get("gold", 0)) < 0:
+			costs.append(c)
+		else:
+			gains.append(c)
+	if option.has("chance"):
+		gains.append(_chip("help", "%d%%" % roundi(float(option["chance"]) * 100.0), PLAQUE_TEXT))
+	if option.get("hint", "") != "" and gains.is_empty():
+		gains.append(_chip("", option["hint"], PLAQUE_TEXT.darkened(0.15), 12))
+	chips.append_array(costs)
+	if not costs.is_empty() and not gains.is_empty():
+		chips.append(_chip("", "→", PLAQUE_TEXT.darkened(0.2), 16))
+	chips.append_array(gains)
+	return chips
+
+
+func _chip(icon_name: String, text: String, color: Color, size: int = 14) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	if icon_name != "":
+		row.add_child(UiKit.icon_rect(icon_name, 17, color))
+	if text != "":
+		var l: Label = UiKit.make_label(text, size, color, true)
+		l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(l)
+	return row
+
+
+# Один шаг значком (полное описание — во всплывающей подсказке плашки)
+func _step_chip(st: Dictionary) -> Control:
+	var who: String = String(st.get("who", ""))
+	var whom: String = "" if who == "" or who == "all" or who == "random" else NAMES[who][1]
+	if st.has("gold"):
+		var g: int = int(st["gold"])
+		return _chip("coin", ("+%d" % g) if g > 0 else ("−%d" % -g), UiKit.GOLD)
+	if st.has("hp"):
+		var n: int = int(st["hp"])
+		var t: String = ("+%d" % n) if n > 0 else ("−%d" % -n)
+		return _chip("heart", "%s %s" % [t, whom if whom != "" else ("всем" if who == "all" else "")], UiKit.HP if n > 0 else PLAQUE_TEXT)
+	if st.has("heal_pct"):
+		return _chip("heart", "+%d%%" % int(st["heal_pct"]), UiKit.HP)
+	if st.has("card"):
+		var to: String = "?" if st["card"] == "random" else NAMES[st["card"]][1]
+		return _chip("star" if st.get("rare", false) else "deck", to, UiKit.ECHO if st.get("rare", false) else PLAQUE_TEXT)
+	if st.has("remove"):
+		return _chip("discard", NAMES[st["remove"]][1] if st["remove"] != "random" else "", PLAQUE_TEXT)
+	if st.has("upgrade"):
+		return _chip("hammer", NAMES[st["upgrade"]][1], UiKit.BRASS)
+	if st.has("echoes"):
+		return _chip("echo", "+%d" % int(st["echoes"]), UiKit.ECHO)
+	if st.has("relic") or st.has("relic_pick"):
+		return _chip("relic", "выбор" if st.has("relic_pick") else "", UiKit.BRASS)
+	if st.has("wound"):
+		return _chip("wound", NAMES[st["wound"]][1], PLAQUE_TEXT)
+	if st.has("fog"):
+		return _chip("zoom", "+%d" % int(st["fog"]), PLAQUE_TEXT)
+	if st.has("fight"):
+		return _chip("swords", "бой", PLAQUE_TEXT)
+	if st.has("gold_after"):
+		return _chip("coin", "+%d" % int(st["gold_after"]), UiKit.GOLD)
+	var text: String = step_text(st)
+	return null if text == "" else _chip("", text, PLAQUE_TEXT, 12)
 
 
 const ART_DIR: String = "res://assets/textures/events/"
-const ART_SIZE: float = 440.0   # сторона рисунка события на экране
+const ART_FALLBACK: String = "res://assets/textures/map_cards/card_event.jpg"
+const ART_SIZE: float = 420.0   # сторона рисунка события на левой странице
 
 
 # Рисунок события («art» — имя файла в assets/textures/events/ без .jpg); нет рисунка — null
 static func event_art(e: Dictionary) -> Texture2D:
 	var path: String = ART_DIR + String(e.get("art", "")) + ".jpg"
 	if not e.has("art") or not ResourceLoader.exists(path):
-		return null
-	return load(path) as Texture2D
-
-
-# Рисунок в латунной рамке слева от колонки с текстом: колонку переносим в ряд рядом с картинкой
-func _add_picture(art: Texture2D) -> void:
-	var center: Node = _column.get_parent()
-	center.remove_child(_column)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 36)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	center.add_child(row)
-	var frame: PanelContainer = UiKit.make_panel(UiKit.PANEL, UiKit.BRASS.darkened(0.25), 3)
-	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var pic := TextureRect.new()
-	pic.texture = art
-	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	pic.custom_minimum_size = Vector2(ART_SIZE, ART_SIZE)
-	frame.add_child(pic)
-	row.add_child(frame)
-	row.add_child(_column)
-	_column.custom_minimum_size.x = 720
+		path = ART_FALLBACK   # своего рисунка нет — перекрёсток в тумане с карточки события на карте
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 
 # Случайное событие. Секретная расщелина — по своему шансу; «Тайник» — только если остались закрытые
@@ -784,12 +1086,10 @@ func _next_step() -> void:
 func _show_relic_pick(offer: Array[RelicData]) -> void:
 	relic_offer = offer
 	UiKit.clear(_column)
-	_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+	_page_header()
 	_column.add_child(_story("Выбери реликвию:"))
 	for r in offer:
-		var b: Button = UiKit.make_button("%s\n+ %s\n− %s" % [r.title, r.plus_text, r.minus_text], pick_relic.bind(r))
-		b.custom_minimum_size = Vector2(640, 86)
-		_column.add_child(b)
+		_column.add_child(_plaque(r.title, pick_relic.bind(r), [], "+ %s\n− %s" % [r.plus_text, r.minus_text]))
 
 
 func pick_relic(r: RelicData) -> void:
@@ -936,15 +1236,15 @@ func _special(action: String) -> void:
 		"cave_enter":
 			Sfx.play("magic", 0.05)
 			UiKit.clear(_column)
-			_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+			_page_header()
 			_column.add_child(_story("Чем глубже, тем суше воздух. Вода, что стекала по стенам, шипит и исчезает, не долетев до пола."))
-			_column.add_child(UiKit.make_button("В бой", Run.enter_cave, "", true))
+			_column.add_child(_main_button("В бой", Run.enter_cave))
 		"spring_enter":
 			Sfx.play("magic", 0.05)
 			UiKit.clear(_column)
-			_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+			_page_header()
 			_column.add_child(_story("Вода вскипает сильнее. Пар встаёт стеной, и из него на вас смотрят две бирюзовые искры."))
-			_column.add_child(UiKit.make_button("В бой", Run.enter_spring, "", true))
+			_column.add_child(_main_button("В бой", Run.enter_spring))
 
 
 static func _hero_static(hero_id: String) -> RunHero:
@@ -962,21 +1262,23 @@ func _hero(hero_id: String) -> RunHero:
 	return Run.random_hero()
 
 
-# Текст события в рамке
-func _story(text: String) -> PanelContainer:
-	var panel: PanelContainer = UiKit.make_panel(Color(UiKit.PANEL, 0.75), UiKit.LINE)
-	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	panel.add_child(UiKit.make_text(text, 19, UiKit.TEXT, 640))
-	return panel
+# Текст события — тёмные чернила прямо на пергаменте
+func _story(text: String) -> Label:
+	var label: Label = UiKit.make_text(text, 16, INK, PAGE_TEXT_WIDTH)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	label.add_theme_font_override("font", UiKit.font_bold())
+	return label
 
 
 # Экран итога: текст, что получили и чем заплатили, новые карты картинками, отряд, «Дальше»
 func _show_result(text: String) -> void:
 	UiKit.clear(_column)
-	_column.add_child(UiKit.make_title(_title, 38, UiKit.BRASS.lightened(0.25)))
+	_page_header()
 	_column.add_child(_story(text))
 	if not _lines.is_empty():
-		_column.add_child(UiKit.make_text("\n".join(_lines), 18, UiKit.BRASS.lightened(0.25), 640))
+		var got: Label = UiKit.make_text("\n".join(_lines), 15, INK_ACCENT, PAGE_TEXT_WIDTH)
+		got.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		_column.add_child(got)
 	if not _won_cards.is_empty():
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -991,5 +1293,5 @@ func _show_result(text: String) -> void:
 			holder.add_child(b)
 			row.add_child(holder)
 		_column.add_child(row)
-	_column.add_child(UiKit.party_bar())
-	_column.add_child(UiKit.make_button("Дальше", Run.goto.bind(Run.MAP_SCENE), "", true))
+	_refresh_party()
+	_column.add_child(_main_button("Дальше", Run.goto.bind(Run.MAP_SCENE)))
