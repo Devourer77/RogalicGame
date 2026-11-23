@@ -303,6 +303,10 @@ const HERO_ROWS: int = 3         # нижние ряды держим свобо
 # бывают отрицательные координаты, поэтому нужен значок, которого на поле точно нет.
 const NO_CELL: Vector2i = Vector2i(-9999, -9999)
 
+# Поля, которых нет в снимке save_state(): генератор (он общий с забегом — снимается
+# только его состояние) и контекст хода (снимается отдельно, в тот же объект).
+const STATE_SKIP: Array[String] = ["rng", "ctx"]
+
 var width: int = 12    # клеток в каждом ряду (ряды сдвинуты на пол-клетки, см. HexMath)
 var height: int = 12   # рядов
 var rng: RandomNumberGenerator   # общий генератор забега (из Run)
@@ -5670,50 +5674,49 @@ func _check_end() -> bool:
 
 # ---------- Прогноз хода врагов ----------
 
-# Копия боя: те же юниты, поле и огонь. Сигналы копии никуда не подключены,
-# поэтому на ней можно «проиграть» ход врагов, не трогая настоящий бой.
+# Полный снимок боя: все поля логики, состояние генератора, контекст хода и каждый юнит.
+# Юниты в снимке — те же объекты (их поля сняты отдельно), поэтому load_state()
+# возвращает бой на место, не создавая новых фигурок: сцена боя узнаёт своих по объекту.
+func save_state() -> Dictionary:
+	var state: Dictionary = StateCopy.capture(self, STATE_SKIP)
+	state["__rng"] = rng.state if rng != null else 0
+	state["__ctx"] = StateCopy.capture(ctx)
+	var units: Dictionary = {}
+	for u in heroes + enemies:
+		units[u] = StateCopy.capture(u)
+	state["__units"] = units
+	return state
+
+
+# Вернуть бой к снимку. Сигналы не шлются — сцена сама перерисует поле и фигурки.
+# Враг, появившийся после снимка, исчезает (его нет в списке enemies снимка), павший — оживает.
+func load_state(state: Dictionary) -> void:
+	StateCopy.apply(self, state)
+	if rng != null:
+		rng.state = state["__rng"]
+	StateCopy.apply(ctx, state["__ctx"])
+	var units: Dictionary = state["__units"]
+	for u: BattleUnit in units:
+		StateCopy.apply(u, units[u])
+
+
+# Копия боя: те же поля, но свои юниты и свой генератор. Сигналы копии никуда не подключены,
+# поэтому на ней можно «проиграть» ход врагов или карту, не трогая настоящий бой.
 func clone() -> BattleLogic:
+	var map: Dictionary = {}   # юнит боя -> его копия
+	for u in heroes + enemies:
+		map[u] = u.copy()
 	var c := BattleLogic.new()
-	c.width = width
-	c.height = height
+	# Все поля — одной копией, ссылки на юнитов (списки, «герой -> сбросы» и т. п.) — на копии
+	for n: StringName in StateCopy.names_of(self):
+		if not STATE_SKIP.has(n):
+			c.set(n, StateCopy.remap_refs(get(n), map))
+	for n: StringName in StateCopy.names_of(ctx):
+		c.ctx.set(n, StateCopy.remap_refs(ctx.get(n), map))
 	c.rng = RandomNumberGenerator.new()
-	c.rng.seed = rng.seed
-	c.rng.state = rng.state
-	c._mana_penalty = _mana_penalty.duplicate()
-	for h in heroes:
-		c.heroes.append(h.copy())
-	for e in enemies:
-		c.enemies.append(e.copy())
-	c.rocks = rocks.duplicate()
-	c.objects = objects.duplicate()
-	c.tiles = tiles.duplicate()
-	c.fire_timers = fire_timers.duplicate()
-	c.obj_timers = obj_timers.duplicate()
-	c.smoke_timers = smoke_timers.duplicate()
-	c.dry_lava = dry_lava.duplicate()
-	c.vessel_water_hits = vessel_water_hits
-	c.freed_spirit = freed_spirit
-	c.wind_dir = wind_dir
-	c.belts = belts.duplicate()
-	c.burst_turn = burst_turn
-	c.colossus_fast_kill = colossus_fast_kill
-	c.turn = turn
-	c.is_over = is_over
-	c.objective = objective
-	c.charms = charms.duplicate()
-	c._whetstone_spent = _whetstone_spent
-	c._flint_spent = _flint_spent.duplicate()
-	c.ritual_caster_id = ritual_caster_id
-	c.ritual_timer = ritual_timer
-	c.ritual_power = ritual_power
-	c.water_row = water_row
-	c.waves = waves.duplicate()
-	c.wave_extra = wave_extra
-	c.wave_leader_id = wave_leader_id
-	c.arena_id = arena_id
-	c.peat = peat.duplicate()
-	c._next_id = _next_id
-	c.ctx = ctx.copy()
+	if rng != null:
+		c.rng.seed = rng.seed
+		c.rng.state = rng.state
 	return c
 
 
@@ -6025,16 +6028,6 @@ func ghost_preview(h: BattleUnit, index: int, target: Vector2i) -> Dictionary:
 			sim_h = hero
 	if sim_h == null:
 		return result
-	sim_h.hand = h.hand.duplicate()
-	sim_h.discount = h.discount
-	for key: String in ctx.hex_moved:
-		sim.ctx.hex_moved[key] = ctx.hex_moved[key]
-	for key: String in ctx.straight_moved:
-		sim.ctx.straight_moved[key] = ctx.straight_moved[key]
-	for key: String in ctx.attack_cards:
-		sim.ctx.attack_cards[key] = ctx.attack_cards[key]
-	sim.ctx.last_card_owner = ctx.last_card_owner
-	sim._aether = _aether
 	var units_before: Array[BattleUnit] = heroes + enemies
 	var cells_before: Dictionary = {}
 	var hp_before: Dictionary = {}

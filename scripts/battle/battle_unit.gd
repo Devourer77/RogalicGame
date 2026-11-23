@@ -75,63 +75,9 @@ func is_alive() -> bool:
 	return hp > 0
 
 
-# Копия юнита для прогноза. Колоды не копируем — враги их не трогают.
+# Полная копия юнита (для копии боя: прогноз врагов, предпросмотр карты).
+# Поля берутся списком свойств (StateCopy) — новое поле скопируется само.
 func copy() -> BattleUnit:
 	var u := BattleUnit.new()
-	u.rust = rust
-	u.burst_done = burst_done
-	u.lost_attacks = lost_attacks.duplicate()
-	u.stunned = stunned
-	u.asleep = asleep
-	u.brand = brand
-	u.shell_hits = shell_hits
-	u.moved_cells = moved_cells
-	u.id = id
-	u.title = title
-	u.is_hero = is_hero
-	u.data = data
-	u.hp = hp
-	u.max_hp = max_hp
-	u.block = block
-	u.cell = cell
-	u.hero_data = hero_data
-	u.mana = mana
-	u.moves_left = moves_left
-	u.rage = rage
-	u.taunt = taunt
-	u.holding_line = holding_line
-	u.charge = charge
-	u.momentum = momentum
-	u.discount = discount
-	u.overloaded = overloaded
-	u.unstoppable = unstoppable
-	u.unstoppable_chain = unstoppable_chain
-	u.spirits = spirits.duplicate()
-	u.swamp_free = swamp_free
-	u.root_guard = root_guard
-	u.gust_guard = gust_guard
-	u.ember_guard = ember_guard
-	u.temper = temper
-	u.next_lightning = next_lightning
-	u.lightning_bonus = lightning_bonus
-	u.outpost = outpost
-	u.entangled = entangled
-	u.wet = wet
-	u.poison = poison
-	u.crown_power = crown_power
-	u.mod_on = mod_on
-	u.mod_used = mod_used
-	u.mod_stacks = mod_stacks
-	u.mod_step = mod_step
-	u.mod_step_next = mod_step_next
-	u.rune = rune
-	u.rune_hits = rune_hits
-	u.inflation = inflation
-	u.fuse = fuse
-	u.armor_burnt = armor_burnt
-	u.guarding = guarding
-	u.prism = prism
-	u.vulnerable = vulnerable
-	u.bonus_damage = bonus_damage
-	u.ai_reason = ai_reason
+	StateCopy.copy_fields(self, u)
 	return u
