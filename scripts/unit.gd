@@ -212,6 +212,12 @@ func set_status(info: Dictionary) -> void:
 		_plate_hidden = info.get("asleep", false)   # Спящая сфера прячется среди постаментов
 
 
+# Предпросмотр карты на плашке (см. UnitPlate.set_preview); пустой словарь — убрать
+func set_preview(preview: Dictionary) -> void:
+	if _plate != null:
+		_plate.set_preview(preview)
+
+
 func _process(_delta: float) -> void:
 	_update_plate()
 

@@ -11,13 +11,21 @@ const COLOR_FIRE_WARN := Color(1.0, 0.62, 0.2)   # оранжевый: крас�
 const COLOR_WET := Color(0.5, 0.78, 1.0)         # «Мокрый»: голубая капля
 const COLOR_POISON := Color(0.72, 0.92, 0.25)    # «Яд»: ядовитый жёлто-зелёный, как газ в бочках
 
+const PREVIEW_MARKS: Dictionary = {   # новое состояние -> [значок, цвет]
+	"wet": ["drop", COLOR_WET], "poison": ["poison", COLOR_POISON], "entangled": ["entangled", Color(0.9, 0.9, 0.85)],
+	"rust": ["drain", Color(0.9, 0.9, 0.85)], "stunned": ["bolt", Color(0.9, 0.9, 0.85)],
+	"brand": ["target", Color(0.9, 0.9, 0.85)],
+}
+
 var _info: Dictionary = {}
+var _preview: Dictionary = {}   # предпросмотр карты: что станет с юнитом (пусто — не показывать)
 
 
 func _init() -> void:
 	size = PLATE_SIZE
 	mouse_filter = Control.MOUSE_FILTER_IGNORE   # клики проходят сквозь плашку на поле
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	set_process(false)
 
 
 # info — словарь из Battle._plate_info():
@@ -28,6 +36,18 @@ func _init() -> void:
 func set_info(info: Dictionary) -> void:
 	_info = info
 	queue_redraw()
+
+
+# Предпросмотр карты (BattleLogic.preview_card, запись units[id]): hp_after, block, block_after,
+# killed, new — новые состояния. Пустой словарь — убрать. Пока показан, плашка мигает.
+func set_preview(preview: Dictionary) -> void:
+	_preview = preview
+	set_process(not preview.is_empty())
+	queue_redraw()
+
+
+func _process(_delta: float) -> void:
+	queue_redraw()   # мигание «призрачной» части полосы
 
 
 func _draw() -> void:
@@ -46,6 +66,26 @@ func _draw() -> void:
 	fill.size.x = BAR_RECT.size.x * clampf(float(hp) / max_hp, 0.0, 1.0)
 	draw_rect(fill, UiKit.HP if is_hero else UiKit.HP_ENEMY)
 	_text(font, str(hp), BAR_RECT.position + Vector2(0, 10.5), BAR_RECT.size.x, 11, Color.WHITE)
+	var pulse: float = 0.55 + 0.4 * sin(Time.get_ticks_msec() * 0.008)
+	if not _preview.is_empty():
+		# Сколько здоровья уйдёт: мигающая светлая часть полосы и число справа.
+		# Своим героям — оранжевым предупреждением (красный занят угрозой врагов).
+		var after: int = clampi(_preview["hp_after"], 0, max_hp)
+		var seg := BAR_RECT
+		if after < hp:
+			seg.position.x += BAR_RECT.size.x * float(after) / max_hp
+			seg.size.x = BAR_RECT.size.x * float(hp - after) / max_hp
+			draw_rect(seg, Color(1.0, 0.96, 0.85, 0.85 * pulse))
+		elif after > hp:
+			seg.position.x += BAR_RECT.size.x * float(hp) / max_hp
+			seg.size.x = BAR_RECT.size.x * float(after - hp) / max_hp
+			draw_rect(seg, Color(UiKit.HP, 0.85 * pulse))   # лечение
+		if after != hp:
+			var txt: String = ("-%d" % (hp - after)) if after < hp else ("+%d" % (after - hp))
+			var col: Color = (COLOR_FIRE_WARN if is_hero else Color(1.0, 0.95, 0.85)) if after < hp else UiKit.HP
+			_text(font, txt, Vector2(BAR_RECT.end.x + 4, BAR_RECT.position.y + 11), -1, 14, col, 4, HORIZONTAL_ALIGNMENT_LEFT)
+		if _preview.get("killed", false):
+			draw_rect(BAR_RECT.grow(3.5), Color(UiKit.BRASS, 0.6 + 0.4 * pulse), false, 2.0)   # падёт
 
 	# --- Блок: щиток слева на полосе, число внутри ---
 	var block: int = _info["block"]
@@ -54,6 +94,8 @@ func _draw() -> void:
 		draw_texture_rect(UiKit.icon("shield"), shield.grow(1.5), false, Color(0, 0, 0, 0.9))
 		draw_texture_rect(UiKit.icon("shield"), shield, false, UiKit.BLOCK)
 		_text(font, str(block), shield.position + Vector2(0, 14.5), shield.size.x, 11, Color(0.05, 0.08, 0.12), 0)
+		if not _preview.is_empty() and int(_preview.get("block_after", block)) < block:
+			draw_texture_rect(UiKit.icon("shield"), shield, false, Color(1, 1, 1, 0.7 * pulse))   # блок съедят
 
 	# --- Верхний ряд: намерение врага и значки состояний ---
 	var parts: Array[Array] = []   # [иконка, цвет, число-текст]
@@ -85,6 +127,12 @@ func _draw() -> void:
 			parts.append([mark, UiKit.TEXT_DIM, ""])   # характер врага — серый: бирюза занята усилениями
 		else:
 			parts.append([mark, UiKit.TEXT, ""])
+	# Предпросмотр: состояния, которые появятся от карты, — полупрозрачные и мигают
+	for key: String in _preview.get("new", []):
+		var add: Array = PREVIEW_MARKS.get(key, [])
+		if not add.is_empty():
+			var col: Color = add[1]
+			parts.append([add[0], Color(col, 0.35 + 0.45 * pulse), ""])
 	var width: float = 0.0
 	for part: Array in parts:
 		width += 17.0

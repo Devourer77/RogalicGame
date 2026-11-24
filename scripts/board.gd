@@ -755,6 +755,21 @@ func show_markers(layer: String, marks: Array[Dictionary]) -> void:
 	add_child(holder)
 	_layers[layer] = holder
 	for mark: Dictionary in marks:
+		if mark.has("text"):
+			# Надпись над клеткой (номер звена цепочки в предпросмотре карты)
+			var label := Label3D.new()
+			label.text = mark["text"]
+			label.font = UiKit.font_bold()
+			label.font_size = 96
+			label.pixel_size = 0.007
+			label.outline_size = 20
+			label.outline_modulate = Color(0, 0, 0, 0.9)
+			label.modulate = mark.get("color", Color.WHITE)
+			label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			label.no_depth_test = true
+			label.position = grid_to_world(mark["cell"]) + Vector3(0.0, 0.6, 0.0)
+			holder.add_child(label)
+			continue
 		var tex: Texture2D = UiKit.icon(mark["icon"])
 		var sprite := Sprite3D.new()
 		sprite.texture = tex

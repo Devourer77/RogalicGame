@@ -951,29 +951,182 @@ func _on_hover(cell: Vector2i) -> void:
 	_show_hovered_enemy_threat(cell)
 	if _mode == Mode.AIMING and logic.get_card_targets(_active, _selected_card).has(cell):
 		board.show_cells("area", logic.get_card_area(_active, _selected_card, cell), COLOR_AREA)
-		# «Призрак»: куда встанут юниты и кто погибнет, если сыграть карту сюда
-		var ghost: Dictionary = logic.ghost_preview(_active, _selected_card, cell)
-		var landing: Array[Vector2i] = []
-		for mv: Dictionary in ghost["moves"]:
-			landing.append(mv["to"])
-		board.show_cells("ghost_move", landing, COLOR_GHOST_MOVE)
-		board.show_cells("ghost_kill", ghost["deaths"], COLOR_GHOST_KILL)
-		# Реакции стихий, которые сработают от этой карты, — подсвечены своим цветом
-		var by_kind: Dictionary = {}
-		for k: String in REACTION_KINDS:
-			by_kind[k] = [] as Array[Vector2i]
-		for r: Dictionary in logic.predict_reactions(_active, _selected_card, cell):
-			by_kind[r["kind"]].append(r["cell"])
-		var colors: Dictionary = {"steam": COLOR_STEAM, "freeze": COLOR_FREEZE, "shatter": COLOR_SHATTER,
-				"lava": COLOR_LAVA, "crust": COLOR_CRUST, "shock": COLOR_SHOCK, "pincer": COLOR_PINCER}
-		for k: String in REACTION_KINDS:
-			board.show_cells("reaction_" + k, by_kind[k], colors[k])
+		_show_card_preview(cell)
 	else:
 		board.clear_layer("area")
-		board.clear_layer("ghost_move")
-		board.clear_layer("ghost_kill")
-		for k: String in REACTION_KINDS:
-			board.clear_layer("reaction_" + k)
+		_clear_preview()
+
+
+# ---------- Точный предпросмотр карты ----------
+# Карта «проигрывается» на копии боя (BattleLogic.preview_card) — показано ровно то,
+# что случится: урон и гибель на плашках, сдвиги, реакции, цепочка бочек и разрядов
+# по порядку, новые огонь, вода, лёд и дым, урон по своим, итог справа внизу.
+
+const PREVIEW_TILE_COLORS: Dictionary = {   # клетки, которые станут огнём, водой… — бледно
+	BattleLogic.Tile.FIRE: Color(1.0, 0.55, 0.15, 0.32), BattleLogic.Tile.WATER: Color(0.3, 0.6, 1.0, 0.32),
+	BattleLogic.Tile.ICE: Color(0.75, 0.92, 1.0, 0.32), BattleLogic.Tile.SMOKE: Color(0.62, 0.62, 0.64, 0.32),
+	BattleLogic.Tile.GAS: Color(0.6, 0.95, 0.4, 0.32),
+}
+const COLOR_CHAIN := Color(1.0, 0.6, 0.15, 0.4)       # клетки цепочки (взрывы, газ, разряды)
+const COLOR_CHAIN_NUMBER := Color(1.0, 0.86, 0.5)     # номер звена цепочки
+const COLOR_SELF_HIT := Color(1.0, 0.62, 0.2)         # урон по своим — оранжевое предупреждение
+const REACTION_NAMES: Dictionary = {"steam": "пар", "freeze": "заморозка", "shatter": "осколки льда",
+	"lava": "лава", "crust": "корка", "shock": "молния по мокрому", "pincer": "клещи", "tree_fire": "горит дерево"}
+const CHAIN_NAMES: Dictionary = {"explosion": "взрыв", "gas": "газ", "tree": "дерево падает", "lightning": "разряд",
+	"rune": "руна", "splash": "купель", "steam_vent": "пар клапана", "swarm": "рой", "wind": "ветер"}
+const STATUS_NAMES: Dictionary = {"wet": "мокрые", "poison": "яд", "entangled": "опутаны", "rust": "ржавчина",
+	"stunned": "замыкание", "brand": "клеймо"}
+const PREVIEW_LAYERS: Array[String] = ["ghost_move", "ghost_kill", "chain_cells", "chain_numbers",
+	"ghost_tile_1", "ghost_tile_2", "ghost_tile_3", "ghost_tile_5", "ghost_tile_6"]
+
+var _preview_key: String = ""          # для чего посчитан предпросмотр (герой, карта, клетка)
+var _preview: Dictionary = {}
+var _previewed: Array[BattleUnit] = []  # у кого на плашке сейчас предпросмотр
+
+
+func _show_card_preview(cell: Vector2i) -> void:
+	var key: String = "%d:%d:%s" % [_active.id, _selected_card, cell]
+	if key == _preview_key:
+		return   # мышь двигается по той же клетке — всё уже показано
+	_clear_preview()
+	_preview_key = key
+	_preview = logic.preview_card(_active, _selected_card, cell)
+	if not _preview["ok"]:
+		return
+	var units: Dictionary = _preview["units"]
+	# Поле: куда встанут, кто падёт
+	var landing: Array[Vector2i] = []
+	var deaths: Array[Vector2i] = []
+	for id: int in units:
+		var info: Dictionary = units[id]
+		if info["killed"]:
+			deaths.append(info["from"])
+		elif info["cell"] != info["from"]:
+			landing.append(info["cell"])
+	board.show_cells("ghost_move", landing, COLOR_GHOST_MOVE)
+	board.show_cells("ghost_kill", deaths, COLOR_GHOST_KILL)
+	# Реакции — своими цветами
+	var by_kind: Dictionary = {}
+	for k: String in REACTION_KINDS:
+		by_kind[k] = [] as Array[Vector2i]
+	for r: Dictionary in _preview["reactions"]:
+		var kind: String = "lava" if r["kind"] == "tree_fire" else r["kind"]
+		if by_kind.has(kind) and not by_kind[kind].has(r["cell"]):
+			by_kind[kind].append(r["cell"])
+	var colors: Dictionary = {"steam": COLOR_STEAM, "freeze": COLOR_FREEZE, "shatter": COLOR_SHATTER,
+			"lava": COLOR_LAVA, "crust": COLOR_CRUST, "shock": COLOR_SHOCK, "pincer": COLOR_PINCER}
+	for k: String in REACTION_KINDS:
+		board.show_cells("reaction_" + k, by_kind[k], colors[k])
+	# Цепочка: клетки взрывов и разрядов, номера звеньев по порядку
+	var chain: Array[Dictionary] = _preview["chain"]
+	var chain_cells: Array[Vector2i] = []
+	var numbers: Array[Dictionary] = []
+	for i in chain.size():
+		var cells: Array[Vector2i] = chain[i]["cells"]
+		for c in cells:
+			if not chain_cells.has(c):
+				chain_cells.append(c)
+		if chain.size() > 1 and not cells.is_empty():
+			numbers.append({"cell": _blast_center(cells), "text": str(i + 1), "color": COLOR_CHAIN_NUMBER})
+	board.show_cells("chain_cells", chain_cells, COLOR_CHAIN)
+	board.show_markers("chain_numbers", numbers)
+	# Новые огонь, вода, лёд, дым, газ — бледным слоем своего цвета
+	var by_tile: Dictionary = {}
+	for c: Vector2i in _preview["tiles"]:
+		var tile: int = _preview["tiles"][c]
+		if PREVIEW_TILE_COLORS.has(tile) and logic.tiles.get(c, BattleLogic.Tile.NONE) != tile:
+			if not by_tile.has(tile):
+				by_tile[tile] = [] as Array[Vector2i]
+			by_tile[tile].append(c)
+	for tile: int in by_tile:
+		board.show_cells("ghost_tile_%d" % tile, by_tile[tile], PREVIEW_TILE_COLORS[tile])
+	# Плашки над фигурками
+	for u: BattleUnit in _views:
+		if units.has(u.id) and is_instance_valid(_views[u]):
+			_views[u].set_preview(units[u.id])
+			_previewed.append(u)
+	hud.show_preview(_preview_lines(_preview))
+
+
+# Итог карты словами — строки [текст, цвет] для правого нижнего угла
+func _preview_lines(p: Dictionary) -> Array:
+	var lines: Array = []
+	var hurt: Array[String] = []
+	var self_hurt: Array[String] = []
+	var healed: Array[String] = []
+	var moved: int = 0
+	var statuses: Dictionary = {}
+	var woke: Array[String] = []
+	for id: int in p["units"]:
+		var info: Dictionary = p["units"][id]
+		var loss: int = info["hp"] - info["hp_after"]
+		if info["is_hero"]:
+			if loss > 0:
+				self_hurt.append("%s −%d%s" % [info["title"], loss, ", падёт" if info["killed"] else ""])
+			elif loss < 0:
+				healed.append("%s +%d" % [info["title"], -loss])
+		elif loss > 0 or info["killed"] or info["absorbed"] > 0:
+			var text: String = "%s −%d" % [info["title"], loss]
+			if info["absorbed"] > 0:
+				text += " (блок −%d)" % info["absorbed"]
+			if info["killed"]:
+				text += ", падёт"
+			hurt.append(text)
+		if not info["killed"] and info["cell"] != info["from"]:
+			moved += 1
+		for key: String in info["new"]:
+			if key == "woke":
+				woke.append(info["title"])
+			elif not info["is_hero"]:
+				statuses[key] = int(statuses.get(key, 0)) + 1
+	if not hurt.is_empty():
+		var shown: Array[String] = hurt.slice(0, 4)
+		var tail: String = "; ещё %d" % (hurt.size() - 4) if hurt.size() > 4 else ""
+		lines.append(["Урон: " + "; ".join(shown) + tail, UiKit.TEXT])
+	if not self_hurt.is_empty():
+		lines.append(["Своим: " + "; ".join(self_hurt), COLOR_SELF_HIT])
+	if not healed.is_empty():
+		lines.append(["Лечение: " + ", ".join(healed), UiKit.HP])
+	var reactions: Dictionary = {}
+	for r: Dictionary in p["reactions"]:
+		var name: String = REACTION_NAMES.get(r["kind"], r["kind"])
+		reactions[name] = int(reactions.get(name, 0)) + 1
+	if not reactions.is_empty():
+		var parts: Array[String] = []
+		for name: String in reactions:
+			parts.append(name if reactions[name] == 1 else "%s ×%d" % [name, reactions[name]])
+		lines.append(["Реакции: " + ", ".join(parts), UiKit.TEXT_DIM])
+	if not (p["chain"] as Array).is_empty():
+		var links: Array[String] = []
+		for c: Dictionary in p["chain"]:
+			links.append(CHAIN_NAMES.get(c["kind"], c["kind"]))
+		lines.append(["Цепочка: " + " → ".join(links), UiKit.TEXT_DIM])
+	if not statuses.is_empty():
+		var parts: Array[String] = []
+		for key: String in statuses:
+			parts.append("%s: %d" % [STATUS_NAMES.get(key, key), statuses[key]])
+		lines.append(["Состояния: " + ", ".join(parts), UiKit.TEXT_DIM])
+	if not woke.is_empty():
+		lines.append(["Проснётся: " + ", ".join(woke), UiKit.TEXT_DIM])
+	if moved > 0:
+		lines.append(["Сдвинутся: %d" % moved, UiKit.TEXT_DIM])
+	if int(p["spawned"]) > 0:
+		lines.append(["Появится врагов: %d" % p["spawned"], UiKit.TEXT_DIM])
+	return lines
+
+
+func _clear_preview() -> void:
+	_preview_key = ""
+	_preview = {}
+	for layer: String in PREVIEW_LAYERS:
+		board.clear_layer(layer)
+	for k: String in REACTION_KINDS:
+		board.clear_layer("reaction_" + k)
+	for u: BattleUnit in _previewed:
+		if _views.has(u) and is_instance_valid(_views[u]):
+			_views[u].set_preview({})
+	_previewed.clear()
+	hud.show_preview([])
 
 
 # Навёл на врага — его зона угрозы подсвечивается ярче
@@ -1064,6 +1217,7 @@ func _do(action: Callable) -> void:
 		board.clear_layer(layer)
 	for k: String in REACTION_KINDS:
 		board.clear_layer("reaction_" + k)
+	_clear_preview()
 	_set_fire_forecast({})   # пока идут анимации, предупреждений об огне на плашках нет
 	hud.show_enemy(null, logic)
 	hud.refresh(logic, _active, -1, true)
@@ -1209,6 +1363,7 @@ func _resync_views() -> void:
 func _enter_idle() -> void:
 	_mode = Mode.IDLE
 	_selected_card = -1
+	_clear_preview()
 	board.clear_layer("target")
 	board.clear_layer("area")
 	for k: String in REACTION_KINDS:

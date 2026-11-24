@@ -40,6 +40,8 @@ var _chain_label: Label   # «Цепь N» — сколько карт отря�
 var _last_chain: int = 0
 var _speed_button: Button
 var _discard_button: Button
+var _preview_panel: PanelContainer   # «Если сыграть сюда»: итог карты под курсором (над подсказкой)
+var _preview_box: VBoxContainer
 var _undo_button: Button   # «Отменить · Z» — над «Сбросить» и скоростью
 var _corner: VBoxContainer         # правый нижний угол: подсказка, «Цепь», «Сбросить» + скорость, «Конец хода»
 var _corner_row: HBoxContainer     # строка с «Сбросить» и скоростью врагов
@@ -171,6 +173,16 @@ func _build_hand() -> void:
 	_hint_panel.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hint_panel.visible = false
+	# Итог карты при прицеливании — над подсказкой
+	_preview_panel = PanelContainer.new()
+	_preview_panel.add_theme_stylebox_override("panel", UiKit.box(Color(UiKit.PANEL, 0.9), Color(UiKit.BRASS_DARK, 0.9), 1, 9, 10, 6))
+	_preview_panel.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_preview_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_preview_panel.visible = false
+	_corner.add_child(_preview_panel)
+	_preview_box = VBoxContainer.new()
+	_preview_box.add_theme_constant_override("separation", 2)
+	_preview_panel.add_child(_preview_box)
 	_corner.add_child(_hint_panel)
 	_hint = UiKit.make_label("", 13, UiKit.TEXT)
 	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -827,6 +839,20 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 
 
 # ---------- Журнал ----------
+
+# Итог карты под курсором: строки [текст, цвет]. Пустой список — спрятать.
+func show_preview(lines: Array) -> void:
+	UiKit.clear(_preview_box)
+	_preview_panel.visible = not lines.is_empty()
+	if lines.is_empty():
+		return
+	_preview_box.add_child(UiKit.make_label("Если сыграть сюда", 12, UiKit.BRASS, true))
+	for line: Array in lines:
+		var label: Label = UiKit.make_label(line[0], 13, line[1])
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.custom_minimum_size.x = CORNER_WIDTH - 20
+		_preview_box.add_child(label)
+
 
 # Журнал целиком — для отмены хода: строки отменённых действий убираются
 func get_log() -> PackedStringArray:

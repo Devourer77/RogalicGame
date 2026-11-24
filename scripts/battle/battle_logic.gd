@@ -6050,6 +6050,76 @@ func ghost_preview(h: BattleUnit, index: int, target: Vector2i) -> Dictionary:
 	return result
 
 
+# Точный предпросмотр: карта «проигрывается» на полной копии боя, а события копии
+# собираются — так показано ровно то, что случится, а не угадано правилами.
+# Возвращает:
+#   ok — карту можно сыграть сюда;
+#   units — id юнита -> {title, is_hero, from, cell, hp, hp_after, block, block_after,
+#           dealt (урон по здоровью), absorbed (съел блок), killed, new (новые состояния)};
+#   reactions — [{cell, kind}] в порядке срабатывания (пар, лава, молния по мокрому, клещи…);
+#   chain — [{kind, cells}] вспышки по порядку: взрыв бочки, газ, дерево, разряд, пар клапана…;
+#   tiles / objects — клетка -> что на ней станет (огонь, вода, дым / бочка лопнула…);
+#   spawned — сколько врагов появится; chain_after — Цепь после карты.
+func preview_card(h: BattleUnit, index: int, target: Vector2i) -> Dictionary:
+	var r: Dictionary = {"ok": false, "units": {}, "reactions": [] as Array[Dictionary],
+			"chain": [] as Array[Dictionary], "tiles": {}, "objects": {}, "spawned": 0, "chain_after": 0}
+	if not can_play(h, index):
+		return r
+	var hero_index: int = heroes.find(h)
+	if hero_index < 0:
+		return r
+	var sim: BattleLogic = clone()
+	var sim_h: BattleUnit = sim.heroes[hero_index]
+	var before: Dictionary = {}   # id -> {cell, state, alive}
+	for u in sim.heroes + sim.enemies:
+		before[u.id] = {"cell": u.cell, "state": sim.snapshot(u), "alive": u.is_alive()}
+	var hits: Dictionary = {}   # id -> [урон по здоровью, съел блок]
+	sim.unit_damaged.connect(func(u: BattleUnit, amount: int, st: Dictionary) -> void:
+		var row: Array = hits.get(u.id, [0, 0])
+		row[0] += maxi(amount, 0)
+		row[1] += int(st.get("absorbed", 0))
+		hits[u.id] = row)
+	sim.reaction.connect(func(c: Vector2i, kind: String) -> void:
+		(r["reactions"] as Array[Dictionary]).append({"cell": c, "kind": kind}))
+	sim.effect_cells.connect(func(cells: Array[Vector2i], kind: String) -> void:
+		(r["chain"] as Array[Dictionary]).append({"kind": kind, "cells": cells.duplicate()}))
+	sim.tile_changed.connect(func(c: Vector2i, tile: int) -> void: r["tiles"][c] = tile)
+	sim.object_changed.connect(func(c: Vector2i, _old: int, new_kind: int, _dir: Vector2i) -> void:
+		r["objects"][c] = new_kind)
+	sim.unit_spawned.connect(func(_u: BattleUnit) -> void: r["spawned"] = int(r["spawned"]) + 1)
+	if not sim.play_card(sim_h, index, target):
+		return r
+	r["ok"] = true
+	r["chain_after"] = sim.ctx.chain
+	for u in sim.heroes + sim.enemies:
+		if not before.has(u.id) or not before[u.id]["alive"]:
+			continue
+		var was: Dictionary = before[u.id]["state"]
+		var now: Dictionary = sim.snapshot(u)
+		var hit: Array = hits.get(u.id, [0, 0])
+		var info: Dictionary = {
+			"title": u.title, "is_hero": u.is_hero, "from": before[u.id]["cell"], "cell": u.cell,
+			"hp": was["hp"], "hp_after": u.hp, "block": was["block"], "block_after": u.block,
+			"dealt": hit[0], "absorbed": hit[1], "killed": not u.is_alive(),
+			"new": _new_statuses(was, now),
+		}
+		if info["hp_after"] != info["hp"] or info["block_after"] < info["block"] or info["killed"] \
+				or info["cell"] != info["from"] or not (info["new"] as Array).is_empty() or hit[0] > 0 or hit[1] > 0:
+			r["units"][u.id] = info
+	return r
+
+
+# Какие состояния появились (или закончились — «проснулся») между двумя снимками юнита
+func _new_statuses(was: Dictionary, now: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	for key: String in ["wet", "poison", "entangled", "rust", "stunned", "brand"]:
+		if int(now.get(key, 0)) > 0 and int(was.get(key, 0)) <= 0:
+			out.append(key)
+	if was.get("asleep", false) and not now.get("asleep", false):
+		out.append("woke")
+	return out
+
+
 # Какие реакции стихий сработают, если сыграть карту в клетку target (для значков при наведении).
 # Возвращает [{cell, kind}] — kind: "steam", "freeze", "shatter", "lava", "crust".
 func predict_reactions(h: BattleUnit, index: int, target: Vector2i) -> Array[Dictionary]:
