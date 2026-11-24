@@ -102,6 +102,9 @@ var vfx: VfxPlayer                 # частицы, вспышки, цифры 
 var _last_hp: Dictionary[BattleUnit, int] = {}   # здоровье юнита на прошлом событии — чтобы заметить лечение
 var _fire_forecast: Dictionary = {}   # прогноз огня: id юнита → урон в конце хода врагов
 var _enemy_phase_running: bool = false   # идёт ход врагов (на нём работает «Скорость ×2»)
+var _undo: Array[Dictionary] = []   # снимки боя перед каждым действием этого хода (последний — сверху)
+var _undo_lock: String = ""          # почему отменить нельзя: "" — можно, иначе текст подсказки
+var _fallen: Dictionary[BattleUnit, bool] = {}   # чья фигурка пала после начала хода (после отмены её пересоздаём)
 var _boss_sign_hint: String = ""   # подсказка к знаку босса у края арены
 
 
@@ -144,6 +147,7 @@ func _ready() -> void:
 	hud.end_turn_pressed.connect(_on_end_turn_pressed)
 	hud.speed_toggled.connect(_apply_speed)
 	hud.discard_toggled.connect(_on_discard_toggled)
+	hud.undo_pressed.connect(_on_undo_pressed)
 
 	# В начале боя — название арены и отряда врагов: «Старая гать · Стая»
 	var start_title: String = logic.arena_title()
@@ -215,21 +219,27 @@ func _make_enemy_view(e: BattleUnit) -> Unit:
 	return view
 
 
+# Фигурка героя: модель (или капсула-заглушка), лицом к врагам, с плашкой
+func _make_hero_view(h: BattleUnit) -> Unit:
+	var view: Unit = _spawn_view(h.hero_data.id.capitalize(), h.cell)
+	if h.hero_data.model != null:
+		view.add_child(h.hero_data.model.instantiate())
+		view.setup_animations()   # если в модели есть анимации — включаем Idle
+	else:
+		view.add_child(_make_capsule_model(h.hero_data.color, 1.1, true))
+	view.face_dir(HexMath.FACE_UP)   # лицом к врагам
+	vfx.add_rim(view)   # светлая кайма по контуру
+	_put_on_unit_layer(view)
+	view.setup_label(2.0)
+	view.visible = h.is_alive()
+	_views[h] = view
+	_last_hp[h] = h.hp
+	return view
+
+
 func _create_views() -> void:
 	for h in logic.heroes:
-		var view: Unit = _spawn_view(h.hero_data.id.capitalize(), h.cell)
-		if h.hero_data.model != null:
-			view.add_child(h.hero_data.model.instantiate())
-			view.setup_animations()   # если в модели есть анимации — включаем Idle
-		else:
-			view.add_child(_make_capsule_model(h.hero_data.color, 1.1, true))
-		view.face_dir(HexMath.FACE_UP)   # лицом к врагам
-		vfx.add_rim(view)   # светлая кайма по контуру
-		_put_on_unit_layer(view)
-		view.setup_label(2.0)
-		view.visible = h.is_alive()
-		_views[h] = view
-		_last_hp[h] = h.hp
+		_make_hero_view(h)
 
 	for e in logic.enemies:
 		_make_enemy_view(e)
@@ -469,6 +479,7 @@ func _unit_height(unit: BattleUnit) -> float:
 
 func _on_unit_died(unit: BattleUnit) -> void:
 	var view: Unit = _views[unit]
+	_fallen[unit] = true
 	var height: float = _unit_height(unit)
 	_queue(func() -> void: vfx.clear_auras(view))   # капли, яд и прочее гаснут
 	if logic.object_at(unit.cell) == BattleLogic.Obj.BOG:
@@ -897,6 +908,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_discarding = false
 		_selected_card = -1
 		_enter_idle()
+	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_Z:
+		_on_undo_pressed()   # Z или Ctrl+Z — отменить последнее действие (держать — отменять дальше)
 	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_TAB:
 		_select_hero(_next_hero())
 		_enter_idle()
@@ -1056,22 +1069,140 @@ func _do(action: Callable) -> void:
 	hud.refresh(logic, _active, -1, true)
 	_discarding = false
 	hud.update_discard_button(logic, _active, false, true)
+	hud.update_undo_button(_undo.size(), _undo_lock, true)
 	var is_end_turn: bool = action == logic.end_turn
 	var action_start_ms: int = Time.get_ticks_msec()
 	_enemy_phase_running = is_end_turn
 	_apply_speed()
+	var snap: Dictionary = {} if is_end_turn else _make_undo_snapshot()
 	action.call()
 	await _play_queue()
 	if is_end_turn:
 		_enemy_phase_ms += Time.get_ticks_msec() - action_start_ms
 	_enemy_phase_running = false
 	_apply_speed()
+	if is_end_turn or logic.is_over:
+		_clear_undo("")   # новый ход (или бой окончен) — отменять нечего
+		_fallen.clear()
+	else:
+		_after_action(snap)
 	if logic.is_over:
 		await _finish_battle()
 		return
 	if not _active.is_alive():
 		_select_hero(_next_hero())   # выбранный герой пал — переключаемся на живого
 	_enter_idle()
+
+
+# ---------- Отмена хода (клавиша Z) ----------
+# Перед каждым действием героев (шаг, карта, сброс) — снимок боя. «Отменить» возвращает
+# бой к последнему снимку и мгновенно переставляет поле и фигурки. Отмена бесплатная,
+# до начала хода. Нельзя отменить действие, которое открыло новое — добрало карту из колоды
+# или дало случайный исход: иначе отменой можно подсматривать колоду.
+
+func _make_undo_snapshot() -> Dictionary:
+	var piles: Array[int] = []
+	for h in logic.heroes:
+		piles.append(h.draw_pile.size())
+	return {
+		"logic": logic.save_state(),
+		"rng": Run.rng.state,
+		"piles": piles,
+		"played": _cards_played,
+		"scrapped": _cards_scrapped,
+		"log": hud.get_log(),
+		"active": _active,
+	}
+
+
+# После действия: открыло новое — снимки до него закрепляются, иначе снимок ложится в стек.
+# Действие, которое ничего не поменяло (не сработало), в стек не идёт.
+func _after_action(snap: Dictionary) -> void:
+	if snap.is_empty():
+		return
+	for i in logic.heroes.size():
+		if logic.heroes[i].draw_pile.size() < snap["piles"][i]:
+			_clear_undo("Нельзя отменить: открыта новая карта из колоды.")
+			return
+	if Run.rng.state != snap["rng"]:
+		_clear_undo("Нельзя отменить: выпал случайный исход.")
+		return
+	if snap["logic"] == logic.save_state():
+		return
+	_undo.append(snap)
+	_undo_lock = ""
+
+
+func _clear_undo(reason: String) -> void:
+	_undo.clear()
+	_undo_lock = reason
+
+
+func _on_undo_pressed() -> void:
+	if _mode == Mode.AIMING or _discarding or _scrapping:
+		_scrapping = false
+		_cancel_card()   # сначала Z снимает выбор карты, как ПКМ
+		_enter_idle()
+		return
+	if _mode != Mode.IDLE or _undo.is_empty():
+		if _mode == Mode.IDLE:
+			Sfx.play("card_cancel", 0.05)
+		return
+	var snap: Dictionary = _undo.pop_back()
+	logic.load_state(snap["logic"])
+	_cards_played = snap["played"]
+	_cards_scrapped = snap["scrapped"]
+	hud.set_log(snap["log"])
+	_resync_views()
+	var was: BattleUnit = snap["active"]
+	_select_hero(was if was != null and was.is_alive() else logic.living_heroes()[0])
+	Sfx.play("card_select", 0.05)
+	_enter_idle()
+
+
+# Поле и фигурки — как в логике, без анимаций (после отмены хода)
+func _resync_views() -> void:
+	# Кольцо выбора снимаем заранее: его фигурка может быть пересоздана
+	if _ring.get_parent() != null:
+		_ring.get_parent().remove_child(_ring)
+	var present: Dictionary[BattleUnit, bool] = {}
+	for u in logic.heroes + logic.enemies:
+		present[u] = true
+	for u: BattleUnit in _views.keys():
+		var view: Unit = _views[u]
+		var alive_view: bool = is_instance_valid(view)
+		var stale: bool = not alive_view or not present.has(u) \
+				or (_fallen.has(u) and u.is_alive()) \
+				or (not u.is_hero and u.asleep != view.has_meta("no_rim"))
+		if not stale:
+			continue
+		# Призванный после снимка — убрать; павший и оживший или проснувшийся — собрать заново
+		if alive_view:
+			vfx.clear_auras(view)
+			view.queue_free()
+		_views.erase(u)
+		_last_hp.erase(u)
+		_fallen.erase(u)
+		if present.has(u):
+			var fresh: Unit = _make_hero_view(u) if u.is_hero else _make_enemy_view(u)
+			if u.is_hero and not u.spirits.is_empty():
+				vfx.add_companions(fresh, u.spirits, _unit_height(u))
+	for u: BattleUnit in _views:
+		var view: Unit = _views[u]
+		view.visible = u.is_alive()
+		view.place_at(u.cell)
+		_last_hp[u] = u.hp
+		var state: Dictionary = logic.snapshot(u)
+		view.set_status(_plate_info(u, state))
+		if u.is_alive():
+			vfx.set_auras(view, _unit_height(u), state)
+		else:
+			vfx.clear_auras(view)
+	board.resync(logic)
+	board.show_cells("objective", logic.objective_cells(),
+			COLOR_OBJECTIVE_WATER if logic.objective == BattleLogic.Objective.RISING_WATER else COLOR_OBJECTIVE)
+	_update_ritual_circle()
+	_play_queue()   # круг ритуала ставится через очередь — проигрываем сразу
 
 
 # Ход героев, ничего не выбрано: куда может идти выбранный герой и что сделают враги
@@ -1089,6 +1220,7 @@ func _enter_idle() -> void:
 	_show_forecast()
 	hud.refresh(logic, _active, -1, false)
 	hud.update_discard_button(logic, _active, _discarding, false)
+	hud.update_undo_button(_undo.size(), _undo_lock, false)
 
 
 # Прогноз: линии — куда пойдёт каждый враг, красные клетки — куда он ударит,

@@ -14,6 +14,7 @@ signal end_turn_pressed
 signal discard_toggled   # нажали «Сбросить» или клавишу X
 signal card_keep_toggled(index: int)   # ПКМ по карте в руке: удержать её на следующий ход
 signal speed_toggled   # нажали «×1 / ×2» или клавишу F
+signal undo_pressed    # нажали «Отменить» (клавишу Z ловит сцена боя)
 
 const LOG_LINES: int = 6
 const HAND_PEEK: float = 116.0     # сколько карты торчит над нижним краем экрана, пока на неё не навели
@@ -39,6 +40,7 @@ var _chain_label: Label   # «Цепь N» — сколько карт отря�
 var _last_chain: int = 0
 var _speed_button: Button
 var _discard_button: Button
+var _undo_button: Button   # «Отменить · Z» — над «Сбросить» и скоростью
 var _corner: VBoxContainer         # правый нижний угол: подсказка, «Цепь», «Сбросить» + скорость, «Конец хода»
 var _corner_row: HBoxContainer     # строка с «Сбросить» и скоростью врагов
 var _end_tween: Tween
@@ -75,6 +77,7 @@ func _ready() -> void:
 	_build_end_button()
 	_build_speed_button()
 	_build_discard_button()
+	_build_undo_button()
 	_build_legend()
 	_build_help()
 	_build_banner()
@@ -252,6 +255,38 @@ func _build_discard_button() -> void:
 	_corner_row.move_child(_discard_button, 0)   # «Сбросить» слева, скорость справа
 
 
+# Кнопка «Отменить · Z» на всю ширину угла, над «Сбросить» и скоростью
+func _build_undo_button() -> void:
+	_undo_button = Button.new()
+	_undo_button.focus_mode = Control.FOCUS_NONE
+	_undo_button.add_theme_font_size_override("font_size", 13)
+	_undo_button.custom_minimum_size = Vector2(CORNER_WIDTH, 34)
+	_undo_button.icon = UiKit.icon("undo")
+	_undo_button.expand_icon = false
+	Sfx.bind_button(_undo_button)
+	_undo_button.pressed.connect(undo_pressed.emit)
+	_corner.add_child(_undo_button)
+	_corner.move_child(_undo_button, _corner_row.get_index())
+	update_undo_button(0, "", true)
+
+
+# count — сколько действий можно отменить; lock — почему нельзя (после добора карты), "" — можно
+func update_undo_button(count: int, lock: String, busy: bool) -> void:
+	if count > 0:
+		_undo_button.text = "Отменить · Z  (%d)" % count
+		_undo_button.icon = UiKit.icon("undo")
+		_undo_button.tooltip_text = "Вернуть последнее действие этого хода: шаг, карту, сброс.\nБесплатно, можно нажимать много раз — до начала хода."
+	elif lock != "":
+		_undo_button.text = "Отменить · Z"
+		_undo_button.icon = UiKit.icon("lock")
+		_undo_button.tooltip_text = lock + "\nДействия после этого снова можно отменять."
+	else:
+		_undo_button.text = "Отменить · Z"
+		_undo_button.icon = UiKit.icon("undo")
+		_undo_button.tooltip_text = "Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей Z."
+	_undo_button.disabled = busy or count <= 0
+
+
 # Обновляет кнопку сброса: сколько сбросов осталось и включён ли режим выбора карты
 func update_discard_button(logic: BattleLogic, active: BattleUnit, discarding: bool, busy: bool) -> void:
 	var enabled: bool = BattleLogic.DRAW_MODE != BattleLogic.DrawMode.DISCARD_ALL \
@@ -340,6 +375,7 @@ func _build_help() -> void:
 		["mouse_r", "", "ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до %d карт" % BattleLogic.KEEP_LIMIT],
 		["hourglass", "", "В конце хода остальная рука уходит в сброс, рука пополняется минимум до %d карт" % BattleLogic.HAND_SIZE],
 		["drop", "", "Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит"],
+		["", "Z", "Отменить последнее действие хода (шаг, карту, сброс) — бесплатно, до начала хода. Нельзя, если карта добрала карту из колоды"],
 		["", "Tab", "Другой герой (или клик по герою, по его панели)"],
 		["target", "", "Наведи на врага — его удар, зона и особенности"],
 		["rotate", "", "Q / E — повернуть камеру"],
@@ -791,6 +827,16 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 
 
 # ---------- Журнал ----------
+
+# Журнал целиком — для отмены хода: строки отменённых действий убираются
+func get_log() -> PackedStringArray:
+	return _log_lines.duplicate()
+
+
+func set_log(lines: PackedStringArray) -> void:
+	_log_lines = lines.duplicate()
+	_redraw_log()
+
 
 func add_log(text: String) -> void:
 	_log_lines.append(text)

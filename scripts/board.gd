@@ -241,6 +241,7 @@ var _tile_mesh: CylinderMesh
 var _hex_tile_meshes: Dictionary[String, Mesh] = {}
 var _object_nodes: Dictionary[Vector2i, Node3D] = {}
 var _object_kinds: Dictionary[Vector2i, int] = {}
+var _rock_nodes: Dictionary[Vector2i, Node3D] = {}    # преграды на клетках (для сверки после отмены хода)
 var _bog_water: Dictionary[Vector2i, Node3D] = {}
 var _lava_links: Dictionary[Vector2i, Node3D] = {}    # перемычки между соседними клетками лавы
 var _tile_drop: Dictionary[Vector2i, float] = {}      # на сколько плита клетки опущена (неровность пола)
@@ -964,6 +965,8 @@ func burst(cell: Vector2i, color: Color, amount: int = 24, speed: float = 4.0, g
 # Неразрушимая преграда на клетке. Какая — зависит от арены:
 # в руинах колонны, на заставе ящики, в логове кости, в остальных местах валуны.
 func add_rock(cell: Vector2i, model_name: String = "") -> void:
+	if _rock_nodes.has(cell):
+		return   # преграда уже стоит (например, вернулась после отмены хода)
 	var options: Array = ARENA_ROCKS.get(_arena, [ROCK_BOULDER])
 	var scene: PackedScene = options[posmod(cell.x * 7 + cell.y * 13, options.size())]
 	if model_name != "":   # своя преграда (павший голем — куча шлака)
@@ -972,6 +975,7 @@ func add_rock(cell: Vector2i, model_name: String = "") -> void:
 			var p: Node3D = own.instantiate()
 			p.position = grid_to_world(cell)
 			add_child(p)
+			_rock_nodes[cell] = p
 			return
 	if ASH_ROCKS.has(_arena):   # акт 2: своя преграда у каждой арены
 		var names: Array = ASH_ROCKS[_arena]
@@ -981,6 +985,46 @@ func add_rock(cell: Vector2i, model_name: String = "") -> void:
 	prop.position = grid_to_world(cell)
 	prop.rotation.y = posmod(cell.x * 3 + cell.y * 17, 4) * (PI / 2.0)
 	add_child(prop)
+	_rock_nodes[cell] = prop
+
+
+# ---------- Сверка с логикой (отмена хода) ----------
+
+# Привести поле к состоянию логики без анимаций: преграды, объекты, эффекты на клетках.
+# Меняет только то, что отличается, — остальные модели не пересоздаются.
+func resync(logic: BattleLogic) -> void:
+	# Преграды: лишние убрать (появились после отменённого действия), недостающие поставить
+	for c: Vector2i in _rock_nodes.keys():
+		if not logic.rocks.has(c):
+			_rock_nodes[c].queue_free()
+			_rock_nodes.erase(c)
+	for c: Vector2i in logic.rocks:
+		if not _rock_nodes.has(c):
+			add_rock(c, "rock_slag")   # посреди боя преграды появляются только от павшего голема
+	# Объекты: бочки, деревья, лёд, мостки…
+	var cells: Dictionary[Vector2i, bool] = {}
+	for c: Vector2i in _object_kinds:
+		cells[c] = true
+	for c: Vector2i in logic.objects:
+		cells[c] = true
+	for c: Vector2i in cells:
+		var want: int = logic.objects.get(c, BattleLogic.Obj.NONE)
+		if _object_kinds.get(c, BattleLogic.Obj.NONE) == want and _object_nodes.has(c):
+			continue
+		if want == BattleLogic.Obj.NONE:
+			_remove_object_node(c)
+		else:
+			add_object(c, want)
+	# Эффекты на клетках: огонь, лужи, лёд, дым, яд…
+	cells.clear()
+	for c: Vector2i in _effect_kinds:
+		cells[c] = true
+	for c: Vector2i in logic.tiles:
+		cells[c] = true
+	for c: Vector2i in cells:
+		var tile: int = logic.tiles.get(c, BattleLogic.Tile.NONE)
+		if _effect_kinds.get(c, BattleLogic.Tile.NONE) != tile:
+			set_tile_effect(c, tile)
 
 
 # ---------- Вспомогательное ----------
