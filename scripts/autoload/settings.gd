@@ -84,5 +84,30 @@ func apply_window() -> void:
 		DisplayServer.window_set_position(area.position + (area.size - size) / 2)
 
 
+# Названия языков для окна настроек (новый язык — просто положить locale/<код>.po)
+const LANGUAGE_NAMES: Dictionary[String, String] = {
+	"ru": "Русский", "en": "English", "zh_CN": "简体中文", "de": "Deutsch", "pl": "Polski",
+	"fr": "Français", "es": "Español", "pt_BR": "Português (Brasil)", "ja": "日本語", "uk": "Українська",
+}
+const LOCALE_DIR: String = "res://locale/"
+var _loaded: Array[String] = []
+
+
+# Языки: русский (исходный) и все, для которых есть locale/<код>.po
+func languages() -> Array[String]:
+	var list: Array[String] = ["ru"]
+	for file: String in ResourceLoader.list_directory(LOCALE_DIR):
+		if file.get_extension() == "po":
+			list.append(file.get_basename())
+	return list
+
+
 func apply_language() -> void:
+	if not languages().has(language):
+		language = "ru"
+	if language != "ru" and not _loaded.has(language):
+		var tr: Translation = load(LOCALE_DIR + language + ".po") as Translation
+		if tr != null:
+			TranslationServer.add_translation(tr)
+			_loaded.append(language)
 	TranslationServer.set_locale(language)

@@ -40,7 +40,7 @@ func _ready() -> void:
 	top_row.add_child(_hero_icon)
 	_hero_name = UiKit.make_label("", 17, UiKit.TEXT, true)
 	top_row.add_child(_hero_name)
-	var echo_chip: HBoxContainer = UiKit.chip("echo", "", UiKit.ECHO, "Отзвуки: память о пройденном пути.", 20, 24)
+	var echo_chip: HBoxContainer = UiKit.chip("echo", "", UiKit.ECHO, Loc.t("Отзвуки: память о пройденном пути."), 20, 24)
 	_echo_label = UiKit.make_label("0", 20, UiKit.ECHO, true)
 	echo_chip.add_child(_echo_label)
 	top_row.add_child(echo_chip)
@@ -50,10 +50,10 @@ func _ready() -> void:
 	top_actions.add_theme_constant_override("separation", 8)
 	top_actions.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 	root.add_child(top_actions)
-	var sound_btn: Button = UiKit.make_button("Меню", func() -> void: PauseMenu.open(root), "pause")
+	var sound_btn: Button = UiKit.make_button(Loc.t("Меню"), func() -> void: PauseMenu.open(root), "pause")
 	sound_btn.custom_minimum_size = Vector2(96, 36)
 	top_actions.add_child(sound_btn)
-	var menu: Button = UiKit.make_button("В меню", func() -> void: menu_requested.emit())
+	var menu: Button = UiKit.make_button(Loc.t("В меню"), func() -> void: menu_requested.emit())
 	menu.custom_minimum_size = Vector2(110, 36)
 	top_actions.add_child(menu)
 
@@ -76,7 +76,7 @@ func _ready() -> void:
 	_say_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 70)
 	_say_label.modulate.a = 0.0
 	root.add_child(_say_label)
-	_controls = UiKit.make_label("WASD — идти   ·   E — действие   ·   Tab — сменить героя   ·   Q / R — повернуть камеру   ·   колесо — зум", 14, UiKit.TEXT_DIM)
+	_controls = UiKit.make_label(Loc.t("WASD — идти   ·   E — действие   ·   Tab — сменить героя   ·   Q / R — повернуть камеру   ·   колесо — зум"), 14, UiKit.TEXT_DIM)
 	_controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_controls.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 24)
 	_controls.visible = Meta.history.size() < 3   # после трёх забегов подсказка не нужна

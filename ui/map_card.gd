@@ -65,15 +65,15 @@ static func danger_for(n: MapNode) -> int:
 static func title_for(n: MapNode) -> String:
 	match n.type:
 		MapNode.Type.LAIR:
-			return "Логово духа"
+			return Loc.t("Логово духа")
 		MapNode.Type.EVENT:
-			return "Событие"
+			return Loc.t("Событие")
 		MapNode.Type.SHOP:
-			return "Лавка"
+			return Loc.t("Лавка")
 		MapNode.Type.REST:
-			return "Привал"
+			return Loc.t("Привал")
 		MapNode.Type.BOSS:
-			return Run.run_boss.title if Run.run_boss != null else "Босс"
+			return Loc.t(Run.run_boss.title) if Run.run_boss != null else Loc.t("Босс")
 	return BattleLogic.ARENAS.get(n.arena, n.type_name())
 
 

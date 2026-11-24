@@ -8,33 +8,33 @@ var _seed_input: LineEdit
 static func open(parent: Node, for_hero: String = "") -> HubPanel:
 	var panel := GatePanel.new()
 	panel.hero_id = for_hero
-	create(parent, panel, "Тропа к Шпилю", 700, false)
+	create(parent, panel, Loc.t("Тропа к Шпилю"), 700, false)
 	panel._rebuild()
 	return panel
 
 
 func _rebuild() -> void:
 	UiKit.clear(body)
-	body.add_child(UiKit.make_text("Дорога та же. Вы — уже нет. Вот с чем отряд выходит на тропу.", 15, UiKit.TEXT_DIM, 640))
+	body.add_child(UiKit.make_text(Loc.t("Дорога та же. Вы — уже нет. Вот с чем отряд выходит на тропу."), 15, UiKit.TEXT_DIM, 640))
 
 	# Звон
-	var bell_row: HBoxContainer = UiKit.chip("bell", "Звон %d" % Meta.bell_chosen, UiKit.BRASS.lightened(0.2),
+	var bell_row: HBoxContainer = UiKit.chip("bell", Loc.t("Звон %d") % Meta.bell_chosen, UiKit.BRASS.lightened(0.2),
 			"\n".join(_bell_rules(Meta.bell_chosen)), 20, 26)
 	bell_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	body.add_child(bell_row)
 
 	# Обереги
 	var chosen: Array[String] = Meta.valid_chosen()
-	var charm_text: String = "Не выбран"
+	var charm_text: String = Loc.t("Не выбран")
 	if not chosen.is_empty():
 		var names: PackedStringArray = []
 		for id in chosen:
 			names.append(Meta.charm_data(id).title)
 		charm_text = ", ".join(names)
-	var charms: Label = UiKit.make_label("Обереги: " + charm_text, 17, UiKit.TEXT if not chosen.is_empty() else UiKit.TEXT_DIM)
+	var charms: Label = UiKit.make_label(Loc.t("Обереги: ") + charm_text, 17, UiKit.TEXT if not chosen.is_empty() else UiKit.TEXT_DIM)
 	charms.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if chosen.is_empty():
-		charms.tooltip_text = "Обереги берут на Полке трофеев."
+		charms.tooltip_text = Loc.t("Обереги берут на Полке трофеев.")
 		charms.mouse_filter = Control.MOUSE_FILTER_PASS
 	body.add_child(charms)
 
@@ -47,12 +47,12 @@ func _rebuild() -> void:
 		decks.add_child(_deck_summary(h))
 
 	# Для проверки: сид
-	var toggle: Button = UiKit.make_button("Для проверки ▾", _toggle_seed)
+	var toggle: Button = UiKit.make_button(Loc.t("Для проверки ▾"), _toggle_seed)
 	toggle.custom_minimum_size = Vector2(200, 34)
 	body.add_child(toggle)
 	_seed_input = LineEdit.new()
-	_seed_input.placeholder_text = "Сид (пусто — случайный)"
-	_seed_input.tooltip_text = "Сид — число, из которого получается вся случайность забега.\nОдинаковый сид — та же карта, враги и награды."
+	_seed_input.placeholder_text = Loc.t("Сид (пусто — случайный)")
+	_seed_input.tooltip_text = Loc.t("Сид — число, из которого получается вся случайность забега.\nОдинаковый сид — та же карта, враги и награды.")
 	_seed_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_seed_input.custom_minimum_size = Vector2(300, 38)
 	_seed_input.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -60,7 +60,7 @@ func _rebuild() -> void:
 	_seed_input.text_submitted.connect(func(_t: String) -> void: _go())
 	body.add_child(_seed_input)
 
-	var go: Button = UiKit.make_button("Выступить", _go, "battle", true)
+	var go: Button = UiKit.make_button(Loc.t("Выступить"), _go, "battle", true)
 	go.custom_minimum_size = Vector2(280, 52)
 	body.add_child(go)
 
@@ -92,17 +92,17 @@ func _deck_summary(h: HeroData) -> Control:
 	head.add_child(UiKit.make_label(h.title, 17, UiKit.TEXT, true))
 	box.add_child(head)
 	var hp: int = h.max_hp + Meta.effect_total("hero_hp", h.id)
-	box.add_child(UiKit.make_label("Здоровье: %d" % hp, 14, UiKit.TEXT_DIM))
+	box.add_child(UiKit.make_label(Loc.t("Здоровье: %d") % hp, 14, UiKit.TEXT_DIM))
 	if extras.is_empty() and deck.size() == base.size() and deck == base:
-		box.add_child(UiKit.make_label("Колода: базовая · %d карт" % deck.size(), 14, UiKit.TEXT))
+		box.add_child(UiKit.make_label(Loc.t("Колода: базовая · %d карт") % deck.size(), 14, UiKit.TEXT))
 	else:
-		var line: Label = UiKit.make_label("Колода: своя · %d карт, изменений: %d" % [deck.size(), extras.size()], 14, UiKit.TEXT)
+		var line: Label = UiKit.make_label(Loc.t("Колода: своя · %d карт, изменений: %d") % [deck.size(), extras.size()], 14, UiKit.TEXT)
 		line.mouse_filter = Control.MOUSE_FILTER_PASS
 		var diff: PackedStringArray = []
 		for id in extras:
 			var c: CardData = Loadout.find_card(h, id)
 			diff.append("+ " + (c.title if c != null else id))
-		line.tooltip_text = "Отличия от базовой колоды:\n" + "\n".join(diff)
+		line.tooltip_text = Loc.t("Отличия от базовой колоды:\n") + "\n".join(diff)
 		box.add_child(line)
 	return panel
 

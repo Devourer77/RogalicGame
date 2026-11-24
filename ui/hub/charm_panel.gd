@@ -6,7 +6,7 @@ extends HubPanel
 static func open(parent: Node, for_hero: String = "") -> HubPanel:
 	var panel := CharmPanel.new()
 	panel.hero_id = for_hero
-	create(parent, panel, "Полка трофеев", 860)
+	create(parent, panel, Loc.t("Полка трофеев"), 860)
 	Meta.changed.connect(panel._rebuild)
 	panel._rebuild()
 	return panel
@@ -15,7 +15,7 @@ static func open(parent: Node, for_hero: String = "") -> HubPanel:
 func _rebuild() -> void:
 	UiKit.clear(body)
 	var slots: int = Meta.charm_slots()
-	body.add_child(UiKit.make_text("Вещи Стражи, которые удалось вынести из топей. Мест для оберегов: %d. Нажми на открытый оберег, чтобы взять или снять его." % slots, 15, UiKit.TEXT_DIM, 800))
+	body.add_child(UiKit.make_text(Loc.t("Вещи Стражи, которые удалось вынести из топей. Мест для оберегов: %d. Нажми на открытый оберег, чтобы взять или снять его.") % slots, 15, UiKit.TEXT_DIM, 800))
 
 	# Места
 	var slot_row := HBoxContainer.new()
@@ -31,14 +31,14 @@ func _rebuild() -> void:
 		frame.add_child(line)
 		if i >= slots:
 			line.add_child(ic("lock", 20, UiKit.TEXT_DIM))
-			line.add_child(UiKit.make_label("Закрыто · улучшение «Второй оберег»", 14, UiKit.TEXT_DIM))
+			line.add_child(UiKit.make_label(Loc.t("Закрыто · улучшение «Второй оберег»"), 14, UiKit.TEXT_DIM))
 		elif i < chosen.size():
 			var c: RelicData = Meta.charm_data(chosen[i])
 			line.add_child(ic(c.icon, 22, UiKit.BRASS.lightened(0.2)))
 			line.add_child(UiKit.make_label(c.title, 16, UiKit.TEXT, true))
 		else:
-			line.add_child(UiKit.make_label("Не выбран", 15, UiKit.TEXT_DIM))
-			frame.tooltip_text = "Выбери открытый оберег ниже — он пойдёт в следующий забег."
+			line.add_child(UiKit.make_label(Loc.t("Не выбран"), 15, UiKit.TEXT_DIM))
+			frame.tooltip_text = Loc.t("Выбери открытый оберег ниже — он пойдёт в следующий забег.")
 		slot_row.add_child(frame)
 
 	# Сетка оберегов: 2 ряда по 5
@@ -49,7 +49,7 @@ func _rebuild() -> void:
 	body.add_child(grid)
 	for c in Meta.CHARMS:
 		grid.add_child(_make_tile(c))
-	body.add_child(UiKit.make_label("Открыто: %d / %d" % [Meta.opened_count(), Meta.CHARMS.size()], 14, UiKit.TEXT_DIM))
+	body.add_child(UiKit.make_label(Loc.t("Открыто: %d / %d") % [Meta.opened_count(), Meta.CHARMS.size()], 14, UiKit.TEXT_DIM))
 
 
 func _make_tile(c: RelicData) -> Button:
@@ -73,10 +73,10 @@ func _make_tile(c: RelicData) -> Button:
 	name_label.custom_minimum_size.x = 140
 	box.add_child(name_label)
 	if is_open:
-		var state: Label = UiKit.make_label("В месте" if picked else "Открыт", 13, UiKit.BRASS.lightened(0.2) if picked else UiKit.TEXT_DIM)
+		var state: Label = UiKit.make_label(Loc.t("В месте") if picked else Loc.t("Открыт"), 13, UiKit.BRASS.lightened(0.2) if picked else UiKit.TEXT_DIM)
 		state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(state)
-		b.tooltip_text = "%s\n%s\n\nНажми, чтобы %s." % [c.title, c.desc, "снять" if picked else "взять в забег"]
+		b.tooltip_text = Loc.t("%s\n%s\n\nНажми, чтобы %s.") % [Loc.t(c.title), c.desc, Loc.t("снять") if picked else Loc.t("взять в забег")]
 		b.pressed.connect(Meta.toggle_charm.bind(c.id))
 		Sfx.bind_button(b, "ui_click")
 		if picked:
@@ -87,13 +87,13 @@ func _make_tile(c: RelicData) -> Button:
 		price.alignment = BoxContainer.ALIGNMENT_CENTER
 		box.add_child(price)
 		b.modulate = Color(1, 1, 1, 0.8 if afford else 0.55)
-		b.tooltip_text = "%s\n%s\n\nПод тканью. Открыть за %d Отзвуков." % [c.title, c.desc, c.unlock_cost]
+		b.tooltip_text = Loc.t("%s\n%s\n\nПод тканью. Открыть за %d Отзвуков.") % [Loc.t(c.title), c.desc, c.unlock_cost]
 		b.pressed.connect(Meta.buy_charm.bind(c.id))
 		Sfx.bind_button(b, "coin" if afford else "card_cancel")
 	else:
-		var hint: Label = UiKit.make_label("Ещё не найден", 13, UiKit.TEXT_DIM)
+		var hint: Label = UiKit.make_label(Loc.t("Ещё не найден"), 13, UiKit.TEXT_DIM)
 		hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(hint)
 		b.modulate = Color(1, 1, 1, 0.55)
-		b.tooltip_text = "Ещё не найден · трофей за босса или тайник в пути."
+		b.tooltip_text = Loc.t("Ещё не найден · трофей за босса или тайник в пути.")
 	return b

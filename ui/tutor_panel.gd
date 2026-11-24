@@ -56,7 +56,7 @@ func _init() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	buttons.add_child(spacer)
-	_next_button = UiKit.make_button("Дальше", next_pressed.emit, "", true)
+	_next_button = UiKit.make_button(Loc.t("Дальше"), next_pressed.emit, "", true)
 	_next_button.custom_minimum_size = Vector2(120, 34)
 	buttons.add_child(_next_button)
 	column.add_child(buttons)

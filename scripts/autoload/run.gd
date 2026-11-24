@@ -366,7 +366,10 @@ func boss_pool() -> Array[EncounterData]:
 
 # Названия двух веток карты текущего акта
 func branch_titles() -> Array[String]:
-	return act_data().branch_titles
+	var list: Array[String] = []
+	for t: String in act_data().branch_titles:
+		list.append(Loc.t(t))   # названия веток — на языке игрока
+	return list
 
 
 # Арены обычных боёв ветки (MapNode.BOG — левая, MapNode.FOREST — правая)

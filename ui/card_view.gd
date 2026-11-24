@@ -215,7 +215,7 @@ static func make_button(card: CardData, owner_color: Color = Color.GRAY, cost: i
 		stats.add_child(_pill(UiKit.chip(s[0], s[1], s[2], "", 11, 12)))
 	if stats.get_child_count() == 0:
 		# Чисел нет — пишем словами, на что действует карта («на себя», «на союзника»…)
-		var where: String = "не играется" if card.unplayable else SHAPE_NAMES.get(card.shape, "")
+		var where: String = Loc.t("не играется") if card.unplayable else SHAPE_NAMES.get(card.shape, "")
 		stats.add_child(_pill(UiKit.make_label(where, 10, COLOR_TEXT_DIM, true)))
 	b.add_child(stats)
 
@@ -421,30 +421,30 @@ static func icon_name(card: CardData) -> String:
 static func describe(card: CardData, cost: int = -1) -> String:
 	var mana: String = str(card.cost)
 	if cost >= 0 and cost != card.cost:
-		mana = "%d (было %d)" % [cost, card.cost]
-	var text: String = "%s%s\n%s · мана: %s\nОбласть: %s" % [
-		card.title, "  ★ редкая" if card.is_rare else "", set_name(card), mana, SHAPE_NAMES.get(card.shape, "")]
+		mana = Loc.t("%d (было %d)") % [cost, card.cost]
+	var text: String = Loc.t("%s%s\n%s · мана: %s\nОбласть: %s") % [
+		Loc.t(card.title), Loc.t("  ★ редкая") if card.is_rare else "", set_name(card), mana, SHAPE_NAMES.get(card.shape, "")]
 	if card.shape != CardData.Shape.SELF and card.shape != CardData.Shape.AROUND and card.cast_range > 1:
-		text += ", дальность %d" % card.cast_range
+		text += Loc.t(", дальность %d") % card.cast_range
 	var scrap: PackedStringArray = []
 	if card.scrap_moves > 0:
-		scrap.append("шагов: %d" % card.scrap_moves)
+		scrap.append(Loc.t("шагов: %d") % card.scrap_moves)
 	if card.scrap_block > 0:
-		scrap.append("блок: %d" % card.scrap_block)
+		scrap.append(Loc.t("блок: %d") % card.scrap_block)
 	if card.scrap_mana > 0:
-		scrap.append("мана: +%d" % card.scrap_mana)
+		scrap.append(Loc.t("мана: +%d") % card.scrap_mana)
 	if not scrap.is_empty():
-		text += "\n\n«В ноги» (X, бесплатно): " + ", ".join(scrap)
-	return text + "\n\n" + card.description
+		text += Loc.t("\n\n«В ноги» (X, бесплатно): ") + ", ".join(scrap)
+	return text + "\n\n" + Loc.t(card.description)
 
 
 static func set_name(card: CardData) -> String:
 	if SETS.has(card.card_set):
-		var n: String = SETS[card.card_set][0]
+		var n: String = Loc.t(SETS[card.card_set][0])
 		if card.role != CardData.Role.NONE:
-			n += " · " + ROLE_NAMES[card.role]
+			n += " · " + Loc.t(ROLE_NAMES[card.role])
 		return n
-	return "Базовая"
+	return Loc.t("Базовая")
 
 
 static func set_color(card: CardData) -> Color:

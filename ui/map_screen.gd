@@ -51,9 +51,9 @@ func _ready() -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 14)
 	head.add_child(UiKit.make_title(_area_title(), 28, UiKit.BRASS.lightened(0.2)))
-	var seed_label: Label = UiKit.make_label("акт %s · %s  ·  Звон %d  ·  сид %d" % [ROMAN[Run.act], Run.act_data().title, Run.bell, Run.seed_value], 14, UiKit.TEXT_DIM)
+	var seed_label: Label = UiKit.make_label(Loc.t("акт %s · %s  ·  Звон %d  ·  сид %d") % [ROMAN[Run.act], Run.act_data().title, Run.bell, Run.seed_value], 14, UiKit.TEXT_DIM)
 	seed_label.size_flags_vertical = Control.SIZE_SHRINK_END
-	seed_label.tooltip_text = "Сид забега: введи его в главном меню, чтобы повторить этот же забег."
+	seed_label.tooltip_text = Loc.t("Сид забега: введи его в главном меню, чтобы повторить этот же забег.")
 	seed_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	head.add_child(seed_label)
 	column.add_child(head)
@@ -101,14 +101,14 @@ func _ready() -> void:
 		var probe := MapNode.new()
 		probe.type = type as MapNode.Type
 		legend.add_child(UiKit.chip(MapCard.icon_for(probe), HINTS[type].get_slice(":", 0), UiKit.BRASS.lightened(0.25), HINTS[type], 14, 20))
-	var fog_chip: Control = UiKit.chip("map_event", "Туман: видно на %d ряда вперёд" % (Run.FOG_SIGHT + Run.fog_bonus), UiKit.TEXT_DIM,
-			"Что за точка, видно только вблизи. Дорожки видны всегда.", 14, 20)
+	var fog_chip: Control = UiKit.chip("map_event", Loc.t("Туман: видно на %d ряда вперёд") % (Run.FOG_SIGHT + Run.fog_bonus), UiKit.TEXT_DIM,
+			Loc.t("Что за точка, видно только вблизи. Дорожки видны всегда."), 14, 20)
 	legend.add_child(fog_chip)
 	column.add_child(legend)
 	# «Знакомая тропа» (улучшение из хаба): один раз перебросить карту до первого шага
 	if Run.can_reroll_map():
-		var reroll: Button = UiKit.make_button("Перебросить путь (один раз)", Run.reroll_map, "star")
-		reroll.tooltip_text = "Карта пути создастся заново. Больше в этом забеге так сделать нельзя."
+		var reroll: Button = UiKit.make_button(Loc.t("Перебросить путь (один раз)"), Run.reroll_map, "star")
+		reroll.tooltip_text = Loc.t("Карта пути создастся заново. Больше в этом забеге так сделать нельзя.")
 		column.add_child(reroll)
 
 
@@ -191,23 +191,23 @@ func _hint(n: MapNode, revealed: bool) -> String:
 	if not revealed:
 		if n.type == MapNode.Type.BOSS:
 			if Run.bosses_differ():
-				return "В конце пути ждёт хозяин этих мест — у каждой ветки свой. Кто — откроется, когда подойдёшь ближе."
-			return "В конце пути ждёт хозяин этих мест. Кто — откроется, когда подойдёшь ближе.\nПодсказки — знаки на первых аренах."
-		return "Туман: что здесь — не видно. Подойди ближе."
+				return Loc.t("В конце пути ждёт хозяин этих мест — у каждой ветки свой. Кто — откроется, когда подойдёшь ближе.")
+			return Loc.t("В конце пути ждёт хозяин этих мест. Кто — откроется, когда подойдёшь ближе.\nПодсказки — знаки на первых аренах.")
+		return Loc.t("Туман: что здесь — не видно. Подойди ближе.")
 	var text: String = HINTS[n.type]
 	if n.type == MapNode.Type.BOSS and Run.run_boss != null:
-		text = "Босс: %s — последний бой акта.\n%s" % [Run.run_boss.title, _boss_hint(Run.run_boss)]
+		text = Loc.t("Босс: %s — последний бой акта.\n%s") % [Loc.t(Run.run_boss.title), _boss_hint(Run.run_boss)]
 		if Run.bosses_differ():   # босс зависит от ветки — говорим, кто ждёт на другой
 			var other: int = MapNode.FOREST if Run.current_branch() == MapNode.BOG else MapNode.BOG
-			text += "\nНа ветке «%s» ждёт другой: %s." % [Run.branch_titles()[other], Run.boss_for_branch(other).title]
+			text += Loc.t("\nНа ветке «%s» ждёт другой: %s.") % [Run.branch_titles()[other], Run.boss_for_branch(other).title]
 	if n.branch != MapNode.COMMON:
 		text += "\n%s." % Run.branch_titles()[n.branch]
 		if _crosses_from(n):
-			text += "\nОтсюда тропа через мост в другую ветку."
+			text += Loc.t("\nОтсюда тропа через мост в другую ветку.")
 	if n == Run.current:
-		text += "\nВы здесь."
+		text += Loc.t("\nВы здесь.")
 	elif n.visited:
-		text += "\nУже пройдено."
+		text += Loc.t("\nУже пройдено.")
 	return text
 
 
@@ -371,4 +371,4 @@ func _boss_hint(enc: EncounterData) -> String:
 
 func _show_deck(rh: RunHero) -> void:
 	var sections: Array[Dictionary] = [{"title": rh.data.title, "color": rh.data.color, "cards": rh.deck}]
-	DeckOverlay.open(self, "Колода: %s" % rh.data.title, sections)
+	DeckOverlay.open(self, Loc.t("Колода: %s") % Loc.t(rh.data.title), sections)

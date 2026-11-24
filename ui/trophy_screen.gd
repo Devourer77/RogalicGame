@@ -10,15 +10,15 @@ var _frames: Dictionary[RelicData, PanelContainer] = {}
 func _ready() -> void:
 	var column: VBoxContainer = UiKit.make_screen(self)
 	column.add_theme_constant_override("separation", 14)
-	column.add_child(UiKit.make_title("Трофей", 44, UiKit.BRASS.lightened(0.25)))
-	column.add_child(UiKit.make_text("Среди добычи — вещи Стражи. Одну можно унести: она откроется на Полке трофеев навсегда.", 17, UiKit.TEXT_DIM))
+	column.add_child(UiKit.make_title(Loc.t("Трофей"), 44, UiKit.BRASS.lightened(0.25)))
+	column.add_child(UiKit.make_text(Loc.t("Среди добычи — вещи Стражи. Одну можно унести: она откроется на Полке трофеев навсегда."), 17, UiKit.TEXT_DIM))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 18)
 	column.add_child(row)
 	for charm in Run.trophy_choices:
 		row.add_child(_make_card(charm))
-	_take_button = UiKit.make_button("Взять", _take, "", true)
+	_take_button = UiKit.make_button(Loc.t("Взять"), _take, "", true)
 	_take_button.disabled = true
 	column.add_child(_take_button)
 
@@ -35,7 +35,7 @@ func _make_card(charm: RelicData) -> Control:
 	box.add_child(icon)
 	box.add_child(UiKit.make_title(charm.title, 22, UiKit.TEXT))
 	box.add_child(UiKit.make_text(charm.desc, 15, UiKit.TEXT_DIM, 200))
-	var pick: Button = UiKit.make_button("Выбрать", _select.bind(charm))
+	var pick: Button = UiKit.make_button(Loc.t("Выбрать"), _select.bind(charm))
 	pick.custom_minimum_size.x = 160
 	box.add_child(pick)
 	return frame

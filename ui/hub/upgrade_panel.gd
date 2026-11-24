@@ -11,9 +11,9 @@ static func open(parent: Node, for_board: MetaUpgradeData.Desk, for_hero: String
 	panel.board = for_board
 	panel.hero_id = for_hero
 	var titles: Dictionary = {
-		MetaUpgradeData.Desk.PARTY: "Доска дозора",
-		MetaUpgradeData.Desk.MAGE: "Круг ордена",
-		MetaUpgradeData.Desk.KNIGHT: "Оружейная",
+		MetaUpgradeData.Desk.PARTY: Loc.t("Доска дозора"),
+		MetaUpgradeData.Desk.MAGE: Loc.t("Круг ордена"),
+		MetaUpgradeData.Desk.KNIGHT: Loc.t("Оружейная"),
 	}
 	create(parent, panel, titles[for_board], 720)
 	Meta.changed.connect(panel._rebuild)
@@ -24,9 +24,9 @@ static func open(parent: Node, for_board: MetaUpgradeData.Desk, for_hero: String
 func _rebuild() -> void:
 	UiKit.clear(body)
 	var notes: Dictionary = {
-		MetaUpgradeData.Desk.PARTY: "Записки дозорных: что заставе нужно всем.",
-		MetaUpgradeData.Desk.MAGE: "Записи ордена. Больше выбора, а не больше силы.",
-		MetaUpgradeData.Desk.KNIGHT: "Стойка и чучело. Больше выбора, а не больше силы.",
+		MetaUpgradeData.Desk.PARTY: Loc.t("Записки дозорных: что заставе нужно всем."),
+		MetaUpgradeData.Desk.MAGE: Loc.t("Записи ордена. Больше выбора, а не больше силы."),
+		MetaUpgradeData.Desk.KNIGHT: Loc.t("Стойка и чучело. Больше выбора, а не больше силы."),
 	}
 	body.add_child(UiKit.make_text(notes[board], 15, UiKit.TEXT_DIM, 660))
 	for u in Meta.UPGRADES:
@@ -58,11 +58,11 @@ static func make_row(u: MetaUpgradeData) -> Control:
 		if i < steps - 1:
 			dots += " "
 	var dots_label: Label = UiKit.make_label(dots, 18, UiKit.BRASS.lightened(0.15))
-	dots_label.tooltip_text = "Ступень %d из %d" % [Meta.level(u.id), steps]
+	dots_label.tooltip_text = Loc.t("Ступень %d из %d") % [Meta.level(u.id), steps]
 	dots_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.add_child(dots_label)
 	if maxed:
-		var done: HBoxContainer = UiKit.chip("star", "Изучено", UiKit.BRASS.lightened(0.15), "", 16, 18)
+		var done: HBoxContainer = UiKit.chip("star", Loc.t("Изучено"), UiKit.BRASS.lightened(0.15), "", 16, 18)
 		done.custom_minimum_size.x = 130
 		row.add_child(done)
 	else:
@@ -70,11 +70,11 @@ static func make_row(u: MetaUpgradeData) -> Control:
 		var buy := Button.new()
 		buy.focus_mode = Control.FOCUS_NONE
 		buy.custom_minimum_size = Vector2(130, 40)
-		buy.text = "Изучить  %d" % cost
+		buy.text = Loc.t("Изучить  %d") % cost
 		buy.icon = UiKit.icon("echo")
 		buy.disabled = not Meta.can_buy(u.id)
 		if buy.disabled:
-			buy.tooltip_text = "Не хватает Отзвуков"
+			buy.tooltip_text = Loc.t("Не хватает Отзвуков")
 		buy.pressed.connect(Meta.buy.bind(u.id))
 		Sfx.bind_button(buy, "coin")
 		row.add_child(buy)

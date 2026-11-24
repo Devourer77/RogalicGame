@@ -108,14 +108,14 @@ static func diff(a: Dictionary, b: Dictionary, prefix: String = "") -> PackedStr
 	for k: Variant in a:
 		var name: String = prefix + _key_name(k)
 		if not b.has(k):
-			out.append(name + " (нет во втором)")
+			out.append(name + Loc.t(" (нет во втором)"))
 		elif a[k] is Dictionary and b[k] is Dictionary and (k is Object or str(k).begins_with("__") or prefix.begins_with("__units")):
 			out.append_array(diff(a[k], b[k], name + "."))   # снимок юнита или служебный раздел — по полям
 		elif typeof(a[k]) != typeof(b[k]) or a[k] != b[k]:
 			out.append(name)
 	for k: Variant in b:
 		if not a.has(k):
-			out.append(prefix + _key_name(k) + " (нет в первом)")
+			out.append(prefix + _key_name(k) + Loc.t(" (нет в первом)"))
 	return out
 
 

@@ -20,9 +20,9 @@ func _rebuild() -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 12)
 	head.add_child(UiKit.icon_rect("shop", 34, UiKit.GOLD))
-	head.add_child(UiKit.make_title("Лавка", 40, UiKit.BRASS.lightened(0.25)))
+	head.add_child(UiKit.make_title(Loc.t("Лавка"), 40, UiKit.BRASS.lightened(0.25)))
 	_column.add_child(head)
-	_column.add_child(UiKit.make_text("«Бродячий торговец не спрашивает, откуда золото».", 15, UiKit.TEXT_DIM))
+	_column.add_child(UiKit.make_text(Loc.t("«Бродячий торговец не спрашивает, откуда золото»."), 15, UiKit.TEXT_DIM))
 	_column.add_child(UiKit.party_bar(_show_deck))
 
 	var row := HBoxContainer.new()
@@ -54,27 +54,27 @@ func _rebuild() -> void:
 		tag.add_theme_stylebox_override("panel", UiKit.box(UiKit.PANEL_LIGHT, UiKit.BRASS_DARK if affordable else UiKit.LINE, 1, 12, 12, 3))
 		tag.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		tag.add_child(UiKit.chip("coin", str(price), UiKit.GOLD if affordable else UiKit.TEXT_DIM.darkened(0.2),
-				"" if affordable else "Не хватает золота", 17, 18))
+				"" if affordable else Loc.t("Не хватает золота"), 17, 18))
 		slot.add_child(tag)
 		row.add_child(slot)
 	if Run.shop_stock.is_empty():
-		_column.add_child(UiKit.make_text("Карты раскуплены.", 18, UiKit.TEXT_DIM))
+		_column.add_child(UiKit.make_text(Loc.t("Карты раскуплены."), 18, UiKit.TEXT_DIM))
 
-	var remove: Button = UiKit.make_button("Убрать карту из колоды  ·  %d" % Run.REMOVE_CARD_PRICE, _start_removal, "discard")
+	var remove: Button = UiKit.make_button(Loc.t("Убрать карту из колоды  ·  %d") % Run.REMOVE_CARD_PRICE, _start_removal, "discard")
 	remove.custom_minimum_size.x = 320
 	remove.disabled = Run.shop_removal_used or Run.gold < Run.REMOVE_CARD_PRICE
-	remove.tooltip_text = "Меньше слабых карт — сильные приходят в руку чаще. Один раз за лавку."
+	remove.tooltip_text = Loc.t("Меньше слабых карт — сильные приходят в руку чаще. Один раз за лавку.")
 	if Run.shop_removal_used:
-		remove.text = "Карта уже убрана"
+		remove.text = Loc.t("Карта уже убрана")
 	_column.add_child(remove)
-	var upgrade: Button = UiKit.make_button("Улучшить карту  ·  %d" % Run.UPGRADE_PRICE, _start_upgrade, "star")
+	var upgrade: Button = UiKit.make_button(Loc.t("Улучшить карту  ·  %d") % Run.UPGRADE_PRICE, _start_upgrade, "star")
 	upgrade.custom_minimum_size.x = 320
 	upgrade.disabled = Run.shop_upgrade_used or Run.gold < Run.UPGRADE_PRICE
-	upgrade.tooltip_text = "У каждой карты две ветки: I «Сила» и II «Приём». Один раз за лавку."
+	upgrade.tooltip_text = Loc.t("У каждой карты две ветки: I «Сила» и II «Приём». Один раз за лавку.")
 	if Run.shop_upgrade_used:
-		upgrade.text = "Карта уже улучшена"
+		upgrade.text = Loc.t("Карта уже улучшена")
 	_column.add_child(upgrade)
-	var leave: Button = UiKit.make_button("Уйти", Run.goto.bind(Run.MAP_SCENE), "", true)
+	var leave: Button = UiKit.make_button(Loc.t("Уйти"), Run.goto.bind(Run.MAP_SCENE), "", true)
 	leave.custom_minimum_size.x = 320
 	_column.add_child(leave)
 
@@ -89,7 +89,7 @@ func _buy(item: Dictionary) -> void:
 	Run.add_card(item["hero"] as RunHero, card)   # заодно запишет карту в Запас Караульни
 	Run.shop_stock.erase(item)
 	_rebuild()
-	UiFx.card_toast(self, card, (item["hero"] as RunHero).data.color, "Куплено")
+	UiFx.card_toast(self, card, (item["hero"] as RunHero).data.color, Loc.t("Куплено"))
 
 
 # Окно с колодами героев: нажми на карту, которую убрать. Меньше 5 карт оставить нельзя.
@@ -97,8 +97,8 @@ func _start_removal() -> void:
 	var sections: Array[Dictionary] = []
 	for rh in Run.party:
 		sections.append({"title": rh.data.title, "color": rh.data.color, "cards": rh.deck})
-	DeckOverlay.open(self, "Какую карту убрать?", sections,
-			"Нажми на карту — она навсегда уйдёт из колоды. Цена: %d золота." % Run.REMOVE_CARD_PRICE,
+	DeckOverlay.open(self, Loc.t("Какую карту убрать?"), sections,
+			Loc.t("Нажми на карту — она навсегда уйдёт из колоды. Цена: %d золота.") % Run.REMOVE_CARD_PRICE,
 			_remove_card, func(section: int) -> bool: return Run.party[section].deck.size() > Run.MIN_DECK_SIZE)
 
 
@@ -115,8 +115,8 @@ func _start_upgrade() -> void:
 	var sections: Array[Dictionary] = []
 	for rh in Run.party:
 		sections.append({"title": rh.data.title, "color": rh.data.color, "cards": rh.deck})
-	DeckOverlay.open(self, "Какую карту улучшить?", sections,
-			"Нажми на карту, потом выбери ветку улучшения. Цена: %d золота." % Run.UPGRADE_PRICE,
+	DeckOverlay.open(self, Loc.t("Какую карту улучшить?"), sections,
+			Loc.t("Нажми на карту, потом выбери ветку улучшения. Цена: %d золота.") % Run.UPGRADE_PRICE,
 			_pick_upgrade_card, func(_section: int) -> bool: return true)
 
 
@@ -126,8 +126,8 @@ func _pick_upgrade_card(section: int, index: int) -> void:
 	if not Run.can_upgrade(card):
 		return
 	var choice: Array[CardData] = [card.upgrade_1, card.upgrade_2]
-	var sections: Array[Dictionary] = [{"title": "I «Сила»  ·  II «Приём»", "color": rh.data.color, "cards": choice}]
-	DeckOverlay.open(self, "Ветка улучшения: %s" % card.title, sections, "Выбор окончательный.",
+	var sections: Array[Dictionary] = [{"title": Loc.t("I «Сила»  ·  II «Приём»"), "color": rh.data.color, "cards": choice}]
+	DeckOverlay.open(self, Loc.t("Ветка улучшения: %s") % Loc.t(card.title), sections, Loc.t("Выбор окончательный."),
 			func(_s: int, branch_index: int) -> void: _do_upgrade(rh, index, branch_index + 1))
 
 
@@ -139,9 +139,9 @@ func _do_upgrade(rh: RunHero, index: int, branch: int) -> void:
 	Run.upgrade_card(rh, index, branch)
 	Run.shop_upgrade_used = true
 	_rebuild()
-	UiFx.card_toast(self, rh.deck[index], rh.data.color, "Улучшено")
+	UiFx.card_toast(self, rh.deck[index], rh.data.color, Loc.t("Улучшено"))
 
 
 func _show_deck(rh: RunHero) -> void:
 	var sections: Array[Dictionary] = [{"title": rh.data.title, "color": rh.data.color, "cards": rh.deck}]
-	DeckOverlay.open(self, "Колода: %s" % rh.data.title, sections)
+	DeckOverlay.open(self, Loc.t("Колода: %s") % Loc.t(rh.data.title), sections)

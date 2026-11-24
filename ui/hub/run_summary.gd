@@ -6,7 +6,7 @@ extends HubPanel
 static func open(parent: Node, for_hero: String = "") -> HubPanel:
 	var panel := RunSummary.new()
 	panel.hero_id = for_hero
-	create(parent, panel, "Итог пути", 560)
+	create(parent, panel, Loc.t("Итог пути"), 560)
 	panel._rebuild()
 	return panel
 
@@ -15,32 +15,32 @@ func _rebuild() -> void:
 	UiKit.clear(body)
 	var r: Dictionary = Meta.last_result
 	if r.is_empty():
-		body.add_child(UiKit.make_text("Герои у Колокола. Путь ещё не пройден.", 16, UiKit.TEXT_DIM, 500))
+		body.add_child(UiKit.make_text(Loc.t("Герои у Колокола. Путь ещё не пройден."), 16, UiKit.TEXT_DIM, 500))
 		return
 	var rows: int = r.get("rows", 0)
-	body.add_child(_line("Пройдено рядов: %d" % rows, rows * Meta.ECHO_PER_ROW))
+	body.add_child(_line(Loc.t("Пройдено рядов: %d") % rows, rows * Meta.ECHO_PER_ROW))
 	if r.get("elites", 0) > 0:
-		body.add_child(_line("Элита", r["elites"] * Meta.ECHO_ELITE))
+		body.add_child(_line(Loc.t("Элита"), r["elites"] * Meta.ECHO_ELITE))
 	if r.get("bosses", 0) > 0:
-		body.add_child(_line("Босс", r["bosses"] * Meta.ECHO_BOSS))
+		body.add_child(_line(Loc.t("Босс"), r["bosses"] * Meta.ECHO_BOSS))
 	if r.get("event_echoes", 0) > 0:
-		body.add_child(_line("События", r["event_echoes"]))
+		body.add_child(_line(Loc.t("События"), r["event_echoes"]))
 	if r.get("trophy_echoes", 0) > 0:
-		body.add_child(_line("Трофей", r["trophy_echoes"]))
+		body.add_child(_line(Loc.t("Трофей"), r["trophy_echoes"]))
 	var bell: int = r.get("bell", 0)
 	if bell > 0:
-		var bonus: Label = UiKit.make_label("Звон %d  ·  +%d%%" % [bell, roundi(Meta.BELL_ECHO_BONUS * bell * 100.0)], 16, UiKit.BRASS.lightened(0.15))
+		var bonus: Label = UiKit.make_label(Loc.t("Звон %d  ·  +%d%%") % [bell, roundi(Meta.BELL_ECHO_BONUS * bell * 100.0)], 16, UiKit.BRASS.lightened(0.15))
 		body.add_child(bonus)
 	var spirits: Array = r.get("spirits", [])
 	if not spirits.is_empty():
-		body.add_child(spirit_row("Покорены духи:", spirits, 17))
+		body.add_child(spirit_row(Loc.t("Покорены духи:"), spirits, 17))
 	body.add_child(UiKit.make_divider(400))
 	var total := HBoxContainer.new()
 	total.alignment = BoxContainer.ALIGNMENT_CENTER
 	total.add_child(UiKit.chip("echo", "+%d" % r.get("echoes", 0), UiKit.ECHO, "", 34, 36))
 	body.add_child(total)
 	if r.get("bell_opened", -1) >= 0:
-		var opened: Label = UiKit.make_label("Открыт Звон %d" % r["bell_opened"], 20, UiKit.BRASS.lightened(0.3), true)
+		var opened: Label = UiKit.make_label(Loc.t("Открыт Звон %d") % r["bell_opened"], 20, UiKit.BRASS.lightened(0.3), true)
 		opened.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		body.add_child(opened)
 

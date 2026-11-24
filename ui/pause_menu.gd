@@ -62,39 +62,39 @@ func _ready() -> void:
 	col.add_theme_constant_override("separation", 10)
 	panel.add_child(col)
 
-	var title: Label = UiKit.make_title("Пауза", 30, UiKit.BRASS.lightened(0.2))
+	var title: Label = UiKit.make_title(Loc.t("Пауза"), 30, UiKit.BRASS.lightened(0.2))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(title)
 	col.add_child(UiKit.make_divider(260))
-	col.add_child(_button("Продолжить", _close, "", true))
-	col.add_child(_button("Настройки", func() -> void: SettingsScreen.open(self), "gear"))
+	col.add_child(_button(Loc.t("Продолжить"), _close, "", true))
+	col.add_child(_button(Loc.t("Настройки"), func() -> void: SettingsScreen.open(self), "gear"))
 	if Run.tutorial:
-		col.add_child(_button("Пропустить обучение", func() -> void:
+		col.add_child(_button(Loc.t("Пропустить обучение"), func() -> void:
 			_unpause()
 			Run.end_tutorial()))
 	elif Run.is_active:
-		col.add_child(_button("Сдаться и выйти в меню", _ask_give_up))
+		col.add_child(_button(Loc.t("Сдаться и выйти в меню"), _ask_give_up))
 	else:
-		col.add_child(_button("Выйти в главное меню", func() -> void:
+		col.add_child(_button(Loc.t("Выйти в главное меню"), func() -> void:
 			_unpause()
 			Run.goto(Run.MAIN_MENU_SCENE)))
-	col.add_child(_button("Выйти из игры", func() -> void: get_tree().quit()))
+	col.add_child(_button(Loc.t("Выйти из игры"), func() -> void: get_tree().quit()))
 
 	# Подтверждение «сдаться»: забег не сохраняется
 	_confirm = VBoxContainer.new()
 	_confirm.add_theme_constant_override("separation", 8)
 	_confirm.visible = false
-	var warn: Label = UiKit.make_label("Забег посреди не сохраняется: он закончится здесь. Отзвуки за пройденный путь начислятся.", 14, UiKit.TEXT_DIM)
+	var warn: Label = UiKit.make_label(Loc.t("Забег посреди не сохраняется: он закончится здесь. Отзвуки за пройденный путь начислятся."), 14, UiKit.TEXT_DIM)
 	warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	warn.custom_minimum_size.x = 300
 	_confirm.add_child(warn)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)
-	row.add_child(_button("Сдаться", func() -> void:
+	row.add_child(_button(Loc.t("Сдаться"), func() -> void:
 		_unpause()
 		Run.game_over(false)))
-	row.add_child(_button("Отмена", func() -> void: _confirm.visible = false))
+	row.add_child(_button(Loc.t("Отмена"), func() -> void: _confirm.visible = false))
 	_confirm.add_child(row)
 	col.add_child(_confirm)
 

@@ -44,7 +44,7 @@ func _build(title_text: String, width: float, show_echoes: bool) -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	if show_echoes:
-		var chip: HBoxContainer = UiKit.chip("echo", "", UiKit.ECHO, "Отзвуки: память о пройденном пути. Тратятся здесь, в хабе.", 18, 22)
+		var chip: HBoxContainer = UiKit.chip("echo", "", UiKit.ECHO, Loc.t("Отзвуки: память о пройденном пути. Тратятся здесь, в хабе."), 18, 22)
 		_echo_label = UiKit.make_label("0", 20, UiKit.ECHO, true)
 		chip.add_child(_echo_label)
 		head.add_child(chip)
@@ -55,7 +55,7 @@ func _build(title_text: String, width: float, show_echoes: bool) -> void:
 	body.add_theme_constant_override("separation", 10)
 	column.add_child(body)
 
-	_close_button = UiKit.make_button("Отойти", close)
+	_close_button = UiKit.make_button(Loc.t("Отойти"), close)
 	_close_button.custom_minimum_size = Vector2(200, 40)
 	column.add_child(_close_button)
 
@@ -86,7 +86,7 @@ static func ic(icon_name: String, size: float = 20.0, color: Color = UiKit.TEXT)
 # Число Отзвуков со значком. affordable = false — приглушённое (не красное).
 static func echo_cost(amount: int, affordable: bool = true) -> HBoxContainer:
 	var color: Color = UiKit.ECHO if affordable else UiKit.TEXT_DIM.darkened(0.2)
-	return UiKit.chip("echo", str(amount), color, "" if affordable else "Не хватает Отзвуков", 17, 18)
+	return UiKit.chip("echo", str(amount), color, "" if affordable else Loc.t("Не хватает Отзвуков"), 17, 18)
 
 
 # Рамка карты/плитки другого цвета (выбранное, изменённое)

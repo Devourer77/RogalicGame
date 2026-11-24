@@ -9,8 +9,8 @@ var _chosen: Dictionary[RunHero, bool] = {}
 func _ready() -> void:
 	var column: VBoxContainer = UiKit.make_screen(self)
 	column.add_theme_constant_override("separation", 12)
-	column.add_child(UiKit.make_title("Заготовка", 40, UiKit.BRASS.lightened(0.25)))
-	column.add_child(UiKit.make_text("Перед дорогой герой припас одну карту. Выбери, какую.", 16, UiKit.TEXT_DIM))
+	column.add_child(UiKit.make_title(Loc.t("Заготовка"), 40, UiKit.BRASS.lightened(0.25)))
+	column.add_child(UiKit.make_text(Loc.t("Перед дорогой герой припас одну карту. Выбери, какую."), 16, UiKit.TEXT_DIM))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 22)
@@ -36,7 +36,7 @@ func _ready() -> void:
 			cards.add_child(b)
 			buttons.append(b)
 		row.add_child(panel)
-	_next_button = UiKit.make_button("Вперёд", Run.goto.bind(Run.MAP_SCENE), "", true)
+	_next_button = UiKit.make_button(Loc.t("Вперёд"), Run.goto.bind(Run.MAP_SCENE), "", true)
 	_next_button.disabled = true
 	column.add_child(_next_button)
 	if Run.start_picks.is_empty():

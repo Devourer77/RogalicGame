@@ -87,7 +87,7 @@ static func choose(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData) -> Dicti
 		# Спит или замкнуло: стоит на месте и не бьёт
 		var path: Array[Vector2i] = [e.cell]
 		return {"cell": e.cell, "dir": Vector2i.ZERO, "path": path, "notable": false,
-				"reason": "Спит: проснётся от удара или если подойти вплотную" if e.asleep else "Замыкание: пропускает ход"}
+				"reason": Loc.t("Спит: проснётся от удара или если подойти вплотную") if e.asleep else Loc.t("Замыкание: пропускает ход")}
 	# Опутанный враг стоит на месте, но ударить может
 	var options: Dictionary[Vector2i, Array] = l.reachable_cells(e, 0 if e.entangled > 0 else l.enemy_move_range(e))
 	var result: Dictionary = _decide(l, e, atk, options)
@@ -104,16 +104,16 @@ static func _decide(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 		# Призыв: подходим к героям как обычно, подмога встанет вокруг на новом месте
 		var approach: Dictionary = _best_approach(l, e, options, [] as Array[BattleUnit], l.living_heroes(), ctx)
 		result["cell"] = approach["cell"]
-		result["reason"] = "Призовёт: %s ×%d" % [atk.summon.title.to_lower(), atk.summon_count]
+		result["reason"] = Loc.t("Призовёт: %s ×%d") % [Loc.t(atk.summon.title).to_lower(), atk.summon_count]
 		return result
 
 	if atk.shape == EnemyData.Attack.AURA:
 		var aura: Dictionary = _best_aura(l, e, atk, options, ctx)
 		result["cell"] = aura["cell"]
 		if atk.attack_range <= 0:
-			result["reason"] = "Укрепляется: +%d блока" % atk.ally_block
+			result["reason"] = Loc.t("Укрепляется: +%d блока") % atk.ally_block
 		else:
-			result["reason"] = "Зов: усилит %s" % _count_allies(aura["allies"]) if aura["allies"] > 0 else "Зов: некого усилить"
+			result["reason"] = Loc.t("Зов: усилит %s") % _count_allies(aura["allies"]) if aura["allies"] > 0 else Loc.t("Зов: некого усилить")
 		return result
 
 	var heroes: Array[BattleUnit] = l.living_heroes()
@@ -148,7 +148,7 @@ static func _decide(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData,
 		var hide: Vector2i = _ambush_cell(l, e, options, heroes)
 		if hide != Vector2i(-999, -999):
 			result["cell"] = hide
-			result["reason"] = "Засада: ждёт в камыше"
+			result["reason"] = Loc.t("Засада: ждёт в камыше")
 			return result
 
 	# Ударить некого — подходим
@@ -496,14 +496,14 @@ static func _evaluate(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, cell:
 				if h.entangled > 0:
 					value += AI_COMBO_TANGLED
 					if info["combo"] == "":
-						info["combo"] = "Связка: бьёт опутанного %s" % _acc(h.title)
+						info["combo"] = Loc.t("Связка: бьёт опутанного %s") % _acc(h.title)
 				elif h.wet > 0 or l.tile_at(h.cell) == BattleLogic.Tile.WATER:
 					value += AI_COMBO_WET
 					if info["combo"] == "":
-						info["combo"] = "Связка: бьёт мокрого %s" % _acc(h.title)
+						info["combo"] = Loc.t("Связка: бьёт мокрого %s") % _acc(h.title)
 				if focus != null and h == focus:
 					value += AI_FOCUS
-					info["focus"] = "Отряд бьёт %s" % _acc(h.title)
+					info["focus"] = Loc.t("Отряд бьёт %s") % _acc(h.title)
 		if not sh.is_alive():
 			value += AI_KILL
 			if info["kill"] == "":
@@ -516,13 +516,13 @@ static func _evaluate(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, cell:
 		var pushed: bool = atk.push > 0 or atk.pull > 0
 		var extra: bool = lost + block_lost > direct   # больше удара — значит, ещё и врезался или влетел в трясину
 		if pushed and (sh.cell != h.cell or extra) and info["push"] == "":
-			var verb: String = "Притянет" if atk.pull > 0 else "Толкнёт"
+			var verb: String = Loc.t("Притянет") if atk.pull > 0 else Loc.t("Толкнёт")
 			if hazard != "":
 				info["push"] = "%s %s %s" % [verb, _acc(h.title), hazard]
 			elif extra:
 				var step: Vector2i = dir if atk.push > 0 else -dir
 				var next: Vector2i = sh.cell + step
-				var where: String = "в трясину" if sim.object_at(next) == BattleLogic.Obj.BOG else "о преграду"
+				var where: String = Loc.t("в трясину") if sim.object_at(next) == BattleLogic.Obj.BOG else Loc.t("о преграду")
 				info["push"] = "%s %s %s" % [verb, _acc(h.title), where]
 	if wounded >= 2:
 		value += AI_BOTH_HEROES
@@ -540,9 +540,9 @@ static func _evaluate(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, cell:
 	if obj_kind != BattleLogic.Obj.NONE and info["hurt"] != "":
 		var victim: String = info["hurt"]
 		if obj_kind == BattleLogic.Obj.BARREL:
-			info["obj"] = "Подорвёт бочку у %s" % _gen(victim)
+			info["obj"] = Loc.t("Подорвёт бочку у %s") % _gen(victim)
 		else:
-			info["obj"] = "Повалит дерево на %s" % _acc(victim)
+			info["obj"] = Loc.t("Повалит дерево на %s") % _acc(victim)
 
 	# Свои и сам враг: штраф за потери
 	for i in l.enemies.size():
@@ -560,11 +560,11 @@ static func _evaluate(l: BattleLogic, e: BattleUnit, atk: EnemyAttackData, cell:
 # «в огонь», «в газ», «в лаву» — если клетка опасна; иначе пусто
 static func _hazard_name(l: BattleLogic, c: Vector2i) -> String:
 	if l.tile_at(c) == BattleLogic.Tile.FIRE:
-		return "в огонь"
+		return Loc.t("в огонь")
 	if l.tile_at(c) == BattleLogic.Tile.GAS:
-		return "в газ"
+		return Loc.t("в газ")
 	if l.object_at(c) == BattleLogic.Obj.LAVA:
-		return "в лаву"
+		return Loc.t("в лаву")
 	return ""
 
 
@@ -602,19 +602,19 @@ static func _best_approach(l: BattleLogic, e: BattleUnit, options: Dictionary[Ve
 	var reason: String = ""
 	var near: BattleUnit = _nearest(chase, best_cell)
 	if not taunters.is_empty():
-		reason = "Провокация: идёт к %s" % _dat(near.title)
+		reason = Loc.t("Провокация: идёт к %s") % _dat(near.title)
 	elif guarding:
-		reason = "Телохранитель: прикрывает %s" % _acc(ward.title)
+		reason = Loc.t("Телохранитель: прикрывает %s") % _acc(ward.title)
 	elif hunting and e.data.blind:
-		reason = "Слепой: идёт на шум шагов к %s" % _dat(prey.title)
+		reason = Loc.t("Слепой: идёт на шум шагов к %s") % _dat(prey.title)
 	elif hunting:
-		reason = "Охотник: к раненому %s" % _dat(prey.title)
+		reason = Loc.t("Охотник: к раненому %s") % _dat(prey.title)
 	elif ctx.get("wounded", false):
-		reason = "Ранен: отходит под защиту" if _near_any(best_cell, ctx["shelters"]) else "Ранен: держится подальше"
+		reason = Loc.t("Ранен: отходит под защиту") if _near_any(best_cell, ctx["shelters"]) else Loc.t("Ранен: держится подальше")
 	elif ctx.get("tactic", false) and _covered(l, best_cell):
-		reason = "Идёт от укрытия к укрытию"
+		reason = Loc.t("Идёт от укрытия к укрытию")
 	elif near != null:
-		reason = "Не достаёт — идёт к %s" % _dat(near.title)
+		reason = Loc.t("Не достаёт — идёт к %s") % _dat(near.title)
 	return {"cell": best_cell, "reason": reason}
 
 
@@ -671,7 +671,7 @@ static func _nearest(units: Array[BattleUnit], from: Vector2i) -> BattleUnit:
 # добивание > толчок в беду > бочка или дерево > оба героя > охотник > телохранитель > провокация > обычный удар
 static func _strike_reason(info: Dictionary, provoked: bool, ctx: Dictionary) -> String:
 	if info["kill"] != "":
-		return "Добьёт %s" % _acc(info["kill"])
+		return Loc.t("Добьёт %s") % _acc(info["kill"])
 	if info["push"] != "":
 		return info["push"]
 	if info["obj"] != "":
@@ -679,47 +679,47 @@ static func _strike_reason(info: Dictionary, provoked: bool, ctx: Dictionary) ->
 	if info.get("combo", "") != "":
 		return info["combo"]
 	if info["both"]:
-		return "Заденет обоих"
+		return Loc.t("Заденет обоих")
 	var prey: BattleUnit = ctx["prey"]
 	if prey != null and info["prey_hurt"]:
-		return "Охотник: бьёт раненого %s" % _acc(prey.title)
+		return Loc.t("Охотник: бьёт раненого %s") % _acc(prey.title)
 	if info.get("ward_near", false) and ctx["ward"] != null:
-		return "Телохранитель: прикрывает %s" % _acc(ctx["ward"].title)
+		return Loc.t("Телохранитель: прикрывает %s") % _acc(ctx["ward"].title)
 	if provoked:
-		return "Провокация: бьёт %s" % _acc(info["hurt"])
+		return Loc.t("Провокация: бьёт %s") % _acc(info["hurt"])
 	if info.get("focus", "") != "":
 		return info["focus"]
 	if info.get("cover", false) and info["hurt"] != "":
-		return "Из укрытия бьёт %s" % _acc(info["hurt"])
+		return Loc.t("Из укрытия бьёт %s") % _acc(info["hurt"])
 	if info["hurt"] != "":
-		return "Бьёт %s" % _acc(info["hurt"])
-	return "Бьёт по блоку"
+		return Loc.t("Бьёт %s") % _acc(info["hurt"])
+	return Loc.t("Бьёт по блоку")
 
 
 static func _count_allies(n: int) -> String:
 	if n == 1:
-		return "1 союзника"
-	return "%d союзников" % n
+		return Loc.t("1 союзника")
+	return Loc.t("%d союзников") % n
 
 
 # Имена героев и врагов в падежах (хватает для «Маг», «Рыцарь», «Корягач», «Гоблин-шаман»)
 static func _acc(t: String) -> String:
-	if t.ends_with("ь"):
-		return t.left(t.length() - 1) + "я"
-	if t.ends_with("а"):
-		return t.left(t.length() - 1) + "у"
-	return t + "а"
+	if t.ends_with(Loc.t("ь")):
+		return t.left(t.length() - 1) + Loc.t("я")
+	if t.ends_with(Loc.t("а")):
+		return t.left(t.length() - 1) + Loc.t("у")
+	return t + Loc.t("а")
 
 
 static func _gen(t: String) -> String:
-	if t.ends_with("а"):
-		return t.left(t.length() - 1) + "ы"
+	if t.ends_with(Loc.t("а")):
+		return t.left(t.length() - 1) + Loc.t("ы")
 	return _acc(t)
 
 
 static func _dat(t: String) -> String:
-	if t.ends_with("ь"):
-		return t.left(t.length() - 1) + "ю"
-	if t.ends_with("а"):
-		return t.left(t.length() - 1) + "е"
-	return t + "у"
+	if t.ends_with(Loc.t("ь")):
+		return t.left(t.length() - 1) + Loc.t("ю")
+	if t.ends_with(Loc.t("а")):
+		return t.left(t.length() - 1) + Loc.t("е")
+	return t + Loc.t("у")

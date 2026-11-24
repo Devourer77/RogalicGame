@@ -326,7 +326,7 @@ func _process(_delta: float) -> void:
 		hud.hide_prompt()
 		return
 	var wrong_hero: bool = _near.get("hero_only", "") != "" and _near["hero_only"] != active.hero_id
-	var text: String = "[E] " + _near["title"]
+	var text: String = "[E] " + Loc.t(_near["title"])
 	if wrong_hero:
 		text = _near["deny_hint"]
 	hud.show_prompt(text, camera.unproject_position(label_pos), wrong_hero)
@@ -679,7 +679,7 @@ func _build_bell() -> void:
 		flame.material_override = mat
 		_candle_mats.append(mat)
 		_candle_flames.append(flame)
-	_add_label("Колокол", c + Vector3(0.0, 4.3, 0.0))
+	_add_label(Loc.t("Колокол"), c + Vector3(0.0, 4.3, 0.0))
 
 
 # Меняет в модели материалы tex_<имя> на текстуры хаба (hub_<имя>.png), остальные оставляет как есть.
@@ -730,7 +730,7 @@ func _build_campfire() -> void:
 	light.omni_range = 11.0
 	light.position = c + Vector3(0.0, 1.2, 0.0)
 	add_child(light)
-	_add_label("Костёр", c + Vector3(0.0, 2.0, 0.0))
+	_add_label(Loc.t("Костёр"), c + Vector3(0.0, 2.0, 0.0))
 
 
 # Ворота «Тропа к Шпилю» — на севере. Знамя Стражи (узел Banner) — после первой победы над боссом.
@@ -741,7 +741,7 @@ func _build_gate() -> void:
 	_add_collider("GatePostRCol", c + Vector3(1.6, 0.0, 0.0), Vector3(0.4, 3.2, 0.4))
 	_banner = model.get_node("Banner") as Node3D
 	_banner.visible = false
-	_add_label("Ворота", c + Vector3(0.0, 4.2, 0.0))
+	_add_label(Loc.t("Ворота"), c + Vector3(0.0, 4.2, 0.0))
 
 
 # Караульня — северо-западный угол. Дверь и окно смотрят на юг. Дверь (узел Door) вращается
@@ -767,7 +767,7 @@ func _build_barracks() -> void:
 	inner.omni_range = 2.5
 	inner.position = c + Vector3(0.4, 1.2, -0.1)
 	add_child(inner)
-	_add_label("Караульня", c + Vector3(0.0, 3.8, 0.0))
+	_add_label(Loc.t("Караульня"), c + Vector3(0.0, 3.8, 0.0))
 
 
 # Круг ордена (Маг) — запад: пять камней с рунами вокруг кафедры, над ней парит кристалл.
@@ -793,7 +793,7 @@ func _build_mage_circle() -> void:
 	glow.omni_range = 3.5
 	glow.position = c + Vector3(0.0, 1.7, 0.0)
 	add_child(glow)
-	_add_label("Круг ордена · Маг", c + Vector3(0.0, 2.6, 0.0))
+	_add_label(Loc.t("Круг ордена · Маг"), c + Vector3(0.0, 2.6, 0.0))
 
 
 # Оружейная (Рыцарь) — восток: доспех на стойке, стойка оружия, чучело, знамя, точило.
@@ -805,7 +805,7 @@ func _build_armory() -> void:
 	_add_collider("DummyCol", c + Vector3(-0.2, 0.0, 1.6), Vector3(0.5, 1.5, 0.5))
 	_add_collider("BannerCol", c + Vector3(2.2, 0.0, -1.8), Vector3(0.2, 2.6, 0.2))
 	_add_collider("GrindstoneCol", c + Vector3(-1.3, 0.0, 0.0), Vector3(0.7, 0.9, 0.6))
-	_add_label("Оружейная · Рыцарь", c + Vector3(0.0, 2.6, 0.0))
+	_add_label(Loc.t("Оружейная · Рыцарь"), c + Vector3(0.0, 2.6, 0.0))
 
 
 # Доска дозора — юго-запад.
@@ -813,7 +813,7 @@ func _build_notice_board() -> void:
 	var c: Vector3 = Vector3(-8.5, 0.0, 5.2)
 	_place_model(NOTICE_BOARD_MODEL, "NoticeBoard", c)
 	_add_collider("NoticeBoardCol", c, Vector3(2.5, 1.9, 0.3))
-	_add_label("Доска дозора", c + Vector3(0.0, 2.8, 0.0))
+	_add_label(Loc.t("Доска дозора"), c + Vector3(0.0, 2.8, 0.0))
 
 
 # Полка трофеев (обереги) — юго-восток. Десять мест в два яруса по порядку Meta.CHARMS.
@@ -842,7 +842,7 @@ func _build_trophy_shelf() -> void:
 		glow.position = pos + Vector3(0.0, 0.25, 0.15)
 		add_child(glow)
 		_shelf_lights.append(glow)
-	_add_label("Полка трофеев", c + Vector3(0.0, 2.8, 0.0))
+	_add_label(Loc.t("Полка трофеев"), c + Vector3(0.0, 2.8, 0.0))
 
 
 # Святилище духов — северо-восток. Камни полукругом с севера, по камню на духа (Run.ALL_SPIRIT_IDS).
@@ -870,7 +870,7 @@ func _build_shrine() -> void:
 	_shrine_light.position = c + Vector3(0.0, 1.8, -0.4)
 	_shrine_light.visible = false
 	add_child(_shrine_light)
-	_add_label("Святилище духов", c + Vector3(0.0, 2.8, 0.0))
+	_add_label(Loc.t("Святилище духов"), c + Vector3(0.0, 2.8, 0.0))
 
 
 # Ставит модель в точку pos и кладёт на неё текстуры хаба

@@ -206,8 +206,8 @@ const SUMMON_ENEMY: String = "res://resources/enemies/goblin.tres"
 
 # Порченые реликвии (см. resources/relics/)
 const DROWNED_HEART_MANA: int = 1    # «Сердце утопленника»: +мана магу каждый ход
-const WARDEN_BRAND_RAGE: int = 2     # «Клеймо стража»: ярость рыцарю за стак перегрева
-const ASH_LANTERN_TURNS: int = 1     # «Пепельный фонарь»: огонь от героев горит дольше
+const ASH_LANTERN_FIRES: int = 2     # «Пепельный фонарь»: горящие клетки в начале боя (зато огонь не ранит героев)
+const VOW_EXTRA_DRAW: int = 1        # «Обет тишины»: Маг берёт на столько карт больше в начале хода
 const OGRE_TOOTH_BUMP: int = 6       # «Зуб огра»: урон столкновения (вместо BUMP_DAMAGE)
 const POLLEN_EXTRA_GAS: int = 2      # «Болотная пыльца»: лишние клетки газа в начале боя
 
@@ -420,6 +420,12 @@ func setup(board_width: int, board_height: int, random: RandomNumberGenerator,
 		# «Болотная пыльца»: на поле больше газа (зато героев он не травит)
 		for i in POLLEN_EXTRA_GAS:
 			_place(2, height - 4, func(c: Vector2i) -> void: tiles[c] = Tile.GAS)
+	if has_relic("ash_lantern"):
+		# «Пепельный фонарь»: на поле горит огонь (зато героев он не ранит)
+		for i in ASH_LANTERN_FIRES:
+			_place(2, height - 4, func(c: Vector2i) -> void:
+				tiles[c] = Tile.FIRE
+				fire_timers[c] = FIRE_DURATION)
 
 	# Враги — по строю отряда (без строя — в верхних рядах на свободных клетках)
 	var places: Array[Vector2i] = _formation_cells(enemy_list, enemy_formation)
@@ -481,7 +487,7 @@ func _new_unit(title: String) -> BattleUnit:
 	var u := BattleUnit.new()
 	u.id = _next_id
 	_next_id += 1
-	u.title = title
+	u.title = Loc.t(title)   # имя юнита сразу на языке игрока (журнал, плашки, «Цель»)
 	return u
 
 
@@ -561,7 +567,7 @@ func _sprinkle_swamp_gas() -> void:
 
 
 func arena_title() -> String:
-	return ARENAS.get(arena_id, "")
+	return Loc.t(ARENAS.get(arena_id, "")) if ARENAS.has(arena_id) else ""
 
 
 # Лесная ли арена (вокруг поля не вода, а лесная земля; деревья живые)
@@ -947,7 +953,7 @@ func _cave_round_end() -> void:
 	for c in cells:
 		_set_tile(c, Tile.FIRE)
 	if not cells.is_empty():
-		message.emit("Торф снова вспыхивает")
+		message.emit(Loc.t("Торф снова вспыхивает"))
 
 
 # ---------- Арены акта 2 «Пепельный тракт» (тз-арены-акт-2.md) ----------
@@ -1478,16 +1484,16 @@ func snapshot(u: BattleUnit) -> Dictionary:
 		state["mod_on"] = mod_active(u)
 		state["smoldering"] = is_smoldering(u)
 		if u.asleep:
-			state["intent"] = "Спит"
+			state["intent"] = Loc.t("Спит")
 			state["damage"] = 0
 		elif u.stunned > 0:
-			state["intent"] = "Замыкание"
+			state["intent"] = Loc.t("Замыкание")
 			state["damage"] = 0
 		elif u.fuse > 0:
-			state["intent"] = "Взрыв!"
+			state["intent"] = Loc.t("Взрыв!")
 			state["damage"] = INFLATION_DAMAGE
 		elif state["smoldering"]:
-			state["intent"] = "Прыжок и фитиль"
+			state["intent"] = Loc.t("Прыжок и фитиль")
 			state["damage"] = 0
 	return state
 
@@ -1669,7 +1675,7 @@ func _rust(e: BattleUnit) -> void:
 		return
 	e.block = 0
 	e.rust = 1
-	message.emit("%s ржавеет: без блока, удар −%d" % [e.title, RUST_WEAKEN])
+	message.emit(Loc.t("%s ржавеет: без блока, удар −%d") % [e.title, RUST_WEAKEN])
 	status_changed.emit(e, snapshot(e))
 
 
@@ -1838,7 +1844,7 @@ func _break_planks_behind(path: Array[Vector2i]) -> void:
 	for i in path.size() - 1:
 		if object_at(path[i]) == Obj.PLANKS:
 			_set_object(path[i], Obj.BOG, Vector2i.ZERO)
-			message.emit("Мостки проваливаются в трясину")
+			message.emit(Loc.t("Мостки проваливаются в трясину"))
 
 
 # ---------- Ходьба героя ----------
@@ -2152,7 +2158,7 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	_forget_kept(h, index)
 	if card.special != "slime" and not card.is_call:
 		h.discard_pile.append(card)   # Зов духа тоже не уходит в сброс — он раз в бой   # «Тина» сгорает навсегда, остальные идут в сброс
-	message.emit("%s: %s" % [h.title, card.title])
+	message.emit("%s: %s" % [h.title, Loc.t(card.title)])
 	var as_spell: bool = is_spell_card(h, card)
 	var as_attack: bool = is_attack_card(h, card)
 	_cur_straight = ctx.straight(h.hero_data.id)
@@ -2167,7 +2173,7 @@ func play_card(h: BattleUnit, index: int, target: Vector2i) -> bool:
 	if h.hero_data.id == "mage" and not card.is_rare and card.special != "echo":
 		ctx.last_mage_card = card
 	card_played.emit(h, card, false)
-	if as_spell and not (h.hero_data.id == "mage" and has_relic("vow_of_silence")):
+	if as_spell:
 		_absorb_magic()
 	_cur_card = card
 	_cur_hero = h
@@ -2219,7 +2225,7 @@ func _absorb_magic() -> void:
 				o.hp = mini(o.max_hp, o.hp + SHAMAN_HEAL)
 				status_changed.emit(o, snapshot(o))
 			e.block += SHAMAN_BLOCK
-			message.emit("%s поглощает магию: враги лечатся" % e.title)
+			message.emit(Loc.t("%s поглощает магию: враги лечатся") % e.title)
 			status_changed.emit(e, snapshot(e))
 			return
 
@@ -2239,7 +2245,7 @@ func scrap_card(h: BattleUnit, index: int) -> bool:
 	if card.scrap_block > 0:
 		h.block += card.scrap_block
 	h.mana += card.scrap_mana
-	message.emit("%s: «%s» в ноги" % [h.title, card.title])
+	message.emit(Loc.t("%s: «%s» в ноги") % [h.title, Loc.t(card.title)])
 	ctx.note_scrap(h.hero_data.id)
 	card_played.emit(h, card, true)
 	status_changed.emit(h, snapshot(h))
@@ -2381,10 +2387,10 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 		status_changed.emit(receiver, snapshot(receiver))
 	if card.hold_line:
 		h.holding_line = true
-		message.emit("%s держит строй" % h.title)
+		message.emit(Loc.t("%s держит строй") % h.title)
 	if card.taunt:
 		h.taunt = true
-		message.emit("%s вызывает врагов на себя" % h.title)
+		message.emit(Loc.t("%s вызывает врагов на себя") % h.title)
 	if card.rage_gain > 0:
 		h.rage += card.rage_gain
 	var charge_gain: int = card.charge_gain + (card.chain_charge if chain_met(card) else 0)
@@ -2417,7 +2423,7 @@ func _resolve_card(h: BattleUnit, card: CardData, area: Array[Vector2i], target:
 			h.moves_left += 2 * kills
 			if h.unstoppable_chain:
 				ctx.chain += kills
-			message.emit("Неудержимый: +%d маны, +%d шагов" % [kills, 2 * kills])
+			message.emit(Loc.t("Неудержимый: +%d маны, +%d шагов") % [kills, 2 * kills])
 
 
 # Урон по клеткам карты: врагам — урон, деревьям и бочкам — удар.
@@ -2431,7 +2437,7 @@ func _hit_cells(card: CardData, damage: int, cells: Array[Vector2i], from: Vecto
 			var dealt: int = damage
 			if card.special == "execute" and (u.hp * 2 <= u.max_hp or chain_met(card)):
 				dealt = damage - card.damage + card.execute_damage
-				message.emit("Добивание!")
+				message.emit(Loc.t("Добивание!"))
 			_card_damage(u, dealt, card.pierce_block)
 		elif _is_breakable(c) and card.special != "pierce" and not (card.special == "boot" and object_at(c) == Obj.BARREL):
 			_hit_object(c, from)
@@ -2446,16 +2452,16 @@ func _spend_bonuses(h: BattleUnit, card: CardData) -> int:
 	var bonus: int = 0
 	if card.rage_bonus > 0 and h.rage > 0:
 		bonus += h.rage * card.rage_bonus
-		message.emit("Ярость: +%d урона" % (h.rage * card.rage_bonus))
+		message.emit(Loc.t("Ярость: +%d урона") % (h.rage * card.rage_bonus))
 		h.rage = 0
 	if card.charge_bonus > 0 and h.charge > 0:
 		bonus += h.charge * card.charge_bonus
-		message.emit("Разрядка: +%d урона" % (h.charge * card.charge_bonus))
+		message.emit(Loc.t("Разрядка: +%d урона") % (h.charge * card.charge_bonus))
 		h.charge = 0
 		h.overloaded = false
 	if h.hero_data.gains_momentum and h.momentum > 0:
 		bonus += h.momentum
-		message.emit("Натиск: +%d урона" % h.momentum)
+		message.emit(Loc.t("Натиск: +%d урона") % h.momentum)
 		h.momentum = 0
 	return bonus
 
@@ -2577,20 +2583,20 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 		"overload":
 			h.charge = mini(MAX_CHARGE_OVERLOAD, h.charge * 2)
 			h.overloaded = h.charge > 0
-			message.emit("Перегрузка! Заряд: %d" % h.charge)
+			message.emit(Loc.t("Перегрузка! Заряд: %d") % h.charge)
 		"unstoppable":
 			h.unstoppable = true
 		"rune_fire", "rune_storm", "rune_rot", "rune_tide":
 			# Руна на оружие: одна активная, новая заменяет старую
 			h.rune = card.special.trim_prefix("rune_")
 			h.rune_hits = card.rune_charges if card.rune_charges > 0 else RUNE_HITS
-			message.emit("%s: руна на клинке (%d удара)" % [h.title, RUNE_HITS])
+			message.emit(Loc.t("%s: руна на клинке (%d удара)") % [h.title, RUNE_HITS])
 		"rune_trap":
 			if _can_build(target):
 				_set_object(target, Obj.RUNE, Vector2i.ZERO)
 		"outpost":
 			h.outpost = true
-			message.emit("%s держит заставу" % h.title)
+			message.emit(Loc.t("%s держит заставу") % h.title)
 		"self_wet":
 			_set_wet(h, WET_TURNS)   # «Мокрый щит»: герой мокнет (с Котловиком это блок каждый ход)
 		"smoke", "smoke_after":
@@ -2730,11 +2736,11 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 			var carrier: BattleUnit = unit_at(target)
 			if carrier != null and carrier.is_hero:
 				carrier.prism = true
-				message.emit("%s несёт магическую призму" % carrier.title)
+				message.emit(Loc.t("%s несёт магическую призму") % carrier.title)
 				status_changed.emit(carrier, snapshot(carrier))
 		"toxic_ignition":
 			if _ignite_ok:
-				message.emit("Взрыв болота!")
+				message.emit(Loc.t("Взрыв болота!"))
 				var boom: Array[Vector2i] = []
 				for c in HexMath.cluster(target):
 					if is_inside(c):
@@ -2790,7 +2796,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 			h.mana -= 2
 			_aether = true
 			_draw_cards(h, 2)
-			message.emit("Перегрузка эфира: карты бьют сильнее за каждый перегрев")
+			message.emit(Loc.t("Перегрузка эфира: карты бьют сильнее за каждый перегрев"))
 		"vent":
 			_thermal_vent(h)
 		"astral":
@@ -2817,7 +2823,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				var u: BattleUnit = unit_at(c)
 				if u != null and not u.is_hero:
 					u.entangled = 1
-					message.emit("%s опутан" % u.title)
+					message.emit(Loc.t("%s опутан") % u.title)
 					status_changed.emit(u, snapshot(u))
 		"stakes":
 			if _can_build(target):
@@ -2836,7 +2842,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 					near.append(e)
 			near.sort_custom(func(a: BattleUnit, b: BattleUnit) -> bool:
 				return HexMath.distance(a.cell, h.cell) > HexMath.distance(b.cell, h.cell))
-			message.emit("Звон Колокола Стражи!")
+			message.emit(Loc.t("Звон Колокола Стражи!"))
 			for e in near:
 				if e.is_alive():
 					_push(e, HexMath.direction_to(h.cell, e.cell), maxi(1, card.push))
@@ -2884,7 +2890,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				h.discard_pile.erase(last)
 				h.hand.append(last)
 				h.discount = maxi(h.discount, 1)
-				message.emit("Эхо: «%s» снова в руке" % last.title)
+				message.emit(Loc.t("Эхо: «%s» снова в руке") % Loc.t(last.title))
 		"pull_near":
 			# «Вызов» II: враги в 2 клетках подтягиваются к рыцарю на 1
 			var near2: Array[BattleUnit] = []
@@ -3127,7 +3133,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 			var su3: BattleUnit = unit_at(target)
 			if su3 != null and su3.is_alive() and not su3.is_hero:
 				if _sinks(su3):
-					message.emit("%s уходит в трясину!" % su3.title)
+					message.emit(Loc.t("%s уходит в трясину!") % su3.title)
 					drowned_count += 1
 					_kill(su3)
 				else:
@@ -3292,7 +3298,7 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 				if is_inside(nx) and tile_at(nx) != Tile.FIRE and unit_at(nx) == null:
 					_apply_element(nx, CardData.Element.FIRE, h.cell)
 			if not burning_f.is_empty():
-				message.emit("Пламя бежит по ветру")
+				message.emit(Loc.t("Пламя бежит по ветру"))
 		"fire_vortex":
 			# «Огненный смерч»: враги в 2 клетках стягиваются к центру, всё вокруг загорается
 			var pull_fv: int = 2 if card.upgrade_level == 2 else 1
@@ -3329,20 +3335,20 @@ func _resolve_special(h: BattleUnit, card: CardData, area: Array[Vector2i], targ
 					if bu3.is_alive():
 						_push(bu3, HexMath.direction_to(h.cell, bu3.cell), 1)
 			if not pools_b.is_empty():
-				message.emit("Лужи вскипают паром!")
+				message.emit(Loc.t("Лужи вскипают паром!"))
 		"temper":
 			# «Закалка в пару»: в луже — следующий удар сильнее
 			if card.upgrade_level == 2 and tile_at(h.cell) == Tile.NONE:
 				_set_tile(h.cell, Tile.WATER)
 			if tile_at(h.cell) == Tile.WATER:
 				h.temper += card.bonus_amount
-				message.emit("%s закаляет клинок в пару: следующий удар +%d" % [h.title, card.bonus_amount])
+				message.emit(Loc.t("%s закаляет клинок в пару: следующий удар +%d") % [h.title, card.bonus_amount])
 		"steam_strike":
 			# «Паровой удар»: по мокрому — паровой взрыв вокруг цели
 			var st_u: BattleUnit = unit_at(target)
 			if st_u != null and not st_u.is_hero and is_wet(st_u):
 				reaction.emit(st_u.cell, "steam")
-				message.emit("Паровой взрыв!")
+				message.emit(Loc.t("Паровой взрыв!"))
 				for n: Vector2i in HexMath.neighbors(st_u.cell):
 					var nu: BattleUnit = unit_at(n)
 					if nu != null and not nu.is_hero and nu.is_alive():
@@ -3495,7 +3501,7 @@ func _fell_tree(c: Vector2i, dir: Vector2i) -> void:
 	if dir == Vector2i.ZERO:
 		dir = Vector2i(0, 1)
 	_set_object(c, Obj.NONE, dir)   # убираем сразу, чтобы цепочки не зацикливались
-	message.emit("Дерево падает!")
+	message.emit(Loc.t("Дерево падает!"))
 	var cells: Array[Vector2i] = []
 	for i in range(1, TREE_LENGTH + 1):
 		var t: Vector2i = c + dir * i
@@ -3509,7 +3515,7 @@ func _fell_tree(c: Vector2i, dir: Vector2i) -> void:
 			# Выживший сбит с ног: на 1 ход опутан (враг не ходит, но бьёт; герой без шагов)
 			if u.is_alive() and _can_be_knocked_down(u):
 				u.entangled = maxi(u.entangled, 1)
-				message.emit("%s сбит с ног" % u.title)
+				message.emit(Loc.t("%s сбит с ног") % u.title)
 				status_changed.emit(u, snapshot(u))
 		if _is_breakable(t):
 			_hit_object(t, c)
@@ -3528,7 +3534,7 @@ func _explode_barrel(c: Vector2i) -> void:
 		_burst_puffball(c)   # в Грибной пещере «бочка» — дождевик: газ, а не огонь
 		return
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
-	message.emit("Бочка с газом взрывается!")
+	message.emit(Loc.t("Бочка с газом взрывается!"))
 	var cells: Array[Vector2i] = []
 	for t in HexMath.cluster(c):
 		if is_inside(t):
@@ -3619,18 +3625,18 @@ func _apply_element(c: Vector2i, element: CardData.Element, from: Vector2i, hero
 		if obj == Obj.ICE_BLOCK:
 			_set_object(c, Obj.NONE, Vector2i.ZERO)
 			_set_tile(c, Tile.WATER)
-			message.emit("Ледяная глыба тает")
+			message.emit(Loc.t("Ледяная глыба тает"))
 			_ice_shatter(c, true, hero_card)
 			return
 		if obj == Obj.STAKES:
 			_set_object(c, Obj.NONE, Vector2i.ZERO)
 			_set_tile(c, Tile.FIRE)
-			message.emit("Колья горят")
+			message.emit(Loc.t("Колья горят"))
 			return
 	if element == CardData.Element.ICE and (obj == Obj.BOG or obj == Obj.PLANKS):
 		_set_object(c, Obj.NONE, Vector2i.ZERO)
 		_set_tile(c, Tile.ICE)
-		message.emit("Трясина замерзает")
+		message.emit(Loc.t("Трясина замерзает"))
 		return
 	if obj == Obj.BOG or _is_obstacle(c):
 		return   # на трясину и преграды вода и лёд не ложатся
@@ -3673,7 +3679,7 @@ func _make_lava(c: Vector2i) -> void:
 	_set_object(c, Obj.LAVA, Vector2i.ZERO)
 	obj_timers[c] = LAVA_TURNS
 	reaction.emit(c, "lava")
-	message.emit("Трясина вскипает лавой!")
+	message.emit(Loc.t("Трясина вскипает лавой!"))
 
 
 # Вода или лёд на лаве: остывает в корку на CRUST_TURNS раундов.
@@ -3682,11 +3688,11 @@ func _cool_lava(c: Vector2i) -> void:
 	_set_object(c, Obj.CRUST, Vector2i.ZERO)
 	obj_timers[c] = CRUST_TURNS
 	reaction.emit(c, "crust")
-	message.emit("Лава застывает коркой")
+	message.emit(Loc.t("Лава застывает коркой"))
 	var u: BattleUnit = unit_at(c)
 	if u != null and u.is_alive():
 		u.entangled = maxi(u.entangled, 2)
-		message.emit("%s увяз в корке" % u.title)
+		message.emit(Loc.t("%s увяз в корке") % u.title)
 		status_changed.emit(u, snapshot(u))
 
 
@@ -3700,7 +3706,7 @@ func _fan_fire(area: Array[Vector2i], dir: Vector2i, from: Vector2i) -> void:
 		var next: Vector2i = c + dir
 		if is_inside(next) and tile_at(next) != Tile.FIRE:
 			_apply_element(next, CardData.Element.FIRE, from)
-			message.emit("Ветер раздувает огонь")
+			message.emit(Loc.t("Ветер раздувает огонь"))
 
 
 # Урон от реакции: герои от собственной карты не страдают
@@ -3716,7 +3722,7 @@ func _steam_burst(c: Vector2i, from: Vector2i, hero_card: bool) -> void:
 	var u: BattleUnit = unit_at(c)
 	if u == null or (hero_card and u.is_hero) or _steamproof(u):
 		return
-	message.emit("Паровой взрыв!")
+	message.emit(Loc.t("Паровой взрыв!"))
 	_hint_damage(u, STEAM_DAMAGE * (2 if u.data != null and u.data.water_weak else 1), "steam")
 	if u.is_alive():
 		_push(u, HexMath.direction_to(from, c), 1)
@@ -3728,7 +3734,7 @@ func _ice_shatter(c: Vector2i, is_block: bool, hero_card: bool) -> void:
 	if not is_block:
 		_reaction_hurt(unit_at(c), ICE_SHATTER_DAMAGE, hero_card)
 		return
-	message.emit("Глыба раскалывается!")
+	message.emit(Loc.t("Глыба раскалывается!"))
 	for t in HexMath.cluster(c):
 		if t != c and is_inside(t):
 			_reaction_hurt(unit_at(t), ICE_SHATTER_DAMAGE, hero_card)
@@ -3743,7 +3749,7 @@ func _freeze_unit(c: Vector2i, hero_card: bool) -> void:
 	if not u.is_hero and (u.data.is_boss or u.data.bog_damage > 0 or HEAVY_IDS.has(u.data.id)):
 		return
 	u.entangled = maxi(u.entangled, 1)
-	message.emit("%s вмёрз в лёд" % u.title)
+	message.emit(Loc.t("%s вмёрз в лёд") % u.title)
 	status_changed.emit(u, snapshot(u))
 
 
@@ -3777,7 +3783,7 @@ func _ignite_tree(c: Vector2i) -> void:
 	_set_object(c, Obj.BURNING_TREE, Vector2i.ZERO)
 	obj_timers[c] = TREE_BURN_TURNS
 	reaction.emit(c, "tree_fire")
-	message.emit("Дерево занимается огнём!")
+	message.emit(Loc.t("Дерево занимается огнём!"))
 	for d: Vector2i in HexMath.DIRS:
 		if _is_flammable_growth(object_at(c + d)):
 			_burn_reeds(c + d)
@@ -3797,7 +3803,7 @@ func _burning_trees_round_end() -> void:
 # Улей: рой жалит клетку и 6 соседей — урон и яд всем, кроме Хранителей (пчёлы их знают)
 func _burst_hive(c: Vector2i) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
-	message.emit("Рой вылетает из улья!")
+	message.emit(Loc.t("Рой вылетает из улья!"))
 	var cells: Array[Vector2i] = []
 	for t in HexMath.cluster(c):
 		if is_inside(t):
@@ -3816,7 +3822,7 @@ func _burst_hive(c: Vector2i) -> void:
 # клапан ломается, на его месте и рядом разливается вода
 func _vent_valve(c: Vector2i) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
-	message.emit("Клапан срывает: пар!")
+	message.emit(Loc.t("Клапан срывает: пар!"))
 	var cells: Array[Vector2i] = []
 	for t in HexMath.neighbors(c):
 		if is_inside(t):
@@ -3838,7 +3844,7 @@ func _vent_valve(c: Vector2i) -> void:
 # Дождевик лопается: облако спор — немного урона соседям, клетка и соседи становятся газом
 func _burst_puffball(c: Vector2i) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
-	message.emit("Дождевик лопается: облако газа!")
+	message.emit(Loc.t("Дождевик лопается: облако газа!"))
 	var cells: Array[Vector2i] = []
 	for t in HexMath.cluster(c):
 		if is_inside(t):
@@ -3878,10 +3884,10 @@ func _roll_cart(c: Vector2i, dir: Vector2i) -> void:
 		objects.erase(c)
 		objects[at] = Obj.CART
 		object_moved.emit(c, at)
-		message.emit("Вагонетка катится!")
+		message.emit(Loc.t("Вагонетка катится!"))
 	if victim != null:
 		effect_cells.emit([victim.cell], "explosion")
-		message.emit("Вагонетка врезается в %s" % victim.title)
+		message.emit(Loc.t("Вагонетка врезается в %s") % victim.title)
 		_damage(victim, CART_DAMAGE)
 
 
@@ -3889,7 +3895,7 @@ func _roll_cart(c: Vector2i, dir: Vector2i) -> void:
 func _splash_basin(c: Vector2i) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
 	_set_tile(c, Tile.WATER)
-	message.emit("Купель опрокинута: вода плещет вокруг!")
+	message.emit(Loc.t("Купель опрокинута: вода плещет вокруг!"))
 	var cells: Array[Vector2i] = []
 	for t in HexMath.neighbors(c):
 		if is_inside(t) and not rocks.has(t):
@@ -3910,7 +3916,7 @@ func _splash_basin(c: Vector2i) -> void:
 # Грозовая сфера: разряд по 6 соседям и по всей воде, что с ними связана
 func _burst_storm_sphere(c: Vector2i) -> void:
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
-	message.emit("Грозовая сфера лопается: разряд!")
+	message.emit(Loc.t("Грозовая сфера лопается: разряд!"))
 	var ring: Array[Vector2i] = []
 	for t in HexMath.neighbors(c):
 		if is_inside(t):
@@ -3939,7 +3945,7 @@ func _wind_round_end() -> void:
 		spread.append(t)
 	if spread.is_empty():
 		return
-	message.emit("Ветер перекидывает огонь")
+	message.emit(Loc.t("Ветер перекидывает огонь"))
 	effect_cells.emit(spread, "wind")
 	for t in spread:
 		_apply_element(t, CardData.Element.FIRE, t - wind_dir, false)
@@ -3997,7 +4003,7 @@ func _cut_vine(c: Vector2i) -> void:
 	if object_at(c) != Obj.VINE:
 		return
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
-	message.emit("Лоза срублена")
+	message.emit(Loc.t("Лоза срублена"))
 
 
 func _set_tile(c: Vector2i, tile: int) -> void:
@@ -4012,8 +4018,6 @@ func _set_tile(c: Vector2i, tile: int) -> void:
 		tiles[c] = tile
 	if tile == Tile.FIRE:
 		fire_timers[c] = FIRE_DURATION
-		if _cur_hero != null and has_relic("ash_lantern"):
-			fire_timers[c] += ASH_LANTERN_TURNS
 		_burn_off_block(unit_at(c))
 		_set_wet(unit_at(c), 0)          # огонь сушит
 	else:
@@ -4026,7 +4030,7 @@ func _set_tile(c: Vector2i, tile: int) -> void:
 # Ядовитый газ вспыхнул: взрыв на клетке (урон стоящему в ней), газ исчезает
 func _explode_gas(c: Vector2i) -> void:
 	tiles.erase(c)
-	message.emit("Ядовитый газ взрывается!")
+	message.emit(Loc.t("Ядовитый газ взрывается!"))
 	effect_cells.emit([c] as Array[Vector2i], "explosion")
 	tile_changed.emit(c, Tile.NONE)
 	var u: BattleUnit = unit_at(c)
@@ -4036,7 +4040,7 @@ func _explode_gas(c: Vector2i) -> void:
 
 # Юнит попал в газ: урон и яд
 func _gas_hit(u: BattleUnit) -> void:
-	message.emit("%s дышит ядом" % u.title)
+	message.emit(Loc.t("%s дышит ядом") % u.title)
 	_hint_damage(u, GAS_DAMAGE, "gas")
 	if u.is_alive() and not (u.is_hero and has_relic("bog_pollen")):
 		_set_poison(u, GAS_POISON)
@@ -4047,7 +4051,7 @@ func _burn_off_block(u: BattleUnit) -> void:
 	if u == null or u.data == null or not u.data.fire_weak or u.block <= 0:
 		return
 	u.block = 0
-	message.emit("%s: огонь сжигает броню" % u.title)
+	message.emit(Loc.t("%s: огонь сжигает броню") % u.title)
 	status_changed.emit(u, snapshot(u))
 
 
@@ -4086,7 +4090,7 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 	unit_pushed.emit(unit, path, bumped)
 	_break_planks_behind(path)
 	if drowned:
-		message.emit("%s тонет в трясине!" % unit.title)
+		message.emit(Loc.t("%s тонет в трясине!") % unit.title)
 		if not unit.is_hero:
 			drowned_count += 1
 		_kill(unit)
@@ -4095,7 +4099,7 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 	if not unit.is_alive():
 		return
 	if bumped:
-		message.emit("%s врезается!" % unit.title)
+		message.emit(Loc.t("%s врезается!") % unit.title)
 		var bump_damage: int = _bump_damage(unit)
 		var other: BattleUnit = unit_at(bump_cell)
 		if other == null and object_at(bump_cell) == Obj.LAVA and unit.is_hero and unit.spirits.has("magma"):
@@ -4106,13 +4110,13 @@ func _push(unit: BattleUnit, dir: Vector2i, distance: int) -> void:
 			reaction.emit(bump_cell, "crust")
 		elif other == null and object_at(bump_cell) == Obj.LAVA:
 			bump_damage = 0 if _fireproof(unit) else LAVA_DAMAGE
-			message.emit("%s обжигается о лаву" % unit.title if bump_damage > 0 else "%s упирается в лаву, но огонь его не берёт" % unit.title)
+			message.emit(Loc.t("%s обжигается о лаву") % unit.title if bump_damage > 0 else Loc.t("%s упирается в лаву, но огонь его не берёт") % unit.title)
 		elif other == null and object_at(bump_cell) == Obj.BOG:
 			bump_damage = _bog_damage(unit)
-			message.emit("%s вязнет на краю трясины" % unit.title)
+			message.emit(Loc.t("%s вязнет на краю трясины") % unit.title)
 		elif object_at(bump_cell) == Obj.STAKES:
 			bump_damage = STAKES_BUMP_DAMAGE
-			message.emit("%s насаживается на колья!" % unit.title)
+			message.emit(Loc.t("%s насаживается на колья!") % unit.title)
 		_hint_damage(unit, bump_damage, "bump")
 		if other != null:
 			_hint_damage(other, _bump_damage(other), "bump")
@@ -4137,13 +4141,13 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	if unit.shell_hits > 0:
 		unit.shell_hits -= 1   # сфера Полусвободного духа держит удар (урон всё равно проходит)
 		if unit.shell_hits == 0:
-			message.emit("Сфера %s разбита — дух почти свободен!" % unit.title)
+			message.emit(Loc.t("Сфера %s разбита — дух почти свободен!") % unit.title)
 			effect_cells.emit([unit.cell], "explosion")
 	# «Живой бастион»: Рыцарь рядом принимает половину урона по напарнику вместо него
 	if unit.is_hero and not unit.guarding:
 		for g in living_heroes():
 			if g != unit and g.guarding and HexMath.distance(g.cell, unit.cell) <= 1:
-				message.emit("%s прикрывает %s" % [g.title, unit.title])
+				message.emit(Loc.t("%s прикрывает %s") % [g.title, unit.title])
 				_damage(g, amount / 2, ignore_block)
 				return
 	# Древесная броня корягача: огонь сжигает её, одиночная физическая атака режется вдвое
@@ -4151,7 +4155,7 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		if _cur_card.element == CardData.Element.FIRE:
 			unit.armor_burnt = true
 			fx_hint.emit("armor_burnt", unit, null)
-			message.emit("%s: древесная броня сгорела" % unit.title)
+			message.emit(Loc.t("%s: древесная броня сгорела") % unit.title)
 		elif _cur_attack and _cur_card.shape == CardData.Shape.SINGLE:
 			amount = maxi(1, amount / WOOD_ARMOR_DIVISOR)
 	# «Уязвимость к магии»: следующее Заклинание бьёт сильнее
@@ -4162,6 +4166,12 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	# Рыцарь злится от каждого удара, даже если блок его поглотил
 	if unit.is_hero and unit.hero_data.gains_rage:
 		unit.rage += 1
+	elif unit.is_hero and has_relic("warden_brand"):
+		# «Клеймо стража»: бьют напарника — злится Рыцарь
+		for k: BattleUnit in living_heroes():
+			if k.hero_data.gains_rage:
+				k.rage += 1
+				status_changed.emit(k, snapshot(k))
 	var absorbed: int = 0 if ignore_block else mini(unit.block, amount)
 	unit.block -= absorbed
 	var dealt: int = amount - absorbed
@@ -4174,14 +4184,14 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 	unit_damaged.emit(unit, dealt, state)
 	_dmg_source = ""   # взрывы и прочее, что случится от этого урона дальше, — уже не «яд» и не «огонь»
 	if absorbed > 0:
-		message.emit("%s: −%d HP (блок поглотил %d)" % [unit.title, dealt, absorbed])
+		message.emit(Loc.t("%s: −%d HP (блок поглотил %d)") % [unit.title, dealt, absorbed])
 	else:
 		message.emit("%s: −%d HP" % [unit.title, dealt])
 	if not unit.is_alive() and _mod_kind(unit) == EnemyModifier.Kind.TENACIOUS and not unit.mod_used:
 		unit.mod_used = true   # «Цепкий»: первый раз встаёт
 		unit.hp = unit.data.modifier.value
 		fx_hint.emit("modifier", unit, null)
-		message.emit("%s цепляется за жизнь: встаёт с %d HP" % [unit.title, unit.hp])
+		message.emit(Loc.t("%s цепляется за жизнь: встаёт с %d HP") % [unit.title, unit.hp])
 		status_changed.emit(unit, snapshot(unit))
 	if unit.is_alive():
 		_mod_after_hit(unit, direct)
@@ -4190,13 +4200,13 @@ func _damage(unit: BattleUnit, amount: int, ignore_block: bool = false) -> void:
 		colossus_fast_kill = true
 	if not unit.is_alive():
 		unit_died.emit(unit)
-		message.emit("%s падает" % unit.title)
+		message.emit(Loc.t("%s падает") % unit.title)
 		if unit.data != null and unit.data.frees_spirit:
 			if unit.shell_hits == 0:
 				freed_spirit = true
-				message.emit("Дух вырвался из сферы и остаётся с отрядом")
+				message.emit(Loc.t("Дух вырвался из сферы и остаётся с отрядом"))
 			else:
-				message.emit("Дух в целой сфере улетает: сферу не успели разбить")
+				message.emit(Loc.t("Дух в целой сфере улетает: сферу не успели разбить"))
 		_death_blast(unit)
 		_pass_crown(unit)
 		_root_on_death(unit)
@@ -4235,7 +4245,7 @@ func _remains_on_death(unit: BattleUnit) -> void:
 			_set_tile(c, Tile.NONE)
 			rocks[c] = true
 			rock_added.emit(c)
-			message.emit("%s застывает глыбой" % unit.title)
+			message.emit(Loc.t("%s застывает глыбой") % unit.title)
 	elif d.remains == EnemyData.Remains.FIRE and d.death_blast <= 0:
 		_apply_element(c, CardData.Element.FIRE, c, false)
 	var ring: Array[Vector2i] = []
@@ -4245,7 +4255,7 @@ func _remains_on_death(unit: BattleUnit) -> void:
 	if d.death_element != CardData.Element.NONE:
 		_sphere_burst(unit, d.death_element, ring)
 	if d.death_wind:
-		message.emit("Сфера %s лопается: порыв ветра!" % unit.title.to_lower())
+		message.emit(Loc.t("Сфера %s лопается: порыв ветра!") % unit.title.to_lower())
 		effect_cells.emit(ring, "wind")
 		for dir: Vector2i in HexMath.DIRS:
 			var u: BattleUnit = unit_at(c + dir)
@@ -4255,7 +4265,7 @@ func _remains_on_death(unit: BattleUnit) -> void:
 		for t in ring:
 			if not is_blocked(t) and object_at(t) != Obj.BOG and object_at(t) != Obj.LAVA:
 				spawn_enemy(d.death_summon, t)
-				message.emit("Из разбитой сферы вырывается %s" % d.death_summon.title.to_lower())
+				message.emit(Loc.t("Из разбитой сферы вырывается %s") % Loc.t(d.death_summon.title).to_lower())
 				break
 
 
@@ -4269,7 +4279,7 @@ func _short_circuit(u: BattleUnit) -> void:
 	if u.stunned > 0 or not is_wet(u):
 		return
 	u.stunned = 1
-	message.emit("%s: замыкание! Пропустит ход" % u.title)
+	message.emit(Loc.t("%s: замыкание! Пропустит ход") % u.title)
 	effect_cells.emit([u.cell], "lightning")
 	status_changed.emit(u, snapshot(u))
 
@@ -4279,7 +4289,7 @@ func _wake(u: BattleUnit) -> void:
 	if not u.asleep:
 		return
 	u.asleep = false
-	message.emit("%s просыпается!" % u.title)
+	message.emit(Loc.t("%s просыпается!") % u.title)
 	status_changed.emit(u, snapshot(u))
 
 
@@ -4307,12 +4317,12 @@ func _check_half_burst(unit: BattleUnit) -> void:
 	unit.lost_attacks.append(atk)
 	burst_turn = maxi(turn, 1)
 	effect_cells.emit([unit.cell], "explosion")
-	message.emit("%s: %s лопается!" % [unit.title, atk.title.to_lower()])
+	message.emit(Loc.t("%s: %s лопается!") % [unit.title, Loc.t(atk.title).to_lower()])
 	var spirit: EnemyData = unit.data.half_burst[mini(idx, unit.data.half_burst.size() - 1)]
 	if spirit != null:
 		_summon_around(unit, spirit, 1)
 	if not party_has_rust:
-		message.emit("В груди Колосса ржавое сердце. Добей его за %d раунда — и дух пойдёт с тобой." % RUST_KILL_TURNS)
+		message.emit(Loc.t("В груди Колосса ржавое сердце. Добей его за %d раунда — и дух пойдёт с тобой.") % RUST_KILL_TURNS)
 	status_changed.emit(unit, snapshot(unit))
 
 
@@ -4321,12 +4331,12 @@ func _check_half_burst(unit: BattleUnit) -> void:
 func _sphere_burst(unit: BattleUnit, element: CardData.Element, ring: Array[Vector2i]) -> void:
 	match element:
 		CardData.Element.FIRE:
-			message.emit("Сфера %s лопается: огонь вокруг!" % unit.title.to_lower())
+			message.emit(Loc.t("Сфера %s лопается: огонь вокруг!") % unit.title.to_lower())
 			effect_cells.emit(ring, "explosion")
 			for t in ring:
 				_apply_element(t, CardData.Element.FIRE, unit.cell, false)
 		CardData.Element.WATER:
-			message.emit("Сфера %s лопается: вода разливается" % unit.title.to_lower())
+			message.emit(Loc.t("Сфера %s лопается: вода разливается") % unit.title.to_lower())
 			for t in ring:
 				_apply_element(t, CardData.Element.WATER, unit.cell, false)
 		CardData.Element.LIGHTNING:
@@ -4337,7 +4347,7 @@ func _sphere_burst(unit: BattleUnit, element: CardData.Element, ring: Array[Vect
 			if wet.is_empty():
 				return
 			var body: Array[Vector2i] = _spread_through_water(wet)
-			message.emit("Сфера %s лопается: разряд по лужам!" % unit.title.to_lower())
+			message.emit(Loc.t("Сфера %s лопается: разряд по лужам!") % unit.title.to_lower())
 			effect_cells.emit(body, "lightning")
 			for t in body:
 				var u: BattleUnit = unit_at(t)
@@ -4353,7 +4363,7 @@ func _root_on_death(unit: BattleUnit) -> void:
 	if not is_inside(c) or rocks.has(c) or object_at(c) != Obj.NONE or tile_at(c) == Tile.FIRE:
 		return
 	_set_object(c, Obj.LIVE_TREE, Vector2i.ZERO)
-	message.emit("%s пускает корни и становится деревом" % unit.title)
+	message.emit(Loc.t("%s пускает корни и становится деревом") % unit.title)
 
 
 # «Наследие венца»: павший послушник отдаёт силу ближайшему живому культисту
@@ -4371,7 +4381,7 @@ func _pass_crown(unit: BattleUnit) -> void:
 		return
 	heir.crown_power += unit.data.bequest
 	fx_hint.emit("bequest", heir, unit)
-	message.emit("%s принимает венец: удары +%d" % [heir.title, unit.data.bequest])
+	message.emit(Loc.t("%s принимает венец: удары +%d") % [heir.title, unit.data.bequest])
 	enemy_buffed.emit(heir, [heir.cell] as Array[Vector2i])
 	status_changed.emit(heir, snapshot(heir))
 
@@ -4382,7 +4392,7 @@ func _death_blast(unit: BattleUnit) -> void:
 		return
 	if unit.data == null or unit.data.death_blast <= 0:
 		return
-	message.emit("%s лопается: газовый хлопок!" % unit.title)
+	message.emit(Loc.t("%s лопается: газовый хлопок!") % unit.title)
 	var cells: Array[Vector2i] = []
 	for d: Vector2i in HexMath.DIRS:
 		if is_inside(unit.cell + d):
@@ -4400,14 +4410,14 @@ func _death_blast(unit: BattleUnit) -> void:
 			if object_at(unit.cell) == Obj.NONE:
 				_apply_element(unit.cell, CardData.Element.WATER, unit.cell)   # жаба: на её клетке лужа
 		EnemyData.Remains.FIRE:   # котёл, бутыли масла: взрыв поджигает клетку и всё вокруг
-			message.emit("Огонь разлетается вокруг")
+			message.emit(Loc.t("Огонь разлетается вокруг"))
 			for t in [unit.cell] + cells:
 				_apply_element(t, CardData.Element.FIRE, unit.cell, false)
 
 
 # Взрыв раздутой жабы: 12 урона и яд всем вокруг; при 2+ стаках — в два кольца (18 клеток)
 func _inflation_burst(unit: BattleUnit) -> void:
-	message.emit("%s лопается: ядовитый взрыв!" % unit.title)
+	message.emit(Loc.t("%s лопается: ядовитый взрыв!") % unit.title)
 	var cells: Array[Vector2i] = HexMath.ring(unit.cell, 1)
 	if unit.inflation >= 2:
 		cells.append_array(HexMath.ring(unit.cell, 2))
@@ -4437,13 +4447,11 @@ func has_relic(id: String) -> bool:
 	return charms.has(id)
 
 
-# Урон огня в конце раунда: корягачу вдвое, героям вдвое с «Пепельным фонарём»
+# Урон огня в конце раунда: корягачу вдвое; героев с «Пепельным фонарём» огонь не ранит
 func fire_damage_for(u: BattleUnit) -> int:
-	if _fireproof(u):
-		return 0   # Жаровик и герой с духом огня
+	if _fireproof(u) or (u.is_hero and has_relic("ash_lantern")):
+		return 0   # Жаровик, герой с духом огня, герои с фонарём
 	var weak: bool = u.data != null and u.data.fire_weak
-	if u.is_hero and has_relic("ash_lantern"):
-		weak = true
 	return FIRE_DAMAGE * 2 if weak else FIRE_DAMAGE
 
 
@@ -4471,15 +4479,15 @@ func objective_text() -> String:
 		Objective.RITUAL:
 			var caster: BattleUnit = _unit_by_id(ritual_caster_id)
 			if caster == null or not caster.is_alive():
-				return "Ритуал сорван — добей остальных"
-			return "Убей ритуалиста (%s): %d р. до призыва" % [caster.title, ritual_timer]
+				return Loc.t("Ритуал сорван — добей остальных")
+			return Loc.t("Убей ритуалиста (%s): %d р. до призыва") % [caster.title, ritual_timer]
 		Objective.BREAKTHROUGH:
-			return "Доведи героев до верхнего ряда (или убей всех)"
+			return Loc.t("Доведи героев до верхнего ряда (или убей всех)")
 		Objective.RISING_WATER:
 			if water_row < 0:
-				return "Убей всех: с %d-го раунда снизу прибывает вода" % RISING_WATER_FROM
-			return "Убей всех: вода прибывает (ряд %d)" % (height - water_row)
-	return "Убей всех врагов"
+				return Loc.t("Убей всех: с %d-го раунда снизу прибывает вода") % RISING_WATER_FROM
+			return Loc.t("Убей всех: вода прибывает (ряд %d)") % (height - water_row)
+	return Loc.t("Убей всех врагов")
 
 
 # Клетки, которые стоит подсветить: верхний ряд для прорыва, ряд, который зальёт, для воды
@@ -4526,7 +4534,7 @@ func _objective_round_end() -> void:
 			ritual_timer -= 1
 			status_changed.emit(caster, snapshot(caster))   # обновить счётчик над головой
 			if ritual_timer <= 0:
-				message.emit("%s завершил ритуал: из топей лезет подмога!" % caster.title)
+				message.emit(Loc.t("%s завершил ритуал: из топей лезет подмога!") % caster.title)
 				for i in RITUAL_SUMMONS:
 					spawn_enemy(load(SUMMON_ENEMY))
 				ritual_power += RITUAL_POWER
@@ -4535,7 +4543,7 @@ func _objective_round_end() -> void:
 					status_changed.emit(e, snapshot(e))
 		Objective.BREAKTHROUGH:
 			if turn % BREAKTHROUGH_EVERY == 0:
-				message.emit("Сверху подходит подкрепление")
+				message.emit(Loc.t("Сверху подходит подкрепление"))
 				spawn_enemy(load(SUMMON_ENEMY))
 		Objective.RISING_WATER:
 			if turn >= RISING_WATER_FROM:
@@ -4578,7 +4586,7 @@ func _flood_next_row() -> void:
 		if _floodable(c):
 			fire_timers.erase(c)
 			_set_tile(c, Tile.SWAMP)
-	message.emit("Вода прибывает: нижний ряд ушёл в трясину")
+	message.emit(Loc.t("Вода прибывает: нижний ряд ушёл в трясину"))
 
 
 # Новый враг посреди боя — в верхних рядах на свободной клетке (или на клетке at). null — места нет.
@@ -4683,7 +4691,7 @@ func _waves_round_end() -> void:
 	for title: String in names:
 		parts.append(title if names[title] == 1 else "%s ×%d" % [title, names[title]])
 	var why: String = String(arrivals[0]["text"])
-	message.emit("%s: из тумана выходят %s" % [why if why != "" else "Подмога", ", ".join(parts)])
+	message.emit(Loc.t("%s: из тумана выходят %s") % [why if why != "" else Loc.t("Подмога"), ", ".join(parts)])
 	for a: Dictionary in arrivals:
 		spawn_enemy(a["enemy"], a["cell"])
 
@@ -4703,9 +4711,9 @@ func wave_text() -> String:
 	if best == null:
 		return ""
 	var n: int = best.count_on(best_round) + wave_extra
-	var who: String = best.enemy.title + (" ×%d" % n if n > 1 else "")
-	var when: String = "в конце этого раунда" if best_round == turn else "в конце раунда %d" % best_round
-	return "%s %s\n(пока жив %s)" % [who, when, leader.title]
+	var who: String = Loc.t(best.enemy.title) + (" ×%d" % n if n > 1 else "")
+	var when: String = Loc.t("в конце этого раунда") if best_round == turn else Loc.t("в конце раунда %d") % best_round
+	return Loc.t("%s %s\n(пока жив %s)") % [who, when, leader.title]
 
 
 # ---------- «Клещи» ----------
@@ -4764,7 +4772,7 @@ func _toad_leap(e: BattleUnit) -> void:
 	if not e.is_alive():
 		return   # прыгнула на руну или в трясину
 	e.fuse = 1
-	message.emit("%s тлеет: взорвётся в начале следующего хода врагов!" % e.title)
+	message.emit(Loc.t("%s тлеет: взорвётся в начале следующего хода врагов!") % e.title)
 	status_changed.emit(e, snapshot(e))
 
 
@@ -4775,7 +4783,7 @@ func _douse_fuse(c: Vector2i) -> void:
 	if u == null or u.is_hero or u.fuse <= 0:
 		return
 	u.fuse = 0
-	message.emit("Лёд погасил фитиль: %s" % u.title)
+	message.emit(Loc.t("Лёд погасил фитиль: %s") % u.title)
 	status_changed.emit(u, snapshot(u))
 
 
@@ -4784,7 +4792,7 @@ func _detonate_fuses() -> bool:
 	for e in enemies:
 		if e.is_alive() and e.fuse > 0:
 			e.fuse = 0
-			message.emit("Фитиль %s догорел!" % e.title)
+			message.emit(Loc.t("Фитиль %s догорел!") % e.title)
 			_kill(e)
 			_inflation_burst(e)
 	return _check_end()
@@ -4849,14 +4857,14 @@ func _mod_after_hit(u: BattleUnit, direct: bool) -> void:
 			if not u.mod_on and u.hp * 2 <= u.max_hp:
 				u.mod_on = true
 				fx_hint.emit("modifier", u, null)
-				message.emit("%s впадает в бешенство!" % u.title)
+				message.emit(Loc.t("%s впадает в бешенство!") % u.title)
 				status_changed.emit(u, snapshot(u))
 		EnemyModifier.Kind.SPITE:
 			var h: BattleUnit = _cur_hero
 			if direct and not u.mod_used and h != null and h.is_alive() and HexMath.distance(h.cell, u.cell) == 1:
 				u.mod_used = true
 				fx_hint.emit("modifier", u, null)
-				message.emit("%s бьёт в ответ" % u.title)
+				message.emit(Loc.t("%s бьёт в ответ") % u.title)
 				status_changed.emit(u, snapshot(u))
 				_dmg_source = "spite"
 				_damage(h, u.data.modifier.value)
@@ -4872,10 +4880,10 @@ func _mod_on_death(unit: BattleUnit, burst: bool) -> void:
 			o.mod_stacks += 1
 			o.block += 3
 			fx_hint.emit("modifier", o, null)
-			message.emit("%s: вера крепнет (+3 блока, удары +%d)" % [o.title, o.mod_stacks])
+			message.emit(Loc.t("%s: вера крепнет (+3 блока, удары +%d)") % [o.title, o.mod_stacks])
 			status_changed.emit(o, snapshot(o))
 	if burst and _mod_kind(unit) == EnemyModifier.Kind.ROTTEN:
-		message.emit("%s лопается гнилью!" % unit.title)
+		message.emit(Loc.t("%s лопается гнилью!") % unit.title)
 		var cells: Array[Vector2i] = []
 		for d: Vector2i in HexMath.DIRS:
 			if is_inside(unit.cell + d):
@@ -5025,7 +5033,7 @@ func _fire_prism(card: CardData) -> void:
 				var u2: BattleUnit = unit_at(c)
 				if u2 != null and not u2.is_hero and not hit.has(u2):
 					hit[u2] = true
-		message.emit("Призма разделяет заклинание на лучи")
+		message.emit(Loc.t("Призма разделяет заклинание на лучи"))
 		for u3: BattleUnit in hit.keys():
 			if u3.is_alive():
 				_card_damage(u3, card.damage + 3, false)
@@ -5051,7 +5059,7 @@ func _intercept(card: CardData, target: Vector2i) -> Vector2i:
 		return target
 	for e in living_enemies():
 		if e.data.living_shield and HexMath.distance(e.cell, target) == 1:
-			message.emit("%s перехватывает удар" % e.title)
+			message.emit(Loc.t("%s перехватывает удар") % e.title)
 			return e.cell
 	return target
 
@@ -5068,7 +5076,7 @@ func _make_swamp_around(e: BattleUnit, victims: Array[BattleUnit]) -> void:
 				u.hand.append(slime)
 			else:
 				u.discard_pile.append(slime)
-			message.emit("%s: в руке «Болотная тина»" % u.title)
+			message.emit(Loc.t("%s: в руке «Болотная тина»") % u.title)
 			status_changed.emit(u, snapshot(u))
 			break
 
@@ -5084,7 +5092,7 @@ func _slinger_assist(e: BattleUnit) -> bool:
 				near = h
 		if near == null or HexMath.distance(near.cell, t.cell) < 3:
 			continue
-		message.emit("%s швыряет камень в жабу" % e.title)
+		message.emit(Loc.t("%s швыряет камень в жабу") % e.title)
 		_damage(t, 1)
 		if t.is_alive():
 			t.inflation += 1
@@ -5134,7 +5142,7 @@ func discard_card(h: BattleUnit, index: int) -> bool:
 	_forget_kept(h, index)
 	h.discard_pile.append(card)
 	_discards_left[h] = discards_left(h) - 1
-	message.emit("%s сбрасывает «%s»" % [h.title, card.title])
+	message.emit(Loc.t("%s сбрасывает «%s»") % [h.title, Loc.t(card.title)])
 	status_changed.emit(h, snapshot(h))
 	return true
 
@@ -5210,12 +5218,13 @@ func _start_heroes_turn() -> void:
 		if h.entangled > 0:
 			h.moves_left = 0   # опутан: шагов нет, но карты играть можно
 			h.entangled -= 1
-			message.emit("%s опутан: в этот ход без шагов" % h.title)
+			message.emit(Loc.t("%s опутан: в этот ход без шагов") % h.title)
 		status_changed.emit(h, snapshot(h))
 		# Рука целиком сбрасывается — берём новую; в остальных режимах
 		# карты добираются в end_turn(), а в бою рука стартует с 5 карт
 		if DRAW_MODE == DrawMode.DISCARD_ALL or turn == 1:
 			var extra: int = 1 if turn == 1 and charms.has("charm_shard") and h.hero_data.id == "mage" else 0
+			extra += _vow_draw(h)
 			_draw_cards(h, HAND_SIZE + extra)   # «Осколок ученика»: на 1 карту больше в 1-м раунде
 			if turn == 1:
 				for call: CardData in _calls.get(h, []):
@@ -5224,7 +5233,7 @@ func _start_heroes_turn() -> void:
 	for e in living_enemies():
 		if e.data.cycle.size() > 1:
 			status_changed.emit(e, snapshot(e))
-	message.emit("— Ход %d —" % turn)
+	message.emit(Loc.t("— Ход %d —") % turn)
 
 
 # Мана героя ушла в минус: урона нет, но если в минусе 2 или больше —
@@ -5234,11 +5243,8 @@ func _apply_overheat() -> void:
 		var stacks: int = overheat_stacks(h)
 		if stacks <= 0:
 			continue
-		message.emit("%s: перегрев %d" % [h.title, stacks])
+		message.emit(Loc.t("%s: перегрев %d") % [h.title, stacks])
 		overheated.emit(h, stacks)
-		if h.hero_data.gains_rage and has_relic("warden_brand"):
-			h.rage += WARDEN_BRAND_RAGE * stacks
-			status_changed.emit(h, snapshot(h))
 		if stacks >= OVERHEAT_PENALTY_FROM:
 			_mana_penalty[h.id] = OVERHEAT_MANA_PENALTY
 		h.mana = 0
@@ -5262,7 +5268,7 @@ func end_turn() -> void:
 		h.unstoppable_chain = false
 		# «Перегрузка»: заряд не потрачен — бьёт по самому магу
 		if h.is_alive() and h.overloaded and h.charge > 0:
-			message.emit("Перегрузка бьёт по %s!" % h.title)
+			message.emit(Loc.t("Перегрузка бьёт по %s!") % h.title)
 			var overload: int = h.charge
 			h.charge = 0
 			h.overloaded = false
@@ -5285,7 +5291,7 @@ func end_turn() -> void:
 			continue   # огонь уже потушили (например, лужа от лопнувшей жабы)
 		var u: BattleUnit = unit_at(c)
 		if u != null and fire_damage_for(u) > 0:
-			message.emit("%s горит" % u.title)
+			message.emit(Loc.t("%s горит") % u.title)
 			_hint_damage(u, fire_damage_for(u), "fire")
 		if not fire_timers.has(c):
 			continue
@@ -5306,7 +5312,7 @@ func end_turn() -> void:
 			status_changed.emit(e, snapshot(e))
 	for e in living_enemies():
 		if e.data.water_bound and not _is_water_cell(e.cell):
-			message.emit("%s сохнет на суше" % e.title)
+			message.emit(Loc.t("%s сохнет на суше") % e.title)
 			_damage(e, JELLY_DRY_DAMAGE, true)   # медуза вне воды
 	_cave_round_end()
 	_burning_trees_round_end()
@@ -5315,7 +5321,7 @@ func end_turn() -> void:
 		if object_at(c) == Obj.LAVA:
 			var lu: BattleUnit = unit_at(c)
 			if lu != null and not _fireproof(lu):
-				message.emit("%s жарится в лаве" % lu.title)
+				message.emit(Loc.t("%s жарится в лаве") % lu.title)
 				_hint_damage(lu, LAVA_DAMAGE, "lava")
 	_tick_statuses()
 	_tick_objects()
@@ -5330,7 +5336,16 @@ func end_turn() -> void:
 
 
 # Сколько карт герой добирает после «Конец хода» (не считая лимита руки)
+# «Обет тишины»: Маг не удерживает карты, но берёт на карту больше
+func _vow_draw(h: BattleUnit) -> int:
+	return VOW_EXTRA_DRAW if h.hero_data.id == "mage" and has_relic("vow_of_silence") else 0
+
+
 func _end_turn_draw_count(h: BattleUnit) -> int:
+	return _base_draw_count(h) + _vow_draw(h)
+
+
+func _base_draw_count(h: BattleUnit) -> int:
 	match DRAW_MODE:
 		DrawMode.REFILL_5:
 			return maxi(1, HAND_SIZE - h.hand.size())
@@ -5368,11 +5383,11 @@ func _tick_objects() -> void:
 			if kind == Obj.STONE_WALL:
 				obj_timers.erase(c)
 				_set_object(c, Obj.NONE, Vector2i.ZERO)
-				message.emit("Камни осыпаются")
+				message.emit(Loc.t("Камни осыпаются"))
 				continue
 			if kind == Obj.BURNING_TREE:
 				_set_object(c, Obj.TREE, Vector2i.ZERO)   # крона прогорела — сухое дерево, его можно повалить
-				message.emit("Дерево прогорело")
+				message.emit(Loc.t("Дерево прогорело"))
 				continue
 			_set_object(c, Obj.NONE, Vector2i.ZERO)
 			if kind == Obj.ICE_BLOCK:
@@ -5396,7 +5411,7 @@ func _enemies_act() -> bool:
 			continue
 		if e.stunned > 0:
 			e.stunned -= 1   # замыкание: механизм стоит и искрит
-			message.emit("%s: замыкание — пропускает ход" % e.title)
+			message.emit(Loc.t("%s: замыкание — пропускает ход") % e.title)
 			status_changed.emit(e, snapshot(e))
 			continue
 		if e.asleep:
@@ -5472,10 +5487,10 @@ func _start_enemy_phase() -> void:
 				_set_tile(e.cell, Tile.NONE)   # лужа под Жаровиком вскипает паром
 				reaction.emit(e.cell, "steam")
 				_set_wet(e, WET_TURNS)
-				message.emit("%s: лужа под ним вскипает" % e.title)
+				message.emit(Loc.t("%s: лужа под ним вскипает") % e.title)
 			if is_wet(e):
 				block = 0   # мокрый — без брони
-				message.emit("%s мокрый: броня погасла" % e.title)
+				message.emit(Loc.t("%s мокрый: броня погасла") % e.title)
 		if e.data.fire_weak and tile_at(e.cell) == Tile.FIRE:
 			block = 0   # стоит в огне — брони нет
 		if e.block != block:
@@ -5487,8 +5502,8 @@ func _start_enemy_phase() -> void:
 func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 	var cells: Array[Vector2i] = _attack_cells(e, atk, e.cell, dir)
 	enemy_attacked.emit(e, dir, cells)
-	if atk.title != "Удар":
-		message.emit("%s: %s" % [e.title, atk.title])
+	if Loc.t(atk.title) != Loc.t("Удар"):
+		message.emit("%s: %s" % [e.title, Loc.t(atk.title)])
 	var damage: int = atk.damage + e.bonus_damage + e.crown_power + ritual_power + _ambush_bonus(e) + mod_damage(e)
 	if e.bonus_damage > 0:
 		e.bonus_damage = 0   # усиление «Зова» — на один удар
@@ -5502,7 +5517,7 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 			if u.is_hero and u.brand > 0:
 				hit += BRAND_BONUS   # клеймо Культа: удар по меченому сильнее, метка сгорает
 				u.brand = 0
-				message.emit("Клеймо на %s вспыхивает: +%d" % [u.title, BRAND_BONUS])
+				message.emit(Loc.t("Клеймо на %s вспыхивает: +%d") % [u.title, BRAND_BONUS])
 			_damage(u, hit)          # по пути можно задеть и других
 		elif _is_breakable(c) and not atk.pierce:
 			_hit_object(c, e.cell)      # промах по бочке — тоже взрыв
@@ -5515,13 +5530,13 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 			_apply_element(u.cell, CardData.Element.WATER, e.cell)
 		if atk.entangle > 0:
 			u.entangled = maxi(u.entangled, atk.entangle)
-			message.emit("%s опутан" % u.title)
+			message.emit(Loc.t("%s опутан") % u.title)
 			status_changed.emit(u, snapshot(u))
 		if atk.poison > 0:
 			_set_poison(u, atk.poison)
 		if atk.brand and u.is_hero:
 			u.brand = 1
-			message.emit("%s заклеймён: следующий удар по нему +%d" % [u.title, BRAND_BONUS])
+			message.emit(Loc.t("%s заклеймён: следующий удар по нему +%d") % [u.title, BRAND_BONUS])
 			status_changed.emit(u, snapshot(u))
 	if atk.gas_cloud:
 		_gas_cloud(cells)
@@ -5549,7 +5564,7 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 
 # «Зов»: враги в круге радиусом 2 вокруг (и сам зовущий) получают блок, их следующий удар сильнее
 func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
-	message.emit("%s: %s" % [e.title, atk.title])
+	message.emit("%s: %s" % [e.title, Loc.t(atk.title)])
 	if not atk.is_summon_only():
 		var cells: Array[Vector2i] = _aura_cells(e.cell, atk.attack_range)
 		enemy_buffed.emit(e, cells)
@@ -5557,14 +5572,14 @@ func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
 			if cells.has(ally.cell):
 				if atk.ally_heal > 0 and ally.data.machine and ally.hp < ally.max_hp:
 					ally.hp = mini(ally.max_hp, ally.hp + atk.ally_heal)   # Ремонтник чинит механизм
-					message.emit("%s починен: +%d HP" % [ally.title, atk.ally_heal])
+					message.emit(Loc.t("%s починен: +%d HP") % [ally.title, atk.ally_heal])
 				ally.block += atk.ally_block
 				ally.bonus_damage = maxi(ally.bonus_damage, atk.ally_damage)
 				if _mod_kind(ally) == EnemyModifier.Kind.RALLY:
 					ally.bonus_damage += ally.data.modifier.value   # «Отклик на зов»
 					ally.mod_step_next = true
 					fx_hint.emit("modifier", ally, null)
-					message.emit("%s откликается на зов" % ally.title)
+					message.emit(Loc.t("%s откликается на зов") % ally.title)
 				status_changed.emit(ally, snapshot(ally))
 	if atk.summon != null and atk.summon_count > 0:
 		_summon_around(e, atk.summon, atk.summon_count)
@@ -5572,7 +5587,7 @@ func _enemy_aura(e: BattleUnit, atk: EnemyAttackData) -> void:
 		for c: Vector2i in fire_timers.keys():
 			if HexMath.distance(c, e.cell) <= STOKE_RADIUS:
 				fire_timers[c] += atk.stoke
-		message.emit("Угли разгораются сильнее")
+		message.emit(Loc.t("Угли разгораются сильнее"))
 
 
 # Призыв (кладка Прядильщицы, жабы Матери Трясины): новые враги встают на свободные
@@ -5606,7 +5621,7 @@ func _summon_around(e: BattleUnit, enemy_data: EnemyData, count: int) -> void:
 		_init_enemy(u)
 		enemies.append(u)
 		unit_spawned.emit(u)
-	message.emit("%s зовёт подмогу: %s ×%d" % [e.title, enemy_data.title.to_lower(), cells.size()])
+	message.emit(Loc.t("%s зовёт подмогу: %s ×%d") % [e.title, Loc.t(enemy_data.title).to_lower(), cells.size()])
 
 
 # Газовая отрыжка: клетки удара (сухие или с лужей, без объектов) становятся газом
@@ -5639,16 +5654,16 @@ func _outpost_strike(e: BattleUnit) -> bool:
 	for h in living_heroes():
 		if HexMath.distance(h.cell, e.cell) == 1 and h.root_guard and e.is_alive():
 			e.entangled = maxi(e.entangled, 1)
-			message.emit("Корни держат: %s опутан" % e.title)
+			message.emit(Loc.t("Корни держат: %s опутан") % e.title)
 		if HexMath.distance(h.cell, e.cell) == 1 and h.ember_guard and e.is_alive() and tile_at(e.cell) != Tile.FIRE:
 			_apply_element(e.cell, CardData.Element.FIRE, h.cell)
-			message.emit("Угли вспыхивают под %s" % e.title)
+			message.emit(Loc.t("Угли вспыхивают под %s") % e.title)
 		if HexMath.distance(h.cell, e.cell) == 1 and h.gust_guard > 0 and e.is_alive():
 			_push(e, HexMath.direction_to(h.cell, e.cell), h.gust_guard)
 			if not e.is_alive():
 				return true
 		if h.outpost and HexMath.distance(h.cell, e.cell) == 1:
-			message.emit("Застава: %s получает удар" % e.title)
+			message.emit(Loc.t("Застава: %s получает удар") % e.title)
 			_damage(e, OUTPOST_DAMAGE)
 			if not e.is_alive():
 				return true
@@ -5670,19 +5685,19 @@ func _check_end() -> bool:
 	if living_heroes().is_empty():
 		is_over = true
 		won = false
-		message.emit("Отряд пал…")
+		message.emit(Loc.t("Отряд пал…"))
 	elif _spirit_tamed():
 		is_over = true
 		won = true
-		message.emit("Дух покорён! Твари разбегаются")
+		message.emit(Loc.t("Дух покорён! Твари разбегаются"))
 	elif objective == Objective.BREAKTHROUGH and _broke_through():
 		is_over = true
 		won = true
-		message.emit("Прорыв! Отряд вырвался из топей")
+		message.emit(Loc.t("Прорыв! Отряд вырвался из топей"))
 	elif living_enemies().is_empty():
 		is_over = true
 		won = true
-		message.emit("Все враги повержены!")
+		message.emit(Loc.t("Все враги повержены!"))
 	return is_over
 
 
@@ -6198,7 +6213,7 @@ func _walked(u: BattleUnit, path: Array[Vector2i]) -> void:
 		var t: int = tile_at(path[i])
 		if t == Tile.SWAMP and u.is_hero and u.moves_left > 0 and not u.swamp_free:
 			u.moves_left = maxi(0, u.moves_left - SWAMP_STEP_COST)
-			message.emit("%s увяз в трясине" % u.title)
+			message.emit(Loc.t("%s увяз в трясине") % u.title)
 		elif t == Tile.GAS:
 			_gas_hit(u)
 	# Лоза: вошёл — опутан. Герой в свой ход теряет оставшиеся шаги, враг не ходит в следующий ход.
@@ -6208,7 +6223,7 @@ func _walked(u: BattleUnit, path: Array[Vector2i]) -> void:
 			u.moves_left = 0
 		else:
 			u.entangled = maxi(u.entangled, 1)
-		message.emit("%s запутался в лозе" % u.title)
+		message.emit(Loc.t("%s запутался в лозе") % u.title)
 		status_changed.emit(u, snapshot(u))
 	if u.is_hero:
 		return
@@ -6249,7 +6264,7 @@ func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
 	if _cur_card != null and _cur_card.element == CardData.Element.WATER and u.data != null and u.data.id == "crown_vessel":
 		vessel_water_hits += 1   # условие Сердца Жерла
 		if vessel_water_hits == VESSEL_WATER_HITS and not party_has_magma:
-			message.emit("Пламя в клетке стихает и слушает. Добей Сосуд — Сердце Жерла уйдёт с тобой.")
+			message.emit(Loc.t("Пламя в клетке стихает и слушает. Добей Сосуд — Сердце Жерла уйдёт с тобой."))
 	if _lightning_now and ctx.rot_storm and u.entangled > 0:
 		amount *= 2   # «Гнилая гроза»
 	if _cur_card != null and _cur_card.special == "thorn" and (u.entangled > 0 or object_at(u.cell) == Obj.VINE):
@@ -6265,14 +6280,14 @@ func _card_damage(u: BattleUnit, amount: int, pierce: bool) -> void:
 	if _cur_hero != null and amount > 0 and is_pincered(u):
 		amount = amount * (100 + PINCER_BONUS_PCT) / 100
 		reaction.emit(u.cell, "pincer")
-		message.emit("%s в клещах!" % u.title)
+		message.emit(Loc.t("%s в клещах!") % u.title)
 	elif amount > 0 and u.data != null and u.data.shell:
 		amount = amount / 2   # «Панцирь»: без клещей половина урона (вниз)
-		message.emit("%s: панцирь держит удар" % u.title)
+		message.emit(Loc.t("%s: панцирь держит удар") % u.title)
 	if amount > 0 and u.data != null and u.data.water_weak and _cur_card != null \
 			and (_cur_card.element == CardData.Element.WATER or STEAM_SPECIALS.has(_cur_card.special)):
 		amount *= 2   # Жаровик боится воды и пара
-		message.emit("%s шипит от воды!" % u.title)
+		message.emit(Loc.t("%s шипит от воды!") % u.title)
 	if not _hit_enemies.has(u):
 		_hit_enemies.append(u)
 	_damage(u, amount, pierce)
@@ -6297,7 +6312,7 @@ func _apply_weapon_rune(h: BattleUnit, card: CardData, from: Vector2i) -> void:
 	h.rune_hits -= 1
 	if h.rune_hits <= 0:
 		h.rune = ""
-		message.emit("Руна на клинке погасла")
+		message.emit(Loc.t("Руна на клинке погасла"))
 	status_changed.emit(h, snapshot(h))
 
 
@@ -6305,7 +6320,7 @@ func _set_poison(u: BattleUnit, turns: int) -> void:
 	if u == null or not u.is_alive():
 		return
 	u.poison = maxi(u.poison, turns)
-	message.emit("%s отравлен" % u.title)
+	message.emit(Loc.t("%s отравлен") % u.title)
 	status_changed.emit(u, snapshot(u))
 
 
@@ -6320,7 +6335,7 @@ func _tick_statuses() -> void:
 				continue
 		if u.poison > 0:
 			u.poison -= 1
-			message.emit("%s страдает от яда" % u.title)
+			message.emit(Loc.t("%s страдает от яда") % u.title)
 			_hint_damage(u, POISON_DAMAGE, "poison", true)
 			if u.is_alive():
 				status_changed.emit(u, snapshot(u))
@@ -6339,7 +6354,7 @@ func _trigger_rune(c: Vector2i, walker: BattleUnit = null) -> void:
 	if object_at(c) != Obj.RUNE:
 		return
 	_set_object(c, Obj.NONE, Vector2i.ZERO)
-	message.emit("Сторожевая руна срабатывает!")
+	message.emit(Loc.t("Сторожевая руна срабатывает!"))
 	var cells: Array[Vector2i] = []
 	for t in HexMath.cluster(c):
 		if is_inside(t):

@@ -188,18 +188,18 @@ func _ready() -> void:
 	_mode = Mode.BUSY
 	logic.start()
 	if Run.is_elite_battle() and Run.bog_spirit_offered():
-		logic.message.emit("В корнях корягача спит Хозяин трясины: утопи %d врагов в трясине — и он пойдёт с тобой." % Run.BOG_SPIRIT_DROWNS)
+		logic.message.emit(Loc.t("В корнях корягача спит Хозяин трясины: утопи %d врагов в трясине — и он пойдёт с тобой.") % Run.BOG_SPIRIT_DROWNS)
 	# Подсказка про новые объекты арены — одной строкой в журнале в начале боя
 	if BattleLogic.is_forest_arena(logic.arena_id):
-		logic.message.emit("Лес: лоза держит того, кто на неё встал (удар картой срубает), деревья с лентой закрывают линии и горят, улей — рой с ядом.")
+		logic.message.emit(Loc.t("Лес: лоза держит того, кто на неё встал (удар картой срубает), деревья с лентой закрывают линии и горят, улей — рой с ядом."))
 	elif BattleLogic.ARENA_HINTS.has(logic.arena_id):
 		logic.message.emit(BattleLogic.ARENA_HINTS[logic.arena_id])
 	elif logic.arena_id == "pump":
-		logic.message.emit("Насосная: удар по клапану — пар обжигает и отбрасывает соседей, вокруг разливается вода.")
+		logic.message.emit(Loc.t("Насосная: удар по клапану — пар обжигает и отбрасывает соседей, вокруг разливается вода."))
 	if Run.vessel_spirit_offered():
-		logic.message.emit("В клетке Сосуда бьётся Сердце Жерла: облей Сосуд водой %d раза до победы — и оно пойдёт с тобой." % BattleLogic.VESSEL_WATER_HITS)
+		logic.message.emit(Loc.t("В клетке Сосуда бьётся Сердце Жерла: облей Сосуд водой %d раза до победы — и оно пойдёт с тобой.") % BattleLogic.VESSEL_WATER_HITS)
 	if Run.is_elite_battle() and Run.forest_spirit_offered():
-		logic.message.emit("Леший смотрит из чащи: победи Голос Рощи, не спалив ни дерева, ни лозы, — и он пойдёт с тобой.")
+		logic.message.emit(Loc.t("Леший смотрит из чащи: победи Голос Рощи, не спалив ни дерева, ни лозы, — и он пойдёт с тобой."))
 	await _play_queue()
 	# В обучении первым ходит Рыцарь (так задуман сценарий), обычно — первый живой герой
 	_select_hero(logic.heroes[1] if _tutor != null else logic.living_heroes()[0])
@@ -1212,15 +1212,15 @@ func _preview_lines(p: Dictionary) -> Array:
 		var loss: int = info["hp"] - info["hp_after"]
 		if info["is_hero"]:
 			if loss > 0:
-				self_hurt.append("%s −%d%s" % [info["title"], loss, ", падёт" if info["killed"] else ""])
+				self_hurt.append("%s −%d%s" % [info["title"], loss, Loc.t(", падёт") if info["killed"] else ""])
 			elif loss < 0:
 				healed.append("%s +%d" % [info["title"], -loss])
 		elif loss > 0 or info["killed"] or info["absorbed"] > 0:
 			var text: String = "%s −%d" % [info["title"], loss]
 			if info["absorbed"] > 0:
-				text += " (блок −%d)" % info["absorbed"]
+				text += Loc.t(" (блок −%d)") % info["absorbed"]
 			if info["killed"]:
-				text += ", падёт"
+				text += Loc.t(", падёт")
 			hurt.append(text)
 		if not info["killed"] and info["cell"] != info["from"]:
 			moved += 1
@@ -1231,12 +1231,12 @@ func _preview_lines(p: Dictionary) -> Array:
 				statuses[key] = int(statuses.get(key, 0)) + 1
 	if not hurt.is_empty():
 		var shown: Array[String] = hurt.slice(0, 4)
-		var tail: String = "; ещё %d" % (hurt.size() - 4) if hurt.size() > 4 else ""
-		lines.append(["Урон: " + "; ".join(shown) + tail, UiKit.TEXT])
+		var tail: String = Loc.t("; ещё %d") % (hurt.size() - 4) if hurt.size() > 4 else ""
+		lines.append([Loc.t("Урон: ") + "; ".join(shown) + tail, UiKit.TEXT])
 	if not self_hurt.is_empty():
-		lines.append(["Своим: " + "; ".join(self_hurt), COLOR_SELF_HIT])
+		lines.append([Loc.t("Своим: ") + "; ".join(self_hurt), COLOR_SELF_HIT])
 	if not healed.is_empty():
-		lines.append(["Лечение: " + ", ".join(healed), UiKit.HP])
+		lines.append([Loc.t("Лечение: ") + ", ".join(healed), UiKit.HP])
 	var reactions: Dictionary = {}
 	for r: Dictionary in p["reactions"]:
 		var name: String = REACTION_NAMES.get(r["kind"], r["kind"])
@@ -1245,23 +1245,23 @@ func _preview_lines(p: Dictionary) -> Array:
 		var parts: Array[String] = []
 		for name: String in reactions:
 			parts.append(name if reactions[name] == 1 else "%s ×%d" % [name, reactions[name]])
-		lines.append(["Реакции: " + ", ".join(parts), UiKit.TEXT_DIM])
+		lines.append([Loc.t("Реакции: ") + ", ".join(parts), UiKit.TEXT_DIM])
 	if not (p["chain"] as Array).is_empty():
 		var links: Array[String] = []
 		for c: Dictionary in p["chain"]:
 			links.append(CHAIN_NAMES.get(c["kind"], c["kind"]))
-		lines.append(["Цепочка: " + " → ".join(links), UiKit.TEXT_DIM])
+		lines.append([Loc.t("Цепочка: ") + " → ".join(links), UiKit.TEXT_DIM])
 	if not statuses.is_empty():
 		var parts: Array[String] = []
 		for key: String in statuses:
 			parts.append("%s: %d" % [STATUS_NAMES.get(key, key), statuses[key]])
-		lines.append(["Состояния: " + ", ".join(parts), UiKit.TEXT_DIM])
+		lines.append([Loc.t("Состояния: ") + ", ".join(parts), UiKit.TEXT_DIM])
 	if not woke.is_empty():
-		lines.append(["Проснётся: " + ", ".join(woke), UiKit.TEXT_DIM])
+		lines.append([Loc.t("Проснётся: ") + ", ".join(woke), UiKit.TEXT_DIM])
 	if moved > 0:
-		lines.append(["Сдвинутся: %d" % moved, UiKit.TEXT_DIM])
+		lines.append([Loc.t("Сдвинутся: %d") % moved, UiKit.TEXT_DIM])
 	if int(p["spawned"]) > 0:
-		lines.append(["Появится врагов: %d" % p["spawned"], UiKit.TEXT_DIM])
+		lines.append([Loc.t("Появится врагов: %d") % p["spawned"], UiKit.TEXT_DIM])
 	return lines
 
 
@@ -1443,10 +1443,10 @@ func _after_action(snap: Dictionary) -> void:
 		return
 	for i in logic.heroes.size():
 		if logic.heroes[i].draw_pile.size() < snap["piles"][i]:
-			_clear_undo("Нельзя отменить: открыта новая карта из колоды.")
+			_clear_undo(Loc.t("Нельзя отменить: открыта новая карта из колоды."))
 			return
 	if Run.rng.state != snap["rng"]:
-		_clear_undo("Нельзя отменить: выпал случайный исход.")
+		_clear_undo(Loc.t("Нельзя отменить: выпал случайный исход."))
 		return
 	if snap["logic"] == logic.save_state():
 		return
@@ -1626,9 +1626,9 @@ func _finish_battle() -> void:
 	Sfx.play("victory" if logic.won else "defeat", 0.0)
 	if _tutor != null:
 		hud.tutor.close()
-		hud.show_banner("Обучение пройдено!" if logic.won else "Обучение окончено")
+		hud.show_banner(Loc.t("Обучение пройдено!") if logic.won else Loc.t("Обучение окончено"))
 	else:
-		hud.show_banner("Победа!" if logic.won else "Поражение…")
+		hud.show_banner(Loc.t("Победа!") if logic.won else Loc.t("Поражение…"))
 	await get_tree().create_timer(1.5).timeout
 	var hp_left: Array[int] = []
 	for h in logic.heroes:
@@ -1664,9 +1664,9 @@ func _show_tutor() -> void:
 	if _tutor_shown == _tutor.step:
 		return
 	_tutor_shown = _tutor.step
-	var next_text: String = "Дальше" if kind == "next" else ("Понятно" if kind == "free" else "")
+	var next_text: String = Loc.t("Дальше") if kind == "next" else (Loc.t("Понятно") if kind == "free" else "")
 	hud.tutor.show_step(_tutor.number_text(), s["title"], s["text"], next_text,
-			"Пропустить обучение" if _tutor.guided() else "")
+			Loc.t("Пропустить обучение") if _tutor.guided() else "")
 
 
 # ---------- Подсказки при первой встрече ----------
@@ -1777,9 +1777,9 @@ func _print_battle_stats() -> void:
 func _write_journal() -> void:
 	if Run.sim_no_scenes or _tutor != null:
 		return   # учебный бой в журнал баланса не пишем
-	var kinds: Dictionary = {MapNode.Type.BATTLE: "бой", MapNode.Type.ELITE: "элита",
-			MapNode.Type.BOSS: "босс", MapNode.Type.LAIR: "логово", MapNode.Type.EVENT: "событие"}
-	var kind: String = "пещера" if Run.in_cave else (kinds.get(Run.current.type, "?") if Run.current != null else "?")
+	var kinds: Dictionary = {MapNode.Type.BATTLE: Loc.t("бой"), MapNode.Type.ELITE: Loc.t("элита"),
+			MapNode.Type.BOSS: Loc.t("босс"), MapNode.Type.LAIR: Loc.t("логово"), MapNode.Type.EVENT: Loc.t("событие")}
+	var kind: String = Loc.t("пещера") if Run.in_cave else (kinds.get(Run.current.type, "?") if Run.current != null else "?")
 	var hp_start: Array[int] = []
 	var hp_end: Array[int] = []
 	var lost: int = 0
@@ -1875,7 +1875,7 @@ func _on_card_keep_toggled(index: int) -> void:
 	var before: int = _active.kept.size()
 	if not logic.toggle_keep(_active, index):
 		if logic.can_keep(_active, index):
-			hud.add_log("Удержать можно не больше %d карт" % BattleLogic.KEEP_LIMIT)
+			hud.add_log(Loc.t("Удержать можно не больше %d карт") % BattleLogic.KEEP_LIMIT)
 		Sfx.play("card_cancel", 0.05)
 	else:
 		Sfx.play("card_keep" if _active.kept.size() > before else "card_cancel", 0.04)

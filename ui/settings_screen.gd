@@ -63,7 +63,7 @@ func _ready() -> void:
 	title_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	title_row.add_theme_constant_override("separation", 10)
 	title_row.add_child(UiKit.icon_rect("gear", 26, UiKit.BRASS))
-	title_row.add_child(UiKit.make_title("Настройки", 30, UiKit.BRASS.lightened(0.2)))
+	title_row.add_child(UiKit.make_title(Loc.t("Настройки"), 30, UiKit.BRASS.lightened(0.2)))
 	col.add_child(title_row)
 	col.add_child(UiKit.make_divider(420))
 
@@ -76,21 +76,23 @@ func _ready() -> void:
 	left.add_theme_constant_override("separation", 8)
 	left.custom_minimum_size.x = 380
 	columns.add_child(left)
-	left.add_child(_section("Экран"))
-	left.add_child(_toggle_row("fullscreen", "Полный экран (F11)"))
-	left.add_child(_toggle_row("colorblind", "Режим для дальтоников (угроза — пурпурная, в полоску)"))
-	left.add_child(_section("Бой"))
+	left.add_child(_section(Loc.t("Экран")))
+	left.add_child(_toggle_row("fullscreen", Loc.t("Полный экран (F11)")))
+	left.add_child(_toggle_row("colorblind", Loc.t("Режим для дальтоников (угроза — пурпурная, в полоску)")))
+	if Settings.languages().size() > 1:
+		left.add_child(_language_row())
+	left.add_child(_section(Loc.t("Бой")))
 	left.add_child(_shake_row())
-	left.add_child(_toggle_row("full_effects", "Полные эффекты (выкл. — меньше частиц)"))
-	left.add_child(_toggle_row("rain", "Морось над полем"))
-	left.add_child(_toggle_row("fast_enemies", "Ход врагов ×2"))
-	left.add_child(_section("Подсказки"))
+	left.add_child(_toggle_row("full_effects", Loc.t("Полные эффекты (выкл. — меньше частиц)")))
+	left.add_child(_toggle_row("rain", Loc.t("Морось над полем")))
+	left.add_child(_toggle_row("fast_enemies", Loc.t("Ход врагов ×2")))
+	left.add_child(_section(Loc.t("Подсказки")))
 	var hints_row := HBoxContainer.new()
 	hints_row.add_theme_constant_override("separation", 10)
 	_hints_button = UiKit.make_button("", _toggle_hints)
 	_hints_button.custom_minimum_size = Vector2(185, 36)
 	hints_row.add_child(_hints_button)
-	var again: Button = UiKit.make_button("Показать все заново", _reset_hints)
+	var again: Button = UiKit.make_button(Loc.t("Показать все заново"), _reset_hints)
 	again.custom_minimum_size = Vector2(185, 36)
 	hints_row.add_child(again)
 	left.add_child(hints_row)
@@ -100,7 +102,7 @@ func _ready() -> void:
 	right.add_theme_constant_override("separation", 8)
 	right.custom_minimum_size.x = 380
 	columns.add_child(right)
-	right.add_child(_section("Звук"))
+	right.add_child(_section(Loc.t("Звук")))
 	for item: Array in SOUND_ROWS:
 		right.add_child(_slider_row(item[0], item[1]))
 	_mute_button = UiKit.make_button("", func() -> void:
@@ -108,13 +110,13 @@ func _ready() -> void:
 		_sync(), "bell")
 	_mute_button.custom_minimum_size = Vector2(0, 36)
 	right.add_child(_mute_button)
-	var hint: Label = UiKit.make_label("M — быстро выключить или вернуть звук", 13, UiKit.TEXT_DIM)
+	var hint: Label = UiKit.make_label(Loc.t("M — быстро выключить или вернуть звук"), 13, UiKit.TEXT_DIM)
 	right.add_child(hint)
 
 	col.add_child(UiKit.make_divider(420))
 	var close_row := HBoxContainer.new()
 	close_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var close_btn: Button = UiKit.make_button("Закрыть", _close, "", true)
+	var close_btn: Button = UiKit.make_button(Loc.t("Закрыть"), _close, "", true)
 	close_btn.custom_minimum_size = Vector2(180, 42)
 	close_row.add_child(close_btn)
 	col.add_child(close_row)
@@ -151,10 +153,34 @@ func _toggle_row(key: String, title: String) -> HBoxContainer:
 	return row
 
 
+# Язык: появляется, когда в locale/ есть хотя бы один перевод
+func _language_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var label: Label = UiKit.make_label(Loc.t("Язык"), 15)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	var pick := OptionButton.new()
+	for code: String in Settings.languages():
+		pick.add_item(Settings.LANGUAGE_NAMES.get(code, code))
+		pick.set_item_metadata(pick.item_count - 1, code)
+		if code == Settings.language:
+			pick.select(pick.item_count - 1)
+	pick.item_selected.connect(func(index: int) -> void:
+		Settings.set_value("language", str(pick.get_item_metadata(index)))
+		# Подписи-константы переведутся сразу, тексты, собранные кодом, — на следующем экране.
+		# Главное меню перезапускаем сразу (бой так перезапускать нельзя — он начнётся заново).
+		if get_tree().current_scene.scene_file_path == Run.MAIN_MENU_SCENE:
+			_close()
+			get_tree().reload_current_scene())
+	row.add_child(pick)
+	return row
+
+
 func _shake_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	var label: Label = UiKit.make_label("Тряска камеры", 15)
+	var label: Label = UiKit.make_label(Loc.t("Тряска камеры"), 15)
 	label.custom_minimum_size.x = 150
 	row.add_child(label)
 	_shake_slider = HSlider.new()
@@ -215,14 +241,14 @@ func _sync() -> void:
 		var v: float = Sfx.get_bus_volume(bus)
 		_sliders[bus].set_value_no_signal(v)
 		_values[bus].text = "%d%%" % roundi(v * 100.0)
-	_mute_button.text = "Звук выключен (включить)" if Sfx.muted else "Выключить весь звук"
+	_mute_button.text = Loc.t("Звук выключен (включить)") if Sfx.muted else Loc.t("Выключить весь звук")
 	for key: String in _toggles:
 		var on: bool = bool(Settings.get(key))
-		_toggles[key].text = "Вкл" if on else "Выкл"
+		_toggles[key].text = Loc.t("Вкл") if on else Loc.t("Выкл")
 		_toggles[key].modulate = Color.WHITE if on else Color(0.62, 0.62, 0.66)
 	_shake_slider.set_value_no_signal(Settings.shake)
-	_shake_value.text = "Выкл" if Settings.shake <= 0.0 else "%d%%" % roundi(Settings.shake * 100.0)
-	_hints_button.text = "Подсказки: выкл" if Hints.is_off() else "Подсказки: вкл"
+	_shake_value.text = Loc.t("Выкл") if Settings.shake <= 0.0 else "%d%%" % roundi(Settings.shake * 100.0)
+	_hints_button.text = Loc.t("Подсказки: выкл") if Hints.is_off() else Loc.t("Подсказки: вкл")
 
 
 func _close() -> void:

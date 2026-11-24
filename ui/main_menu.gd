@@ -18,20 +18,20 @@ func _ready() -> void:
 		heroes.add_child(UiKit.icon_rect(hero.id if UiKit.has_icon(hero.id) else "star", 54, hero.color.lightened(0.35)))
 	column.add_child(heroes)
 
-	column.add_child(UiKit.make_title("Пошаговый Рогалик", 58, UiKit.BRASS.lightened(0.25)))
-	column.add_child(UiKit.make_text("Сумеречная Марка. Небо расколото, топь ожила —\nа до Шпиля идти двоим: магу и рыцарю.", 17, UiKit.TEXT_DIM))
+	column.add_child(UiKit.make_title(Loc.t("Пошаговый Рогалик"), 58, UiKit.BRASS.lightened(0.25)))
+	column.add_child(UiKit.make_text(Loc.t("Сумеречная Марка. Небо расколото, топь ожила —\nа до Шпиля идти двоим: магу и рыцарю."), 17, UiKit.TEXT_DIM))
 	column.add_child(UiKit.make_divider(320))
 
 	# Первый запуск (сохранения нет) — «Начать», потом — «Продолжить».
-	var start_text: String = "Продолжить" if Meta.has_save() else "Начать"
+	var start_text: String = Loc.t("Продолжить") if Meta.has_save() else Loc.t("Начать")
 	column.add_child(UiKit.make_button(start_text, _on_start, "bell", true))
 	# Учебный бой можно пройти ещё раз в любой момент
-	column.add_child(UiKit.make_button("Обучение", Run.start_tutorial, "help"))
+	column.add_child(UiKit.make_button(Loc.t("Обучение"), Run.start_tutorial, "help"))
 	if Meta.has_save():
-		_reset_button = UiKit.make_button("Новый прогресс", _on_reset)
+		_reset_button = UiKit.make_button(Loc.t("Новый прогресс"), _on_reset)
 		column.add_child(_reset_button)
-	column.add_child(UiKit.make_button("Настройки", func() -> void: SettingsScreen.open(self), "gear"))
-	column.add_child(UiKit.make_button("Выход", get_tree().quit))
+	column.add_child(UiKit.make_button(Loc.t("Настройки"), func() -> void: SettingsScreen.open(self), "gear"))
+	column.add_child(UiKit.make_button(Loc.t("Выход"), get_tree().quit))
 
 
 func _on_start() -> void:
@@ -47,11 +47,11 @@ var _reset_armed: bool = false
 func _on_reset() -> void:
 	if not _reset_armed:
 		_reset_armed = true
-		_reset_button.text = "Точно стереть? Нажми ещё раз"
+		_reset_button.text = Loc.t("Точно стереть? Нажми ещё раз")
 		get_tree().create_timer(3.0).timeout.connect(func() -> void:
 			_reset_armed = false
 			if is_instance_valid(_reset_button):
-				_reset_button.text = "Новый прогресс")
+				_reset_button.text = Loc.t("Новый прогресс"))
 		return
 	Meta.reset()
 	Run.goto(Run.MAIN_MENU_SCENE)

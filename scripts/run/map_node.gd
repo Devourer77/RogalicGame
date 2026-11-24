@@ -22,17 +22,17 @@ var pos: Vector2 = Vector2.ZERO   # место на рисунке карты, �
 func type_name() -> String:
 	match type:
 		Type.BATTLE:
-			return "Бой"
+			return Loc.t("Бой")
 		Type.EVENT:
-			return "Событие"
+			return Loc.t("Событие")
 		Type.SHOP:
-			return "Лавка"
+			return Loc.t("Лавка")
 		Type.REST:
-			return "Привал"
+			return Loc.t("Привал")
 		Type.BOSS:
-			return "БОСС"
+			return Loc.t("БОСС")
 		Type.ELITE:
-			return "Элита"
+			return Loc.t("Элита")
 		Type.LAIR:
-			return "Логово духа"
+			return Loc.t("Логово духа")
 	return "?"

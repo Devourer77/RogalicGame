@@ -828,7 +828,7 @@ func _step_chip(st: Dictionary) -> Control:
 	if st.has("hp"):
 		var n: int = int(st["hp"])
 		var t: String = ("+%d" % n) if n > 0 else ("−%d" % -n)
-		return _chip("heart", "%s %s" % [t, whom if whom != "" else ("всем" if who == "all" else "")], UiKit.HP if n > 0 else PLAQUE_TEXT)
+		return _chip("heart", "%s %s" % [t, whom if whom != "" else (Loc.t("всем") if who == "all" else "")], UiKit.HP if n > 0 else PLAQUE_TEXT)
 	if st.has("heal_pct"):
 		return _chip("heart", "+%d%%" % int(st["heal_pct"]), UiKit.HP)
 	if st.has("card"):
@@ -841,13 +841,13 @@ func _step_chip(st: Dictionary) -> Control:
 	if st.has("echoes"):
 		return _chip("echo", "+%d" % int(st["echoes"]), UiKit.ECHO)
 	if st.has("relic") or st.has("relic_pick"):
-		return _chip("relic", "выбор" if st.has("relic_pick") else "", UiKit.BRASS)
+		return _chip("relic", Loc.t("выбор") if st.has("relic_pick") else "", UiKit.BRASS)
 	if st.has("wound"):
 		return _chip("wound", NAMES[st["wound"]][1], PLAQUE_TEXT)
 	if st.has("fog"):
 		return _chip("zoom", "+%d" % int(st["fog"]), PLAQUE_TEXT)
 	if st.has("fight"):
-		return _chip("swords", "бой", PLAQUE_TEXT)
+		return _chip("swords", Loc.t("бой"), PLAQUE_TEXT)
 	if st.has("gold_after"):
 		return _chip("coin", "+%d" % int(st["gold_after"]), UiKit.GOLD)
 	var text: String = step_text(st)
@@ -955,17 +955,17 @@ static func describe(steps: Array) -> String:
 		else:
 			gains.append(text)
 	if costs.is_empty():
-		return " и ".join(gains)
+		return Loc.t(" и ").join(gains)
 	if gains.is_empty():
 		return ", ".join(costs)
-	return "%s → %s" % [", ".join(costs), " и ".join(gains)]
+	return "%s → %s" % [", ".join(costs), Loc.t(" и ").join(gains)]
 
 
 static func _gains_only(steps: Array) -> String:
 	var parts: PackedStringArray = []
 	for s: Dictionary in steps:
 		parts.append(step_text(s))
-	return " и ".join(parts)
+	return Loc.t(" и ").join(parts)
 
 
 # Один шаг словами
@@ -975,41 +975,41 @@ static func step_text(s: Dictionary) -> String:
 		var amount: String = ("+%d HP" % n) if n > 0 else ("−%d HP" % -n)
 		match s.get("who", "random"):
 			"all":
-				return "каждому %s" % amount if n < 0 else "%s каждому" % amount
+				return Loc.t("каждому %s") % amount if n < 0 else Loc.t("%s каждому") % amount
 			"random":
-				return "случайный герой %s" % amount
+				return Loc.t("случайный герой %s") % amount
 			var who:
 				return "%s %s" % [NAMES[who][0], amount]
 	if s.has("gold"):
 		var g: int = int(s["gold"])
-		return ("+%d золота" % g) if g > 0 else ("−%d золота" % -g)
+		return (Loc.t("+%d золота") % g) if g > 0 else (Loc.t("−%d золота") % -g)
 	if s.has("card"):
-		var kind: String = "редкая карта" if s.get("rare", false) else "карта"
+		var kind: String = Loc.t("редкая карта") if s.get("rare", false) else Loc.t("карта")
 		if s["card"] == "random":
-			return "%s случайному герою" % kind
+			return Loc.t("%s случайному герою") % kind
 		return "%s %s" % [NAMES[s["card"]][1], kind]
 	if s.has("remove"):
-		return "убрать 1 карту %s" % NAMES[s["remove"]][2]
+		return Loc.t("убрать 1 карту %s") % NAMES[s["remove"]][2]
 	if s.has("echoes"):
-		return "+%d Отзвуков" % int(s["echoes"])
+		return Loc.t("+%d Отзвуков") % int(s["echoes"])
 	if s.has("relic"):
-		return "случайная реликвия"
+		return Loc.t("случайная реликвия")
 	if s.has("relic_pick"):
-		return "реликвия на выбор"
+		return Loc.t("реликвия на выбор")
 	if s.has("fog"):
-		return "туман на карте отступит"
+		return Loc.t("туман на карте отступит")
 	if s.has("heal_pct"):
-		return "+%d%% HP %s" % [int(s["heal_pct"]), "каждому" if s.get("who", "all") == "all" else NAMES.get(s["who"], ["герою"])[1]]
+		return "+%d%% HP %s" % [int(s["heal_pct"]), Loc.t("каждому") if s.get("who", "all") == "all" else NAMES.get(s["who"], [Loc.t("герою")])[1]]
 	if s.has("upgrade"):
-		return "улучшить карту %s" % NAMES[s["upgrade"]][2]
+		return Loc.t("улучшить карту %s") % NAMES[s["upgrade"]][2]
 	if s.has("wound"):
-		return "%s — Рана" % NAMES[s["wound"]][1]
+		return Loc.t("%s — Рана") % NAMES[s["wound"]][1]
 	if s.has("gold_after"):
-		return "+%d золота после боя" % int(s["gold_after"])
+		return Loc.t("+%d золота после боя") % int(s["gold_after"])
 	if s.has("keepers"):
-		return "Хранители бьют слабее" if s["keepers"] == "calm" else "Хранителей в следующем бою меньше"
+		return Loc.t("Хранители бьют слабее") if s["keepers"] == "calm" else Loc.t("Хранителей в следующем бою меньше")
 	if s.has("fight"):
-		return "бой"
+		return Loc.t("бой")
 	return ""
 
 
@@ -1019,11 +1019,11 @@ static func blocked_reason(option: Dictionary) -> String:
 	for s: Dictionary in option.get("effects", []):
 		gold_cost -= mini(0, int(s.get("gold", 0)))
 		if (s.has("relic") or s.has("relic_pick")) and not Run.can_take_relic():
-			return "Больше реликвий не унести"
+			return Loc.t("Больше реликвий не унести")
 		if s.has("upgrade") and Run.upgradable(_hero_static(s["upgrade"])).is_empty():
-			return "Нечего улучшать"
+			return Loc.t("Нечего улучшать")
 	if gold_cost > Run.gold:
-		return "Не хватает золота (нужно %d)" % gold_cost
+		return Loc.t("Не хватает золота (нужно %d)") % gold_cost
 	return ""
 
 
@@ -1037,7 +1037,7 @@ func _choose(option: Dictionary) -> void:
 	_lines.clear()
 	_won_cards.clear()
 	_steps = (option.get("effects", []) as Array).duplicate()
-	_story_text = option.get("result", "Отряд идёт дальше.")
+	_story_text = option.get("result", Loc.t("Отряд идёт дальше."))
 	if option.has("chance"):
 		var outcome: Dictionary = option["win"] if Run.rng.randf() < float(option["chance"]) else option["lose"]
 		_steps.append_array(outcome.get("effects", []))
@@ -1062,19 +1062,19 @@ func _next_step() -> void:
 		if s.has("relic_pick"):
 			var offer: Array[RelicData] = Run.roll_relics(int(s["relic_pick"]))
 			if offer.is_empty() or not Run.can_take_relic():
-				_lines.append("Больше реликвий не унести")
+				_lines.append(Loc.t("Больше реликвий не унести"))
 				continue
 			_show_relic_pick(offer)
 			return
 		if s.has("remove"):
 			var rh: RunHero = _random if s["remove"] == "random" else _hero(s["remove"])
 			if rh.deck.size() <= Run.MIN_DECK_SIZE:
-				_lines.append("%s: колода и так тонкая — убирать нечего" % NAMES[rh.data.id][0])
+				_lines.append(Loc.t("%s: колода и так тонкая — убирать нечего") % NAMES[rh.data.id][0])
 				continue
 			_last_remove = rh.data.id
-			var overlay: Control = DeckOverlay.open(self, "Какую карту %s убрать?" % NAMES[rh.data.id][2],
+			var overlay: Control = DeckOverlay.open(self, Loc.t("Какую карту %s убрать?") % NAMES[rh.data.id][2],
 					[{"title": rh.data.title, "color": rh.data.color, "cards": rh.deck}],
-					"Нажми на карту — она навсегда уйдёт из колоды.",
+					Loc.t("Нажми на карту — она навсегда уйдёт из колоды."),
 					func(_section: int, index: int) -> void: _remove(rh, index))
 			# «Передумал» закрывает окно без выбора — тогда карта остаётся, а событие идёт дальше
 			overlay.tree_exiting.connect(_removal_skipped.bind(rh))
@@ -1088,7 +1088,7 @@ func _show_relic_pick(offer: Array[RelicData]) -> void:
 	relic_offer = offer
 	UiKit.clear(_column)
 	_page_header()
-	_column.add_child(_story("Выбери реликвию:"))
+	_column.add_child(_story(Loc.t("Выбери реликвию:")))
 	for r in offer:
 		_column.add_child(_plaque(r.title, pick_relic.bind(r), [], "+ %s\n− %s" % [r.plus_text, r.minus_text]))
 
@@ -1097,13 +1097,13 @@ func pick_relic(r: RelicData) -> void:
 	relic_offer.clear()
 	Sfx.play("magic", 0.05)
 	Run.take_relic(r)
-	_lines.append("Реликвия «%s»\n+ %s\n− %s" % [r.title, r.plus_text, r.minus_text])
+	_lines.append(Loc.t("Реликвия «%s»\n+ %s\n− %s") % [Loc.t(r.title), r.plus_text, r.minus_text])
 	_next_step()
 
 
 func _remove(rh: RunHero, index: int) -> void:
 	_last_remove = ""
-	_lines.append("%s забывает «%s»" % [NAMES[rh.data.id][0], rh.deck[index].title])
+	_lines.append(Loc.t("%s забывает «%s»") % [NAMES[rh.data.id][0], Loc.t(rh.deck[index].title)])
 	rh.deck.remove_at(index)
 	_next_step()
 
@@ -1112,7 +1112,7 @@ func _removal_skipped(rh: RunHero) -> void:
 	if _last_remove == "":
 		return   # карту уже выбрали
 	_last_remove = ""
-	_lines.append("%s: карту не убрали" % NAMES[rh.data.id][0])
+	_lines.append(Loc.t("%s: карту не убрали") % NAMES[rh.data.id][0])
 	_next_step.call_deferred()
 
 
@@ -1128,61 +1128,61 @@ func _apply_step(s: Dictionary) -> void:
 				Run.heal_hero(rh, n)
 			var diff: int = rh.hp - before
 			if diff != 0:
-				_lines.append("%s: %s%d HP" % [rh.data.title, "+" if diff > 0 else "−", absi(diff)])
+				_lines.append("%s: %s%d HP" % [Loc.t(rh.data.title), "+" if diff > 0 else "−", absi(diff)])
 	elif s.has("gold"):
 		var g: int = int(s["gold"])
 		Run.gold = maxi(0, Run.gold + g)
-		_lines.append(("+%d золота" % g) if g > 0 else ("−%d золота" % -g))
+		_lines.append((Loc.t("+%d золота") % g) if g > 0 else (Loc.t("−%d золота") % -g))
 	elif s.has("card"):
 		var rh: RunHero = _random if s["card"] == "random" else _hero(s["card"])
 		var card: CardData = Run.event_card(rh, s.get("rare", false))
 		if card != null:
 			Run.add_card(rh, card)
-			_lines.append("%s: новая карта «%s»" % [NAMES[rh.data.id][1], card.title])
+			_lines.append(Loc.t("%s: новая карта «%s»") % [NAMES[rh.data.id][1], Loc.t(card.title)])
 			_won_cards.append({"card": card, "color": rh.data.color})
 	elif s.has("echoes"):
 		Run.event_echoes += int(s["echoes"])
-		_lines.append("+%d Отзвуков" % int(s["echoes"]))
+		_lines.append(Loc.t("+%d Отзвуков") % int(s["echoes"]))
 	elif s.has("fog"):
 		Run.fog_bonus += int(s["fog"])
-		_lines.append("Туман на карте отступает: видно на %d ряда вперёд" % (Run.FOG_SIGHT + Run.fog_bonus))
+		_lines.append(Loc.t("Туман на карте отступает: видно на %d ряда вперёд") % (Run.FOG_SIGHT + Run.fog_bonus))
 	elif s.has("heal_pct"):
 		for rh in _targets(s.get("who", "all")):
 			var before: int = rh.hp
 			Run.heal_hero(rh, ceili(rh.data.max_hp * int(s["heal_pct"]) / 100.0))
 			if rh.hp != before:
-				_lines.append("%s: +%d HP" % [rh.data.title, rh.hp - before])
+				_lines.append("%s: +%d HP" % [Loc.t(rh.data.title), rh.hp - before])
 	elif s.has("upgrade"):
 		var rh: RunHero = _hero(s["upgrade"])
 		var options: Array[int] = Run.upgradable(rh)
 		if options.is_empty():
-			_lines.append("%s: улучшать нечего" % NAMES[rh.data.id][0])
+			_lines.append(Loc.t("%s: улучшать нечего") % NAMES[rh.data.id][0])
 		else:
 			var idx: int = options[Run.rng.randi_range(0, options.size() - 1)]
 			var old_title: String = rh.deck[idx].title
 			Run.upgrade_card(rh, idx, Run.rng.randi_range(1, 2))
-			_lines.append("%s: «%s» → «%s»" % [NAMES[rh.data.id][0], old_title, rh.deck[idx].title])
+			_lines.append("%s: «%s» → «%s»" % [NAMES[rh.data.id][0], old_title, Loc.t(rh.deck[idx].title)])
 			_won_cards.append({"card": rh.deck[idx], "color": rh.data.color})
 	elif s.has("wound"):
 		var rh: RunHero = _hero(s["wound"])
 		Run.add_wounds(rh, 1)
-		_lines.append("%s: Рана в колоде" % NAMES[rh.data.id][0])
+		_lines.append(Loc.t("%s: Рана в колоде") % NAMES[rh.data.id][0])
 	elif s.has("gold_after"):
 		Run.gold_after_battle += int(s["gold_after"])
 	elif s.has("keepers"):
 		if s["keepers"] == "calm":
 			Run.keepers_calm = true
-			_lines.append("Хранители Рощи до конца акта бьют на 1 слабее")
+			_lines.append(Loc.t("Хранители Рощи до конца акта бьют на 1 слабее"))
 		else:
 			Run.keepers_fewer += 1
-			_lines.append("В следующем бою с Хранителями их будет на одного меньше")
+			_lines.append(Loc.t("В следующем бою с Хранителями их будет на одного меньше"))
 	elif s.has("relic"):
 		var offer: Array[RelicData] = Run.roll_relics(1)
 		if offer.is_empty() or not Run.can_take_relic():
-			_lines.append("Амулет рассыпается в руках — больше взять нечего")
+			_lines.append(Loc.t("Амулет рассыпается в руках — больше взять нечего"))
 		else:
 			Run.take_relic(offer[0])
-			_lines.append("Реликвия «%s»\n+ %s\n− %s" % [offer[0].title, offer[0].plus_text, offer[0].minus_text])
+			_lines.append(Loc.t("Реликвия «%s»\n+ %s\n− %s") % [Loc.t(offer[0].title), offer[0].plus_text, offer[0].minus_text])
 
 
 # Кого касается шаг: knight / mage / all / random
@@ -1224,9 +1224,9 @@ func _special(action: String) -> void:
 			var charm: RelicData = closed[Run.rng.randi_range(0, closed.size() - 1)]
 			Run.relics.append(charm.id)   # действует сразу, сверх мест
 			Meta.unlock_charm(charm.id)   # и открыт на Полке навсегда
-			_lines.assign(["Рыцарь: −6 HP", "Оберег «%s»: %s\nОткрыт на Полке трофеев." % [charm.title, charm.desc]])
+			_lines.assign([Loc.t("Рыцарь: −6 HP"), Loc.t("Оберег «%s»: %s\nОткрыт на Полке трофеев.") % [Loc.t(charm.title), charm.desc]])
 			_won_cards.clear()
-			_show_result("Жижа тянет за поножи, но окованный ящик выходит из грязи вместе с латником — внутри, в промасленной тряпице, лежит вещь дозора.")
+			_show_result(Loc.t("Жижа тянет за поножи, но окованный ящик выходит из грязи вместе с латником — внутри, в промасленной тряпице, лежит вещь дозора."))
 		"cage_free":
 			Sfx.play("hit", 0.06)
 			for rh in Run.party:
@@ -1238,14 +1238,14 @@ func _special(action: String) -> void:
 			Sfx.play("magic", 0.05)
 			UiKit.clear(_column)
 			_page_header()
-			_column.add_child(_story("Чем глубже, тем суше воздух. Вода, что стекала по стенам, шипит и исчезает, не долетев до пола."))
-			_column.add_child(_main_button("В бой", Run.enter_cave))
+			_column.add_child(_story(Loc.t("Чем глубже, тем суше воздух. Вода, что стекала по стенам, шипит и исчезает, не долетев до пола.")))
+			_column.add_child(_main_button(Loc.t("В бой"), Run.enter_cave))
 		"spring_enter":
 			Sfx.play("magic", 0.05)
 			UiKit.clear(_column)
 			_page_header()
-			_column.add_child(_story("Вода вскипает сильнее. Пар встаёт стеной, и из него на вас смотрят две бирюзовые искры."))
-			_column.add_child(_main_button("В бой", Run.enter_spring))
+			_column.add_child(_story(Loc.t("Вода вскипает сильнее. Пар встаёт стеной, и из него на вас смотрят две бирюзовые искры.")))
+			_column.add_child(_main_button(Loc.t("В бой"), Run.enter_spring))
 
 
 static func _hero_static(hero_id: String) -> RunHero:
@@ -1295,4 +1295,4 @@ func _show_result(text: String) -> void:
 			row.add_child(holder)
 		_column.add_child(row)
 	_refresh_party()
-	_column.add_child(_main_button("Дальше", Run.goto.bind(Run.MAP_SCENE)))
+	_column.add_child(_main_button(Loc.t("Дальше"), Run.goto.bind(Run.MAP_SCENE)))

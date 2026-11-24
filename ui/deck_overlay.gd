@@ -38,9 +38,9 @@ static func open(parent: Control, title: String, sections: Array[Dictionary], no
 		var section: Dictionary = sections[s]
 		var cards: Array = section["cards"]
 		var allowed: bool = on_pick.is_valid() and (not can_pick.is_valid() or can_pick.call(s))
-		var caption: String = "%s — карт: %d" % [section["title"], cards.size()]
+		var caption: String = Loc.t("%s — карт: %d") % [section["title"], cards.size()]
 		if on_pick.is_valid() and not allowed:
-			caption += " (меньше оставить нельзя)"
+			caption += Loc.t(" (меньше оставить нельзя)")
 		list.add_child(UiKit.make_label(caption, 16, (section["color"] as Color).lightened(0.4), true))
 		# Поля вокруг сетки: «камень» маны выступает за край карты, без полей его срежет
 		var margin := MarginContainer.new()
@@ -65,7 +65,7 @@ static func open(parent: Control, title: String, sections: Array[Dictionary], no
 				)
 			grid.add_child(b)
 
-	var close: Button = UiKit.make_button("Закрыть" if not on_pick.is_valid() else "Передумал", shade.queue_free)
+	var close: Button = UiKit.make_button(Loc.t("Закрыть") if not on_pick.is_valid() else Loc.t("Передумал"), shade.queue_free)
 	close.custom_minimum_size = Vector2(200, 40)
 	column.add_child(close)
 	return shade

@@ -42,52 +42,52 @@ func describe() -> String:
 	var parts: PackedStringArray = []
 	match shape:
 		0:
-			parts.append("%d урона вплотную" % damage)
+			parts.append(Loc.t("%d урона вплотную") % damage)
 		1:
-			parts.append("%d урона, линия на %d" % [damage, attack_range])
+			parts.append(Loc.t("%d урона, линия на %d") % [damage, attack_range])
 		2:
-			parts.append("%d урона по трём клеткам перед собой" % damage)
+			parts.append(Loc.t("%d урона по трём клеткам перед собой") % damage)
 		3:
 			if attack_range <= 0 and ally_block > 0:
-				parts.append("себе: +%d блока" % ally_block)
+				parts.append(Loc.t("себе: +%d блока") % ally_block)
 			elif ally_block > 0 and ally_damage > 0:
-				parts.append("врагам в %d клетках: +%d блока, следующий удар +%d" % [attack_range, ally_block, ally_damage])
+				parts.append(Loc.t("врагам в %d клетках: +%d блока, следующий удар +%d") % [attack_range, ally_block, ally_damage])
 			elif ally_damage > 0:
-				parts.append("врагам в %d клетках: следующий удар +%d" % [attack_range, ally_damage])
+				parts.append(Loc.t("врагам в %d клетках: следующий удар +%d") % [attack_range, ally_damage])
 			elif ally_block > 0:
-				parts.append("врагам в %d клетках: +%d блока" % [attack_range, ally_block])
+				parts.append(Loc.t("врагам в %d клетках: +%d блока") % [attack_range, ally_block])
 			if summon != null and summon_count > 0:
-				parts.append("зовёт: %s ×%d рядом" % [summon.title.to_lower(), summon_count])
+				parts.append(Loc.t("зовёт: %s ×%d рядом") % [Loc.t(summon.title).to_lower(), summon_count])
 		4:
-			parts.append("%d урона по 6 клеткам вокруг себя" % damage)
+			parts.append(Loc.t("%d урона по 6 клеткам вокруг себя") % damage)
 	if puddle_lightning:
-		parts = PackedStringArray(["%d урона молнией по всем лужам, где стоят герои" % damage])
+		parts = PackedStringArray([Loc.t("%d урона молнией по всем лужам, где стоят герои") % damage])
 	if lob:
-		parts = PackedStringArray(["%d урона: бросок на %d, по цели и 6 клеткам вокруг" % [damage, attack_range]])
+		parts = PackedStringArray([Loc.t("%d урона: бросок на %d, по цели и 6 клеткам вокруг") % [damage, attack_range]])
 	if shock_water:
-		parts.append("молния: по всей луже под целью")
+		parts.append(Loc.t("молния: по всей луже под целью"))
 	if brand:
-		parts.append("клеймо: следующий удар по цели +%d" % BattleLogic.BRAND_BONUS)
+		parts.append(Loc.t("клеймо: следующий удар по цели +%d") % BattleLogic.BRAND_BONUS)
 	if ally_heal > 0:
-		parts.append("механизмы рядом: +%d HP" % ally_heal)
+		parts.append(Loc.t("механизмы рядом: +%d HP") % ally_heal)
 	if first_only:
-		parts.append("до первой цели")
+		parts.append(Loc.t("до первой цели"))
 	if pierce:
-		parts.append("сквозь преграды")
+		parts.append(Loc.t("сквозь преграды"))
 	if push > 0:
-		parts.append("отталкивает на %d" % push)
+		parts.append(Loc.t("отталкивает на %d") % push)
 	if pull > 0:
-		parts.append("притягивает на %d" % pull)
+		parts.append(Loc.t("притягивает на %d") % pull)
 	if entangle > 0:
-		parts.append("опутывает (ход без шагов)")
+		parts.append(Loc.t("опутывает (ход без шагов)"))
 	if puddle:
-		parts.append("оставляет лужу под целью")
+		parts.append(Loc.t("оставляет лужу под целью"))
 	if poison > 0:
-		parts.append("яд на %d раунда" % poison)
+		parts.append(Loc.t("яд на %d раунда") % poison)
 	if gas_cloud:
-		parts.append("клетки удара становятся газом")
+		parts.append(Loc.t("клетки удара становятся газом"))
 	if ignite:
-		parts.append("поджигает клетки удара (бочки, деревья, камыш)")
+		parts.append(Loc.t("поджигает клетки удара (бочки, деревья, камыш)"))
 	if stoke > 0:
-		parts.append("огонь в 3 клетках вокруг горит на %d раунда дольше" % stoke)
+		parts.append(Loc.t("огонь в 3 клетках вокруг горит на %d раунда дольше") % stoke)
 	return "%s: %s" % [title, ", ".join(parts)]

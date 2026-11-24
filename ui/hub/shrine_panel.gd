@@ -20,7 +20,7 @@ var _selected: String = ""
 static func open(parent: Node, for_hero: String = "") -> HubPanel:
 	var panel := ShrinePanel.new()
 	panel.hero_id = for_hero
-	create(parent, panel, "Святилище духов", 1040)
+	create(parent, panel, Loc.t("Святилище духов"), 1040)
 	panel._selected = Run.ALL_SPIRIT_IDS[0]
 	Meta.changed.connect(panel._rebuild)
 	panel._rebuild()
@@ -61,11 +61,11 @@ func _make_tabs() -> Control:
 		b.add_theme_color_override("icon_normal_color", sp.color if seen else UNKNOWN_COLOR)
 		b.add_theme_color_override("icon_hover_color", sp.color if seen else UNKNOWN_COLOR)
 		if Meta.is_spirit_tamed(id):
-			b.tooltip_text = "Покорён: %d раз" % Meta.tamed_count(id)
+			b.tooltip_text = Loc.t("Покорён: %d раз") % Meta.tamed_count(id)
 		elif seen:
-			b.tooltip_text = "Встречен, но ещё не покорён"
+			b.tooltip_text = Loc.t("Встречен, но ещё не покорён")
 		else:
-			b.tooltip_text = "Отряд ещё не встречал этого духа"
+			b.tooltip_text = Loc.t("Отряд ещё не встречал этого духа")
 		if id == _selected:
 			recolor_button(b, (sp.color if seen else UNKNOWN_COLOR).lightened(0.2), 3)
 		tabs.add_child(b)
@@ -91,35 +91,35 @@ func _make_detail(sp: SpiritData) -> Control:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 10)
 	head.add_child(ic(sp.icon if seen else "help", 30, sp.color if seen else UNKNOWN_COLOR))
-	var name_label: Label = UiKit.make_label(sp.title if seen else "Неизвестный дух", 22, UiKit.TEXT, true)
+	var name_label: Label = UiKit.make_label(sp.title if seen else Loc.t("Неизвестный дух"), 22, UiKit.TEXT, true)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(name_label)
 	if sp.is_unique and seen:
-		head.add_child(UiKit.make_label("Уникальный", 15, UiKit.BRASS.lightened(0.15), true))
+		head.add_child(UiKit.make_label(Loc.t("Уникальный"), 15, UiKit.BRASS.lightened(0.15), true))
 	if tamed:
-		head.add_child(UiKit.make_label("Покорён ×%d" % Meta.tamed_count(sp.id), 15, sp.color.lightened(0.2), true))
+		head.add_child(UiKit.make_label(Loc.t("Покорён ×%d") % Meta.tamed_count(sp.id), 15, sp.color.lightened(0.2), true))
 	var bait: Control = _make_bait_button(sp) if tamed else null
 	if bait != null:
 		head.add_child(bait)
 	box.add_child(head)
 
 	if not seen:
-		var hint: String = "Этого духа отряд ещё не встречал. Духи ждут в логове — по одному на акт."
+		var hint: String = Loc.t("Этого духа отряд ещё не встречал. Духи ждут в логове — по одному на акт.")
 		if sp.is_unique:
-			hint = "Говорят, в топях живёт кто-то старше духов логова. В логове его не найти."
+			hint = Loc.t("Говорят, в топях живёт кто-то старше духов логова. В логове его не найти.")
 		if sp.id == "fire":
-			hint = "Говорят, под топью что-то горит. Вход ищут не в логове, а в трещинах между кочками."
+			hint = Loc.t("Говорят, под топью что-то горит. Вход ищут не в логове, а в трещинах между кочками.")
 		box.add_child(UiKit.make_text(hint, 16, UiKit.TEXT_DIM, 960))
 		return panel
 
-	box.add_child(UiKit.make_text("«%s»" % sp.description, 16, UiKit.TEXT, 960))
+	box.add_child(UiKit.make_text("«%s»" % Loc.t(sp.description), 16, UiKit.TEXT, 960))
 	if sp.is_unique:
-		box.add_child(UiKit.make_text("Как покорить: " + _unique_condition(sp.id), 15, UiKit.BRASS.lightened(0.15), 960))
+		box.add_child(UiKit.make_text(Loc.t("Как покорить: ") + _unique_condition(sp.id), 15, UiKit.BRASS.lightened(0.15), 960))
 	if not tamed:
-		box.add_child(UiKit.make_text("Ещё не покорён. Что он даёт героям, станет видно после первой победы над ним.", 15, UiKit.TEXT_DIM, 960))
+		box.add_child(UiKit.make_text(Loc.t("Ещё не покорён. Что он даёт героям, станет видно после первой победы над ним."), 15, UiKit.TEXT_DIM, 960))
 		return panel
 
-	box.add_child(UiKit.make_text("Пассивно: " + sp.passive_text, 16, sp.color.lightened(0.25), 960))
+	box.add_child(UiKit.make_text(Loc.t("Пассивно: ") + sp.passive_text, 16, sp.color.lightened(0.25), 960))
 	box.add_child(_make_cards(sp))
 	box.add_child(UiKit.make_text(_pairs_text(sp), 14, UiKit.TEXT_DIM, 960))
 	return panel
@@ -130,7 +130,7 @@ func _make_cards(sp: SpiritData) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 22)
 	if sp.call_card != null:
-		row.add_child(_card_column("Зов", [sp.call_card], sp.color, 1))
+		row.add_child(_card_column(Loc.t("Зов"), [sp.call_card], sp.color, 1))
 	for h in Run.HEROES:
 		row.add_child(_card_column(h.title, sp.cards_for(h.id), h.color, 3))
 	return row
@@ -160,7 +160,7 @@ func _pairs_text(sp: SpiritData) -> String:
 		if other == null:
 			continue
 		names.append(other.title if Meta.is_spirit_seen(id) else "???")
-	return "Смешанные карты (по 2 каждому герою) — если в отряде с ним ещё: %s." % ", ".join(names)
+	return Loc.t("Смешанные карты (по 2 каждому герою) — если в отряде с ним ещё: %s.") % ", ".join(names)
 
 
 # «Приманка»: кнопка «Звать в логово» у покорённого обычного духа (уникальные в логове не живут)
@@ -168,10 +168,10 @@ func _make_bait_button(sp: SpiritData) -> Control:
 	if Meta.effect_total("lair_bait") <= 0 or not Run.SPIRIT_IDS.has(sp.id):
 		return null
 	var chosen: bool = Meta.lair_bait == sp.id
-	var b: Button = UiKit.make_button("Зовётся в логово ✓" if chosen else "Звать в логово", Meta.choose_bait.bind(sp.id), "orb")
+	var b: Button = UiKit.make_button(Loc.t("Зовётся в логово ✓") if chosen else Loc.t("Звать в логово"), Meta.choose_bait.bind(sp.id), "orb")
 	b.custom_minimum_size = Vector2(210, 36)
-	b.tooltip_text = "Нажми ещё раз, чтобы в логове снова ждал случайный дух." if chosen \
-			else "«Приманка»: в следующих путях логово позовёт этого духа (если его ещё нет в отряде)."
+	b.tooltip_text = Loc.t("Нажми ещё раз, чтобы в логове снова ждал случайный дух.") if chosen \
+			else Loc.t("«Приманка»: в следующих путях логово позовёт этого духа (если его ещё нет в отряде).")
 	if chosen:
 		recolor_button(b, UiKit.BRASS, 2)
 	Sfx.bind_button(b, "magic")
@@ -181,9 +181,9 @@ func _make_bait_button(sp: SpiritData) -> Control:
 func _unique_condition(id: String) -> String:
 	match id:
 		"bog":
-			return "утопить %d врагов в бою с корягачом (элита). Тогда Хозяин трясины сам выйдет к отряду." % Run.BOG_SPIRIT_DROWNS
+			return Loc.t("утопить %d врагов в бою с корягачом (элита). Тогда Хозяин трясины сам выйдет к отряду.") % Run.BOG_SPIRIT_DROWNS
 		"forest":
-			return "победить Голоса Рощи (элита Густых лесов), не спалив ни живого дерева, ни лозы. Тогда Леший выйдет из чащи."
+			return Loc.t("победить Голоса Рощи (элита Густых лесов), не спалив ни живого дерева, ни лозы. Тогда Леший выйдет из чащи.")
 		"fire":
-			return "найти «Тлеющую расщелину» (редкое событие в первой половине акта), спуститься и победить хозяина пещеры."
-	return "условие пока не описано."
+			return Loc.t("найти «Тлеющую расщелину» (редкое событие в первой половине акта), спуститься и победить хозяина пещеры.")
+	return Loc.t("условие пока не описано.")

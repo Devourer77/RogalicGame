@@ -21,7 +21,7 @@ var _message: Label
 static func open(parent: Node, for_hero: String = "") -> HubPanel:
 	var panel := BarracksPanel.new()
 	panel.hero_id = for_hero if for_hero != "" else Run.HEROES[0].id
-	create(parent, panel, "Караульня", 1080, false)
+	create(parent, panel, Loc.t("Караульня"), 1080, false)
 	panel._select_hero(panel.hero_id)
 	return panel
 
@@ -97,7 +97,7 @@ func _rebuild() -> void:
 	# Счётчики
 	var base: Array[String] = _base()
 	var extras: int = Loadout.extras(base, _deck).size()
-	var counters: Label = UiKit.make_label("Карт: %d · минимум %d        Изменений: %d / %d" % [_deck.size(), base.size(), extras, _limit()], 17, UiKit.TEXT, true)
+	var counters: Label = UiKit.make_label(Loc.t("Карт: %d · минимум %d        Изменений: %d / %d") % [_deck.size(), base.size(), extras, _limit()], 17, UiKit.TEXT, true)
 	counters.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.add_child(counters)
 
@@ -115,16 +115,16 @@ func _rebuild() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 10)
 	body.add_child(actions)
-	var remove: Button = UiKit.make_button("Убрать выбранную", _remove_selected, "discard")
+	var remove: Button = UiKit.make_button(Loc.t("Убрать выбранную"), _remove_selected, "discard")
 	remove.custom_minimum_size.x = 220
 	if _selected < 0:
 		remove.disabled = true
-		remove.tooltip_text = "Сначала выбери карту в колоде."
+		remove.tooltip_text = Loc.t("Сначала выбери карту в колоде.")
 	elif not Loadout.can_remove(base, _deck, _selected):
 		remove.disabled = true
-		remove.tooltip_text = "Колода не может стать меньше базовой · замени карту или сначала добавь новую."
+		remove.tooltip_text = Loc.t("Колода не может стать меньше базовой · замени карту или сначала добавь новую.")
 	actions.add_child(remove)
-	var reset: Button = UiKit.make_button("Как было", _reset_deck)
+	var reset: Button = UiKit.make_button(Loc.t("Как было"), _reset_deck)
 	reset.custom_minimum_size.x = 160
 	reset.disabled = _deck == base
 	actions.add_child(reset)
@@ -133,8 +133,8 @@ func _rebuild() -> void:
 func _make_deck_column() -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	box.add_child(UiKit.make_label("Стартовая колода", 16, _hero.color.lightened(0.4), true))
-	box.add_child(UiKit.make_label("Латунная рамка — изменение сверх базовой колоды.", 13, UiKit.TEXT_DIM))
+	box.add_child(UiKit.make_label(Loc.t("Стартовая колода"), 16, _hero.color.lightened(0.4), true))
+	box.add_child(UiKit.make_label(Loc.t("Латунная рамка — изменение сверх базовой колоды."), 13, UiKit.TEXT_DIM))
 	var scroll := ScrollContainer.new()
 	scroll.custom_minimum_size = Vector2(DECK_COLUMNS * (CardView.CARD_SIZE.x * DECK_SCALE + 6) + 18, 290)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -175,14 +175,14 @@ func _make_deck_column() -> Control:
 func _make_stock_column() -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	box.add_child(UiKit.make_label("Запас", 16, _hero.color.lightened(0.4), true))
-	box.add_child(UiKit.make_label("Базовые карты и обычные, которые герой уже брал в забегах.", 13, UiKit.TEXT_DIM))
+	box.add_child(UiKit.make_label(Loc.t("Запас"), 16, _hero.color.lightened(0.4), true))
+	box.add_child(UiKit.make_label(Loc.t("Базовые карты и обычные, которые герой уже брал в забегах."), 13, UiKit.TEXT_DIM))
 	# Фильтр по набору
 	var filters := HBoxContainer.new()
 	filters.add_theme_constant_override("separation", 4)
 	box.add_child(filters)
-	filters.add_child(_filter_button("Все", "*", UiKit.TEXT))
-	filters.add_child(_filter_button("Базовые", "", CardView.BASIC_COLOR))
+	filters.add_child(_filter_button(Loc.t("Все"), "*", UiKit.TEXT))
+	filters.add_child(_filter_button(Loc.t("Базовые"), "", CardView.BASIC_COLOR))
 	for key: String in CardView.SETS:
 		var has_any: bool = false
 		for c in _stock_cards():
@@ -251,8 +251,8 @@ func _block_reason(card_id: String) -> String:
 	if _selected >= 0:
 		next.remove_at(_selected)
 	if Loadout.copies(next, card_id) >= Loadout.MAX_COPIES:
-		return "Уже %d копии в колоде." % Loadout.MAX_COPIES
-	return "Все изменения заняты · убери добавленную карту или изучи «Свою выкладку»."
+		return Loc.t("Уже %d копии в колоде.") % Loadout.MAX_COPIES
+	return Loc.t("Все изменения заняты · убери добавленную карту или изучи «Свою выкладку».")
 
 
 func _on_deck_card(index: int) -> void:
@@ -290,7 +290,7 @@ func _remove_selected() -> void:
 	if _selected < 0:
 		return
 	if not Loadout.can_remove(_base(), _deck, _selected):
-		_say("Колода не может стать меньше базовой · замени карту или сначала добавь новую.")
+		_say(Loc.t("Колода не может стать меньше базовой · замени карту или сначала добавь новую."))
 		return
 	_deck.remove_at(_selected)
 	_selected = -1

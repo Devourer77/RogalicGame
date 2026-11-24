@@ -36,7 +36,7 @@ func _build_head() -> void:
 	var head := HBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 18)
-	head.add_child(UiKit.make_title("Босс повержен!" if Run.act_cleared else "Победа!", 40, UiKit.BRASS.lightened(0.25)))
+	head.add_child(UiKit.make_title(Loc.t("Босс повержен!") if Run.act_cleared else Loc.t("Победа!"), 40, UiKit.BRASS.lightened(0.25)))
 	var gold: HBoxContainer = UiKit.chip("coin", "+%d" % Run.last_gold_reward, UiKit.GOLD, "", 22, 24)
 	gold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(gold)
@@ -44,7 +44,7 @@ func _build_head() -> void:
 	_column.add_child(UiKit.party_bar())
 	# Кто падал в бою — тому в колоду легла Рана (убрать: лавка или «Перевязка» на привале)
 	for title: String in Run.last_wounded:
-		var line: HBoxContainer = UiKit.chip("wound", "%s пал в бою — в колоду легла Рана" % title, UiKit.TEXT_DIM, "", 15, 18)
+		var line: HBoxContainer = UiKit.chip("wound", Loc.t("%s пал в бою — в колоду легла Рана") % title, UiKit.TEXT_DIM, "", 15, 18)
 		line.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		_column.add_child(line)
 
@@ -52,7 +52,7 @@ func _build_head() -> void:
 # Шаг 1: главная награда — карта одному из героев, улучшение или пропуск
 func _build_main() -> void:
 	var column: VBoxContainer = _column
-	column.add_child(UiKit.make_text("Выбери одно на весь отряд: карту Магу, карту Рыцарю или улучшение карты.", 15, UiKit.TEXT_DIM))
+	column.add_child(UiKit.make_text(Loc.t("Выбери одно на весь отряд: карту Магу, карту Рыцарю или улучшение карты."), 15, UiKit.TEXT_DIM))
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -63,7 +63,7 @@ func _build_main() -> void:
 		var cards: Array[CardData] = Run.roll_rare_cards(rh, 3) if _elite else Run.roll_cards(rh, Run.reward_card_count())
 		if cards.is_empty():
 			cards = Run.roll_cards(rh, 3)
-		var panel: PanelContainer = _panel("Карта: " + rh.data.title, rh.data.color)
+		var panel: PanelContainer = _panel(Loc.t("Карта: ") + Loc.t(rh.data.title), rh.data.color)
 		var box: HBoxContainer = _card_row(panel)
 		for card in cards:
 			var b: Button = _card_button(card, rh.data.color, box)
@@ -72,14 +72,14 @@ func _build_main() -> void:
 	# Улучшение
 	var ups: Array[Dictionary] = Run.roll_upgrades(Run.UPGRADE_CHOICES)
 	if not ups.is_empty():
-		column.add_child(_upgrade_block("Или улучши одну карту — выбери ветку:", ups, _all_buttons, _take_upgrade))
+		column.add_child(_upgrade_block(Loc.t("Или улучши одну карту — выбери ветку:"), ups, _all_buttons, _take_upgrade))
 
-	var skip: Button = UiKit.make_button("Пропустить (каждому +%d HP)" % Run.SKIP_HEAL, _skip)
+	var skip: Button = UiKit.make_button(Loc.t("Пропустить (каждому +%d HP)") % Run.SKIP_HEAL, _skip)
 	_all_buttons.append(skip)
 	# После элиты «Дальше» ведёт ко второму шагу, иначе — на карту
 	var go: Callable = _build_elite_step if _elite else Run.after_reward
-	var big_title: String = "Дальше: награда босса" if Run.act_cleared else "Дальше: награда элиты"
-	_next_button = UiKit.make_button(big_title if _elite else "Дальше", go, "", true)
+	var big_title: String = Loc.t("Дальше: награда босса") if Run.act_cleared else Loc.t("Дальше: награда элиты")
+	_next_button = UiKit.make_button(big_title if _elite else Loc.t("Дальше"), go, "", true)
 	_next_button.disabled = true
 	column.add_child(_bottom_row(skip))
 
@@ -95,13 +95,13 @@ func _build_elite_step() -> void:
 	var bonus: Array[Dictionary] = Run.roll_upgrades(Run.UPGRADE_CHOICES)
 	if not bonus.is_empty():
 		_bonus_done = false
-		_column.add_child(_upgrade_block("Награда элиты: ещё одно улучшение бесплатно", bonus, _bonus_buttons, _take_bonus))
+		_column.add_child(_upgrade_block(Loc.t("Награда элиты: ещё одно улучшение бесплатно"), bonus, _bonus_buttons, _take_bonus))
 	if Run.can_take_relic():
 		var offer: Array[RelicData] = Run.roll_relics(Run.RELIC_CHOICES)
 		if not offer.is_empty():
 			_relic_done = false
 			_column.add_child(_build_relic_choice(offer))
-	_next_button = UiKit.make_button("Дальше", Run.after_reward, "", true)   # на карту или, после босса, — к трофею
+	_next_button = UiKit.make_button(Loc.t("Дальше"), Run.after_reward, "", true)   # на карту или, после босса, — к трофею
 	_column.add_child(_bottom_row(_refuse_relic))
 	_update_next()
 
@@ -173,12 +173,12 @@ func _upgrade_block(title: String, ups: Array[Dictionary], list: Array[Button], 
 	for up: Dictionary in ups:
 		var rh: RunHero = up["hero"]
 		var card: CardData = rh.deck[int(up["index"])]
-		var panel: PanelContainer = _panel("%s (%s)" % [card.title, rh.data.title], rh.data.color)
+		var panel: PanelContainer = _panel("%s (%s)" % [Loc.t(card.title), Loc.t(rh.data.title)], rh.data.color)
 		var cards: HBoxContainer = _card_row(panel)
 		for branch in [1, 2]:
 			var shown: CardData = card.upgrade_1 if branch == 1 else card.upgrade_2
 			var b: Button = _card_button(shown, rh.data.color, cards, list)
-			b.tooltip_text = ("Ветка I «Сила»" if branch == 1 else "Ветка II «Приём»") + "\n" + shown.description
+			b.tooltip_text = (Loc.t("Ветка I «Сила»") if branch == 1 else Loc.t("Ветка II «Приём»")) + "\n" + Loc.t(shown.description)
 			b.pressed.connect(on_pick.bind(rh, int(up["index"]), branch, b))
 		row.add_child(panel)
 	return box
@@ -189,7 +189,7 @@ func _take_card(rh: RunHero, card: CardData, chosen: Button) -> void:
 		return
 	Sfx.play("card_select", 0.05)
 	if Run.add_card(rh, card):
-		_note.text = "Записано в Караульню"
+		_note.text = Loc.t("Записано в Караульню")
 	_finish(chosen, _all_buttons)
 	UiFx.shine(chosen)
 	_picked = true
@@ -201,7 +201,7 @@ func _take_upgrade(rh: RunHero, index: int, branch: int, chosen: Button) -> void
 		return
 	Sfx.play("magic", 0.05)
 	Run.upgrade_card(rh, index, branch)
-	_note.text = "Улучшено: %s" % rh.deck[index].title
+	_note.text = Loc.t("Улучшено: %s") % Loc.t(rh.deck[index].title)
 	_finish(chosen, _all_buttons)
 	UiFx.shine(chosen)
 	_picked = true
@@ -213,7 +213,7 @@ func _take_bonus(rh: RunHero, index: int, branch: int, chosen: Button) -> void:
 		return
 	Sfx.play("magic", 0.05)
 	Run.upgrade_card(rh, index, branch)
-	_note.text = "Улучшено: %s" % rh.deck[index].title
+	_note.text = Loc.t("Улучшено: %s") % Loc.t(rh.deck[index].title)
 	_finish(chosen, _bonus_buttons)
 	UiFx.shine(chosen)
 	_bonus_done = true
@@ -226,7 +226,7 @@ func _skip() -> void:
 	Sfx.play("heal", 0.04)
 	for rh in Run.party:
 		Run.heal_hero(rh, Run.SKIP_HEAL)
-	_note.text = "Отдохнули: каждому +%d HP" % Run.SKIP_HEAL
+	_note.text = Loc.t("Отдохнули: каждому +%d HP") % Run.SKIP_HEAL
 	_finish(null, _all_buttons)
 	_picked = true
 	_update_next()
@@ -264,13 +264,13 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 	title.alignment = BoxContainer.ALIGNMENT_CENTER
 	title.add_theme_constant_override("separation", 8)
 	title.add_child(UiKit.icon_rect(sp.icon, 28, sp.color))
-	title.add_child(UiKit.make_title("Покорён: " + sp.title, 28, sp.color.lightened(0.3)))
+	title.add_child(UiKit.make_title(Loc.t("Покорён: ") + Loc.t(sp.title), 28, sp.color.lightened(0.3)))
 	box.add_child(title)
 	box.add_child(UiKit.make_text(sp.description, 14, UiKit.TEXT_DIM, 520))
-	box.add_child(UiKit.make_text("Пассив: " + sp.passive_text, 15, UiKit.TEXT, 520))
+	box.add_child(UiKit.make_text(Loc.t("Пассив: ") + sp.passive_text, 15, UiKit.TEXT, 520))
 	if sp.call_card != null:
-		box.add_child(UiKit.make_text("Зов (раз в бой): " + sp.call_card.description, 15, UiKit.TEXT, 520))
-	box.add_child(UiKit.make_text("К кому пойдёт дух? Его три карты сразу войдут в колоду героя.", 15, UiKit.BRASS, 520))
+		box.add_child(UiKit.make_text(Loc.t("Зов (раз в бой): ") + Loc.t(sp.call_card.description), 15, UiKit.TEXT, 520))
+	box.add_child(UiKit.make_text(Loc.t("К кому пойдёт дух? Его три карты сразу войдут в колоду героя."), 15, UiKit.BRASS, 520))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 16)
@@ -296,38 +296,38 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 		# Места заняты — можно заменить одного из своих духов (его карты уйдут из колоды)
 		if not free:
 			for old: SpiritData in rh.spirits:
-				var swap: Button = UiKit.make_button("%s: заменить «%s»" % [rh.data.title, old.title], func() -> void: pass)
-				swap.tooltip_text = "«%s» уйдёт вместе со своими картами." % old.title
+				var swap: Button = UiKit.make_button(Loc.t("%s: заменить «%s»") % [Loc.t(rh.data.title), Loc.t(old.title)], func() -> void: pass)
+				swap.tooltip_text = Loc.t("«%s» уйдёт вместе со своими картами.") % Loc.t(old.title)
 				swap.pressed.connect(func() -> void:
 					if _picked:
 						return
 					Run.release_spirit(rh, old)
 					Run.add_spirit(rh, sp)
-					_note.text = "%s отпускает «%s» и берёт «%s»" % [rh.data.title, old.title, sp.title]
+					_note.text = Loc.t("%s отпускает «%s» и берёт «%s»") % [Loc.t(rh.data.title), Loc.t(old.title), Loc.t(sp.title)]
 					for x in buttons: x.disabled = true
 					_picked = true
 					_update_next())
 				buttons.append(swap)
 				col.add_child(swap)
-		var b: Button = UiKit.make_button(("Отдать: " + rh.data.title) if free else (rh.data.title + ": места заняты"), func() -> void: pass)
+		var b: Button = UiKit.make_button((Loc.t("Отдать: ") + Loc.t(rh.data.title)) if free else (rh.data.title + Loc.t(": места заняты")), func() -> void: pass)
 		b.disabled = not free
 		b.pressed.connect(func() -> void:
 			if _picked:
 				return
 			Sfx.play("spirit_tame", 0.04)
 			Run.add_spirit(rh, sp)
-			_note.text = "%s теперь с духом «%s»" % [rh.data.title, sp.title]
+			_note.text = Loc.t("%s теперь с духом «%s»") % [Loc.t(rh.data.title), Loc.t(sp.title)]
 			for x in buttons: x.disabled = true
 			_picked = true
 			_update_next())
 		buttons.append(b)
 		col.add_child(b)
 		row.add_child(col)
-	var no: Button = UiKit.make_button("Отпустить духа", func() -> void:
+	var no: Button = UiKit.make_button(Loc.t("Отпустить духа"), func() -> void:
 		if _picked:
 			return
 		for x in buttons: x.disabled = true
-		_note.text = "Дух ушёл в туман"
+		_note.text = Loc.t("Дух ушёл в туман")
 		_picked = true
 		_update_next())
 	buttons.append(no)
@@ -338,7 +338,7 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 	column.add_child(_note)
 	# После элиты (Хозяин трясины) дальше — обычная награда элиты
 	var after_elite: bool = Run.is_big_reward()
-	_next_button = UiKit.make_button("Дальше", func() -> void:
+	_next_button = UiKit.make_button(Loc.t("Дальше"), func() -> void:
 		Run.tamed_spirit = null
 		if after_elite:
 			Run.goto(Run.REWARD_SCENE)
@@ -353,7 +353,7 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 func _build_relic_choice(offer: Array[RelicData]) -> Control:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 8)
-	var head: Label = UiKit.make_label("Порченая реликвия: сила с ценой. Можно не брать.", 16, UiKit.BRASS, true)
+	var head: Label = UiKit.make_label(Loc.t("Порченая реликвия: сила с ценой. Можно не брать."), 16, UiKit.BRASS, true)
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(head)
 	var row := HBoxContainer.new()
@@ -374,17 +374,17 @@ func _build_relic_choice(offer: Array[RelicData]) -> Control:
 		title_row.add_child(UiKit.make_label(r.title, 16, UiKit.BRASS.lightened(0.2), true))
 		col.add_child(title_row)
 		if r.hero_id != "":
-			col.add_child(UiKit.make_label("Для: " + ("мага" if r.hero_id == "mage" else "рыцаря"), 13, UiKit.TEXT_DIM))
+			col.add_child(UiKit.make_label(Loc.t("Для: ") + (Loc.t("мага") if r.hero_id == "mage" else Loc.t("рыцаря")), 13, UiKit.TEXT_DIM))
 		# Плюс — светлым, минус — приглушённым (красный в интерфейсе только про врагов)
 		col.add_child(UiKit.make_text("+ " + r.plus_text, 14, UiKit.TEXT, 230))
 		col.add_child(UiKit.make_text("− " + r.minus_text, 14, UiKit.TEXT_DIM, 230))
-		var take: Button = UiKit.make_button("Взять", func() -> void: pass)
+		var take: Button = UiKit.make_button(Loc.t("Взять"), func() -> void: pass)
 		take.custom_minimum_size.x = 200
 		take.pressed.connect(_take_relic.bind(r, take, buttons, refuse))
 		col.add_child(take)
 		buttons.append(take)
 		row.add_child(panel)
-	var no: Button = UiKit.make_button("Без реликвии", func() -> void: pass)
+	var no: Button = UiKit.make_button(Loc.t("Без реликвии"), func() -> void: pass)
 	no.pressed.connect(_take_relic.bind(null, no, buttons, refuse))
 	refuse.append(no)
 	_refuse_relic = no   # сама кнопка встанет в нижнюю строку (см. _bottom_row)
@@ -400,7 +400,7 @@ func _take_relic(r: RelicData, pressed: Button, buttons: Array[Button], refuse: 
 		Run.take_relic(r)
 	for b in buttons + refuse:
 		b.disabled = true
-	pressed.text = "Взята" if r != null else "Отказались"
+	pressed.text = Loc.t("Взята") if r != null else Loc.t("Отказались")
 	_relic_done = true
 	if r != null:
 		UiFx.shine(pressed)

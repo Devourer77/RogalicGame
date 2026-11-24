@@ -81,7 +81,7 @@ static func text(id: String) -> String:
 # Показать в окошке panel подсказку id (и сразу отметить как увиденную)
 static func show_in(panel: TutorPanel, id: String) -> void:
 	mark_seen(id)
-	panel.show_step("подсказка", title(id), text(id), "Понятно", "Не показывать подсказки")
+	panel.show_step(Loc.t("подсказка"), title(id), text(id), Loc.t("Понятно"), Loc.t("Не показывать подсказки"))
 
 
 # Экран забега: при первом заходе — окошко слева внизу поверх экрана.

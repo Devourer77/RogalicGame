@@ -47,11 +47,19 @@ static var _bg_texture: GradientTexture2D
 
 # Цвет угрозы с учётом режима для дальтоников — брать его, а не THREAT напрямую
 static func threat() -> Color:
-	return THREAT_CB if Settings.colorblind else THREAT
+	return THREAT_CB if colorblind() else THREAT
 
 
 static func hp_enemy() -> Color:
-	return HP_ENEMY_CB if Settings.colorblind else HP_ENEMY
+	return HP_ENEMY_CB if colorblind() else HP_ENEMY
+
+
+# Настройку читаем через дерево, а не по имени Settings: UiKit нужен почти всем скриптам,
+# и прямое имя автозагрузки ломало бы тесты, где скрипт собирается раньше автозагрузок.
+static func colorblind() -> bool:
+	var tree := Engine.get_main_loop() as SceneTree
+	var settings: Node = tree.root.get_node_or_null("Settings") if tree != null else null
+	return settings != null and bool(settings.get("colorblind"))
 
 static func font_title() -> Font:
 	if _font_title == null:
@@ -345,15 +353,15 @@ static func party_bar(on_deck: Callable = Callable()) -> Control:
 		deck.icon = icon("deck")
 		deck.text = str(rh.deck.size())
 		deck.focus_mode = Control.FOCUS_NONE
-		deck.tooltip_text = "Колода героя «%s»:\n%s" % [rh.data.title, Run.deck_summary(rh)]
+		deck.tooltip_text = Loc.t("Колода героя «%s»:\n%s") % [Loc.t(rh.data.title), Run.deck_summary(rh)]
 		if on_deck.is_valid():
 			Sfx.bind_button(deck)
 			deck.pressed.connect(on_deck.bind(rh))
-			deck.tooltip_text += "\n\nНажми, чтобы посмотреть карты"
+			deck.tooltip_text += Loc.t("\n\nНажми, чтобы посмотреть карты")
 		line.add_child(deck)
 		row.add_child(panel)
 	var gold_panel: PanelContainer = make_panel(PANEL, BRASS_DARK)
-	var gold: HBoxContainer = chip("coin", str(Run.gold), GOLD, "Золото: тратится в лавке", 20, 24)
+	var gold: HBoxContainer = chip("coin", str(Run.gold), GOLD, Loc.t("Золото: тратится в лавке"), 20, 24)
 	gold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	gold_panel.add_child(gold)
 	row.add_child(gold_panel)
@@ -364,8 +372,8 @@ static func party_bar(on_deck: Callable = Callable()) -> Control:
 static func run_status() -> String:
 	var parts: PackedStringArray = []
 	for rh in Run.party:
-		parts.append("%s %d/%d HP (%d карт)" % [rh.data.title, rh.hp, rh.data.max_hp, rh.deck.size()])
-	parts.append("Золото: %d" % Run.gold)
+		parts.append(Loc.t("%s %d/%d HP (%d карт)") % [Loc.t(rh.data.title), rh.hp, rh.data.max_hp, rh.deck.size()])
+	parts.append(Loc.t("Золото: %d") % Run.gold)
 	return "     ".join(parts)
 
 

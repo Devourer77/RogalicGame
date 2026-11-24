@@ -111,61 +111,61 @@ func traits() -> PackedStringArray:
 	if modifier != null:
 		t.append(modifier.description)
 	if keep_distance > 0:
-		t.append("держит дистанцию")
+		t.append(Loc.t("держит дистанцию"))
 	if ai_style == AiStyle.HUNTER:
-		t.append("Охотник: идёт к самому раненому герою")
+		t.append(Loc.t("Охотник: идёт к самому раненому герою"))
 	elif ai_style == AiStyle.GUARD:
-		t.append("Телохранитель: держится рядом со стрелком или шаманом")
+		t.append(Loc.t("Телохранитель: держится рядом со стрелком или шаманом"))
 	elif ai_style == AiStyle.AMBUSH:
-		t.append("Засадник: ждёт в камыше, пока герой не подойдёт")
+		t.append(Loc.t("Засадник: ждёт в камыше, пока герой не подойдёт"))
 	if bog_walker:
-		t.append("ходит по трясине")
+		t.append(Loc.t("ходит по трясине"))
 	if wet_trail:
-		t.append("оставляет лужи")
+		t.append(Loc.t("оставляет лужи"))
 	if aquatic:
-		t.append("молния по соседней луже бьёт и его")
+		t.append(Loc.t("молния по соседней луже бьёт и его"))
 	if always_wet:
-		t.append("всегда мокрый: молния бьёт сильнее")
+		t.append(Loc.t("всегда мокрый: молния бьёт сильнее"))
 	if death_blast > 0:
-		t.append("погибая, взрывается (%d урона соседям); в трясине — нет" % death_blast)
+		t.append(Loc.t("погибая, взрывается (%d урона соседям); в трясине — нет") % death_blast)
 	if start_block > 0:
-		t.append("начинает с блоком %d" % start_block)
+		t.append(Loc.t("начинает с блоком %d") % start_block)
 	if turn_block > 0:
-		t.append("каждый ход +%d блока" % turn_block)
+		t.append(Loc.t("каждый ход +%d блока") % turn_block)
 	if bog_damage > 0:
-		t.append("не тонет: трясина ранит на %d" % bog_damage)
+		t.append(Loc.t("не тонет: трясина ранит на %d") % bog_damage)
 	if fire_weak:
-		t.append("боится огня: в огне нет блока, урон от огня ×2")
+		t.append(Loc.t("боится огня: в огне нет блока, урон от огня ×2"))
 	if shell:
-		t.append("Панцирь: урон от карт вдвое меньше, кроме удара в клещах")
+		t.append(Loc.t("Панцирь: урон от карт вдвое меньше, кроме удара в клещах"))
 	if ambush > 0:
-		t.append("удар из камыша +%d" % ambush)
+		t.append(Loc.t("удар из камыша +%d") % ambush)
 	if bequest > 0:
-		t.append("погибая, отдаёт венец ближайшему культисту: его удары +%d" % bequest)
+		t.append(Loc.t("погибая, отдаёт венец ближайшему культисту: его удары +%d") % bequest)
 	if fire_walker:
-		t.append("Дитя огня: огонь и лава его не ранят, по лаве ходит")
+		t.append(Loc.t("Дитя огня: огонь и лава его не ранят, по лаве ходит"))
 	if water_weak:
-		t.append("Боится воды: мокрый или в луже — без брони, вода и пар ранят вдвое")
+		t.append(Loc.t("Боится воды: мокрый или в луже — без брони, вода и пар ранят вдвое"))
 	if machine and not is_boss:
-		t.append("Механизм: мокрый от молнии — замыкание, пропускает ход")
+		t.append(Loc.t("Механизм: мокрый от молнии — замыкание, пропускает ход"))
 	if sleeper:
-		t.append("Спит, пока его не ударят или герой не встанет вплотную")
+		t.append(Loc.t("Спит, пока его не ударят или герой не встанет вплотную"))
 	if blind:
-		t.append("Слепой: идёт на шум — к герою, который прошёл за ход больше клеток")
+		t.append(Loc.t("Слепой: идёт на шум — к герою, который прошёл за ход больше клеток"))
 	if flier:
-		t.append("Летает: преграды, лава и фигурки ему не мешают")
+		t.append(Loc.t("Летает: преграды, лава и фигурки ему не мешают"))
 	if water_bound:
-		t.append("Живёт в воде: ходит только по лужам, на суше теряет 2 HP за раунд")
+		t.append(Loc.t("Живёт в воде: ходит только по лужам, на суше теряет 2 HP за раунд"))
 	if shell_hits > 0:
-		t.append("Сфера держит %d удара (урон проходит). Разбей до гибели — дух уйдёт с тобой" % shell_hits)
+		t.append(Loc.t("Сфера держит %d удара (урон проходит). Разбей до гибели — дух уйдёт с тобой") % shell_hits)
 	if remains == Remains.STONE:
-		t.append("погибая, оставляет камень-преграду")
+		t.append(Loc.t("погибая, оставляет камень-преграду"))
 	elif remains == Remains.FIRE:
-		t.append("погибая, оставляет огонь")
+		t.append(Loc.t("погибая, оставляет огонь"))
 	if death_element != CardData.Element.NONE or death_wind:
-		t.append("погибая, сфера бьётся и выплёскивает стихию")
+		t.append(Loc.t("погибая, сфера бьётся и выплёскивает стихию"))
 	if fire_trail:
-		t.append("за ним горит след")
+		t.append(Loc.t("за ним горит след"))
 	if move_range <= 0:
-		t.append("не двигается")
+		t.append(Loc.t("не двигается"))
 	return t

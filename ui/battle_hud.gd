@@ -129,7 +129,7 @@ func _build_side_column() -> void:
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	log_column.add_child(head)
 	head.add_child(UiKit.icon_rect("hourglass", 16, UiKit.BRASS))
-	_round_label = UiKit.make_label("Раунд 1", 15, UiKit.BRASS.lightened(0.2), true)
+	_round_label = UiKit.make_label(Loc.t("Раунд 1"), 15, UiKit.BRASS.lightened(0.2), true)
 	head.add_child(_round_label)
 	_arena_label = UiKit.make_label("", 14, UiKit.TEXT_DIM)
 	head.add_child(_arena_label)
@@ -201,13 +201,13 @@ func _build_hand() -> void:
 
 func _build_end_button() -> void:
 	_end_button = Button.new()
-	_end_button.text = "Конец хода"
+	_end_button.text = Loc.t("Конец хода")
 	_end_button.icon = UiKit.icon("hourglass")
 	_end_button.focus_mode = Control.FOCUS_NONE
 	_end_button.add_theme_font_override("font", UiKit.font_bold())
 	_end_button.add_theme_font_size_override("font_size", 18)
 	_end_button.custom_minimum_size = Vector2(CORNER_WIDTH, 58)
-	_end_button.tooltip_text = "Закончить ход героев. Враги сделают ровно то, что показано на поле:\nжёлтые линии — куда пойдут, красные клетки — куда ударят."
+	_end_button.tooltip_text = Loc.t("Закончить ход героев. Враги сделают ровно то, что показано на поле:\nжёлтые линии — куда пойдут, красные клетки — куда ударят.")
 	Sfx.bind_button(_end_button, "turn")
 	_end_button.pressed.connect(end_turn_pressed.emit)
 	# Цепь — над кнопкой «Конец хода», крупно, латунью
@@ -220,7 +220,7 @@ func _build_end_button() -> void:
 	_chain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_chain_label.custom_minimum_size = Vector2(CORNER_WIDTH, 36)
 	_chain_label.mouse_filter = Control.MOUSE_FILTER_PASS
-	_chain_label.tooltip_text = "Цепь: сколько карт отряд сыграл в этот ход.\nКарты с «Цепь N» и «+X за звено» становятся сильнее."
+	_chain_label.tooltip_text = Loc.t("Цепь: сколько карт отряд сыграл в этот ход.\nКарты с «Цепь N» и «+X за звено» становятся сильнее.")
 	_chain_label.pivot_offset = Vector2(CORNER_WIDTH, 18)
 	# Порядок в углу сверху вниз: подсказка, «Цепь», кнопки поменьше, «Конец хода»
 	_corner.add_child(_chain_label)
@@ -255,7 +255,7 @@ func _build_speed_button() -> void:
 	_speed_button.add_theme_font_size_override("font_size", 13)
 	_speed_button.custom_minimum_size = Vector2((CORNER_WIDTH - 6) / 2, 46)
 	_speed_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_speed_button.tooltip_text = "Скорость хода врагов: обычная или в два раза быстрее. Клавиша F.\nМожно переключать и пока враги ходят."
+	_speed_button.tooltip_text = Loc.t("Скорость хода врагов: обычная или в два раза быстрее. Клавиша F.\nМожно переключать и пока враги ходят.")
 	Sfx.bind_button(_speed_button)
 	_speed_button.pressed.connect(toggle_speed_from_button)
 	_corner_row.add_child(_speed_button)
@@ -294,17 +294,17 @@ func _build_undo_button() -> void:
 # count — сколько действий можно отменить; lock — почему нельзя (после добора карты), "" — можно
 func update_undo_button(count: int, lock: String, busy: bool) -> void:
 	if count > 0:
-		_undo_button.text = "Отменить · Z  (%d)" % count
+		_undo_button.text = Loc.t("Отменить · Z  (%d)") % count
 		_undo_button.icon = UiKit.icon("undo")
-		_undo_button.tooltip_text = "Вернуть последнее действие этого хода: шаг, карту, сброс.\nБесплатно, можно нажимать много раз — до начала хода."
+		_undo_button.tooltip_text = Loc.t("Вернуть последнее действие этого хода: шаг, карту, сброс.\nБесплатно, можно нажимать много раз — до начала хода.")
 	elif lock != "":
-		_undo_button.text = "Отменить · Z"
+		_undo_button.text = Loc.t("Отменить · Z")
 		_undo_button.icon = UiKit.icon("lock")
-		_undo_button.tooltip_text = lock + "\nДействия после этого снова можно отменять."
+		_undo_button.tooltip_text = lock + Loc.t("\nДействия после этого снова можно отменять.")
 	else:
-		_undo_button.text = "Отменить · Z"
+		_undo_button.text = Loc.t("Отменить · Z")
 		_undo_button.icon = UiKit.icon("undo")
-		_undo_button.tooltip_text = "Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей Z."
+		_undo_button.tooltip_text = Loc.t("Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей Z.")
 	_undo_button.disabled = busy or count <= 0
 
 
@@ -316,13 +316,13 @@ func update_discard_button(logic: BattleLogic, active: BattleUnit, discarding: b
 	if not enabled or active == null:
 		return
 	var left: int = logic.discards_left(active)
-	_discard_button.text = "Сбросить · X\n(осталось %d)" % left
+	_discard_button.text = Loc.t("Сбросить · X\n(осталось %d)") % left
 	_discard_button.button_pressed = discarding
 	_discard_button.disabled = busy or left <= 0 or active.hand.is_empty()
 	if left <= 0:
-		_discard_button.tooltip_text = "В этот ход карту уже сбрасывали. В следующий ход снова можно."
+		_discard_button.tooltip_text = Loc.t("В этот ход карту уже сбрасывали. В следующий ход снова можно.")
 	else:
-		_discard_button.tooltip_text = "Выбери эту кнопку (или X), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся."
+		_discard_button.tooltip_text = Loc.t("Выбери эту кнопку (или X), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся.")
 
 
 # Кнопка сама меняет своё состояние при нажатии, поэтому тут только синхронизация с Run
@@ -350,7 +350,7 @@ func _build_legend() -> void:
 	buttons.add_theme_constant_override("separation", 6)
 	column.add_child(buttons)
 	var help_button := Button.new()
-	help_button.text = "Управление · F1"
+	help_button.text = Loc.t("Управление · F1")
 	help_button.icon = UiKit.icon("help")
 	help_button.focus_mode = Control.FOCUS_NONE
 	help_button.add_theme_font_size_override("font_size", 13)
@@ -359,7 +359,7 @@ func _build_legend() -> void:
 	help_button.pressed.connect(toggle_help)
 	buttons.add_child(help_button)
 	var sound_button := Button.new()
-	sound_button.text = "Меню · Esc"
+	sound_button.text = Loc.t("Меню · Esc")
 	sound_button.icon = UiKit.icon("pause")
 	sound_button.focus_mode = Control.FOCUS_NONE
 	sound_button.add_theme_font_size_override("font_size", 13)
@@ -372,7 +372,7 @@ func _build_legend() -> void:
 func _legend_row(color: Color, text: String, font_size: int) -> HBoxContainer:
 	if color == LEGEND[1][0] and Settings.colorblind:
 		color = UiKit.THREAT_CB   # режим для дальтоников: угроза пурпурная и в полоску
-		text += " (в полоску)"
+		text += Loc.t(" (в полоску)")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 7)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -400,24 +400,24 @@ func _build_help() -> void:
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 7)
 	_help.add_child(column)
-	column.add_child(UiKit.make_title("Как играть", 26, UiKit.BRASS.lightened(0.2)))
+	column.add_child(UiKit.make_title(Loc.t("Как играть"), 26, UiKit.BRASS.lightened(0.2)))
 	column.add_child(UiKit.make_divider(300))
 	var rows: Array[Array] = [
-		["mouse_l", "", "ЛКМ по светлой клетке — идти выбранным героем"],
-		["mouse_l", "", "ЛКМ по карте, потом по клетке — сыграть карту"],
-		["mouse_r", "", "ПКМ или Esc — отменить выбранную карту"],
-		["", "1–7", "Сыграть карту по её номеру"],
-		["mouse_r", "", "ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до %d карт" % BattleLogic.KEEP_LIMIT],
-		["hourglass", "", "В конце хода остальная рука уходит в сброс, рука пополняется минимум до %d карт" % BattleLogic.HAND_SIZE],
-		["drop", "", "Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит"],
-		["", "Z", "Отменить последнее действие хода (шаг, карту, сброс) — бесплатно, до начала хода. Нельзя, если карта добрала карту из колоды"],
-		["", "Tab", "Другой герой (или клик по герою, по его панели)"],
-		["target", "", "Наведи на врага — его удар, зона и особенности"],
-		["rotate", "", "Q / E — повернуть камеру"],
-		["zoom", "", "Колесо мыши — приблизить или отдалить"],
-		["hourglass", "", "«Конец хода» — враги делают то, что показано на поле"],
-		["", "F", "Ход врагов в два раза быстрее (кнопка «×1 / ×2» слева от «Конец хода»)"],
-		["target", "", "Враги бьют туда, где выгоднее; причина — в их карточке, строка «Цель»"],
+		["mouse_l", "", Loc.t("ЛКМ по светлой клетке — идти выбранным героем")],
+		["mouse_l", "", Loc.t("ЛКМ по карте, потом по клетке — сыграть карту")],
+		["mouse_r", "", Loc.t("ПКМ или Esc — отменить выбранную карту")],
+		["", "1–7", Loc.t("Сыграть карту по её номеру")],
+		["mouse_r", "", Loc.t("ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до %d карт") % BattleLogic.KEEP_LIMIT],
+		["hourglass", "", Loc.t("В конце хода остальная рука уходит в сброс, рука пополняется минимум до %d карт") % BattleLogic.HAND_SIZE],
+		["drop", "", Loc.t("Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит")],
+		["", "Z", Loc.t("Отменить последнее действие хода (шаг, карту, сброс) — бесплатно, до начала хода. Нельзя, если карта добрала карту из колоды")],
+		["", "Tab", Loc.t("Другой герой (или клик по герою, по его панели)")],
+		["target", "", Loc.t("Наведи на врага — его удар, зона и особенности")],
+		["rotate", "", Loc.t("Q / E — повернуть камеру")],
+		["zoom", "", Loc.t("Колесо мыши — приблизить или отдалить")],
+		["hourglass", "", Loc.t("«Конец хода» — враги делают то, что показано на поле")],
+		["", "F", Loc.t("Ход врагов в два раза быстрее (кнопка «×1 / ×2» слева от «Конец хода»)")],
+		["target", "", Loc.t("Враги бьют туда, где выгоднее; причина — в их карточке, строка «Цель»")],
 	]
 	for item: Array in rows:
 		var row := HBoxContainer.new()
@@ -435,14 +435,14 @@ func _build_help() -> void:
 		row.add_child(UiKit.make_label(item[2], 15))
 		column.add_child(row)
 	column.add_child(UiKit.make_divider(300))
-	column.add_child(UiKit.make_label("Над врагом: значок и число — чем и на сколько он ударит в этом раунде.", 13, UiKit.TEXT_DIM))
+	column.add_child(UiKit.make_label(Loc.t("Над врагом: значок и число — чем и на сколько он ударит в этом раунде."), 13, UiKit.TEXT_DIM))
 	var colors := HBoxContainer.new()
 	colors.add_theme_constant_override("separation", 16)
 	colors.alignment = BoxContainer.ALIGNMENT_CENTER
 	for item: Array in LEGEND:
 		colors.add_child(_legend_row(item[0], item[1], 13))
 	column.add_child(colors)
-	var close: Button = UiKit.make_button("Понятно", toggle_help, "", true)
+	var close: Button = UiKit.make_button(Loc.t("Понятно"), toggle_help, "", true)
 	close.custom_minimum_size = Vector2(180, 38)
 	column.add_child(close)
 
@@ -488,7 +488,7 @@ func toggle_speed() -> void:
 
 
 func _update_speed_button() -> void:
-	_speed_button.text = "Ход врагов ×2" if Run.fast_enemies else "Ход врагов ×1"
+	_speed_button.text = Loc.t("Ход врагов ×2") if Run.fast_enemies else Loc.t("Ход врагов ×1")
 	_speed_button.button_pressed = Run.fast_enemies
 
 
@@ -518,9 +518,9 @@ func _refresh_objective(logic: BattleLogic) -> void:
 		return
 	var line: String = logic.objective_text() if has_goal else ""
 	if wave != "":
-		line += ("\n" if line != "" else "") + ("Подмога: " if has_goal else "") + wave
+		line += ("\n" if line != "" else "") + (Loc.t("Подмога: ") if has_goal else "") + wave
 	_objective_row.add_child(UiKit.icon_rect(logic.objective_icon() if has_goal else "hourglass", 16, UiKit.BRASS))
-	_objective_row.add_child(UiKit.make_label((logic.objective_title() if has_goal else "Подмога") + ":", 14, UiKit.BRASS, true))
+	_objective_row.add_child(UiKit.make_label((logic.objective_title() if has_goal else Loc.t("Подмога")) + ":", 14, UiKit.BRASS, true))
 	var text: Label = UiKit.make_label(line, 14, UiKit.TEXT)
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.custom_minimum_size.x = 200
@@ -531,9 +531,9 @@ func _refresh_objective(logic: BattleLogic) -> void:
 # Перерисовывает панели героев и руку активного героя.
 # selected — номер выбранной карты (-1 — нет), busy — идут анимации.
 func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) -> void:
-	_round_label.text = "Раунд %d" % maxi(logic.turn, 1)
+	_round_label.text = Loc.t("Раунд %d") % maxi(logic.turn, 1)
 	var chain: int = logic.chain_value()
-	_chain_label.text = "Цепь %d" % chain
+	_chain_label.text = Loc.t("Цепь %d") % chain
 	_chain_label.modulate.a = 1.0 if chain > 0 else 0.45
 	if chain > _last_chain:
 		# каждое новое звено — короткая вспышка
@@ -635,11 +635,11 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	if not alive:
-		head.add_child(UiKit.make_label("пал в бою", 13, UiKit.TEXT_DIM))
+		head.add_child(UiKit.make_label(Loc.t("пал в бою"), 13, UiKit.TEXT_DIM))
 		return panel
 	if h.block > 0:
 		head.add_child(UiKit.chip("shield", str(h.block), UiKit.BLOCK,
-				"Блок %d: поглощает урон. Сгорает в начале следующего хода героев." % h.block, 16, 18))
+				Loc.t("Блок %d: поглощает урон. Сгорает в начале следующего хода героев.") % h.block, 16, 18))
 	elif not is_active:
 		head.add_child(UiKit.make_label("Tab", 11, UiKit.TEXT_DIM))
 
@@ -652,15 +652,15 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 	info.add_child(stats)
 	stats.add_child(_mana_row(h))
 	stats.add_child(UiKit.chip("boot", str(h.moves_left), UiKit.TEXT if h.moves_left > 0 else UiKit.TEXT_DIM.darkened(0.2),
-			"Шаги: на сколько клеток герой ещё может пройти в этот ход."))
+			Loc.t("Шаги: на сколько клеток герой ещё может пройти в этот ход.")))
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stats.add_child(spacer)
 	stats.add_child(UiKit.chip("deck", str(h.draw_pile.size()), UiKit.TEXT_DIM,
-			"Колода: карт осталось добрать — %d." % h.draw_pile.size(), 13, 15))
+			Loc.t("Колода: карт осталось добрать — %d.") % h.draw_pile.size(), 13, 15))
 	stats.add_child(UiKit.chip("discard", str(h.discard_pile.size()), UiKit.TEXT_DIM,
-			"Сброс: %d. Когда колода кончится, сброс перемешается в новую колоду." % h.discard_pile.size(), 13, 15))
+			Loc.t("Сброс: %d. Когда колода кончится, сброс перемешается в новую колоду.") % h.discard_pile.size(), 13, 15))
 
 	# Особые счётчики героя и состояния
 	# (HFlowContainer сам переносит плашки на вторую строку, если в одну не влезли)
@@ -669,40 +669,40 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 	extra.add_theme_constant_override("v_separation", 4)
 	extra.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if h.hero_data.gains_rage:
-		extra.add_child(_pill("rage", "Ярость %d" % h.rage, UiKit.RAGE, h.rage > 0,
-				"Ярость: +1 за каждый полученный удар (даже в блок).\n«Кровавый удар» и «Берсерк» тратят её всю ради урона."))
+		extra.add_child(_pill("rage", Loc.t("Ярость %d") % h.rage, UiKit.RAGE, h.rage > 0,
+				Loc.t("Ярость: +1 за каждый полученный удар (даже в блок).\n«Кровавый удар» и «Берсерк» тратят её всю ради урона.")))
 	if h.hero_data.gains_momentum:
-		extra.add_child(_pill("momentum", "Натиск %d" % h.momentum, UiKit.MOMENTUM, h.momentum > 0,
-				"Натиск: +1 за каждую пройденную клетку (до 5).\nСледующая карта с уроном прибавит весь натиск. Сгорает в начале хода."))
+		extra.add_child(_pill("momentum", Loc.t("Натиск %d") % h.momentum, UiKit.MOMENTUM, h.momentum > 0,
+				Loc.t("Натиск: +1 за каждую пройденную клетку (до 5).\nСледующая карта с уроном прибавит весь натиск. Сгорает в начале хода.")))
 	if h.hero_data.uses_charge:
-		extra.add_child(_pill("bolt", "Заряд %d" % h.charge, UiKit.CHARGE, h.charge > 0,
-				"Заряд: копится от заклинаний Бури и не пропадает между ходами.\n«Разрядки» тратят его весь ради урона."))
+		extra.add_child(_pill("bolt", Loc.t("Заряд %d") % h.charge, UiKit.CHARGE, h.charge > 0,
+				Loc.t("Заряд: копится от заклинаний Бури и не пропадает между ходами.\n«Разрядки» тратят его весь ради урона.")))
 	if h.overloaded:
-		extra.add_child(_pill("overload", "Перегрузка", UiKit.threat(), true,
-				"Перегрузка: не потратишь заряд до конца хода — маг получит урон, равный заряду."))
+		extra.add_child(_pill("overload", Loc.t("Перегрузка"), UiKit.threat(), true,
+				Loc.t("Перегрузка: не потратишь заряд до конца хода — маг получит урон, равный заряду.")))
 	if h.taunt:
-		extra.add_child(_pill("taunt", "Провокация", UiKit.BLOCK, true, "Враги, которые могут достать героя, бьют только его."))
+		extra.add_child(_pill("taunt", Loc.t("Провокация"), UiKit.BLOCK, true, Loc.t("Враги, которые могут достать героя, бьют только его.")))
 	if h.outpost:
-		extra.add_child(_pill("outpost", "Застава", UiKit.BLOCK, true, "Враг, подошедший вплотную, получает урон."))
+		extra.add_child(_pill("outpost", Loc.t("Застава"), UiKit.BLOCK, true, Loc.t("Враг, подошедший вплотную, получает урон.")))
 	if h.unstoppable:
-		extra.add_child(_pill("unstoppable", "Неудержимый", UiKit.MOMENTUM, true, "До конца хода каждое убийство даёт 1 ману и 2 шага."))
+		extra.add_child(_pill("unstoppable", Loc.t("Неудержимый"), UiKit.MOMENTUM, true, Loc.t("До конца хода каждое убийство даёт 1 ману и 2 шага.")))
 	if h.discount > 0:
-		extra.add_child(_pill("discount", "−%d" % h.discount, UiKit.MANA_CHEAP, true, "Следующая карта дешевле на %d." % h.discount))
+		extra.add_child(_pill("discount", "−%d" % h.discount, UiKit.MANA_CHEAP, true, Loc.t("Следующая карта дешевле на %d.") % h.discount))
 	if h.entangled > 0:
-		extra.add_child(_pill("entangled", "Опутан", UiKit.threat(), true, "Опутан корнями: в этот ход нет шагов. Карты играть можно."))
+		extra.add_child(_pill("entangled", Loc.t("Опутан"), UiKit.threat(), true, Loc.t("Опутан корнями: в этот ход нет шагов. Карты играть можно.")))
 	if h.rune != "" and h.rune_hits > 0:
-		var rune_names: Dictionary = {"fire": "огонь", "storm": "буря", "rot": "гниль"}
+		var rune_names: Dictionary = {"fire": Loc.t("огонь"), "storm": Loc.t("буря"), "rot": Loc.t("гниль")}
 		var rune_hints: Dictionary = {
-			"fire": "поджигают клетку под каждым задетым врагом",
-			"storm": "считаются молнией: по мокрым врагам +%d урона" % BattleLogic.WET_SHOCK_BONUS,
-			"rot": "отравляют задетых врагов (%d урона в конце раунда мимо блока)" % BattleLogic.POISON_DAMAGE,
+			"fire": Loc.t("поджигают клетку под каждым задетым врагом"),
+			"storm": Loc.t("считаются молнией: по мокрым врагам +%d урона") % BattleLogic.WET_SHOCK_BONUS,
+			"rot": Loc.t("отравляют задетых врагов (%d урона в конце раунда мимо блока)") % BattleLogic.POISON_DAMAGE,
 		}
-		extra.add_child(_pill("rune_" + h.rune, "Руна: %s · %d" % [rune_names[h.rune], h.rune_hits], UiKit.TEXT, true,
-				"Руна на клинке: следующие удары (%d) %s.\nОдна карта с уроном тратит один удар руны." % [h.rune_hits, rune_hints[h.rune]]))
+		extra.add_child(_pill("rune_" + h.rune, Loc.t("Руна: %s · %d") % [rune_names[h.rune], h.rune_hits], UiKit.TEXT, true,
+				Loc.t("Руна на клинке: следующие удары (%d) %s.\nОдна карта с уроном тратит один удар руны.") % [h.rune_hits, rune_hints[h.rune]]))
 	if h.wet > 0:
-		extra.add_child(_pill("drop", "Мокрый %d" % h.wet, UnitPlate.COLOR_WET, true, "Мокрый: молния бьёт по нему на %d сильнее. Высыхает через пару раундов или от огня." % BattleLogic.WET_SHOCK_BONUS))
+		extra.add_child(_pill("drop", Loc.t("Мокрый %d") % h.wet, UnitPlate.COLOR_WET, true, Loc.t("Мокрый: молния бьёт по нему на %d сильнее. Высыхает через пару раундов или от огня.") % BattleLogic.WET_SHOCK_BONUS))
 	if h.poison > 0:
-		extra.add_child(_pill("poison", "Яд %d" % h.poison, UnitPlate.COLOR_POISON, true, "Яд: %d урона в конце раунда мимо блока." % BattleLogic.POISON_DAMAGE))
+		extra.add_child(_pill("poison", Loc.t("Яд %d") % h.poison, UnitPlate.COLOR_POISON, true, Loc.t("Яд: %d урона в конце раунда мимо блока.") % BattleLogic.POISON_DAMAGE))
 	if extra.get_child_count() > 0:
 		info.add_child(extra)
 	else:
@@ -713,9 +713,9 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 # Мана «камнями»: яркие — есть, тёмные — потрачены. Если маны много — просто числом.
 func _mana_row(h: BattleUnit) -> HBoxContainer:
 	var total: int = maxi(h.mana, h.hero_data.mana_per_turn)
-	var hint: String = "Мана: %d из %d. Можно уйти в минус до −%d (перегрев): если в минусе 2 или больше, в следующий ход маны на 1 меньше." % [h.mana, h.hero_data.mana_per_turn, BattleLogic.MAX_OVERHEAT]
+	var hint: String = Loc.t("Мана: %d из %d. Можно уйти в минус до −%d (перегрев): если в минусе 2 или больше, в следующий ход маны на 1 меньше.") % [h.mana, h.hero_data.mana_per_turn, BattleLogic.MAX_OVERHEAT]
 	if h.mana < 0:
-		return UiKit.chip("mana", "%d (перегрев)" % h.mana, UiKit.GOLD, hint)
+		return UiKit.chip("mana", Loc.t("%d (перегрев)") % h.mana, UiKit.GOLD, hint)
 	if total > 6:
 		return UiKit.chip("mana", str(h.mana), UiKit.MANA, hint)
 	var row := HBoxContainer.new()
@@ -854,25 +854,25 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 	if busy or active == null or not active.is_alive():
 		text = ""
 	elif selected >= 0 and selected < active.hand.size():
-		text = "«%s»: выбери жёлтую клетку на поле.\nПКМ или Esc — отмена" % active.hand[selected].title
+		text = Loc.t("«%s»: выбери жёлтую клетку на поле.\nПКМ или Esc — отмена") % Loc.t(active.hand[selected].title)
 	elif not team_can_act:
-		text = "Шагов и маны не осталось — жми «Конец хода»"
+		text = Loc.t("Шагов и маны не осталось — жми «Конец хода»")
 	else:
 		var can_move: bool = active.moves_left > 0 and not logic.get_move_targets(active).is_empty()
 		if can_move and any_playable:
-			text = "%s: клик по светлой клетке — идти, клик по карте — сыграть её" % active.title
+			text = Loc.t("%s: клик по светлой клетке — идти, клик по карте — сыграть её") % active.title
 		elif can_move:
-			text = "%s: карты не по карману, но можно идти — клик по светлой клетке" % active.title
+			text = Loc.t("%s: карты не по карману, но можно идти — клик по светлой клетке") % active.title
 		elif any_playable:
-			text = "%s: шагов нет — выбери карту" % active.title
+			text = Loc.t("%s: шагов нет — выбери карту") % active.title
 			if active.entangled > 0:
-				text = "%s опутан и не может идти — выбери карту" % active.title
+				text = Loc.t("%s опутан и не может идти — выбери карту") % active.title
 		else:
-			text = "%s больше ничего не может.\nTab — другой герой" % active.title
+			text = Loc.t("%s больше ничего не может.\nTab — другой герой") % active.title
 	# Подсказка про удержание: есть карты, но ни одна не отмечена
 	if text != "" and selected < 0 and BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2 \
 			and not active.hand.is_empty() and active.kept.is_empty():
-		text += "\nПКМ по карте — удержать (до %d)" % BattleLogic.KEEP_LIMIT
+		text += Loc.t("\nПКМ по карте — удержать (до %d)") % BattleLogic.KEEP_LIMIT
 	_hint.text = text
 	_hint_panel.visible = text != ""
 
@@ -885,7 +885,7 @@ func show_preview(lines: Array) -> void:
 	_preview_panel.visible = not lines.is_empty()
 	if lines.is_empty():
 		return
-	_preview_box.add_child(UiKit.make_label("Если сыграть сюда", 12, UiKit.BRASS, true))
+	_preview_box.add_child(UiKit.make_label(Loc.t("Если сыграть сюда"), 12, UiKit.BRASS, true))
 	for line: Array in lines:
 		var label: Label = UiKit.make_label(line[0], 13, line[1])
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -914,7 +914,7 @@ func add_log(text: String) -> void:
 func _redraw_log() -> void:
 	UiKit.clear(_log_box)
 	if _log_lines.is_empty():
-		_log_box.add_child(UiKit.make_label("Журнал боя", 13, UiKit.TEXT_DIM))
+		_log_box.add_child(UiKit.make_label(Loc.t("Журнал боя"), 13, UiKit.TEXT_DIM))
 		return
 	for i in _log_lines.size():
 		var line: String = _log_lines[i]
@@ -949,13 +949,13 @@ func show_enemy(e: BattleUnit, logic: BattleLogic) -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	if d.is_boss:
-		head.add_child(UiKit.chip("boss", "Босс", UiKit.BRASS, "", 13, 15))
+		head.add_child(UiKit.chip("boss", Loc.t("Босс"), UiKit.BRASS, "", 13, 15))
 	elif d.is_elite:
-		head.add_child(UiKit.chip("elite", "Элита", UiKit.BRASS, "", 13, 15))
+		head.add_child(UiKit.chip("elite", Loc.t("Элита"), UiKit.BRASS, "", 13, 15))
 	_enemy_box.add_child(head)
 
 	if d.description != "":
-		var quote: Label = UiKit.make_label("«%s»" % d.description, 13, UiKit.TEXT_DIM)
+		var quote: Label = UiKit.make_label("«%s»" % Loc.t(d.description), 13, UiKit.TEXT_DIM)
 		quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		quote.custom_minimum_size.x = width
 		_enemy_box.add_child(quote)
@@ -971,22 +971,22 @@ func show_enemy(e: BattleUnit, logic: BattleLogic) -> void:
 		var states := HBoxContainer.new()
 		states.add_theme_constant_override("separation", 10)
 		if logic.is_wet(e):
-			var wet_text: String = "Мокрый" if e.data.always_wet else "Мокрый (%d)" % logic.wet_turns(e)
-			states.add_child(UiKit.chip("drop", wet_text + ": молния +%d" % BattleLogic.WET_SHOCK_BONUS, UnitPlate.COLOR_WET, "", 14, 13))
+			var wet_text: String = Loc.t("Мокрый") if e.data.always_wet else Loc.t("Мокрый (%d)") % logic.wet_turns(e)
+			states.add_child(UiKit.chip("drop", wet_text + Loc.t(": молния +%d") % BattleLogic.WET_SHOCK_BONUS, UnitPlate.COLOR_WET, "", 14, 13))
 		if e.poison > 0:
-			states.add_child(UiKit.chip("poison", "Яд (%d): −%d в конце раунда" % [e.poison, BattleLogic.POISON_DAMAGE], UnitPlate.COLOR_POISON, "", 14, 13))
+			states.add_child(UiKit.chip("poison", Loc.t("Яд (%d): −%d в конце раунда") % [e.poison, BattleLogic.POISON_DAMAGE], UnitPlate.COLOR_POISON, "", 14, 13))
 		_enemy_box.add_child(states)
 
 	var now: EnemyAttackData = logic.enemy_attack(e)
-	_enemy_box.add_child(_attack_row("Сейчас", now, e.bonus_damage, true, width))
+	_enemy_box.add_child(_attack_row(Loc.t("Сейчас"), now, e.bonus_damage, true, width))
 	if e.ai_reason != "":
 		# Почему враг так ходит — из прогноза «если нажать Конец хода сейчас»
-		var reason_label: Label = UiKit.make_label("Цель: " + e.ai_reason, 13, UiKit.TEXT)
+		var reason_label: Label = UiKit.make_label(Loc.t("Цель: ") + e.ai_reason, 13, UiKit.TEXT)
 		reason_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		reason_label.custom_minimum_size.x = width
 		_enemy_box.add_child(reason_label)
 	if d.cycle.size() > 1:
-		_enemy_box.add_child(_attack_row("Потом", logic.enemy_attack_on(e, logic.turn + 1), 0, false, width))
+		_enemy_box.add_child(_attack_row(Loc.t("Потом"), logic.enemy_attack_on(e, logic.turn + 1), 0, false, width))
 	for t: String in d.traits():
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
@@ -1011,11 +1011,11 @@ func _attack_row(caption: String, attack: EnemyAttackData, bonus: int, bright: b
 		color = color.darkened(0.25)
 	var icons: Array[String] = ["sword", "arrow", "slash", "buff"]
 	var head: HBoxContainer = UiKit.chip(icons[attack.shape] if attack.shape < icons.size() else "sword",
-			"%s — %s" % [caption, attack.title], color, "", 13, 15)
+			"%s — %s" % [caption, Loc.t(attack.title)], color, "", 13, 15)
 	column.add_child(head)
 	var text: String = attack.describe().trim_prefix(attack.title + ": ")
 	if bonus > 0:
-		text += " (+%d от «зова»)" % bonus
+		text += Loc.t(" (+%d от «зова»)") % bonus
 	var label: Label = UiKit.make_label(text, 13, UiKit.TEXT if bright else UiKit.TEXT_DIM)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.custom_minimum_size.x = width
