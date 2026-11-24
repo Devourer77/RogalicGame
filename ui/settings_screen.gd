@@ -78,6 +78,7 @@ func _ready() -> void:
 	columns.add_child(left)
 	left.add_child(_section("Экран"))
 	left.add_child(_toggle_row("fullscreen", "Полный экран (F11)"))
+	left.add_child(_toggle_row("colorblind", "Режим для дальтоников (угроза — пурпурная, в полоску)"))
 	left.add_child(_section("Бой"))
 	left.add_child(_shake_row())
 	left.add_child(_toggle_row("full_effects", "Полные эффекты (выкл. — меньше частиц)"))

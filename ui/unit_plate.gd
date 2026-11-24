@@ -64,7 +64,7 @@ func _draw() -> void:
 	draw_rect(BAR_RECT, Color(0.03, 0.04, 0.04))
 	var fill := BAR_RECT
 	fill.size.x = BAR_RECT.size.x * clampf(float(hp) / max_hp, 0.0, 1.0)
-	draw_rect(fill, UiKit.HP if is_hero else UiKit.HP_ENEMY)
+	draw_rect(fill, UiKit.HP if is_hero else UiKit.hp_enemy())
 	_text(font, str(hp), BAR_RECT.position + Vector2(0, 10.5), BAR_RECT.size.x, 11, Color.WHITE)
 	var pulse: float = 0.55 + 0.4 * sin(Time.get_ticks_msec() * 0.008)
 	if not _preview.is_empty():
@@ -102,7 +102,7 @@ func _draw() -> void:
 	var intent_icon: String = _info.get("intent_icon", "")
 	if intent_icon != "":
 		var value: int = _info.get("intent_value", 0)
-		parts.append([intent_icon, _info.get("intent_color", UiKit.THREAT), str(value) if value > 0 else ""])
+		parts.append([intent_icon, _info.get("intent_color", UiKit.threat()), str(value) if value > 0 else ""])
 	# Прогноз: к концу хода врагов юнит будет стоять в огне — сколько он потеряет
 	var fire: int = _info.get("fire", 0)
 	if fire > 0:
@@ -115,7 +115,7 @@ func _draw() -> void:
 			parts.append(["poison", COLOR_POISON, "-%d" % BattleLogic.POISON_DAMAGE])
 		elif mark == "ritual":
 			# Ритуал: через сколько раундов ритуалист призовёт подмогу (это угроза — красный)
-			parts.append(["ritual", UiKit.THREAT, str(_info.get("ritual_turns", 0))])
+			parts.append(["ritual", UiKit.threat(), str(_info.get("ritual_turns", 0))])
 		elif mark.begins_with("mod_on:"):
 			parts.append([mark.trim_prefix("mod_on:"), UiKit.RIFT.lightened(0.25), ""])   # модификатор сработал
 		elif mark.begins_with("mod:"):

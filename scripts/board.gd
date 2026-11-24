@@ -732,8 +732,15 @@ func field_center() -> Vector3:
 # новый вызов с тем же слоем заменяет старую подсветку этого слоя.
 # subtle = true — сдержанная подсветка: только тонкий контур чуть внутри соты, почти без заливки
 # (клетки, куда можно идти: их много, они не должны застилать поле).
+# Слои угрозы врагов: в режиме для дальтоников они пурпурные и в косую полоску
+const THREAT_LAYERS: Array[String] = ["intent", "hover_threat"]
+
+
 func show_cells(layer: String, cells: Array[Vector2i], color: Color, subtle: bool = false) -> void:
 	clear_layer(layer)
+	var striped: bool = Settings.colorblind and THREAT_LAYERS.has(layer)
+	if striped:
+		color = Color(UiKit.THREAT_CB, color.a)
 	var holder := Node3D.new()
 	add_child(holder)
 	_layers[layer] = holder
@@ -743,7 +750,7 @@ func show_cells(layer: String, cells: Array[Vector2i], color: Color, subtle: boo
 			continue
 		var m := MeshInstance3D.new()
 		m.mesh = _get_highlight_mesh()
-		m.material_override = _get_highlight_material(color, subtle)
+		m.material_override = _get_highlight_material(color, subtle, striped)
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if subtle:   # контур чуть внутри, чтобы у соседних клеток линии не сливались в толстую
 			m.scale = Vector3(SUBTLE_SCALE, 1.0, SUBTLE_SCALE)
@@ -1101,13 +1108,14 @@ func _get_solid_material(color: Color) -> StandardMaterial3D:
 
 # Полупрозрачный материал без освещения. Кешируем: один цвет — один материал.
 # Материал подсветки клетки: слабая заливка + яркий контур соты (с кешем по цвету)
-func _get_highlight_material(color: Color, subtle: bool = false) -> ShaderMaterial:
-	var key: String = str(color) + ("s" if subtle else "")
+func _get_highlight_material(color: Color, subtle: bool = false, striped: bool = false) -> ShaderMaterial:
+	var key: String = str(color) + ("s" if subtle else "") + ("z" if striped else "")
 	if not _highlight_materials.has(key):
 		var mat := ShaderMaterial.new()
 		mat.shader = HIGHLIGHT_SHADER
 		mat.set_shader_parameter("color", color)
 		mat.set_shader_parameter("apothem", HexMath.HEX_SIZE * 0.88 * 0.8660254)
+		mat.set_shader_parameter("stripes", 1.0 if striped else 0.0)
 		if subtle:
 			mat.set_shader_parameter("fill_part", 0.08)
 			mat.set_shader_parameter("edge_width", 0.045)

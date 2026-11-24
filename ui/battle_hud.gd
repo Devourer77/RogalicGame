@@ -155,7 +155,7 @@ func _build_side_column() -> void:
 	log_column.add_child(_log_box)
 	_redraw_log()
 
-	_enemy_card = UiKit.make_panel(Color(UiKit.PANEL, 0.96), UiKit.HP_ENEMY.darkened(0.35), 2)
+	_enemy_card = UiKit.make_panel(Color(UiKit.PANEL, 0.96), UiKit.hp_enemy().darkened(0.35), 2)
 	_enemy_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_enemy_card.visible = false
 	column.add_child(_enemy_card)
@@ -370,6 +370,9 @@ func _build_legend() -> void:
 
 
 func _legend_row(color: Color, text: String, font_size: int) -> HBoxContainer:
+	if color == LEGEND[1][0] and Settings.colorblind:
+		color = UiKit.THREAT_CB   # режим для дальтоников: угроза пурпурная и в полоску
+		text += " (в полоску)"
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 7)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -675,7 +678,7 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 		extra.add_child(_pill("bolt", "Заряд %d" % h.charge, UiKit.CHARGE, h.charge > 0,
 				"Заряд: копится от заклинаний Бури и не пропадает между ходами.\n«Разрядки» тратят его весь ради урона."))
 	if h.overloaded:
-		extra.add_child(_pill("overload", "Перегрузка", UiKit.THREAT, true,
+		extra.add_child(_pill("overload", "Перегрузка", UiKit.threat(), true,
 				"Перегрузка: не потратишь заряд до конца хода — маг получит урон, равный заряду."))
 	if h.taunt:
 		extra.add_child(_pill("taunt", "Провокация", UiKit.BLOCK, true, "Враги, которые могут достать героя, бьют только его."))
@@ -686,7 +689,7 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 	if h.discount > 0:
 		extra.add_child(_pill("discount", "−%d" % h.discount, UiKit.MANA_CHEAP, true, "Следующая карта дешевле на %d." % h.discount))
 	if h.entangled > 0:
-		extra.add_child(_pill("entangled", "Опутан", UiKit.THREAT, true, "Опутан корнями: в этот ход нет шагов. Карты играть можно."))
+		extra.add_child(_pill("entangled", "Опутан", UiKit.threat(), true, "Опутан корнями: в этот ход нет шагов. Карты играть можно."))
 	if h.rune != "" and h.rune_hits > 0:
 		var rune_names: Dictionary = {"fire": "огонь", "storm": "буря", "rot": "гниль"}
 		var rune_hints: Dictionary = {
@@ -959,7 +962,7 @@ func show_enemy(e: BattleUnit, logic: BattleLogic) -> void:
 
 	var health := HBoxContainer.new()
 	health.add_theme_constant_override("separation", 10)
-	health.add_child(UiKit.make_bar(e.hp, e.max_hp, UiKit.HP_ENEMY, Vector2(190, 17)))
+	health.add_child(UiKit.make_bar(e.hp, e.max_hp, UiKit.hp_enemy(), Vector2(190, 17)))
 	if e.block > 0:
 		health.add_child(UiKit.chip("shield", str(e.block), UiKit.BLOCK, "", 15, 17))
 	_enemy_box.add_child(health)
@@ -1003,7 +1006,7 @@ func _attack_row(caption: String, attack: EnemyAttackData, bonus: int, bright: b
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 0)
 	var is_buff: bool = attack.shape == EnemyData.Attack.AURA
-	var color: Color = UiKit.RIFT if is_buff else UiKit.THREAT
+	var color: Color = UiKit.RIFT if is_buff else UiKit.threat()
 	if not bright:
 		color = color.darkened(0.25)
 	var icons: Array[String] = ["sword", "arrow", "slash", "buff"]

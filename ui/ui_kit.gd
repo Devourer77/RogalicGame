@@ -22,6 +22,10 @@ const MANA := Color(0.36, 0.6, 1.0)
 const MANA_CHEAP := Color(0.3, 0.82, 0.55)
 const GOLD := Color(0.96, 0.8, 0.36)
 const THREAT := Color(1.0, 0.36, 0.33)               # красный — только про угрозу
+# Режим для дальтоников (Settings.colorblind): угроза и здоровье врагов — пурпурные,
+# их легко отличить от зелёного здоровья героев при любом виде дальтонизма.
+const THREAT_CB := Color(1.0, 0.36, 0.9)
+const HP_ENEMY_CB := Color(0.84, 0.42, 0.88)
 const RAGE := Color(1.0, 0.58, 0.3)
 const MOMENTUM := Color(1.0, 0.74, 0.3)
 const CHARGE := Color(0.72, 0.62, 1.0)
@@ -40,6 +44,15 @@ static var _bg_texture: GradientTexture2D
 # ---------- Шрифты ----------
 
 # Шрифт заголовков (Alegreya SC). lnum — «ровные» цифры одной высоты.
+
+# Цвет угрозы с учётом режима для дальтоников — брать его, а не THREAT напрямую
+static func threat() -> Color:
+	return THREAT_CB if Settings.colorblind else THREAT
+
+
+static func hp_enemy() -> Color:
+	return HP_ENEMY_CB if Settings.colorblind else HP_ENEMY
+
 static func font_title() -> Font:
 	if _font_title == null:
 		_font_title = FontVariation.new()

@@ -162,6 +162,10 @@ func _ready() -> void:
 	hud.speed_toggled.connect(_apply_speed)
 	hud.discard_toggled.connect(_on_discard_toggled)
 	hud.undo_pressed.connect(_on_undo_pressed)
+	# Поменяли настройки на паузе (дальтоники и т. п.) — перерисовать поле
+	Settings.changed.connect(func() -> void:
+		if _mode == Mode.IDLE and not logic.is_over:
+			_show_forecast())
 	hud.tutor.next_pressed.connect(_on_panel_next)
 	hud.tutor.skip_pressed.connect(_on_panel_skip)
 	if _tutor != null:
@@ -372,11 +376,11 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		var shape: int = logic.enemy_attack(u).shape
 		info["intent_icon"] = INTENT_ICONS[shape] if shape < INTENT_ICONS.size() else "sword"
 		info["intent_value"] = state["damage"]
-		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.THREAT
+		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.threat()
 		# Тлеющая жаба: вместо обычного удара — фитиль (с уроном взрыва, если уже горит)
 		if state.get("fuse", 0) > 0 or state.get("smoldering", false):
 			info["intent_icon"] = "fuse"
-			info["intent_color"] = UiKit.THREAT
+			info["intent_color"] = UiKit.threat()
 		# Спит (Спящая сфера) или «замыкание» механизма: в этот ход не ударит
 		if state.get("asleep", false):
 			info["intent_icon"] = "hourglass"
