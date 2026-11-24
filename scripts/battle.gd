@@ -108,13 +108,26 @@ var _fallen: Dictionary[BattleUnit, bool] = {}   # чья фигурка пал�
 var _boss_sign_hint: String = ""   # подсказка к знаку босса у края арены
 var _impact_sound: String = "hit"        # какой звук удара прозвучит при уроне
 var _last_chain_sounded: int = 0         # чтобы озвучить новый шаг «Цепи» один раз
+# Учебный бой (scripts/tutorial/tutorial_battle.gd): null в обычном бою
+var _tutor: TutorialBattle = null
+var _tutor_pending: Array = []      # действие, которое засчитаем шагу после анимаций: [вид, герой, карта]
+var _tutor_shown: int = -1          # какой шаг сейчас в окошке (чтобы не мигать им при каждом обновлении)
+const COLOR_TUTOR := Color(0.95, 0.78, 0.35, 0.65)   # латунная метка «сюда»
+# Подсказки при первой встрече (scripts/tutorial/hints.gd) — в том же окошке слева
+var _hint_queue: Array[String] = []
+var _hint_shown: String = ""        # какая подсказка сейчас в окошке ("" — окошко занято обучением или закрыто)
 
 
 func _ready() -> void:
 	Run.ensure_run()
 	var layout_seed: int = Run.rng.randi()
+	if Run.tutorial:
+		_tutor = TutorialBattle.new()
+		logic.keep_deck_order = true   # карты приходят в заданном порядке
 	logic.setup(board.width, board.height, Run.rng, Run.party, Run.pending_enemies, Run.pending_arena,
 			Run.pending_objective, Run.relics, Run.pending_formation())
+	if _tutor != null:
+		TutorialBattle.place_enemies(logic)
 	if Run.pending_encounter != null:
 		logic.set_waves(Run.pending_encounter.waves, Run.wave_extra())   # подкрепления (вожак, Певчая, огр)
 	hud.relic_list = Run.relic_list()
@@ -151,6 +164,10 @@ func _ready() -> void:
 	hud.speed_toggled.connect(_apply_speed)
 	hud.discard_toggled.connect(_on_discard_toggled)
 	hud.undo_pressed.connect(_on_undo_pressed)
+	hud.tutor.next_pressed.connect(_on_panel_next)
+	hud.tutor.skip_pressed.connect(_on_panel_skip)
+	if _tutor != null:
+		Hints.mark_seen("enemy_card")   # про карточку врага рассказывает сам учебный бой
 
 	# В начале боя — название арены и отряда врагов: «Старая гать · Стая»
 	var start_title: String = logic.arena_title()
@@ -182,7 +199,18 @@ func _ready() -> void:
 	if Run.is_elite_battle() and Run.forest_spirit_offered():
 		logic.message.emit("Леший смотрит из чащи: победи Голос Рощи, не спалив ни дерева, ни лозы, — и он пойдёт с тобой.")
 	await _play_queue()
-	_select_hero(logic.living_heroes()[0])
+	# В обучении первым ходит Рыцарь (так задуман сценарий), обычно — первый живой герой
+	_select_hero(logic.heroes[1] if _tutor != null else logic.living_heroes()[0])
+	# Что особенного в этом бою — подсказки один раз за игру
+	_offer_hint("enemy_card")
+	if Run.is_elite_battle():
+		_offer_hint("elite")
+	if logic.objective != BattleLogic.Objective.KILL_ALL:
+		_offer_hint("objective")
+	if not logic.waves.is_empty():
+		_offer_hint("waves")
+	if logic.objects.values().has(BattleLogic.Obj.BARREL):
+		_offer_hint("barrel")
 	_enter_idle()
 
 
@@ -947,7 +975,19 @@ func _next_hero() -> BattleUnit:
 func _on_hero_pressed(index: int) -> void:
 	if _mode == Mode.BUSY:
 		return
-	_select_hero(logic.heroes[index])
+	_pick_hero(logic.heroes[index])
+
+
+# Выбрать героя по просьбе игрока (клик, панель, Tab) — с проверкой обучения
+func _pick_hero(h: BattleUnit) -> void:
+	if h == null:
+		return
+	if _tutor != null and h != _active and not _tutor.allows_hero(h.hero_data.id):
+		_tutor_nudge()
+		return
+	_select_hero(h)
+	if _tutor != null:
+		_tutor.action_done("hero", h.hero_data.id)
 	_enter_idle()
 
 
@@ -988,6 +1028,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_cancel_card()
 	elif event is InputEventKey and event.pressed and not event.is_echo() and (event as InputEventKey).keycode == KEY_X:
 		# X, затем карта — сбросить её «в ноги»: бесплатно, шаг или блок вместо эффекта
+		if _tutor != null and not _tutor.allows_extra():
+			_tutor_nudge()
+			return
 		_scrapping = not _scrapping
 		_discarding = false
 		_selected_card = -1
@@ -995,8 +1038,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_Z:
 		_on_undo_pressed()   # Z или Ctrl+Z — отменить последнее действие (держать — отменять дальше)
 	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_TAB:
-		_select_hero(_next_hero())
-		_enter_idle()
+		_pick_hero(_next_hero())
 	elif event is InputEventKey and event.pressed and not event.is_echo() \
 			and (event as InputEventKey).keycode >= KEY_1 and (event as InputEventKey).keycode <= KEY_9:
 		# Цифры 1–9 — карта из руки по номеру (та же цифра написана на самой карте)
@@ -1015,15 +1057,24 @@ func _on_cell_clicked(cell: Vector2i) -> void:
 		Mode.IDLE:
 			var clicked: BattleUnit = logic.unit_at(cell)
 			if clicked != null and clicked.is_hero:
-				_select_hero(clicked)   # клик по герою — выбрать его
-				_enter_idle()
+				_pick_hero(clicked)   # клик по герою — выбрать его
 			elif logic.get_move_targets(_active).has(cell):
 				var h: BattleUnit = _active
+				if _tutor != null:
+					if not _tutor.allows_move(h.hero_data.id, cell):
+						_tutor_nudge()
+						return
+					_tutor_pending = ["move", h.hero_data.id, ""]
 				_do(func() -> void: logic.move_hero(h, cell))
 		Mode.AIMING:
 			if logic.get_card_targets(_active, _selected_card).has(cell):
 				var h: BattleUnit = _active
 				var index: int = _selected_card
+				if _tutor != null:
+					if not _tutor.allows_target(cell):
+						_tutor_nudge()   # не та клетка: карта остаётся выбранной
+						return
+					_tutor_pending = ["card", h.hero_data.id, h.hand[index].id]
 				hud.burst_hand_card(index, h.hand[index])   # карта рассыпается искрами
 				_do(func() -> void: logic.play_card(h, index, cell))
 			else:
@@ -1094,6 +1145,9 @@ func _show_card_preview(cell: Vector2i) -> void:
 	for k: String in REACTION_KINDS:
 		by_kind[k] = [] as Array[Vector2i]
 	for r: Dictionary in _preview["reactions"]:
+		if r["kind"] == "pincer" and Hints.wanted("pincer"):
+			_offer_hint("pincer")
+			_flush_hints()   # про клещи — сразу, пока игрок целится
 		var kind: String = "lava" if r["kind"] == "tree_fire" else r["kind"]
 		if by_kind.has(kind) and not by_kind[kind].has(r["cell"]):
 			by_kind[kind].append(r["cell"])
@@ -1232,6 +1286,9 @@ var _scrapping: bool = false   # включён режим «в ноги» (кл
 func _on_discard_toggled() -> void:
 	if _mode == Mode.BUSY:
 		return
+	if _tutor != null and not _tutor.allows_extra():
+		_tutor_nudge()
+		return
 	if not _discarding and (_active == null or not logic.can_discard(_active, 0)):
 		hud.update_discard_button(logic, _active, false, false)
 		return
@@ -1258,6 +1315,9 @@ func _on_card_pressed(index: int) -> void:
 	if _selected_card == index:
 		_cancel_card()
 		return
+	if _tutor != null and not _tutor.allows_card(_active.hero_data.id, _active.hand[index].id):
+		_tutor_nudge()
+		return
 	if not logic.can_play(_active, index):
 		Sfx.play("card_cancel", 0.05)
 		return
@@ -1265,6 +1325,8 @@ func _on_card_pressed(index: int) -> void:
 	if card.shape == CardData.Shape.SELF or card.shape == CardData.Shape.AROUND:
 		var h: BattleUnit = _active
 		hud.burst_hand_card(index, card)   # карта рассыпается искрами
+		if _tutor != null:
+			_tutor_pending = ["card", h.hero_data.id, card.id]
 		_do(func() -> void: logic.play_card(h, index, h.cell))
 		return
 	Sfx.play("card_select", 0.05)
@@ -1288,6 +1350,11 @@ func _cancel_card() -> void:
 
 
 func _on_end_turn_pressed() -> void:
+	if _tutor != null and _mode != Mode.BUSY:
+		if not _tutor.allows_end_turn():
+			_tutor_nudge()
+			return
+		_tutor_pending = ["end_turn", "", ""]
 	if _mode != Mode.BUSY:
 		_last_chain_sounded = 0
 		Sfx.play("turn", 0.03)
@@ -1325,6 +1392,9 @@ func _do(action: Callable) -> void:
 		_fallen.clear()
 	else:
 		_after_action(snap)
+	if _tutor != null and not _tutor_pending.is_empty():
+		_tutor.action_done(_tutor_pending[0], _tutor_pending[1], _tutor_pending[2])
+		_tutor_pending.clear()
 	if logic.is_over:
 		await _finish_battle()
 		return
@@ -1378,6 +1448,9 @@ func _clear_undo(reason: String) -> void:
 
 
 func _on_undo_pressed() -> void:
+	if _tutor != null and not _tutor.allows_extra() and _mode != Mode.AIMING:
+		_tutor_nudge()
+		return
 	if _mode == Mode.AIMING or _discarding or _scrapping:
 		_scrapping = false
 		_cancel_card()   # сначала Z снимает выбор карты, как ПКМ
@@ -1458,6 +1531,8 @@ func _enter_idle() -> void:
 		move_cells.append(c)
 	board.show_cells("move", move_cells, COLOR_MOVE, true)
 	_show_forecast()
+	_show_tutor()
+	_check_hints()
 	hud.refresh(logic, _active, -1, false)
 	hud.update_discard_button(logic, _active, _discarding, false)
 	hud.update_undo_button(_undo.size(), _undo_lock, false)
@@ -1537,7 +1612,11 @@ func _finish_battle() -> void:
 	board.clear_layer("buff")
 	board.clear_layer("routes")
 	Sfx.play("victory" if logic.won else "defeat", 0.0)
-	hud.show_banner("Победа!" if logic.won else "Поражение…")
+	if _tutor != null:
+		hud.tutor.close()
+		hud.show_banner("Обучение пройдено!" if logic.won else "Обучение окончено")
+	else:
+		hud.show_banner("Победа!" if logic.won else "Поражение…")
 	await get_tree().create_timer(1.5).timeout
 	var hp_left: Array[int] = []
 	for h in logic.heroes:
@@ -1548,6 +1627,113 @@ func _finish_battle() -> void:
 	Run.last_drowned = logic.drowned_count   # условие уникального духа (Хозяин трясины)
 	Run.last_forest_burnt = logic.trees_burnt + logic.vines_burnt   # условие Лешего: Роща не должна гореть
 	Run.finish_battle(logic.won, hp_left)
+
+
+# ---------- Учебный бой ----------
+# Окошко сверху говорит, что сделать; нужная карта светится, нужная клетка — латунная.
+# Пока ведём за руку, всё остальное не нажимается (короткое «нет» — окошко вспыхивает).
+
+func _show_tutor() -> void:
+	if _tutor == null:
+		return
+	var s: Dictionary = _tutor.current()
+	var kind: String = s["do"]
+	hud.tutor_lock = _tutor.guided()
+	hud.tutor_card = s["card"] if kind == "card" and _active != null and _active.hero_data.id == s["hero"] else ""
+	hud.tutor_end = kind == "end_turn"
+	var marks: Array[Vector2i] = []
+	if _tutor.target_cell() != Vector2i(-1, -1):
+		marks.append(_tutor.target_cell())
+	elif kind == "hero":
+		for h: BattleUnit in logic.heroes:
+			if h.hero_data.id == s["hero"]:
+				marks.append(h.cell)
+	board.show_cells("tutor", marks, COLOR_TUTOR)
+	if _tutor_shown == _tutor.step:
+		return
+	_tutor_shown = _tutor.step
+	var next_text: String = "Дальше" if kind == "next" else ("Понятно" if kind == "free" else "")
+	hud.tutor.show_step(_tutor.number_text(), s["title"], s["text"], next_text,
+			"Пропустить обучение" if _tutor.guided() else "")
+
+
+# ---------- Подсказки при первой встрече ----------
+
+func _offer_hint(id: String) -> void:
+	if Hints.wanted(id) and not _hint_queue.has(id) and _hint_shown != id:
+		_hint_queue.append(id)
+
+
+# После каждого действия: не появилось ли на поле что-то новое для игрока
+func _check_hints() -> void:
+	if Hints.is_off() or (_tutor != null and _tutor.guided()):
+		return
+	if logic.chain_value() >= 2:
+		_offer_hint("chain")
+	if logic.turn >= 2:
+		_offer_hint("keep")
+	if logic.tiles.values().has(BattleLogic.Tile.FIRE):
+		_offer_hint("fire")
+	for u: BattleUnit in logic.heroes + logic.enemies:
+		if u.is_alive() and logic.wet_turns(u) > 0:
+			_offer_hint("wet")
+		if u.is_hero and u.is_alive() and u.taunt:
+			_offer_hint("taunt")
+		if u.is_hero and not u.is_alive():
+			_offer_hint("fallen")
+	_flush_hints()
+
+
+# Показать первую подсказку из очереди, если окошко свободно
+func _flush_hints() -> void:
+	if _hint_queue.is_empty() or hud.tutor.visible or logic.is_over:
+		return
+	if _tutor != null and _tutor.guided():
+		return
+	_hint_shown = _hint_queue.pop_front()
+	Hints.show_in(hud.tutor, _hint_shown)
+
+
+func _on_panel_next() -> void:
+	if _hint_shown != "":
+		_hint_shown = ""
+		hud.tutor.close()
+		_flush_hints()
+	else:
+		_on_tutor_next()
+
+
+func _on_panel_skip() -> void:
+	if _hint_shown != "":
+		Hints.turn_off()   # «Не показывать подсказки»
+		_hint_shown = ""
+		_hint_queue.clear()
+		hud.tutor.close()
+	else:
+		Run.end_tutorial()
+
+
+func _on_tutor_next() -> void:
+	if _tutor == null or _mode == Mode.BUSY:
+		return
+	if _tutor.current()["do"] == "free":
+		hud.tutor.close()
+		board.clear_layer("tutor")
+		_flush_hints()
+		return
+	if _tutor.action_done("next"):
+		_enter_idle()
+
+
+# Нажали не то: окошко коротко вспыхивает, звучит «нет»
+func _tutor_nudge() -> void:
+	Sfx.play("card_cancel", 0.05)
+	var panel: TutorPanel = hud.tutor
+	if not panel.visible:
+		return
+	var tween: Tween = panel.create_tween()
+	tween.tween_property(panel, "modulate", Color(1.5, 1.3, 0.85), 0.08)
+	tween.tween_property(panel, "modulate", Color.WHITE, 0.3)
 
 
 # Скорость игры: ×2 только пока идёт ход врагов и включена кнопка, в остальное время обычная
@@ -1577,8 +1763,8 @@ func _print_battle_stats() -> void:
 
 # Строка в журнал боёв user://battles.csv (scripts/battle_journal.gd). При замере ботом не пишем.
 func _write_journal() -> void:
-	if Run.sim_no_scenes:
-		return
+	if Run.sim_no_scenes or _tutor != null:
+		return   # учебный бой в журнал баланса не пишем
 	var kinds: Dictionary = {MapNode.Type.BATTLE: "бой", MapNode.Type.ELITE: "элита",
 			MapNode.Type.BOSS: "босс", MapNode.Type.LAIR: "логово", MapNode.Type.EVENT: "событие"}
 	var kind: String = "пещера" if Run.in_cave else (kinds.get(Run.current.type, "?") if Run.current != null else "?")
@@ -1670,6 +1856,9 @@ func _zoom_camera(direction: float) -> void:
 # ПКМ по карте в руке (или Shift + цифра): отметить «удержать на следующий ход» или снять отметку
 func _on_card_keep_toggled(index: int) -> void:
 	if _mode == Mode.BUSY or _active == null or logic.is_over:
+		return
+	if _tutor != null and not _tutor.allows_extra():
+		_tutor_nudge()
 		return
 	var before: int = _active.kept.size()
 	if not logic.toggle_keep(_active, index):

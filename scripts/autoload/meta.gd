@@ -76,6 +76,8 @@ var spirits_seen: Array[String] = []  # духи, которых отряд хо
 var spirits_tamed: Dictionary = {}    # id духа -> сколько раз его покоряли (за все забеги)
 var lair_bait: String = ""            # «Приманка»: кого звать в логово (пусто — случайный дух)
 var last_result: Dictionary = {}     # итог только что закончившегося забега
+var tutorial_done: bool = false       # учебный бой пройден или пропущен (иначе «Начать» ведёт в него)
+var hints_seen: Array[String] = []    # подсказки при первой встрече, которые игрок уже видел (Hints)
 
 
 func _ready() -> void:
@@ -420,6 +422,8 @@ func save() -> void:
 	cfg.set_value("meta", "spirits_seen", spirits_seen)
 	cfg.set_value("meta", "spirits_tamed", spirits_tamed)
 	cfg.set_value("meta", "lair_bait", lair_bait)
+	cfg.set_value("meta", "tutorial_done", tutorial_done)
+	cfg.set_value("meta", "hints_seen", hints_seen)
 	var err: Error = cfg.save(save_path)
 	if err != OK:
 		push_warning("Не удалось сохранить прогресс: %s" % error_string(err))
@@ -448,6 +452,9 @@ func load_progress() -> void:
 	spirits_seen.assign(cfg.get_value("meta", "spirits_seen", []))
 	spirits_tamed = cfg.get_value("meta", "spirits_tamed", {})
 	lair_bait = str(cfg.get_value("meta", "lair_bait", ""))
+	# Старые сохранения без отметки: кто уже играл забеги, того в обучение не отправляем
+	tutorial_done = bool(cfg.get_value("meta", "tutorial_done", not history.is_empty()))
+	hints_seen.assign(cfg.get_value("meta", "hints_seen", []))
 	if not is_bell_open(bell_chosen):
 		bell_chosen = 0
 
@@ -468,6 +475,8 @@ func reset() -> void:
 	spirits_tamed = {}
 	lair_bait = ""
 	last_result = {}
+	tutorial_done = false
+	hints_seen.clear()
 	# Файл сохранения стираем: меню снова покажет «Начать», как при первом запуске
 	if FileAccess.file_exists(save_path):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))

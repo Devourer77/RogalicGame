@@ -7,6 +7,7 @@ var _column: VBoxContainer
 
 
 func _ready() -> void:
+	Hints.offer(self, "shop")   # при первом заходе — подсказка слева внизу (scripts/tutorial/hints.gd)
 	_column = UiKit.make_screen(self)
 	_column.add_theme_constant_override("separation", 12)
 	_rebuild()

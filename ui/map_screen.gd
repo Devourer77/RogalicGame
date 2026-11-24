@@ -38,6 +38,7 @@ var _time: float = 0.0
 
 
 func _ready() -> void:
+	Hints.offer(self, "map")   # при первом заходе — подсказка слева внизу (scripts/tutorial/hints.gd)
 	var vp: Vector2 = get_viewport_rect().size
 	var h: float = vp.y - RESERVED_HEIGHT
 	AREA_SIZE = Vector2(minf(h * AREA_RATIO, vp.x - 40.0), 0.0)

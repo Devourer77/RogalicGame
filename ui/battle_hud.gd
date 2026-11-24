@@ -60,6 +60,12 @@ var _banner: Label
 var _banner_bg: ColorRect
 var _log_lines: PackedStringArray = []
 var _hand_gap: int = 6            # расстояние между картами в руке (отрицательное — внахлёст)
+# Обучение (scripts/tutorial/tutorial_battle.gd): какую карту подсветить, остальные приглушить
+var tutor_card: String = ""
+var tutor_lock: bool = false      # ведём за руку: всё, кроме нужного, приглушено
+var tutor_end: bool = false       # подсветить «Конец хода»
+var tutor: TutorPanel             # окошко обучения слева под панелями героев
+var _tutor_glowed: bool = false   # одна подсвеченная карта на руку (если таких карт две — первая)
 
 
 func _ready() -> void:
@@ -83,6 +89,9 @@ func _ready() -> void:
 	_build_legend()
 	_build_help()
 	_build_banner()
+	tutor = TutorPanel.new()
+	tutor.visible = false
+	_root.add_child(tutor)
 
 
 # ---------- Сборка частей экрана ----------
@@ -537,6 +546,7 @@ func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) 
 		_hero_box.add_child(_make_hero_panel(logic.heroes[i], i, logic.heroes[i] == active, busy))
 
 	UiKit.clear(_hand_box)
+	_tutor_glowed = false
 	var any_playable: bool = false
 	if active != null and active.is_alive():
 		# Если карт в руке много, они встают «внахлёст», чтобы рука не залезала на кнопки по бокам
@@ -562,7 +572,7 @@ func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) 
 				team_can_act = true
 
 	_end_button.disabled = busy
-	_set_end_button_ready(not busy and not team_can_act)
+	_set_end_button_ready(not busy and (not team_can_act or tutor_end))
 	_update_hint(logic, active, selected, busy, any_playable, team_can_act)
 
 
@@ -738,6 +748,12 @@ func _make_hand_slot(active: BattleUnit, index: int, cost: int, playable: bool, 
 	card.tooltip_text = ""   # в бою карту и так видно целиком при наведении
 	if card.disabled:
 		card.modulate = Color(0.68, 0.7, 0.74)   # не хватает маны — карта тусклая
+	if tutor_lock and not is_selected:
+		if active.hand[index].id == tutor_card and not _tutor_glowed:
+			_tutor_glowed = true
+			_tutor_glow(card)   # эту карту и нужно сыграть
+		else:
+			card.modulate = Color(0.5, 0.52, 0.55)
 	if is_selected:
 		card.position.y = raised_y - 10.0
 		card.add_theme_stylebox_override("normal", _selected_frame())
@@ -781,6 +797,15 @@ func burst_hand_card(index: int, card: CardData) -> void:
 	var rect: Rect2 = button.get_global_rect()
 	rect.position -= _root.global_position
 	UiFx.card_burst(_root, rect, CardView.set_color(card))
+
+
+# Латунное свечение вокруг карты, которую просит сыграть обучение
+func _tutor_glow(card: Button) -> void:
+	for state: String in ["normal", "hover"]:
+		card.add_theme_stylebox_override(state, _selected_frame())
+	var tween: Tween = card.create_tween().set_loops()
+	tween.tween_property(card, "modulate", Color(1.22, 1.16, 1.0), 0.55).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(card, "modulate", Color.WHITE, 0.55).set_trans(Tween.TRANS_SINE)
 
 
 func _selected_frame() -> StyleBoxFlat:

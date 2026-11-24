@@ -248,6 +248,7 @@ const ARENAS: Dictionary[String, String] = {
 	"cliff": "Обрыв на тракте",     # Обозный Исполин: лава вдоль края поля, повозки
 	"reactor": "Реакторный зал",    # Колосс Сфер: решётчатый пол, 4 клапана, лужи протечек
 	"crater": "Край жерла",         # Сосуд Венца: кромка кратера с лавой, торф, 3 купели с водой
+	"tutorial": "Учебная поляна",   # учебный бой (scripts/tutorial/tutorial_battle.gd): всё задано заранее
 }
 # Арены акта 2 по веткам (resources/acts/act_2.tres берёт отсюда же) и вид места вокруг поля
 # Арены с особым правилом (ветер, ленты, вагонетки, грозовые сферы, газовые грибы). На карте их
@@ -307,6 +308,7 @@ const NO_CELL: Vector2i = Vector2i(-9999, -9999)
 # только его состояние) и контекст хода (снимается отдельно, в тот же объект).
 const STATE_SKIP: Array[String] = ["rng", "ctx"]
 
+var keep_deck_order: bool = false   # учебный бой: не перемешивать колоды (ставить до setup())
 var width: int = 12    # клеток в каждом ряду (ряды сдвинуты на пол-клетки, см. HexMath)
 var height: int = 12   # рядов
 var rng: RandomNumberGenerator   # общий генератор забега (из Run)
@@ -504,6 +506,7 @@ func _generate_field() -> void:
 			"reeds": _arena_reeds()
 			"camp": _arena_camp()
 			"ruins": _arena_ruins()
+			"tutorial": _arena_tutorial()
 			"cave": _arena_cave()
 			"pond": _arena_pond()
 			"pump": _arena_pump()
@@ -1298,6 +1301,15 @@ func _put(c: Vector2i, kind: int) -> bool:
 		return false
 	objects[c] = kind
 	return true
+
+
+# «Учебная поляна»: поле без случайностей — несколько камней и одна лужа.
+# Клетки заданы столбцом и рядом, как в TutorialBattle (scripts/tutorial/tutorial_battle.gd).
+func _arena_tutorial() -> void:
+	for xy: Vector2i in TutorialBattle.ROCKS:
+		rocks[_cell(xy.x, xy.y)] = true
+	for xy: Vector2i in TutorialBattle.WATER:
+		tiles[_cell(xy.x, xy.y)] = Tile.WATER
 
 
 func _put_rock(c: Vector2i) -> bool:
@@ -5130,6 +5142,8 @@ func discard_card(h: BattleUnit, index: int) -> bool:
 # Перемешивание через общий генератор забега (а не встроенный shuffle(),
 # который берёт случайность «откуда-то» и ломает повторяемость по сиду)
 func _shuffle(cards: Array[CardData]) -> void:
+	if keep_deck_order:
+		return   # учебный бой: карты приходят в заданном порядке
 	for i in range(cards.size() - 1, 0, -1):
 		var j: int = rng.randi_range(0, i)
 		var tmp: CardData = cards[i]

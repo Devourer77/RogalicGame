@@ -20,6 +20,7 @@ const CARD_SCALE: float = 0.7                # карты на экране ум
 
 
 func _ready() -> void:
+	Hints.offer(self, "reward")   # при первом заходе — подсказка слева внизу (scripts/tutorial/hints.gd)
 	_column = UiKit.make_screen(self)
 	_column.add_theme_constant_override("separation", 10)
 	_elite = Run.is_big_reward()   # элита или босс акта — награда в два шага

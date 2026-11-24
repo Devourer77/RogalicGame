@@ -3,6 +3,7 @@ extends Control
 
 
 func _ready() -> void:
+	Hints.offer(self, "rest")   # при первом заходе — подсказка слева внизу (scripts/tutorial/hints.gd)
 	var column: VBoxContainer = UiKit.make_screen(self)
 	var fire: TextureRect = UiKit.icon_rect("rest", 84, Color(1.0, 0.68, 0.32))
 	fire.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

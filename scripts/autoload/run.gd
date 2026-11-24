@@ -138,6 +138,7 @@ var elite_kills: int = 0
 var boss_kills: int = 0
 var event_echoes: int = 0        # Отзвуки, полученные в событиях
 var run_complete: bool = false   # забег пройден до конца (убит финальный босс)
+var tutorial: bool = false   # идёт учебный бой (scripts/tutorial/tutorial_battle.gd), а не забег
 var relics: Array[String] = []   # id оберегов этого забега (из хаба и из тайников)
 var trophy_echoes: int = 0       # Отзвуки вместо трофея (когда все обереги открыты)
 var trophy_choices: Array[RelicData] = []   # из чего выбирать трофей за босса
@@ -230,6 +231,31 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	_generate_map()
 	is_active = true
 	print("Новый забег, сид: ", seed_value)
+
+
+# Учебный бой: отряд с заданными колодами, три гоблина на «Учебной поляне», постоянный сид.
+# Это не забег: после боя (победа, поражение или «Пропустить») — сразу в хаб.
+func start_tutorial() -> void:
+	start_new_run(TutorialBattle.SEED, 0)   # чистое состояние забега, чтобы ничего не тянулось из прошлого
+	rng.seed = TutorialBattle.SEED
+	party = TutorialBattle.make_party(HEROES)
+	relics.clear()
+	start_picks.clear()
+	pending_enemies = TutorialBattle.enemy_list()
+	pending_arena = TutorialBattle.ARENA
+	pending_objective = BattleLogic.Objective.KILL_ALL
+	pending_encounter = null
+	tutorial = true
+	goto(BATTLE_SCENE)
+
+
+func end_tutorial() -> void:
+	tutorial = false
+	is_active = false
+	pending_enemies.clear()
+	Meta.tutorial_done = true
+	Meta.save()
+	goto(HUB_SCENE)
 
 
 # Если сцену боя запустили напрямую (F6) — создаём забег и бой «для пробы»
@@ -1104,6 +1130,9 @@ func _roll_filler(enc: EncounterData, taken: Array[EnemyData]) -> EnemyData:
 
 # hp_left — здоровье героев после боя по порядку отряда
 func finish_battle(won: bool, hp_left: Array[int]) -> void:
+	if tutorial:
+		end_tutorial()
+		return
 	pending_enemies.clear()
 	if not won:
 		game_over(false)

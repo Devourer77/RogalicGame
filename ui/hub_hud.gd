@@ -19,6 +19,7 @@ var _fade: ColorRect
 
 
 func _ready() -> void:
+	Hints.offer(self, "hub")   # при первом заходе — подсказка слева внизу (scripts/tutorial/hints.gd)
 	layer = 10
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

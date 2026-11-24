@@ -508,6 +508,7 @@ var relic_offer: Array[RelicData] = [] # реликвии на выбор, ко�
 
 
 func _ready() -> void:
+	Hints.offer(self, "event")   # при первом заходе — подсказка слева внизу (scripts/tutorial/hints.gd)
 	var event: Dictionary = _pick_event()
 	_title = event["title"]
 	_build_book(event_art(event))

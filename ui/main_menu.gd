@@ -25,6 +25,8 @@ func _ready() -> void:
 	# Первый запуск (сохранения нет) — «Начать», потом — «Продолжить».
 	var start_text: String = "Продолжить" if Meta.has_save() else "Начать"
 	column.add_child(UiKit.make_button(start_text, _on_start, "bell", true))
+	# Учебный бой можно пройти ещё раз в любой момент
+	column.add_child(UiKit.make_button("Обучение", Run.start_tutorial, "help"))
 	if Meta.has_save():
 		_reset_button = UiKit.make_button("Новый прогресс", _on_reset)
 		column.add_child(_reset_button)
@@ -33,7 +35,10 @@ func _ready() -> void:
 
 
 func _on_start() -> void:
-	Run.goto(Run.HUB_SCENE)
+	if not Meta.tutorial_done:
+		Run.start_tutorial()   # первый запуск — сначала учебный бой, после него хаб
+	else:
+		Run.goto(Run.HUB_SCENE)
 
 
 # «Новый прогресс» стирает все Отзвуки, Звоны и улучшения — спрашиваем второй раз.
