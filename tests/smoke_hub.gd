@@ -62,6 +62,13 @@ func _run() -> void:
 	_check(_find_button(_scene(), "Новый прогресс") == null, "без сохранения нет «Нового прогресса»")
 	_find_button(_scene(), "Начать").pressed.emit()
 	await _frames(4)
+	_check(Run.tutorial and _scene().scene_file_path == Run.BATTLE_SCENE, "первый раз «Начать» ведёт в учебный бой")
+	Run.end_tutorial()   # как «Пропустить обучение»
+	await _frames(4)
+	_check(Meta.tutorial_done and _scene().scene_file_path == Run.HUB_SCENE, "после обучения — хаб")
+	await _goto(Run.MAIN_MENU_SCENE)
+	_find_button(_scene(), "Продолжить").pressed.emit()   # сохранение уже есть
+	await _frames(4)
 	_check(_scene().scene_file_path == Run.HUB_SCENE, "«Начать» ведёт в хаб")
 
 	var hub: Node = _scene()

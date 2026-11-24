@@ -16,13 +16,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+# Переключение запоминается в настройках (Settings.fullscreen), окно меняет Settings.apply_window()
 func toggle_fullscreen() -> void:
-	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		# Окно не больше рабочей области монитора (на мониторе 1920×1080 мешает панель задач)
-		var area: Rect2i = DisplayServer.screen_get_usable_rect()
-		var size: Vector2i = WINDOW_SIZE.min(area.size)
-		DisplayServer.window_set_size(size)
-		DisplayServer.window_set_position(area.position + (area.size - size) / 2)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	Settings.set_value("fullscreen", not Settings.fullscreen)

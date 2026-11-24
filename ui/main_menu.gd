@@ -30,7 +30,7 @@ func _ready() -> void:
 	if Meta.has_save():
 		_reset_button = UiKit.make_button("Новый прогресс", _on_reset)
 		column.add_child(_reset_button)
-	column.add_child(UiKit.make_button("Звук", func() -> void: SoundSettings.open(self)))
+	column.add_child(UiKit.make_button("Настройки", func() -> void: SettingsScreen.open(self), "gear"))
 	column.add_child(UiKit.make_button("Выход", get_tree().quit))
 
 

@@ -156,7 +156,12 @@ var candle_used: bool = false    # «Свеча у колокола» уже с�
 var rerolled: bool = false       # «Знакомая тропа» уже использована
 var last_battle_big: bool = false   # последний бой — элита или босс (для «Указа коменданта»)
 var start_picks: Array[RunHero] = []   # кому предстоит выбор карты перед первой точкой («Заготовка»)
-var fast_enemies: bool = false   # «Скорость ×2» во время хода врагов (выбор живёт весь забег)
+# «Скорость ×2» во время хода врагов — теперь настройка (Settings), запоминается между запусками
+var fast_enemies: bool:
+	get:
+		return Settings.fast_enemies
+	set(value):
+		Settings.set_value("fast_enemies", value)
 
 
 func _ready() -> void:
@@ -215,7 +220,6 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	boss_kills = 0
 	event_echoes = 0
 	run_complete = false
-	fast_enemies = false
 	run_spirits.clear()
 	known_spirits.clear()
 	for id: String in Meta.spirits_tamed:

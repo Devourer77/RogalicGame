@@ -11,7 +11,6 @@ extends Node3D
 # заставлял бы видеокарту заново собирать шейдер (короткие подвисания).
 
 # ---------- Ручки ----------
-const FULL_EFFECTS: bool = true          # false — «упрощённые»: частиц вдвое меньше
 const FLASH_TIME: float = 0.18           # сколько длится вспышка модели при уроне
 const PROJECTILE_LIGHT: float = 1.6   # сила света от летящего снаряда (огонь, вода, магия)
 const LIGHTNING_LIGHT: float = 3.5    # сила вспышки света от молнии
@@ -325,7 +324,7 @@ func burst(preset_name: String, at: Vector3, scale: float = 1.0, amount_override
 	parts.one_shot = true
 	parts.explosiveness = 0.95
 	var amount: int = amount_override if amount_override > 0 else int(round(p.get("amount", 12) * scale))
-	if not FULL_EFFECTS:
+	if not Settings.full_effects:
 		amount = maxi(1, amount / 2)
 	parts.amount = maxi(1, amount)
 	parts.lifetime = p.get("life", 0.5)
@@ -360,7 +359,7 @@ func _basis_up_to(dir: Vector3) -> Basis:
 func trail(preset_name: String, follow: Node3D, color: Color) -> GPUParticles3D:
 	var p: Dictionary = PRESETS[preset_name]
 	var parts := GPUParticles3D.new()
-	parts.amount = p.get("amount", 30) if FULL_EFFECTS else p.get("amount", 30) / 2
+	parts.amount = p.get("amount", 30) if Settings.full_effects else p.get("amount", 30) / 2
 	parts.lifetime = p.get("life", 0.35)
 	parts.local_coords = false
 	parts.fixed_fps = 0
@@ -387,7 +386,7 @@ func loop(preset_name: String, parent: Node3D, at: Vector3 = Vector3.ZERO, scale
 	var p: Dictionary = PRESETS[preset_name]
 	var parts := GPUParticles3D.new()
 	var amount: int = p.get("amount", 8)
-	parts.amount = maxi(1, amount if FULL_EFFECTS else amount / 2)
+	parts.amount = maxi(1, amount if Settings.full_effects else amount / 2)
 	parts.lifetime = p.get("life", 1.0)
 	parts.preprocess = parts.lifetime   # сразу «в разгаре», а не с пустого места
 	parts.randomness = 0.3

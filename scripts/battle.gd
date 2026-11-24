@@ -51,8 +51,6 @@ const SHAKE_POWER_EXPLOSION: float = 0.35  # сила тряски у взрыв
 const SHAKE_POWER_TREE: float = 0.2        # сила тряски у падения дерева
 const HITSTOP_TIME: float = 0.08           # стоп-кадр: на столько секунд игра почти замирает
 const HITSTOP_SCALE: float = 0.05          # …и идёт с такой скоростью (1.0 — без стоп-кадра)
-const SHAKE_ENABLED: bool = true           # тряска камеры (потом — в настройки)
-const RAIN_ENABLED: bool = true            # морось над топями (потом — в настройки)
 const RAIN_CHANCE: float = 0.5             # в какой доле боёв идёт морось
 const SHAKE_POWER_HERO_HIT: float = 0.06   # тряска, когда бьют героя
 const SHAKE_POWER_BIG_HIT: float = 0.15    # …сильный удар (от VfxPlayer.BIG_HIT) или добивание
@@ -152,7 +150,7 @@ func _ready() -> void:
 	board.vfx = vfx   # живой огонь, круги на воде, газ и т. п. на клетках
 	# Атмосфера арены: огоньки, туман, мошкара; морось — в части боёв (выбор по сиду раскладки,
 	# на правила и общий генератор случайностей не влияет)
-	var rainy: bool = RAIN_ENABLED and posmod(hash(layout_seed), 100) < int(RAIN_CHANCE * 100.0)
+	var rainy: bool = Settings.rain and posmod(hash(layout_seed), 100) < int(RAIN_CHANCE * 100.0)
 	board.add_atmosphere(rainy)
 	Sfx.enter_battle(logic.arena_id, _battle_kind(), rainy)
 	_create_views()
@@ -814,7 +812,8 @@ func _effect_vfx(kind: String, world: Array[Vector3]) -> void:
 
 # Тряска камеры: смещаем «объектив» (h_offset / v_offset), поворот и зум камеры не трогаем
 func _shake(power: float) -> void:
-	if not SHAKE_ENABLED:
+	power *= Settings.shake   # сила из настроек: 0 — без тряски
+	if power <= 0.0:
 		return
 	var tween: Tween = create_tween()
 	tween.tween_method(func(t: float) -> void:
@@ -1049,7 +1048,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				_on_card_pressed(card_index)
 	elif event.is_action_pressed("ui_cancel"):
-		_cancel_card()
+		# Esc сначала отменяет выбор карты или сброс; если отменять нечего — откроется пауза (Settings)
+		if _discarding or _scrapping or _mode == Mode.AIMING:
+			get_viewport().set_input_as_handled()
+			if _scrapping and not _discarding and _mode != Mode.AIMING:
+				_scrapping = false
+				Sfx.play("card_cancel", 0.05)
+				_enter_idle()
+			else:
+				_scrapping = false
+				_cancel_card()
 
 
 func _on_cell_clicked(cell: Vector2i) -> void:

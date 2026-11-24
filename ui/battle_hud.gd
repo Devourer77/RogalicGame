@@ -359,13 +359,13 @@ func _build_legend() -> void:
 	help_button.pressed.connect(toggle_help)
 	buttons.add_child(help_button)
 	var sound_button := Button.new()
-	sound_button.text = "Звук"
-	sound_button.icon = UiKit.icon("bell")
+	sound_button.text = "Меню · Esc"
+	sound_button.icon = UiKit.icon("pause")
 	sound_button.focus_mode = Control.FOCUS_NONE
 	sound_button.add_theme_font_size_override("font_size", 13)
 	sound_button.add_theme_constant_override("icon_max_width", 15)
 	Sfx.bind_button(sound_button)
-	sound_button.pressed.connect(func() -> void: SoundSettings.open(_root))
+	sound_button.pressed.connect(func() -> void: PauseMenu.open(_root))
 	buttons.add_child(sound_button)
 
 

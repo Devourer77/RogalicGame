@@ -50,7 +50,7 @@ func _ready() -> void:
 	top_actions.add_theme_constant_override("separation", 8)
 	top_actions.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT, Control.PRESET_MODE_MINSIZE, 16)
 	root.add_child(top_actions)
-	var sound_btn: Button = UiKit.make_button("Звук", func() -> void: SoundSettings.open(root), "bell")
+	var sound_btn: Button = UiKit.make_button("Меню", func() -> void: PauseMenu.open(root), "pause")
 	sound_btn.custom_minimum_size = Vector2(96, 36)
 	top_actions.add_child(sound_btn)
 	var menu: Button = UiKit.make_button("В меню", func() -> void: menu_requested.emit())

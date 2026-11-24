@@ -74,6 +74,7 @@ var _last_tick_ms: int = 0
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS   # музыка и звуки меню играют и на паузе
 	_setup_buses()
 	_load_settings()
 	_apply_buses()
