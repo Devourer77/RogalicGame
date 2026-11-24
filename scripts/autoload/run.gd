@@ -302,6 +302,7 @@ func _tougher(enemy: EnemyData, factor: float) -> EnemyData:
 func goto(scene_path: String) -> void:
 	if sim_no_scenes:
 		return   # замер забега ботом (tests/balance_run.gd): экраны не открываем
+	Sfx.sync_scene(scene_path)
 	# call_deferred — сменить сцену после текущего кадра, а не посреди обработки
 	get_tree().change_scene_to_file.call_deferred(scene_path)
 

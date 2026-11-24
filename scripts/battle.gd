@@ -106,6 +106,8 @@ var _undo: Array[Dictionary] = []   # снимки боя перед кажды�
 var _undo_lock: String = ""          # почему отменить нельзя: "" — можно, иначе текст подсказки
 var _fallen: Dictionary[BattleUnit, bool] = {}   # чья фигурка пала после начала хода (после отмены её пересоздаём)
 var _boss_sign_hint: String = ""   # подсказка к знаку босса у края арены
+var _impact_sound: String = "hit"        # какой звук удара прозвучит при уроне
+var _last_chain_sounded: int = 0         # чтобы озвучить новый шаг «Цепи» один раз
 
 
 func _ready() -> void:
@@ -139,6 +141,7 @@ func _ready() -> void:
 	# на правила и общий генератор случайностей не влияет)
 	var rainy: bool = RAIN_ENABLED and posmod(hash(layout_seed), 100) < int(RAIN_CHANCE * 100.0)
 	board.add_atmosphere(rainy)
+	Sfx.enter_battle(logic.arena_id, _battle_kind(), rainy)
 	_create_views()
 	_connect_logic()
 	hud.card_pressed.connect(_on_card_pressed)
@@ -196,6 +199,10 @@ const GLOW_FIRE := Color(1.0, 0.42, 0.08)    # зоб раскалён — сл�
 
 func _make_enemy_view(e: BattleUnit) -> Unit:
 	var view: Unit = _spawn_view(e.data.id.capitalize(), e.cell)
+	if e.data.is_boss or e.data.size >= 1.25:
+		view.step_pitch = 0.84
+	elif e.data.size <= 0.8:
+		view.step_pitch = 1.14
 	if e.data.model != null:
 		var model: Node3D = e.data.model.instantiate()
 		view.add_child(model)
@@ -457,7 +464,15 @@ func _on_unit_damaged(unit: BattleUnit, amount: int, state: Dictionary) -> void:
 		_queue(func() -> void: _show_status(unit, view, info, state))
 		return
 	_queue(func() -> void:
-		Sfx.play("block" if amount <= 0 else "hit", 0.08)
+		if tick:
+			var tick_snd: String = "gas_cloud" if (source == "poison" or source == "gas") else ("lava" if source == "lava" else "fire")
+			Sfx.play(tick_snd, 0.08, -6.5)
+		elif amount <= 0:
+			Sfx.play("block", 0.08)
+		else:
+			if hit_info["broke"]:
+				Sfx.play("shield_break", 0.06)
+			Sfx.play("heavy_hit" if big else _impact_sound, 0.08)
 		_show_status(unit, view, info, state)
 		vfx.hit(view, height, hit_info)
 		if not tick and amount > 0:
@@ -484,13 +499,13 @@ func _on_unit_died(unit: BattleUnit) -> void:
 	_queue(func() -> void: vfx.clear_auras(view))   # капли, яд и прочее гаснут
 	if logic.object_at(unit.cell) == BattleLogic.Obj.BOG:
 		_queue(func() -> void:
-			Sfx.play("water", 0.08)
+			Sfx.play("sink", 0.06)
 			vfx.sink(view)
 			await view.play_sink()
 		)   # утонул в трясине
 	elif unit.is_hero:
 		_queue(func() -> void:
-			Sfx.play("death", 0.06)
+			Sfx.play("death_hero", 0.05)
 			vfx.burst("dust", view.global_position + Vector3(0.0, 0.2, 0.0), 1.5)
 			await view.play_death()
 		)
@@ -498,7 +513,7 @@ func _on_unit_died(unit: BattleUnit) -> void:
 		# Дух не гибнет, а покоряется: вспышка цвета его стихии
 		var color: Color = SPIRIT_COLORS.get(unit.data.id, VfxPlayer.C_RIFT)
 		_queue(func() -> void:
-			Sfx.play("death", 0.06)
+			Sfx.play("spirit_tame", 0.04)
 			vfx.death(view, height, "spirit", color)
 			await view.play_death()
 		)
@@ -507,7 +522,7 @@ func _on_unit_died(unit: BattleUnit) -> void:
 		# Очередь ждёт только начало растворения, остальное доигрывает фоном.
 		var kind: String = "cult" if unit.data != null and unit.data.cult else "rift"
 		_queue(func() -> void:
-			Sfx.play("death", 0.06)
+			Sfx.play("death", 0.07)
 			if view.start_death():
 				await get_tree().create_timer(0.35).timeout
 			vfx.death(view, height, kind)
@@ -524,6 +539,7 @@ func _on_unit_spawned(unit: BattleUnit) -> void:
 	view.set_status(_plate_info(unit, logic.snapshot(unit)))
 	_queue(func() -> void:
 		# Призыв: бирюзовый разрыв в земле, враг поднимается из него
+		Sfx.play("summon", 0.06)
 		view.visible = true
 		vfx.summon(view.global_position)
 		view.scale = Vector3.ONE * 0.3
@@ -567,13 +583,21 @@ func _on_fx_hint(kind: String, unit: BattleUnit, other: BattleUnit) -> void:
 	var other_at: Vector3 = board.grid_to_world(other.cell) if other != null else view.global_position
 	match kind:
 		"absorb":
-			_queue(func() -> void: await vfx.absorb(other_at + Vector3(0.0, 1.1, 0.0), view, height))
+			_queue(func() -> void:
+				Sfx.play("absorb_magic", 0.06)
+				await vfx.absorb(other_at + Vector3(0.0, 1.1, 0.0), view, height))
 		"armor_burnt":
-			_queue(func() -> void: vfx.armor_burn(view, height))
+			_queue(func() -> void:
+				Sfx.play("fire", 0.07, -3.0)
+				vfx.armor_burn(view, height))
 		"modifier":   # сработал модификатор врага — вспышка бирюзы Раскола
-			_queue(func() -> void: vfx.flash(view, UiKit.RIFT, 1.2))
+			_queue(func() -> void:
+				Sfx.play("magic", 0.08, -4.0)
+				vfx.flash(view, UiKit.RIFT, 1.2))
 		"bequest":
-			_queue(func() -> void: await vfx.bequest(other_at, view, height))
+			_queue(func() -> void:
+				Sfx.play("absorb_magic", 0.06)
+				await vfx.bequest(other_at, view, height))
 
 
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
@@ -589,6 +613,7 @@ func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:
 	if healed > 0 and view.visible:
 		var height: float = _unit_height(unit)
 		_queue(func() -> void:
+			Sfx.play("heal", 0.05, -5.0)
 			_show_status(unit, view, info, state)
 			vfx.heal(view, height, healed)
 		)
@@ -635,13 +660,24 @@ func _on_reaction(cell: Vector2i, kind: String) -> void:
 	elif kind == "tree_fire":
 		color = COLOR_LAVA
 	var cells: Array[Vector2i] = [cell]
-	var sound: String = "fire"
-	if kind == "freeze" or kind == "shatter":
-		sound = "ice"
-	elif kind == "shock":
-		sound = "lightning"
-	elif kind == "pincer":
-		sound = "hit"
+	var sound: String = "steam"
+	match kind:
+		"steam":
+			sound = "steam"
+		"lava":
+			sound = "lava"
+		"crust":
+			sound = "crust"
+		"freeze":
+			sound = "ice"
+		"shatter":
+			sound = "ice_break"
+		"shock":
+			sound = "lightning"
+		"pincer":
+			sound = "pincer_hit"
+		_:
+			sound = "fire"
 	var at: Vector3 = board.grid_to_world(cell)
 	_queue(func() -> void:
 		Sfx.play(sound, 0.07)
@@ -696,12 +732,23 @@ func _on_effect_cells(cells: Array[Vector2i], kind: String) -> void:
 	_queue(func() -> void:
 		board.show_cells("flash", cells, color)
 		_effect_vfx(kind, world)
-		if kind == "gas":
-			Sfx.play("water", 0.08)
-		else:
-			Sfx.play("explosion" if kind == "explosion" or kind == "tree" else "magic", 0.06)
-			_shake(SHAKE_POWER_EXPLOSION if kind == "explosion" else SHAKE_POWER_TREE)
-			await _hit_stop()
+		match kind:
+			"gas":
+				Sfx.play("gas_cloud", 0.08)
+			"explosion":
+				Sfx.play("explosion", 0.06)
+				_shake(SHAKE_POWER_EXPLOSION)
+				await _hit_stop()
+			"tree":
+				Sfx.play("tree_crash", 0.06)
+				_shake(SHAKE_POWER_TREE)
+				await _hit_stop()
+			"rune":
+				Sfx.play("rune_trap", 0.06)
+				_shake(SHAKE_POWER_TREE)
+				await _hit_stop()
+			_:
+				Sfx.play("magic", 0.06)
 		await get_tree().create_timer(0.25).timeout
 		board.clear_layer("flash")
 	)
@@ -766,35 +813,69 @@ func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -
 	if not cells.is_empty():
 		dir = HexMath.direction_to(from_cell, cells[0])
 	var is_mage: bool = caster.is_hero and caster.hero_data != null and caster.hero_data.id == "mage"
+	# Эффект карты (VfxCards): подбираем звук каста, звук попадания и отклик Цепи
+	var picked: Array[String] = VfxCards.pick(card)
+	var form: String = picked[0]
+	var tint: String = picked[1]
 	var cast_sound: String = "card_play"
+	var impact: String = "hit"
 	if card.id == "k_bell" or card.id.begins_with("kb_bell"):
 		cast_sound = "bell"
-	elif card.element == CardData.Element.FIRE:
+		impact = "heavy_hit"
+	elif card.special.begins_with("rune_"):
+		cast_sound = "rune_cast"
+		impact = "sword_hit"
+	elif tint == "fire":
 		cast_sound = "fire"
-	elif card.element == CardData.Element.ICE:
-		cast_sound = "ice"
-	elif card.element == CardData.Element.LIGHTNING:
-		cast_sound = "lightning"
-	elif card.element == CardData.Element.WATER:
+		impact = "heavy_hit" if card.damage >= 8 else "hit"
+	elif tint == "water":
 		cast_sound = "water"
-	elif card.block > 0 or card.taunt or card.hold_line:
+		impact = "hit"
+	elif tint == "lightning":
+		cast_sound = "lightning"
+		impact = "heavy_hit" if card.damage >= 8 else "hit"
+	elif tint == "steam":
+		cast_sound = "steam"
+		impact = "hit"
+	elif tint == "wind":
+		cast_sound = "wind_gust"
+		impact = "hit"
+	elif tint == "bog":
+		cast_sound = "bog_cast"
+		impact = "hit"
+	elif form == "guard":
 		cast_sound = "block"
-	elif is_mage:
+		impact = "sword_hit"
+	elif form == "melee" or form == "bash":
+		cast_sound = "sword_swing" if card.damage > 0 else "push"
+		impact = "sword_hit"
+	elif form == "dash":
+		cast_sound = "push"
+		impact = "sword_hit"
+	elif form == "staff":
+		cast_sound = "card_play"
+		impact = "staff_hit"
+	elif is_mage or form == "buff" or tint == "arcane":
 		cast_sound = "magic"
-	# Эффект карты (VfxCards): клетки в мире и Цепь запоминаем сейчас, к анимации они могут измениться
-	var picked: Array[String] = VfxCards.pick(card)
+		impact = "staff_hit"
+
 	var world_cells: Array[Vector3] = []
 	for c in cells:
 		world_cells.append(board.grid_to_world(c))
 	var chain_now: int = logic.chain_value()
+	var chain_rose: bool = chain_now > _last_chain_sounded and chain_now > 0
+	if chain_rose:
+		_last_chain_sounded = chain_now
 	var sky: bool = picked[1] == "lightning" or card.special == "meteor"
 	_queue(func() -> void:
+		_impact_sound = impact
 		Sfx.play(cast_sound, 0.06)
+		if chain_rose:
+			Sfx.play("chain_up", 0.02, -5.5, 1.0 + minf(float(chain_now), 5.0) * 0.06)
 		view.face_dir(dir)
 		# Выбираем анимацию героя под эффект карты:
 		# Маг: CastSky (молния, метеор, рывок), Cast (заклинания), Block (щит), Attack (посох)
 		# Рыцарь: Attack (удары), Block (щит и провокация)
-		var form: String = picked[0]
 		if form == "guard" and view.has_anim("Block"):
 			await view.play_block()
 		elif is_mage and (sky or form == "dash") and view.has_anim("CastSky"):
@@ -814,8 +895,11 @@ func _on_enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i])
 	var view: Unit = _views[unit]
 	var anim_name: String = logic.enemy_attack(unit).anim   # у ударов из цикла может быть своя анимация
 	var is_boss: bool = unit.data != null and unit.data.is_boss
+	var eid: String = unit.data.id if unit.data != null else ""
+	var atk_sound: String = _enemy_attack_sound(eid)
 	_queue(func() -> void:
-		Sfx.play("card_play", 0.08)
+		_impact_sound = "heavy_hit" if is_boss else "hit"
+		Sfx.play(atk_sound, 0.08, 0.0, 0.85 if is_boss else 1.0)
 		board.show_cells("flash", cells, COLOR_INTENT)
 		await view.play_attack(dir, anim_name)
 		if is_boss:
@@ -828,7 +912,7 @@ func _on_enemy_attacked(unit: BattleUnit, dir: Vector2i, cells: Array[Vector2i])
 func _on_enemy_buffed(unit: BattleUnit, cells: Array[Vector2i]) -> void:
 	var view: Unit = _views[unit]
 	_queue(func() -> void:
-		Sfx.play("magic", 0.06)
+		Sfx.play("enemy_buff", 0.05)
 		board.show_cells("flash", cells, COLOR_BUFF)
 		await view.play_cast(Vector2i.ZERO)
 		await get_tree().create_timer(0.25).timeout
@@ -1162,7 +1246,7 @@ func _on_card_pressed(index: int) -> void:
 	if _scrapping:
 		var sh: BattleUnit = _active
 		_scrapping = false
-		Sfx.play("card_cancel", 0.05)
+		Sfx.play("card_scrap", 0.05)
 		_do(func() -> void: logic.scrap_card(sh, index))
 		return
 	if _discarding:
@@ -1205,6 +1289,7 @@ func _cancel_card() -> void:
 
 func _on_end_turn_pressed() -> void:
 	if _mode != Mode.BUSY:
+		_last_chain_sounded = 0
 		Sfx.play("turn", 0.03)
 		_do(logic.end_turn)
 
@@ -1586,9 +1671,13 @@ func _zoom_camera(direction: float) -> void:
 func _on_card_keep_toggled(index: int) -> void:
 	if _mode == Mode.BUSY or _active == null or logic.is_over:
 		return
-	Sfx.play("ui_click", 0.05)
-	if not logic.toggle_keep(_active, index) and logic.can_keep(_active, index):
-		hud.add_log("Удержать можно не больше %d карт" % BattleLogic.KEEP_LIMIT)
+	var before: int = _active.kept.size()
+	if not logic.toggle_keep(_active, index):
+		if logic.can_keep(_active, index):
+			hud.add_log("Удержать можно не больше %d карт" % BattleLogic.KEEP_LIMIT)
+		Sfx.play("card_cancel", 0.05)
+	else:
+		Sfx.play("card_keep" if _active.kept.size() > before else "card_cancel", 0.04)
 	hud.refresh(logic, _active, _selected_card, false)
 
 
@@ -1677,3 +1766,37 @@ func _warm_cave_light() -> void:
 	if sun != null:
 		sun.light_color = Color(0.95, 0.78, 0.6)
 		sun.light_energy = 0.9
+
+
+func _battle_kind() -> String:
+	if Run.in_cave:
+		return "cave"
+	if Run.current != null:
+		match Run.current.type:
+			MapNode.Type.BOSS:
+				return "boss"
+			MapNode.Type.ELITE:
+				return "elite"
+			MapNode.Type.LAIR:
+				return "lair"
+	return "normal"
+
+
+func _enemy_attack_sound(eid: String) -> String:
+	match eid:
+		"spirit_fire", "torch_goblin":
+			return "fire"
+		"spirit_tide":
+			return "water"
+		"spirit_storm":
+			return "lightning"
+		"spirit_wind":
+			return "wind_gust"
+		"spirit_bog":
+			return "bog_cast"
+		"goblin_slinger", "goblin_shaman", "swamp_weaver", "sporeling":
+			return "enemy_spit"
+		"wolf", "grey_alpha", "leech", "spiderling", "reed_lurker", "bloated_toad", "rock_crawler", "bog_mother":
+			return "enemy_bite"
+		_:
+			return "enemy_club"

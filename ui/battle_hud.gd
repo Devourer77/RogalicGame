@@ -337,16 +337,27 @@ func _build_legend() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size.y = 4
 	column.add_child(gap)
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 6)
+	column.add_child(buttons)
 	var help_button := Button.new()
 	help_button.text = "Управление · F1"
 	help_button.icon = UiKit.icon("help")
 	help_button.focus_mode = Control.FOCUS_NONE
 	help_button.add_theme_font_size_override("font_size", 13)
 	help_button.add_theme_constant_override("icon_max_width", 15)
-	help_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	Sfx.bind_button(help_button)
 	help_button.pressed.connect(toggle_help)
-	column.add_child(help_button)
+	buttons.add_child(help_button)
+	var sound_button := Button.new()
+	sound_button.text = "Звук"
+	sound_button.icon = UiKit.icon("bell")
+	sound_button.focus_mode = Control.FOCUS_NONE
+	sound_button.add_theme_font_size_override("font_size", 13)
+	sound_button.add_theme_constant_override("icon_max_width", 15)
+	Sfx.bind_button(sound_button)
+	sound_button.pressed.connect(func() -> void: SoundSettings.open(_root))
+	buttons.add_child(sound_button)
 
 
 func _legend_row(color: Color, text: String, font_size: int) -> HBoxContainer:

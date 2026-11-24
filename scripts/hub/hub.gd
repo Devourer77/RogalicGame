@@ -130,6 +130,7 @@ func _ready() -> void:
 	Meta.changed.connect(refresh_world)
 	refresh_world()
 	_wake_up()
+	Sfx.sync_scene(Run.HUB_SCENE)
 
 
 # Атмосфера заставы (эффекты, этап 6): живой костёр с искрами и дымом, мерцание свечей

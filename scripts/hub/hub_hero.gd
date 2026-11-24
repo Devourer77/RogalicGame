@@ -62,7 +62,8 @@ func _physics_process(delta: float) -> void:
 		var prev_step: int = int(_walk_time / PI)
 		_walk_time += delta * 9.0
 		if is_active and int(_walk_time / PI) > prev_step:
-			Sfx.play("step", 0.1, -6.0)
+			var on_planks: bool = absf(global_position.x) <= 0.75 or (absf(global_position.z - 2.2) <= 0.75 and absf(global_position.x) <= 6.5)
+			Sfx.play("step_wood" if on_planks else "step_moss", 0.1, -5.5 if on_planks else -6.5)
 		if _anim != null:
 			_play_loop("Walk", WALK_ANIM_SPEED)
 		else:

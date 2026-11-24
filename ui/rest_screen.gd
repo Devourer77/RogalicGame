@@ -48,7 +48,7 @@ func _add_spirit_transfers(column: VBoxContainer) -> void:
 				b.tooltip_text = "Карты духа сменятся на карты другого героя, улучшения сохранятся." if not b.disabled else "У %s заняты места для духов" % other.data.title
 				b.pressed.connect(func() -> void:
 					if Run.transfer_spirit(rh, other, sp):
-						Sfx.play("magic", 0.05)
+						Sfx.play("spirit_tame", 0.04, -3.0)
 						Run.goto(Run.REST_SCENE))
 				column.add_child(b)
 

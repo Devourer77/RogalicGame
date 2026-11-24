@@ -222,6 +222,7 @@ func _take_bonus(rh: RunHero, index: int, branch: int, chosen: Button) -> void:
 func _skip() -> void:
 	if _picked:
 		return
+	Sfx.play("heal", 0.04)
 	for rh in Run.party:
 		Run.heal_hero(rh, Run.SKIP_HEAL)
 	_note.text = "Отдохнули: каждому +%d HP" % Run.SKIP_HEAL
@@ -312,7 +313,7 @@ func _build_spirit_choice(column: VBoxContainer, sp: SpiritData) -> void:
 		b.pressed.connect(func() -> void:
 			if _picked:
 				return
-			Sfx.play("magic", 0.05)
+			Sfx.play("spirit_tame", 0.04)
 			Run.add_spirit(rh, sp)
 			_note.text = "%s теперь с духом «%s»" % [rh.data.title, sp.title]
 			for x in buttons: x.disabled = true

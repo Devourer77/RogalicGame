@@ -6,6 +6,7 @@ var _reset_button: Button
 
 
 func _ready() -> void:
+	Sfx.sync_scene(Run.MAIN_MENU_SCENE)
 	var column: VBoxContainer = UiKit.make_screen(self)
 	column.add_theme_constant_override("separation", 12)
 
@@ -27,6 +28,7 @@ func _ready() -> void:
 	if Meta.has_save():
 		_reset_button = UiKit.make_button("Новый прогресс", _on_reset)
 		column.add_child(_reset_button)
+	column.add_child(UiKit.make_button("Звук", func() -> void: SoundSettings.open(self)))
 	column.add_child(UiKit.make_button("Выход", get_tree().quit))
 
 

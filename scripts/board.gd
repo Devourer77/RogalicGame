@@ -248,6 +248,7 @@ var _tile_drop: Dictionary[Vector2i, float] = {}      # на сколько пл
 var _swamp_mat: StandardMaterial3D     # вода и бортики трясины по клеткам
 var _puddle_links: Dictionary[Vector2i, Node3D] = {}  # перемычки между соседними лужами
 var _effect_kinds: Dictionary[Vector2i, int] = {}     # какой эффект лежит на клетке (BattleLogic.Tile)
+var _ground: Dictionary[Vector2i, int] = {}           # вид покрытия клетки (BattleLogic.Ground)
 var _bog_water_mat: ShaderMaterial
 var _puddle_mat: ShaderMaterial
 var _arena: String = ""
@@ -264,6 +265,9 @@ func build(layout_seed: int, arena: String = "", ground: Dictionary[Vector2i, in
 	var rng := RandomNumberGenerator.new()
 	rng.seed = layout_seed
 	_arena = arena
+	_ground.clear()
+	for cell_key: Vector2i in ground:
+		_ground[cell_key] = ground[cell_key]
 	_build_shore()
 
 	for cell: Vector2i in HexMath.rect_cells(width, height):
@@ -1173,11 +1177,13 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 	if node != null:
 		match old_kind:
 			BattleLogic.Obj.TREE:
+				Sfx.play("tree_creak", 0.05)
 				await _fall_tree(node, dir)
 				# Пыль и щепки по линии падения рисует VfxPlayer.tree_fall (сигнал effect_cells "tree")
 				if vfx == null:
 					burst(cell + dir, Color(0.4, 0.37, 0.33), roundi(14 * IMPACT_FX_SCALE), 2.5 * IMPACT_FX_SCALE, 0.0, IMPACT_FX_SCALE)   # щепки
 			BattleLogic.Obj.BARREL:
+				Sfx.play("barrel_creak", 0.05)
 				await _pop(node)
 				# Сам огненный взрыв рисует VfxPlayer.explosion (сигнал effect_cells "explosion"),
 				# здесь — то, что есть только у бочки: зелёный газ и щепки
@@ -1188,13 +1194,17 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 					burst(cell, COLOR_GAS_LIGHT, roundi(34 * IMPACT_FX_SCALE), 5.0 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)   # зелёная вспышка газа
 					burst(cell, Color(1.0, 0.6, 0.15), roundi(20 * IMPACT_FX_SCALE), 3.5 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)
 			BattleLogic.Obj.ICE_BLOCK:
-				Sfx.play("ice", 0.07)
+				Sfx.play("ice_break", 0.07)
 				if vfx != null:
 					vfx.object_broken(grid_to_world(cell), "ice")
 				else:
 					burst(cell, Color(0.8, 0.95, 1.0), 16, 2.5, 1.0)          # осколки льда
 				await _sink(node)
 			_:
+				if old_kind == BattleLogic.Obj.PLANKS or old_kind == BattleLogic.Obj.STAKES:
+					Sfx.play("wood_break", 0.07)
+				elif old_kind == BattleLogic.Obj.REEDS:
+					Sfx.play("reeds_burn", 0.07)
 				if vfx != null:
 					var broken: Dictionary = {BattleLogic.Obj.PLANKS: "planks", BattleLogic.Obj.REEDS: "reeds",
 						BattleLogic.Obj.STAKES: "stakes", BattleLogic.Obj.BUSH: "reeds", BattleLogic.Obj.VINE: "reeds",
@@ -1207,11 +1217,32 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 		await _grow(_object_nodes.get(cell))
 
 
+# Какой звук шага подходит для этой клетки поля (покрытие, вода или трясина)
+func step_sound(cell: Vector2i) -> String:
+	var obj: int = _object_kinds.get(cell, BattleLogic.Obj.NONE)
+	if obj == BattleLogic.Obj.PLANKS or obj == BattleLogic.Obj.BRIDGE:
+		return "step_wood"
+	if obj == BattleLogic.Obj.BOG:
+		return "step_swamp"
+	var eff: int = _effect_kinds.get(cell, BattleLogic.Tile.NONE)
+	if eff == BattleLogic.Tile.SWAMP:
+		return "step_swamp"
+	if eff == BattleLogic.Tile.WATER:
+		return "step_water"
+	match _ground.get(cell, BattleLogic.Ground.STONE):
+		BattleLogic.Ground.PLANKS:
+			return "step_wood"
+		BattleLogic.Ground.MOSS, BattleLogic.Ground.MUD, BattleLogic.Ground.PEAT:
+			return "step_moss"
+	return "step_stone"
+
+
 # Объект переехал (бочку откатили или перенесли)
 func move_object(from: Vector2i, to: Vector2i) -> void:
 	var node: Node3D = _object_nodes.get(from)
 	if node == null:
 		return
+	Sfx.play("barrel_roll", 0.06)
 	_object_nodes.erase(from)
 	_object_nodes[to] = node
 	_object_kinds[to] = _object_kinds.get(from, BattleLogic.Obj.NONE)

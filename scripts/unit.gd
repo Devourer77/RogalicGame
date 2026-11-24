@@ -14,6 +14,7 @@ const PUSH_TIME_PER_CELL: float = 0.1
 var board: Board          # поле, на котором стоит фигурка (задаёт сцена боя)
 var is_moving: bool = false
 var _plate_hidden: bool = false   # плашку не показывать (Спящая сфера спит)
+var step_pitch: float = 1.0   # тембр шагов (ниже для тяжёлых боссов, выше для мелких тварей)
 var _plate: UnitPlate     # плашка над головой: полоса HP, блок, намерение врага
 var _plate_height: float = 2.0   # на какой высоте над клеткой она висит (в метрах)
 var _idle_speed: float = 1.0   # личный темп анимации покоя
@@ -76,7 +77,8 @@ func follow_path(path: Array[Vector2i]) -> void:
 	_play_loop("Walk", WALK_SPEED)
 	for i in range(1, path.size()):
 		face_dir(path[i] - path[i - 1])
-		Sfx.play("step", 0.1)
+		var step_name: String = board.step_sound(path[i]) if board != null else "step"
+		Sfx.play(step_name, 0.08, 0.0, step_pitch)
 		var tween: Tween = create_tween()
 		tween.tween_property(self, "position", board.grid_to_world(path[i]), MOVE_TIME_PER_CELL)
 		await tween.finished
@@ -104,7 +106,7 @@ func play_push(path: Array[Vector2i], bumped: bool) -> void:
 		await tween.finished
 	cell = path[path.size() - 1]
 	if bumped:
-		Sfx.play("hit", 0.08)
+		Sfx.play("bump", 0.08)
 		await _shake()
 
 
