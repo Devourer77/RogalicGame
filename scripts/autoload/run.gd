@@ -156,12 +156,18 @@ var candle_used: bool = false    # «Свеча у колокола» уже с�
 var rerolled: bool = false       # «Знакомая тропа» уже использована
 var last_battle_big: bool = false   # последний бой — элита или босс (для «Указа коменданта»)
 var start_picks: Array[RunHero] = []   # кому предстоит выбор карты перед первой точкой («Заготовка»)
-# «Скорость ×2» во время хода врагов — теперь настройка (Settings), запоминается между запусками
+# Скорость хода врагов (×1/×2/×3) — настройка (Settings), запоминается между запусками
+var enemy_speed: int:
+	get:
+		return Settings.enemy_speed
+	set(value):
+		Settings.set_value("enemy_speed", value)
+# Старое имя: «быстрый ход врагов» (true — ×2). Оставлено для тестов
 var fast_enemies: bool:
 	get:
-		return Settings.fast_enemies
+		return Settings.enemy_speed > 1
 	set(value):
-		Settings.set_value("fast_enemies", value)
+		Settings.set_value("enemy_speed", 2 if value else 1)
 
 
 func _ready() -> void:

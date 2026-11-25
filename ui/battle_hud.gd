@@ -14,7 +14,7 @@ signal hero_pressed(index: int)
 signal end_turn_pressed
 signal discard_toggled   # нажали «Сбросить» или клавишу X
 signal card_keep_toggled(index: int)   # ПКМ по карте в руке: удержать её на следующий ход
-signal speed_toggled   # нажали «×1 / ×2» или клавишу F
+signal speed_toggled   # нажали «Ход врагов ×N» или клавишу F
 signal undo_pressed    # нажали «Отменить» (клавишу Z ловит сцена боя)
 
 const LOG_LINES: int = 6
@@ -270,9 +270,9 @@ func _build_speed_button() -> void:
 	_speed_button.add_theme_font_size_override("font_size", 13)
 	_speed_button.custom_minimum_size = Vector2((CORNER_WIDTH - 6) / 2, 46)
 	_speed_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_speed_button.tooltip_text = Loc.t("Скорость хода врагов: обычная или в два раза быстрее. Клавиша F.\nМожно переключать и пока враги ходят.")
+	_speed_button.tooltip_text = Loc.t("Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша F.\nПока враги ходят: держи пробел — ×3, клик — досмотреть действие мгновенно.")
 	Sfx.bind_button(_speed_button)
-	_speed_button.pressed.connect(toggle_speed_from_button)
+	_speed_button.pressed.connect(toggle_speed)
 	_corner_row.add_child(_speed_button)
 	_update_speed_button()
 
@@ -338,13 +338,6 @@ func update_discard_button(logic: BattleLogic, active: BattleUnit, discarding: b
 		_discard_button.tooltip_text = Loc.t("В этот ход карту уже сбрасывали. В следующий ход снова можно.")
 	else:
 		_discard_button.tooltip_text = Loc.t("Выбери эту кнопку (или X), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся.")
-
-
-# Кнопка сама меняет своё состояние при нажатии, поэтому тут только синхронизация с Run
-func toggle_speed_from_button() -> void:
-	Run.fast_enemies = _speed_button.button_pressed
-	_update_speed_button()
-	speed_toggled.emit()
 
 
 func _build_legend() -> void:
@@ -495,16 +488,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
-# «×1 / ×2»: ускорение хода врагов. Выбор хранится в Run на весь забег.
+# Скорость хода врагов по кругу ×1 → ×2 → ×3. Хранится в настройках (Settings.enemy_speed).
 func toggle_speed() -> void:
-	Run.fast_enemies = not Run.fast_enemies
+	Run.enemy_speed = Settings.next_enemy_speed()
 	_update_speed_button()
 	speed_toggled.emit()
 
 
 func _update_speed_button() -> void:
-	_speed_button.text = Loc.t("Ход врагов ×2") if Run.fast_enemies else Loc.t("Ход врагов ×1")
-	_speed_button.button_pressed = Run.fast_enemies
+	_speed_button.text = Loc.t("Ход врагов ×%d") % Run.enemy_speed
+	_speed_button.button_pressed = Run.enemy_speed > 1   # подсвечена, когда ускорено
 
 
 func toggle_help() -> void:

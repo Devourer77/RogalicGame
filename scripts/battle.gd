@@ -107,7 +107,10 @@ var _cards_scrapped: int = 0      # сброшено «в ноги» за шаг
 var vfx: VfxPlayer                 # частицы, вспышки, цифры урона (scripts/vfx_player.gd)
 var _last_hp: Dictionary[BattleUnit, int] = {}   # здоровье юнита на прошлом событии — чтобы заметить лечение
 var _fire_forecast: Dictionary = {}   # прогноз огня: id юнита → урон в конце хода врагов
-var _enemy_phase_running: bool = false   # идёт ход врагов (на нём работает «Скорость ×2»)
+var _enemy_phase_running: bool = false   # идёт ход врагов (на нём работает скорость ×2/×3)
+var _space_held: bool = false   # держат пробел — ход врагов временно ×3
+var _skip_step: bool = false    # клик во время хода врагов — текущее действие досматривается мгновенно
+const SKIP_SPEED: float = 10.0  # во сколько раз быстрее идёт «досматриваемое» действие
 var _undo: Array[Dictionary] = []   # снимки боя перед каждым действием этого хода (последний — сверху)
 var _undo_lock: String = ""          # почему отменить нельзя: "" — можно, иначе текст подсказки
 var _fallen: Dictionary[BattleUnit, bool] = {}   # чья фигурка пала после начала хода (после отмены её пересоздаём)
@@ -464,6 +467,9 @@ func _queue(step: Callable) -> void:
 # Проигрывает накопленные анимации по очереди, дожидаясь каждой
 func _play_queue() -> void:
 	while not _anim_queue.is_empty():
+		if _skip_step:
+			_skip_step = false   # клик ускорял только одно действие — следующее с обычной скоростью
+			_apply_speed()
 		var step: Callable = _anim_queue.pop_front()
 		await step.call()
 
@@ -1061,6 +1067,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	if event is InputEventMouseMotion and _boss_sign_hint != "":
 		_check_boss_sign((event as InputEventMouseMotion).position)
+	# Пробел держат — ход врагов ×3 (отпустили — обратно)
+	if event is InputEventKey and (event as InputEventKey).keycode == KEY_SPACE and not event.is_echo():
+		_space_held = event.pressed
+		_apply_speed()
+		get_viewport().set_input_as_handled()
+		return
+	# Клик во время хода врагов — досмотреть текущее действие мгновенно
+	if _enemy_phase_running and event is InputEventMouseButton and (event as InputEventMouseButton).pressed \
+			and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+		_skip_step = true
+		_apply_speed()
+		return
 	if _mode == Mode.BUSY:
 		return
 	if event is InputEventMouseMotion:
@@ -1525,6 +1543,7 @@ func _do(action: Callable) -> void:
 	if is_end_turn:
 		_enemy_phase_ms += Time.get_ticks_msec() - action_start_ms
 	_enemy_phase_running = false
+	_skip_step = false
 	_apply_speed()
 	if is_end_turn or logic.is_over:
 		_clear_undo("")   # новый ход (или бой окончен) — отменять нечего
@@ -1940,9 +1959,18 @@ func _tutor_nudge() -> void:
 	tween.tween_property(panel, "modulate", Color.WHITE, 0.3)
 
 
-# Скорость игры: ×2 только пока идёт ход врагов и включена кнопка, в остальное время обычная
+# Скорость игры: ×1/×2/×3 (настройка) только пока идёт ход врагов, в остальное время обычная.
+# Пробел — временно ×3, клик — текущее действие почти мгновенно.
 func _apply_speed() -> void:
-	Engine.time_scale = 2.0 if _enemy_phase_running and Run.fast_enemies else 1.0
+	if not _enemy_phase_running:
+		Engine.time_scale = 1.0
+		return
+	var speed: float = float(Run.enemy_speed)
+	if _space_held:
+		speed = maxf(speed, 3.0)
+	if _skip_step:
+		speed = SKIP_SPEED
+	Engine.time_scale = speed
 
 
 # При выходе из боя скорость всегда возвращаем к обычной

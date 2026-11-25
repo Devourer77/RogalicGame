@@ -11,7 +11,8 @@ var fullscreen: bool = true         # полный экран или окно (F
 var shake: float = 1.0              # сила тряски камеры: 0 — выключена, 1 — как задумано
 var full_effects: bool = true       # false — «упрощённые эффекты»: частиц вдвое меньше
 var rain: bool = true               # морось над частью боёв
-var fast_enemies: bool = false      # ход врагов ×2 (кнопка в бою меняет то же самое)
+var enemy_speed: int = 1            # скорость хода врагов: 1, 2 или 3 (кнопка в бою и клавиша F меняют то же самое)
+const ENEMY_SPEEDS: Array[int] = [1, 2, 3]
 var all_routes: bool = false        # пути всех врагов на поле; выкл. — только путь врага под курсором
 var warn_end_turn: bool = true      # «Конец хода» при несыгранных картах — сначала переспросить
 var colorblind: bool = false        # режим для дальтоников (палитра угрозы и узоры)
@@ -40,7 +41,11 @@ func load_settings() -> void:
 	shake = clampf(float(cfg.get_value("battle", "shake", shake)), 0.0, 1.0)
 	full_effects = bool(cfg.get_value("battle", "full_effects", full_effects))
 	rain = bool(cfg.get_value("battle", "rain", rain))
-	fast_enemies = bool(cfg.get_value("battle", "fast_enemies", fast_enemies))
+	# Раньше была только галочка «×2» — старое сохранение переводим в скорость 2
+	var old_fast: bool = bool(cfg.get_value("battle", "fast_enemies", false))
+	enemy_speed = int(cfg.get_value("battle", "enemy_speed", 2 if old_fast else enemy_speed))
+	if not ENEMY_SPEEDS.has(enemy_speed):
+		enemy_speed = 1
 	all_routes = bool(cfg.get_value("battle", "all_routes", all_routes))
 	warn_end_turn = bool(cfg.get_value("battle", "warn_end_turn", warn_end_turn))
 	colorblind = bool(cfg.get_value("screen", "colorblind", colorblind))
@@ -55,10 +60,16 @@ func save() -> void:
 	cfg.set_value("battle", "shake", shake)
 	cfg.set_value("battle", "full_effects", full_effects)
 	cfg.set_value("battle", "rain", rain)
-	cfg.set_value("battle", "fast_enemies", fast_enemies)
+	cfg.set_value("battle", "enemy_speed", enemy_speed)
 	cfg.set_value("battle", "all_routes", all_routes)
 	cfg.set_value("battle", "warn_end_turn", warn_end_turn)
 	cfg.save(settings_path)
+
+
+# Следующая скорость хода врагов по кругу: ×1 → ×2 → ×3 → ×1
+func next_enemy_speed() -> int:
+	var i: int = ENEMY_SPEEDS.find(enemy_speed)
+	return ENEMY_SPEEDS[(i + 1) % ENEMY_SPEEDS.size()]
 
 
 # Поменять настройку по имени, сохранить и сообщить всем

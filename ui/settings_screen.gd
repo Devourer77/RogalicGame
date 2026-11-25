@@ -21,6 +21,7 @@ var _shake_slider: HSlider
 var _shake_value: Label
 var _mute_button: Button
 var _hints_button: Button
+var _speed_button: Button   # скорость хода врагов ×1/×2/×3
 
 
 static func open(parent: Node) -> SettingsScreen:
@@ -85,7 +86,7 @@ func _ready() -> void:
 	left.add_child(_shake_row())
 	left.add_child(_toggle_row("full_effects", Loc.t("Полные эффекты (выкл. — меньше частиц)")))
 	left.add_child(_toggle_row("rain", Loc.t("Морось над полем")))
-	left.add_child(_toggle_row("fast_enemies", Loc.t("Ход врагов ×2")))
+	left.add_child(_speed_row())
 	left.add_child(_toggle_row("all_routes", Loc.t("Пути всех врагов (выкл. — только под курсором)")))
 	left.add_child(_toggle_row("warn_end_turn", Loc.t("Переспрашивать «Конец хода», если остались карты")))
 	left.add_child(_section(Loc.t("Подсказки")))
@@ -140,6 +141,21 @@ func _section(title: String) -> Label:
 
 
 # Строка «название — [Вкл]»: key — имя поля в Settings
+# Скорость хода врагов: кнопка переключает ×1 → ×2 → ×3 по кругу
+func _speed_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var label: Label = UiKit.make_label(Loc.t("Скорость хода врагов"), 15)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(label)
+	_speed_button = UiKit.make_button("", func() -> void:
+		Settings.set_value("enemy_speed", Settings.next_enemy_speed()))
+	_speed_button.custom_minimum_size = Vector2(84, 32)
+	row.add_child(_speed_button)
+	return row
+
+
 func _toggle_row(key: String, title: String) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -248,6 +264,7 @@ func _sync() -> void:
 		var on: bool = bool(Settings.get(key))
 		_toggles[key].text = Loc.t("Вкл") if on else Loc.t("Выкл")
 		_toggles[key].modulate = Color.WHITE if on else Color(0.62, 0.62, 0.66)
+	_speed_button.text = "×%d" % Settings.enemy_speed
 	_shake_slider.set_value_no_signal(Settings.shake)
 	_shake_value.text = Loc.t("Выкл") if Settings.shake <= 0.0 else "%d%%" % roundi(Settings.shake * 100.0)
 	_hints_button.text = Loc.t("Подсказки: выкл") if Hints.is_off() else Loc.t("Подсказки: вкл")

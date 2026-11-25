@@ -9333,7 +9333,7 @@ msgid "Цепь: сколько карт отряд сыграл в этот х�
 msgstr ""
 
 #: ui/battle_hud.gd:258
-msgid "Скорость хода врагов: обычная или в два раза быстрее. Клавиша F.\nМожно переключать и пока враги ходят."
+msgid "Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша F.\nПока враги ходят: держи пробел — ×3, клик — досмотреть действие мгновенно."
 msgstr ""
 
 #: ui/battle_hud.gd:27
@@ -9464,16 +9464,8 @@ msgstr ""
 msgid "Над врагом: значок и число — чем и на сколько он ударит в этом раунде."
 msgstr ""
 
-#: ui/battle_hud.gd:491 ui/settings_screen.gd:88
-msgid "Ход врагов ×2"
-msgstr ""
-
 #: ui/settings_screen.gd:89
 msgid "Пути всех врагов (выкл. — только под курсором)"
-msgstr ""
-
-#: ui/battle_hud.gd:491
-msgid "Ход врагов ×1"
 msgstr ""
 
 #: ui/battle_hud.gd:521
@@ -12218,4 +12210,12 @@ msgstr ""
 
 #: scripts/battle.gd:1453
 msgid "Ещё можно сыграть карты: %s.\nНажми ещё раз — завершить ход."
+msgstr ""
+
+#: ui/battle_hud.gd:501
+msgid "Ход врагов ×%d"
+msgstr ""
+
+#: ui/settings_screen.gd:145
+msgid "Скорость хода врагов"
 msgstr ""
