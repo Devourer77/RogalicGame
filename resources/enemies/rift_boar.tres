@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/rift_boar.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_gore"]
+script = ExtResource("2_attack")
+title = "Таран"
+damage = 4
+push = 2
+
+[resource]
+script = ExtResource("1_enemy")
+id = "rift_boar"
+title = "Вепрь Раскола"
+description = "Раскол не сделал его злее. Только твёрже."
+max_hp = 12
+move_range = 3
+damage = 4
+attack = 0
+attack_range = 1
+push = 2
+color = Color(0.36, 0.28, 0.22, 1)
+attack_title = "Таран"
+size = 1.0
+model = ExtResource("9_model")
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_gore")])

@@ -149,8 +149,8 @@ func _play_run(run: Node, seed_value: int, bell: int) -> Dictionary:
 				res["falls"] += battle["falls"]
 				var l: Array = res["losses"].get(kind, [0, 0])
 				res["losses"][kind] = [l[0] + battle["lost"], l[1] + 1]
-				if node.type == MapNode.Type.BATTLE and run.pending_encounter != null:
-					var key: String = "отряд " + run.pending_encounter.id   # потери по отрядам (печать — SQUADS=1)
+				if node.type in [MapNode.Type.BATTLE, MapNode.Type.ELITE] and run.pending_encounter != null:
+					var key: String = "отряд " + run.pending_encounter.id   # потери по отрядам и элитам (печать — SQUADS=1)
 					var ls: Array = squad_losses.get(key, [0, 0, 0])
 					squad_losses[key] = [ls[0] + battle["lost"], ls[1] + 1, ls[2] + run.pending_enemies.size()]
 				if node.type == MapNode.Type.BATTLE and node.branch == MapNode.FOREST and run.act == 1:

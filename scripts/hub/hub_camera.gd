@@ -110,29 +110,78 @@ func _apply() -> void:
 
 
 # Шпиль-заглушка. Камера смотрит вниз, и настоящий Шпиль на горизонте в кадр не попал бы,
-# поэтому он прикреплён к камере и всегда виден вверху экрана, как задник.
+# поэтому он прикреплён к камере, как задник. Виден только там, где за заставой открытая вода
+# (всё ближнее его закрывает), поэтому стоит справа, где воды больше, и спускается почти до середины экрана.
+const SPIRE_POS: Vector3 = Vector3(34.0, 30.0, -70.0)   # центр конуса в координатах камеры
+const SPIRE_HEIGHT: float = 50.0
+const SPIRE_RADIUS: float = 5.0
+
+
 func _build_backdrop() -> void:
 	var spire := MeshInstance3D.new()
 	spire.name = "SpireBackdrop"
 	var cone := CylinderMesh.new()
 	cone.top_radius = 0.0
-	cone.bottom_radius = 5.0
-	cone.height = 34.0
+	cone.bottom_radius = SPIRE_RADIUS
+	cone.height = SPIRE_HEIGHT
+	cone.radial_segments = 6   # гранёный, как камень Шпиля
 	spire.mesh = cone
-	spire.material_override = _flat_material(Color(0.14, 0.17, 0.19), 0.0)   # чуть светлее воды, иначе силуэт теряется
-	# Правее колокола: над дальним краем заставы видна лишь узкая полоса воды, и там Шпиль не прячется за рамой
-	spire.position = Vector3(9.0, 24.0, -70.0)
+	# Холодный серо-синий светлее воды; книзу растворяется в дымке над водой (Шпиль далеко)
+	spire.material_override = _spire_material(Color(0.16, 0.2, 0.23))
+	spire.position = SPIRE_POS
 	add_child(spire)
 
-	# Трещина в небе — тонкая бирюзовая полоса за Шпилем.
+	# Трещины Раскола по телу Шпиля — тонкие бирюзовые полосы, ярче к вершине
+	var cracks: Array[Vector4] = [   # x, y (от центра конуса), длина, наклон в градусах
+		Vector4(-0.6, 20.0, 5.0, 8.0), Vector4(0.9, 13.0, 6.0, -12.0), Vector4(-1.6, 4.0, 7.0, 10.0),
+		Vector4(1.8, -6.0, 6.0, -6.0),
+	]
+	for i in cracks.size():
+		var cr: Vector4 = cracks[i]
+		var line := MeshInstance3D.new()
+		line.name = "SpireCrack%d" % i
+		var box := BoxMesh.new()
+		box.size = Vector3(0.35, cr.z, 0.1)
+		line.mesh = box
+		var mat: StandardMaterial3D = _flat_material(Color(0.35, 0.95, 0.85), 2.0 - 0.3 * float(i))
+		mat.render_priority = 11
+		line.material_override = mat
+		line.position = SPIRE_POS + Vector3(cr.x, cr.y, SPIRE_RADIUS * 0.5)
+		line.rotation_degrees = Vector3(0.0, 0.0, cr.w)
+		add_child(line)
+
+	# Трещина в небе — тонкая бирюзовая полоса над вершиной Шпиля.
 	var crack := MeshInstance3D.new()
 	crack.name = "SkyCrack"
 	var box := BoxMesh.new()
 	box.size = Vector3(0.5, 14.0, 0.1)
 	crack.mesh = box
 	crack.material_override = _flat_material(Color(0.35, 0.95, 0.85), 2.0)
-	crack.position = Vector3(10.5, 36.0, -72.0)
+	crack.position = SPIRE_POS + Vector3(1.5, SPIRE_HEIGHT * 0.5 + 6.0, -2.0)
 	add_child(crack)
+
+
+# Материал Шпиля: без света, а к подножию растворяется (прозрачность по высоте конуса)
+func _spire_material(color: Color) -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded, fog_disabled, cull_back, depth_draw_never;
+uniform vec3 color : source_color;
+uniform float height = 50.0;
+varying float h01;
+void vertex() { h01 = VERTEX.y / height + 0.5; }   // 0 у подножия, 1 у вершины
+void fragment() {
+	ALBEDO = color;
+	ALPHA = smoothstep(0.08, 0.5, h01);
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	mat.set_shader_parameter("color", color)
+	mat.set_shader_parameter("height", SPIRE_HEIGHT)
+	mat.render_priority = 10   # после воды, как и весь задник
+	return mat
 
 
 func _flat_material(color: Color, glow: float) -> StandardMaterial3D:

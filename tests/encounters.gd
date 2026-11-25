@@ -227,6 +227,11 @@ func _map() -> void:
 	run.current = run.row_nodes(2)[0]
 	check("Событие «запомнить следы»: видно на ряд дальше", run.node_revealed(run.row_nodes(5)[0]))
 	run.fog_bonus = 0
+	var meta: Node = root.get_node("Meta")
+	var had: int = meta.level("far_sight")
+	meta.upgrades["far_sight"] = 2
+	check("«Зоркий дозор» II: с ряда 2 видно до ряда 6", run.node_revealed(run.row_nodes(6)[0]) and run.fog_sight() == run.FOG_SIGHT + 2)
+	meta.upgrades["far_sight"] = had
 	# Карточка: бой показывает арену точки, и бой идёт на ней
 	run.start_new_run(6)
 	var bn: MapNode = null

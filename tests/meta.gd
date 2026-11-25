@@ -67,7 +67,7 @@ func _init() -> void:
 	_check(m2.deck_changes("mage") == 2 and m2.deck_changes("knight") == 2, "базово 2 изменения колоды")
 	m2.buy("mage_loadout")
 	_check(m2.deck_changes("mage") == 3 and m2.deck_changes("knight") == 2, "Своя выкладка Мага: +1 только Магу")
-	_check(m2.steps_total() == 23, "всего 23 ступени улучшений (21 + две у Святилища)")
+	_check(m2.steps_total() == 25, "всего 25 ступеней улучшений (21 + две у Святилища + две у «Зоркого дозора»)")
 
 	# Закрытые карты: пока не куплены «Забытые формулы»
 	var m3: Node = _fresh()

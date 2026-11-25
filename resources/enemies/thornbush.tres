@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Script" path="res://scripts/data/enemy_attack_data.gd" id="2_attack"]
+[ext_resource type="PackedScene" path="res://assets/models/thornbush.glb" id="9_model"]
+
+[sub_resource type="Resource" id="atk_thorns"]
+script = ExtResource("2_attack")
+title = "Шипы"
+shape = 4
+damage = 2
+entangle = 1
+
+[resource]
+script = ExtResource("1_enemy")
+id = "thornbush"
+title = "Колючник"
+description = "Обычный куст. Пока не подойдёшь."
+max_hp = 12
+move_range = 0
+damage = 2
+attack = 4
+attack_range = 1
+color = Color(0.25, 0.22, 0.17, 1)
+attack_title = "Шипы"
+size = 1.0
+model = ExtResource("9_model")
+fire_weak = true
+cycle = Array[ExtResource("2_attack")]([SubResource("atk_thorns")])

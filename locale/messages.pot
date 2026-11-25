@@ -4,23 +4,23 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language: ru\n"
 
-#: resources/acts/act_1.tres:44 resources/acts/act_1.tres:46
+#: resources/acts/act_1.tres:47 resources/acts/act_1.tres:49
 msgid "Гнилые топи"
 msgstr ""
 
-#: resources/acts/act_1.tres:45
+#: resources/acts/act_1.tres:48
 msgid "Окраина Марки: топь, мёртвые деревья и Роща Хранителей. Где-то у Шпиля ждёт хозяин этих мест."
 msgstr ""
 
-#: resources/acts/act_1.tres:46
+#: resources/acts/act_1.tres:49
 msgid "Густые леса"
 msgstr ""
 
-#: resources/acts/act_1.tres:47
+#: resources/acts/act_1.tres:50
 msgid "Развилка: топи или чаща"
 msgstr ""
 
-#: resources/acts/act_1.tres:48
+#: resources/acts/act_1.tres:51
 msgid "Окраина Марки"
 msgstr ""
 
@@ -260,7 +260,7 @@ msgstr ""
 msgid "Бег по прямой до 4. Врезавшись: 4 урона + натиск, толчок 1. Потом +1 шаг."
 msgstr ""
 
-#: resources/cards/base/kb_ram.tres:42 resources/cards/k_charge.tres:9
+#: resources/cards/base/kb_ram.tres:42 resources/cards/k_charge.tres:9 resources/enemies/rift_boar.tres:9 resources/enemies/rift_boar.tres:25
 msgid "Таран"
 msgstr ""
 
@@ -728,10 +728,6 @@ msgstr ""
 msgid "2 урона до 2, толчок 2.\nЦепь 1: стоит 0."
 msgstr ""
 
-#: resources/cards/base/mb_shove.tres:43 resources/cards/shove.tres:9
-msgid "Толчок"
-msgstr ""
-
 #: resources/cards/base/mb_shove.tres:44
 msgid "2 урона до 2, толчок 2."
 msgstr ""
@@ -1028,10 +1024,6 @@ msgstr ""
 msgid "Руна на соседней пустой клетке. Враг наступил или по ней ударили — 5 урона врагам на ней и вокруг (6 клеток). Героев не ранит."
 msgstr ""
 
-#: resources/cards/k_rune_trap.tres:9
-msgid "Сторожевая руна"
-msgstr ""
-
 #: resources/cards/k_runup.tres:10
 msgid "+2 шага и +2 натиска."
 msgstr ""
@@ -1086,10 +1078,6 @@ msgstr ""
 
 #: resources/cards/lightning.tres:10
 msgid "Одна клетка до 6: 6 урона. Попав в лужу, бьёт всех, кто стоит в этой луже, и на 2 сильнее."
-msgstr ""
-
-#: resources/cards/lightning.tres:9
-msgid "Молния"
 msgstr ""
 
 #: resources/cards/m_ball_lightning.tres:10
@@ -3012,10 +3000,6 @@ msgstr ""
 msgid "Круг 1 до 4: клетки становятся топью, враг в центре опутан."
 msgstr ""
 
-#: resources/cards/spirits/bog/bog_m1.tres:42
-msgid "Топь"
-msgstr ""
-
 #: resources/cards/spirits/bog/bog_m1.tres:43
 msgid "Круг 1 до 4: клетки становятся топью."
 msgstr ""
@@ -3564,7 +3548,7 @@ msgstr ""
 msgid "4 урона врагу до 4. По опутанному или стоящему на лозе: +7."
 msgstr ""
 
-#: resources/cards/spirits/forest/forest_m2.tres:49
+#: resources/cards/spirits/forest/forest_m2.tres:49 resources/enemies/thornbush.tres:9 resources/enemies/thornbush.tres:25
 msgid "Шипы"
 msgstr ""
 
@@ -5812,6 +5796,10 @@ msgstr ""
 msgid "Ловчий автомат"
 msgstr ""
 
+#: resources/encounters/elite_eel.tres:13 resources/enemies/storm_eel.tres:33
+msgid "Грозовой угорь"
+msgstr ""
+
 #: resources/encounters/elite_forgemaster.tres:12 resources/enemies/cult_forgemaster.tres:36
 msgid "Горновой Венца"
 msgstr ""
@@ -5888,6 +5876,10 @@ msgstr ""
 msgid "Засада в камыше"
 msgstr ""
 
+#: resources/encounters/rift_boars.tres:11
+msgid "Вепри Раскола"
+msgstr ""
+
 #: resources/encounters/rift_mix.tres:15
 msgid "Сборная Раскола"
 msgstr ""
@@ -5914,6 +5906,10 @@ msgstr ""
 
 #: resources/encounters/stone_line.tres:15
 msgid "Каменный строй"
+msgstr ""
+
+#: resources/encounters/thorn_thicket.tres:13
+msgid "Колючая чаща"
 msgstr ""
 
 #: resources/encounters/toad_mound.tres:13
@@ -6016,7 +6012,7 @@ msgstr ""
 msgid "Мокрый, как трясина, из которой вылез. Дышит тем, что в ней гниёт."
 msgstr ""
 
-#: resources/enemies/ash_serpent.tres:17
+#: resources/enemies/ash_serpent.tres:17 resources/enemies/storm_eel.tres:25
 msgid "Хлёст хвостом"
 msgstr ""
 
@@ -6620,6 +6616,14 @@ msgstr ""
 msgid "Починка"
 msgstr ""
 
+#: resources/enemies/rift_boar.tres:16
+msgid "Вепрь Раскола"
+msgstr ""
+
+#: resources/enemies/rift_boar.tres:17
+msgid "Раскол не сделал его злее. Только твёрже."
+msgstr ""
+
 #: resources/enemies/rift_grinder.tres:10
 msgid "Бирюзовый Жернов"
 msgstr ""
@@ -6732,10 +6736,6 @@ msgstr ""
 msgid "Водяная сфера"
 msgstr ""
 
-#: resources/enemies/sphere_colossus.tres:21
-msgid "Грозовая сфера"
-msgstr ""
-
 #: resources/enemies/sphere_colossus.tres:31
 msgid "Огненная сфера"
 msgstr ""
@@ -6764,7 +6764,7 @@ msgstr ""
 msgid "Ищет лужу под твоими ногами. Мокрый — значит, твой."
 msgstr ""
 
-#: resources/enemies/sphere_walker_storm.tres:9 resources/enemies/sphere_walker_storm.tres:29 resources/enemies/spirit_storm.tres:9 resources/enemies/wild_storm.tres:9
+#: resources/enemies/sphere_walker_storm.tres:9 resources/enemies/sphere_walker_storm.tres:29 resources/enemies/spirit_storm.tres:9 resources/enemies/storm_eel.tres:9 resources/enemies/storm_eel.tres:41
 msgid "Разряд"
 msgstr ""
 
@@ -6940,6 +6940,14 @@ msgstr ""
 msgid "Набирает пар"
 msgstr ""
 
+#: resources/enemies/storm_eel.tres:19
+msgid "Ток по трясине"
+msgstr ""
+
+#: resources/enemies/storm_eel.tres:34
+msgid "В трясине нет течения. Только ток."
+msgstr ""
+
 #: resources/enemies/swamp_weaver.tres:19
 msgid "Болотный ткач"
 msgstr ""
@@ -6950,6 +6958,14 @@ msgstr ""
 
 #: resources/enemies/swamp_weaver.tres:9 resources/enemies/swamp_weaver.tres:27
 msgid "Плевок паутиной"
+msgstr ""
+
+#: resources/enemies/thornbush.tres:17
+msgid "Колючник"
+msgstr ""
+
+#: resources/enemies/thornbush.tres:18
+msgid "Обычный куст. Пока не подойдёшь."
 msgstr ""
 
 #: resources/enemies/torch_goblin.tres:19
@@ -7042,6 +7058,14 @@ msgstr ""
 
 #: resources/enemy_modifiers/tenacious.tres:8
 msgid "Цепкий"
+msgstr ""
+
+#: resources/meta_upgrades/far_sight.tres:8
+msgid "Зоркий дозор"
+msgstr ""
+
+#: resources/meta_upgrades/far_sight.tres:9
+msgid "Туман на карте пути отступает: тип точки виден на 1 ряд дальше за ступень."
 msgstr ""
 
 #: resources/meta_upgrades/knight_hardening.tres:8 resources/meta_upgrades/mage_hardening.tres:8
@@ -7376,1139 +7400,1187 @@ msgstr ""
 msgid "+1 шаг каждый ход."
 msgstr ""
 
-#: scripts/autoload/meta.gd:55
+#: scripts/autoload/meta.gd:56
 msgid "Обычная игра."
 msgstr ""
 
-#: scripts/autoload/meta.gd:56
+#: scripts/autoload/meta.gd:57
 msgid "В каждом обычном бою на 1 врага больше."
 msgstr ""
 
-#: scripts/autoload/meta.gd:57
+#: scripts/autoload/meta.gd:58
 msgid "Ещё один враг с модификатором в каждом бою, даже в первых рядах."
 msgstr ""
 
-#: scripts/autoload/meta.gd:58
+#: scripts/autoload/meta.gd:59
 msgid "Привал лечит 20% вместо 30%."
 msgstr ""
 
-#: scripts/autoload/meta.gd:59
+#: scripts/autoload/meta.gd:60
 msgid "В каждой волне подкрепления на 1 врага больше (вожак, Певчая, огр)."
 msgstr ""
 
-#: scripts/autoload/meta.gd:60
+#: scripts/autoload/meta.gd:61
 msgid "Элита и босс: +25% HP."
 msgstr ""
 
-#: scripts/autoload/run.gd:565
+#: scripts/autoload/run.gd:606
 msgid "Ржавый шлем Стражи с выцветшим плюмажем. Кто-то из офицеров ушёл в трясину — и, похоже, не до конца."
 msgstr ""
 
-#: scripts/autoload/run.gd:566
+#: scripts/autoload/run.gd:607
 msgid "Треснувший колокол Стражи в воде. Говорят, по ночам он звонит сам — сбор на поверку."
 msgstr ""
 
-#: scripts/autoload/run.gd:567
+#: scripts/autoload/run.gd:608
 msgid "Обломок алебарды с клочком табарда. Стража здесь отступала — но приказа отступать не было."
 msgstr ""
 
-#: scripts/autoload/run.gd:570
+#: scripts/autoload/run.gd:611
 msgid "Колонну сломали пополам — не тараном, а голыми руками."
 msgstr ""
 
-#: scripts/autoload/run.gd:571
+#: scripts/autoload/run.gd:612
 msgid "Кандалы на ногу толщиной с бревно. Цепь не перепилена — разорвана."
 msgstr ""
 
-#: scripts/autoload/run.gd:572
+#: scripts/autoload/run.gd:613
 msgid "След босой ноги длиной в два шага, вдавленный в камень."
 msgstr ""
 
-#: scripts/autoload/run.gd:575
+#: scripts/autoload/run.gd:616
 msgid "Кладка икры светится бирюзой. Кто-то очень большой готовит потомство."
 msgstr ""
 
-#: scripts/autoload/run.gd:576
+#: scripts/autoload/run.gd:617
 msgid "Сброшенная жабья кожа — в неё поместилась бы телега."
 msgstr ""
 
-#: scripts/autoload/run.gd:577
+#: scripts/autoload/run.gd:618
 msgid "Следы-перепонки размером с бочку уходят к дальней воде."
 msgstr ""
 
-#: scripts/autoload/run.gd:581
+#: scripts/autoload/run.gd:622
 msgid "Колесо обоза сплющено, как подкова под молотом. Тот, кто это сделал, носит такое колесо вместо руки."
 msgstr ""
 
-#: scripts/autoload/run.gd:582
+#: scripts/autoload/run.gd:623
 msgid "Колея шириной в шаг. Такую не оставит ни одна телега — только то, что тащит на себе весь обоз."
 msgstr ""
 
-#: scripts/autoload/run.gd:583
+#: scripts/autoload/run.gd:624
 msgid "Бочку смяли одной ладонью. Внутри пусто, пахнет гарью и смолой."
 msgstr ""
 
-#: scripts/autoload/run.gd:586
+#: scripts/autoload/run.gd:627
 msgid "Шестерня ростом с человека. Механизм, которому она принадлежала, всё ещё где-то ходит."
 msgstr ""
 
-#: scripts/autoload/run.gd:587
+#: scripts/autoload/run.gd:628
 msgid "Осколки трёх стеклянных сфер: водяной, грозовой и огненной. В бронзовом обруче — следы когтей духа."
 msgstr ""
 
-#: scripts/autoload/run.gd:588
+#: scripts/autoload/run.gd:629
 msgid "Болт толщиной в бревно вырван вместе с листом брони. Край разрыва ещё тёплый."
 msgstr ""
 
-#: scripts/autoload/run.gd:591
+#: scripts/autoload/run.gd:632
 msgid "Цепь толщиной в руку. Последние звенья раскалены — то, что она держала, горит изнутри."
 msgstr ""
 
-#: scripts/autoload/run.gd:592
+#: scripts/autoload/run.gd:633
 msgid "Обломок костяного венца. Гнёзда пусты, кость опалена жаром."
 msgstr ""
 
-#: scripts/autoload/run.gd:593
+#: scripts/autoload/run.gd:634
 msgid "Прутья клетки выгнуты наружу. Кто-то пытался вырваться — и почти смог."
 msgstr ""
 
-#: scripts/autoload/settings.gd:89
+#: scripts/autoload/settings.gd:212
 msgid "Русский"
 msgstr ""
 
-#: scripts/autoload/settings.gd:90
+#: scripts/autoload/settings.gd:213
 msgid "Українська"
 msgstr ""
 
-#: scripts/battle.gd:1138
+#: scripts/autoload/settings.gd:32
+msgid "Повернуть камеру влево"
+msgstr ""
+
+#: scripts/autoload/settings.gd:33
+msgid "Повернуть камеру вправо"
+msgstr ""
+
+#: scripts/autoload/settings.gd:34
+msgid "Отменить действие"
+msgstr ""
+
+#: scripts/autoload/settings.gd:35
+msgid "Сбросить карту"
+msgstr ""
+
+#: scripts/autoload/settings.gd:36
+msgid "Другой герой"
+msgstr ""
+
+#: scripts/autoload/settings.gd:37 ui/settings_screen.gd:194
+msgid "Скорость хода врагов"
+msgstr ""
+
+#: scripts/autoload/settings.gd:38
+msgid "Ускорить ход врагов (держать)"
+msgstr ""
+
+#: scripts/autoload/settings.gd:39
+msgid "Справка в бою"
+msgstr ""
+
+#: scripts/autoload/settings.gd:40
+msgid "Выключить звук"
+msgstr ""
+
+#: scripts/battle.gd:1206
 msgid "пар"
 msgstr ""
 
-#: scripts/battle.gd:1138
+#: scripts/battle.gd:1206
 msgid "заморозка"
 msgstr ""
 
-#: scripts/battle.gd:1138
+#: scripts/battle.gd:1206
 msgid "осколки льда"
 msgstr ""
 
-#: scripts/battle.gd:1139
+#: scripts/battle.gd:1207
 msgid "лава"
 msgstr ""
 
-#: scripts/battle.gd:1139
+#: scripts/battle.gd:1207
 msgid "корка"
 msgstr ""
 
-#: scripts/battle.gd:1139
+#: scripts/battle.gd:1207
 msgid "молния по мокрому"
 msgstr ""
 
-#: scripts/battle.gd:1139
+#: scripts/battle.gd:1207
 msgid "клещи"
 msgstr ""
 
-#: scripts/battle.gd:1139
+#: scripts/battle.gd:1207
 msgid "горит дерево"
 msgstr ""
 
-#: scripts/battle.gd:1140
+#: scripts/battle.gd:1208
 msgid "взрыв"
 msgstr ""
 
-#: scripts/battle.gd:1140
+#: scripts/battle.gd:1208
 msgid "газ"
 msgstr ""
 
-#: scripts/battle.gd:1140
+#: scripts/battle.gd:1208
 msgid "дерево падает"
 msgstr ""
 
-#: scripts/battle.gd:1140
+#: scripts/battle.gd:1208
 msgid "разряд"
 msgstr ""
 
-#: scripts/battle.gd:1141
+#: scripts/battle.gd:1209
 msgid "руна"
 msgstr ""
 
-#: scripts/battle.gd:1141
+#: scripts/battle.gd:1209
 msgid "купель"
 msgstr ""
 
-#: scripts/battle.gd:1141
+#: scripts/battle.gd:1209
 msgid "пар клапана"
 msgstr ""
 
-#: scripts/battle.gd:1141
+#: scripts/battle.gd:1209
 msgid "рой"
 msgstr ""
 
-#: scripts/battle.gd:1141
+#: scripts/battle.gd:1209
 msgid "ветер"
 msgstr ""
 
-#: scripts/battle.gd:1142
+#: scripts/battle.gd:1210
 msgid "мокрые"
 msgstr ""
 
-#: scripts/battle.gd:1142
+#: scripts/battle.gd:1210
 msgid "яд"
 msgstr ""
 
-#: scripts/battle.gd:1142
+#: scripts/battle.gd:1210
 msgid "опутаны"
 msgstr ""
 
-#: scripts/battle.gd:1142
+#: scripts/battle.gd:1210
 msgid "ржавчина"
 msgstr ""
 
-#: scripts/battle.gd:1143
+#: scripts/battle.gd:1211
 msgid "замыкание"
 msgstr ""
 
-#: scripts/battle.gd:1143
+#: scripts/battle.gd:1211
 msgid "клеймо"
 msgstr ""
 
-#: scripts/battle.gd:1233 scripts/battle.gd:1241
+#: scripts/battle.gd:1301 scripts/battle.gd:1309
 msgid ", падёт"
 msgstr ""
 
-#: scripts/battle.gd:1239
+#: scripts/battle.gd:1307
 msgid " (блок −%d)"
 msgstr ""
 
-#: scripts/battle.gd:1252
+#: scripts/battle.gd:1320
 msgid "; ещё %d"
 msgstr ""
 
-#: scripts/battle.gd:1253
+#: scripts/battle.gd:1321
 msgid "Урон: "
 msgstr ""
 
-#: scripts/battle.gd:1255
+#: scripts/battle.gd:1323
 msgid "Своим: "
 msgstr ""
 
-#: scripts/battle.gd:1257
+#: scripts/battle.gd:1325
 msgid "Лечение: "
 msgstr ""
 
-#: scripts/battle.gd:1266
+#: scripts/battle.gd:1334
 msgid "Реакции: "
 msgstr ""
 
-#: scripts/battle.gd:1271
+#: scripts/battle.gd:1339
 msgid "Цепочка: "
 msgstr ""
 
-#: scripts/battle.gd:1276
+#: scripts/battle.gd:1344
 msgid "Состояния: "
 msgstr ""
 
-#: scripts/battle.gd:1278
+#: scripts/battle.gd:1346
 msgid "Проснётся: "
 msgstr ""
 
-#: scripts/battle.gd:1280
+#: scripts/battle.gd:1348
 msgid "Сдвинутся: %d"
 msgstr ""
 
-#: scripts/battle.gd:1282
+#: scripts/battle.gd:1350
 msgid "Появится врагов: %d"
 msgstr ""
 
-#: scripts/battle.gd:1464
+#: scripts/battle.gd:1525
+msgid "%s (мана %d)"
+msgstr ""
+
+#: scripts/battle.gd:1526
+msgid "Ещё можно сыграть карты: %s.\nНажми ещё раз — завершить ход."
+msgstr ""
+
+#: scripts/battle.gd:1628
 msgid "Нельзя отменить: открыта новая карта из колоды."
 msgstr ""
 
-#: scripts/battle.gd:1467
+#: scripts/battle.gd:1631
 msgid "Нельзя отменить: выпал случайный исход."
 msgstr ""
 
-#: scripts/battle.gd:1647
+#: scripts/battle.gd:1931
 msgid "Обучение пройдено!"
 msgstr ""
 
-#: scripts/battle.gd:1647
+#: scripts/battle.gd:1931
 msgid "Обучение окончено"
 msgstr ""
 
-#: scripts/battle.gd:1649 ui/game_over.gd:11 ui/reward_screen.gd:39
+#: scripts/battle.gd:1933 ui/game_over.gd:11 ui/reward_screen.gd:39
 msgid "Победа!"
 msgstr ""
 
-#: scripts/battle.gd:1649
+#: scripts/battle.gd:1933
 msgid "Поражение…"
 msgstr ""
 
-#: scripts/battle.gd:1685 ui/event_screen.gd:1298 ui/reward_screen.gd:82 ui/reward_screen.gd:104 ui/reward_screen.gd:341
+#: scripts/battle.gd:1969 ui/event_screen.gd:1298 ui/reward_screen.gd:91 ui/reward_screen.gd:113 ui/reward_screen.gd:399
 msgid "Дальше"
 msgstr ""
 
-#: scripts/battle.gd:1685 scripts/tutorial/hints.gd:84 ui/battle_hud.gd:445
+#: scripts/battle.gd:1969 scripts/tutorial/hints.gd:84 ui/battle_hud.gd:458
 msgid "Понятно"
 msgstr ""
 
-#: scripts/battle.gd:1687 ui/pause_menu.gd:72
+#: scripts/battle.gd:1971 ui/pause_menu.gd:75
 msgid "Пропустить обучение"
 msgstr ""
 
-#: scripts/battle.gd:1798 ui/event_screen.gd:850 ui/event_screen.gd:1012
+#: scripts/battle.gd:2091 ui/event_screen.gd:850 ui/event_screen.gd:1012
 msgid "бой"
 msgstr ""
 
-#: scripts/battle.gd:1798
+#: scripts/battle.gd:2091
 msgid "элита"
 msgstr ""
 
-#: scripts/battle.gd:1799
+#: scripts/battle.gd:2092
 msgid "босс"
 msgstr ""
 
-#: scripts/battle.gd:1799
+#: scripts/battle.gd:2092
 msgid "логово"
 msgstr ""
 
-#: scripts/battle.gd:1799
+#: scripts/battle.gd:2092
 msgid "событие"
 msgstr ""
 
-#: scripts/battle.gd:1800
+#: scripts/battle.gd:2093
 msgid "пещера"
 msgstr ""
 
-#: scripts/battle.gd:1896
-msgid "Удержать можно не больше %d карт"
-msgstr ""
-
-#: scripts/battle.gd:191
+#: scripts/battle.gd:213
 msgid "В корнях корягача спит Хозяин трясины: утопи %d врагов в трясине — и он пойдёт с тобой."
 msgstr ""
 
-#: scripts/battle.gd:194
+#: scripts/battle.gd:216
 msgid "Лес: лоза держит того, кто на неё встал (удар картой срубает), деревья с лентой закрывают линии и горят, улей — рой с ядом."
 msgstr ""
 
-#: scripts/battle.gd:198
+#: scripts/battle.gd:2189
+msgid "Удержать можно не больше %d карт"
+msgstr ""
+
+#: scripts/battle.gd:220
 msgid "Насосная: удар по клапану — пар обжигает и отбрасывает соседей, вокруг разливается вода."
 msgstr ""
 
-#: scripts/battle.gd:200
+#: scripts/battle.gd:222
 msgid "В клетке Сосуда бьётся Сердце Жерла: облей Сосуд водой %d раза до победы — и оно пойдёт с тобой."
 msgstr ""
 
-#: scripts/battle.gd:202
+#: scripts/battle.gd:224
 msgid "Леший смотрит из чащи: победи Голос Рощи, не спалив ни дерева, ни лозы, — и он пойдёт с тобой."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:1487
+#: scripts/battle.gd:560
+msgid "свой ход"
+msgstr ""
+
+#: scripts/battle/battle_logic.gd:1488
 msgid "Спит"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:1490
+#: scripts/battle/battle_logic.gd:1491 scripts/data/keywords.gd:66
 msgid "Замыкание"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:1493
+#: scripts/battle/battle_logic.gd:1494
 msgid "Взрыв!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:1496
+#: scripts/battle/battle_logic.gd:1497
 msgid "Прыжок и фитиль"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:1678
+#: scripts/battle/battle_logic.gd:1679
 msgid "%s ржавеет: без блока, удар −%d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:1848
+#: scripts/battle/battle_logic.gd:1849
 msgid "Мостки проваливаются в трясину"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:190
+#: scripts/battle/battle_logic.gd:191
 msgid "Убей всех"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:191
+#: scripts/battle/battle_logic.gd:192
 msgid "Ритуал"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:192
+#: scripts/battle/battle_logic.gd:193
 msgid "Прорыв"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:193
+#: scripts/battle/battle_logic.gd:194
 msgid "Вода прибывает"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:216
+#: scripts/battle/battle_logic.gd:217
 msgid "Старая гать"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:217
+#: scripts/battle/battle_logic.gd:218
 msgid "Мёртвая роща"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:218
+#: scripts/battle/battle_logic.gd:219
 msgid "Камышовая заводь"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:219
+#: scripts/battle/battle_logic.gd:220
 msgid "Брошенная застава"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:220
+#: scripts/battle/battle_logic.gd:221
 msgid "Затопленные руины"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:221
+#: scripts/battle/battle_logic.gd:222
 msgid "Логово огра"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:222
+#: scripts/battle/battle_logic.gd:223
 msgid "Тлеющая пещера"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2229
-msgid "%s поглощает магию: враги лечатся"
-msgstr ""
-
-#: scripts/battle/battle_logic.gd:223
+#: scripts/battle/battle_logic.gd:224
 msgid "Гнилой пруд"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:224
-msgid "Брошенная насосная"
-msgstr ""
-
-#: scripts/battle/battle_logic.gd:2249
-msgid "%s: «%s» в ноги"
+#: scripts/battle/battle_logic.gd:2242
+msgid "%s поглощает магию: враги лечатся"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:225
-msgid "Густая чаща"
+msgid "Брошенная насосная"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:226
-msgid "Круг Хранителей"
+msgid "Густая чаща"
+msgstr ""
+
+#: scripts/battle/battle_logic.gd:2262
+msgid "%s: «%s» в ноги"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:227
-msgid "Паучья лощина"
+msgid "Круг Хранителей"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:228
+msgid "Паучья лощина"
+msgstr ""
+
+#: scripts/battle/battle_logic.gd:229
 msgid "Бурелом у ручья"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:230 ui/event_screen.gd:340
+#: scripts/battle/battle_logic.gd:231 ui/event_screen.gd:340
 msgid "Сгоревший обоз"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:231
+#: scripts/battle/battle_logic.gd:232
 msgid "Пепелище"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:232
+#: scripts/battle/battle_logic.gd:233
 msgid "Капище Венца"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:233
+#: scripts/battle/battle_logic.gd:234
 msgid "Лавовые русла"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:234
+#: scripts/battle/battle_logic.gd:235
 msgid "Кипящие ключи"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:235
+#: scripts/battle/battle_logic.gd:236
 msgid "Павшая сторожевая башня"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:236
+#: scripts/battle/battle_logic.gd:237
 msgid "Пепельные дюны"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:237
+#: scripts/battle/battle_logic.gd:238
 msgid "Ветреный перевал"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:239
+#: scripts/battle/battle_logic.gd:240
 msgid "Тлеющие пещеры"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2391
+#: scripts/battle/battle_logic.gd:2404
 msgid "%s держит строй"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2394
+#: scripts/battle/battle_logic.gd:2407
 msgid "%s вызывает врагов на себя"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:240
+#: scripts/battle/battle_logic.gd:241
 msgid "Зал сфер"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:241
+#: scripts/battle/battle_logic.gd:242
 msgid "Паровой цех"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:242
+#: scripts/battle/battle_logic.gd:243
 msgid "Шахтный туннель"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2427
-msgid "Неудержимый: +%d маны, +%d шагов"
-msgstr ""
-
-#: scripts/battle/battle_logic.gd:243
+#: scripts/battle/battle_logic.gd:244
 msgid "Разлом в лаборатории"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:244
-msgid "Подземное озеро"
-msgstr ""
-
-#: scripts/battle/battle_logic.gd:2441
-msgid "Добивание!"
+#: scripts/battle/battle_logic.gd:2440
+msgid "Неудержимый: +%d маны, +%d шагов"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:245
-msgid "Сборочный цех"
+msgid "Подземное озеро"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2456
-msgid "Ярость: +%d урона"
+#: scripts/battle/battle_logic.gd:2454
+msgid "Добивание!"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:246
+msgid "Сборочный цех"
+msgstr ""
+
+#: scripts/battle/battle_logic.gd:2469
+msgid "Ярость: +%d урона"
+msgstr ""
+
+#: scripts/battle/battle_logic.gd:247
 msgid "Грибная пещера Раскола"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2460
+#: scripts/battle/battle_logic.gd:2473
 msgid "Разрядка: +%d урона"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2465
+#: scripts/battle/battle_logic.gd:2478
 msgid "Натиск: +%d урона"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:248
+#: scripts/battle/battle_logic.gd:249
 msgid "Обрыв на тракте"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:249
+#: scripts/battle/battle_logic.gd:250
 msgid "Реакторный зал"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:250
+#: scripts/battle/battle_logic.gd:251
 msgid "Край жерла"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:251
+#: scripts/battle/battle_logic.gd:252
 msgid "Учебная поляна"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2587
+#: scripts/battle/battle_logic.gd:2600
 msgid "Перегрузка! Заряд: %d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2594
+#: scripts/battle/battle_logic.gd:2607
 msgid "%s: руна на клинке (%d удара)"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2600
+#: scripts/battle/battle_logic.gd:2613
 msgid "%s держит заставу"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:269
+#: scripts/battle/battle_logic.gd:270
 msgid "Обоз: повозки — укрытие от выстрелов, бочки масла взрываются огнём."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:270
+#: scripts/battle/battle_logic.gd:271
 msgid "Пепелище: обугленный ствол от удара падает и бьёт линию; торф раз в 3 раунда снова вспыхивает."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:271
+#: scripts/battle/battle_logic.gd:272
 msgid "Капище: жаровни от удара или огня опрокидываются взрывом огня."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:272
+#: scripts/battle/battle_logic.gd:273
 msgid "Русла: лава — стена. Переправы по корке: встал на корку — ход окончен. Вода и лёд остужают лаву."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:273
+#: scripts/battle/battle_logic.gd:274
 msgid "Ключи: удар по гейзеру — пар обжигает и отбрасывает соседей, вокруг вода."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:274
+#: scripts/battle/battle_logic.gd:275
 msgid "Башня: треснувшая стена от удара падает и бьёт линию из 3 клеток."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2740
+#: scripts/battle/battle_logic.gd:2753
 msgid "%s несёт магическую призму"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2744
+#: scripts/battle/battle_logic.gd:2757
 msgid "Взрыв болота!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:275
+#: scripts/battle/battle_logic.gd:276
 msgid "Дюны: в сыпучем пепле вязнут, как в топи."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:276
+#: scripts/battle/battle_logic.gd:277
 msgid "Перевал: дует ветер — в конце раунда огонь перекидывается на клетку по ветру (стрелки на поле)."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:277
+#: scripts/battle/battle_logic.gd:278
 msgid "Пещеры: торф раз в 3 раунда снова вспыхивает, лава не остывает сама."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:278
+#: scripts/battle/battle_logic.gd:279
 msgid "Зал сфер: от удара огненная сфера взрывается огнём, водяная — паром и лужей, грозовая — разрядом по воде рядом."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:279
+#: scripts/battle/battle_logic.gd:280
 msgid "Цех: удар по клапану — пар обжигает и отбрасывает соседей."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:280
+#: scripts/battle/battle_logic.gd:281
 msgid "Туннель: узкие коридоры. Ударь вагонетку — покатится и собьёт первого на пути."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2800
+#: scripts/battle/battle_logic.gd:2813
 msgid "Перегрузка эфира: карты бьют сильнее за каждый перегрев"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:281
+#: scripts/battle/battle_logic.gd:282
 msgid "Разлом: посреди зала провал с лавой — толкай туда врагов."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:282
+#: scripts/battle/battle_logic.gd:283
 msgid "Озеро: тёмная вода глубока — столкнутый туда тонет."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2827 scripts/battle/battle_logic.gd:5536
-msgid "%s опутан"
-msgstr ""
-
-#: scripts/battle/battle_logic.gd:283
+#: scripts/battle/battle_logic.gd:284
 msgid "Сборочный цех: ленты конвейера в конце раунда везут всех, кто на них стоит (стрелки). Бочки топлива взрываются."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:284
-msgid "Грибная пещера: дождевик от удара или огня лопается облаком газа (яд), огонь рядом гаснет."
-msgstr ""
-
-#: scripts/battle/battle_logic.gd:2846
-msgid "Звон Колокола Стражи!"
+#: scripts/battle/battle_logic.gd:2840 scripts/battle/battle_logic.gd:5550
+msgid "%s опутан"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:285
-msgid "Обрыв: вдоль края — лава. Не стой спиной к обрыву."
+msgid "Грибная пещера: дождевик от удара или огня лопается облаком газа (яд), огонь рядом гаснет."
+msgstr ""
+
+#: scripts/battle/battle_logic.gd:2859
+msgid "Звон Колокола Стражи!"
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:286
-msgid "Реакторный зал: удар по клапану — пар обжигает и отбрасывает соседей."
+msgid "Обрыв: вдоль края — лава. Не стой спиной к обрыву."
 msgstr ""
 
 #: scripts/battle/battle_logic.gd:287
+msgid "Реакторный зал: удар по клапану — пар обжигает и отбрасывает соседей."
+msgstr ""
+
+#: scripts/battle/battle_logic.gd:288
 msgid "Край жерла: торф вспыхивает. Ударь купель — вода плеснёт на соседей, потушит огонь и обожжёт Сосуд."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:2894
+#: scripts/battle/battle_logic.gd:2907
 msgid "Эхо: «%s» снова в руке"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3137
+#: scripts/battle/battle_logic.gd:3150
 msgid "%s уходит в трясину!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3302
+#: scripts/battle/battle_logic.gd:3315
 msgid "Пламя бежит по ветру"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3339
+#: scripts/battle/battle_logic.gd:3352
 msgid "Лужи вскипают паром!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3346
+#: scripts/battle/battle_logic.gd:3359
 msgid "%s закаляет клинок в пару: следующий удар +%d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3352 scripts/battle/battle_logic.gd:3726
+#: scripts/battle/battle_logic.gd:3365 scripts/battle/battle_logic.gd:3739
 msgid "Паровой взрыв!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3505
+#: scripts/battle/battle_logic.gd:3518
 msgid "Дерево падает!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3519
+#: scripts/battle/battle_logic.gd:3532
 msgid "%s сбит с ног"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3538
+#: scripts/battle/battle_logic.gd:3551
 msgid "Бочка с газом взрывается!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3629
+#: scripts/battle/battle_logic.gd:3642
 msgid "Ледяная глыба тает"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3635
+#: scripts/battle/battle_logic.gd:3648
 msgid "Колья горят"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3640
+#: scripts/battle/battle_logic.gd:3653
 msgid "Трясина замерзает"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3683
+#: scripts/battle/battle_logic.gd:3696
 msgid "Трясина вскипает лавой!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3692
+#: scripts/battle/battle_logic.gd:3705
 msgid "Лава застывает коркой"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3696
+#: scripts/battle/battle_logic.gd:3709
 msgid "%s увяз в корке"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3710
+#: scripts/battle/battle_logic.gd:3723
 msgid "Ветер раздувает огонь"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3738
+#: scripts/battle/battle_logic.gd:3751
 msgid "Глыба раскалывается!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3753
+#: scripts/battle/battle_logic.gd:3766
 msgid "%s вмёрз в лёд"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3787
+#: scripts/battle/battle_logic.gd:3800
 msgid "Дерево занимается огнём!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3807
+#: scripts/battle/battle_logic.gd:3820
 msgid "Рой вылетает из улья!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3826
+#: scripts/battle/battle_logic.gd:3839
 msgid "Клапан срывает: пар!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3848
+#: scripts/battle/battle_logic.gd:3861
 msgid "Дождевик лопается: облако газа!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3888
+#: scripts/battle/battle_logic.gd:3901
 msgid "Вагонетка катится!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3891
+#: scripts/battle/battle_logic.gd:3904
 msgid "Вагонетка врезается в %s"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3899
+#: scripts/battle/battle_logic.gd:3912
 msgid "Купель опрокинута: вода плещет вокруг!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3920
+#: scripts/battle/battle_logic.gd:3933
 msgid "Грозовая сфера лопается: разряд!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:3949
+#: scripts/battle/battle_logic.gd:3962
 msgid "Ветер перекидывает огонь"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4007
+#: scripts/battle/battle_logic.gd:4020
 msgid "Лоза срублена"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4034
+#: scripts/battle/battle_logic.gd:4047
 msgid "Ядовитый газ взрывается!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4044
+#: scripts/battle/battle_logic.gd:4057
 msgid "%s дышит ядом"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4055
+#: scripts/battle/battle_logic.gd:4068
 msgid "%s: огонь сжигает броню"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4094
+#: scripts/battle/battle_logic.gd:4107
 msgid "%s тонет в трясине!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4103
+#: scripts/battle/battle_logic.gd:4116
 msgid "%s врезается!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4114
+#: scripts/battle/battle_logic.gd:4127
 msgid "%s обжигается о лаву"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4114
+#: scripts/battle/battle_logic.gd:4127
 msgid "%s упирается в лаву, но огонь его не берёт"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4117
+#: scripts/battle/battle_logic.gd:4130
 msgid "%s вязнет на краю трясины"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4120
+#: scripts/battle/battle_logic.gd:4133
 msgid "%s насаживается на колья!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4145
+#: scripts/battle/battle_logic.gd:4158
 msgid "Сфера %s разбита — дух почти свободен!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4151
+#: scripts/battle/battle_logic.gd:4164
 msgid "%s прикрывает %s"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4159
+#: scripts/battle/battle_logic.gd:4172
 msgid "%s: древесная броня сгорела"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4188
+#: scripts/battle/battle_logic.gd:4201
 msgid "%s: −%d HP (блок поглотил %d)"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4195
+#: scripts/battle/battle_logic.gd:4208
 msgid "%s цепляется за жизнь: встаёт с %d HP"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4204
+#: scripts/battle/battle_logic.gd:4217
 msgid "%s падает"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4208
+#: scripts/battle/battle_logic.gd:4221
 msgid "Дух вырвался из сферы и остаётся с отрядом"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4210
+#: scripts/battle/battle_logic.gd:4223
 msgid "Дух в целой сфере улетает: сферу не успели разбить"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4249
+#: scripts/battle/battle_logic.gd:4262
 msgid "%s застывает глыбой"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4259
+#: scripts/battle/battle_logic.gd:4272
 msgid "Сфера %s лопается: порыв ветра!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4269
+#: scripts/battle/battle_logic.gd:4282
 msgid "Из разбитой сферы вырывается %s"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4283
+#: scripts/battle/battle_logic.gd:4296
 msgid "%s: замыкание! Пропустит ход"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4294
+#: scripts/battle/battle_logic.gd:4307
 msgid "%s просыпается!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4323
+#: scripts/battle/battle_logic.gd:4336
 msgid "%s: %s лопается!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4328
+#: scripts/battle/battle_logic.gd:4341
 msgid "В груди Колосса ржавое сердце. Добей его за %d раунда — и дух пойдёт с тобой."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4337
+#: scripts/battle/battle_logic.gd:4350
 msgid "Сфера %s лопается: огонь вокруг!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4342
+#: scripts/battle/battle_logic.gd:4355
 msgid "Сфера %s лопается: вода разливается"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4353
+#: scripts/battle/battle_logic.gd:4366
 msgid "Сфера %s лопается: разряд по лужам!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4369
+#: scripts/battle/battle_logic.gd:4382
 msgid "%s пускает корни и становится деревом"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4387
+#: scripts/battle/battle_logic.gd:4400
 msgid "%s принимает венец: удары +%d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4398
+#: scripts/battle/battle_logic.gd:4411
 msgid "%s лопается: газовый хлопок!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4416
+#: scripts/battle/battle_logic.gd:4429
 msgid "Огонь разлетается вокруг"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4423
+#: scripts/battle/battle_logic.gd:4436
 msgid "%s лопается: ядовитый взрыв!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4485
+#: scripts/battle/battle_logic.gd:4498
 msgid "Ритуал сорван — добей остальных"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4486
+#: scripts/battle/battle_logic.gd:4499
 msgid "Убей ритуалиста (%s): %d р. до призыва"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4488
+#: scripts/battle/battle_logic.gd:4501
 msgid "Доведи героев до верхнего ряда (или убей всех)"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4491
+#: scripts/battle/battle_logic.gd:4504
 msgid "Убей всех: с %d-го раунда снизу прибывает вода"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4492
+#: scripts/battle/battle_logic.gd:4505
 msgid "Убей всех: вода прибывает (ряд %d)"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4493
+#: scripts/battle/battle_logic.gd:4506
 msgid "Убей всех врагов"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4540
+#: scripts/battle/battle_logic.gd:4553
 msgid "%s завершил ритуал: из топей лезет подмога!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4549
+#: scripts/battle/battle_logic.gd:4562
 msgid "Сверху подходит подкрепление"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4592
+#: scripts/battle/battle_logic.gd:4605
 msgid "Вода прибывает: нижний ряд ушёл в трясину"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4697
+#: scripts/battle/battle_logic.gd:4710
 msgid "%s: из тумана выходят %s"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4697 scripts/tutorial/hints.gd:32 ui/battle_hud.gd:523
+#: scripts/battle/battle_logic.gd:4710 scripts/tutorial/hints.gd:32 ui/battle_hud.gd:535
 msgid "Подмога"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4718
+#: scripts/battle/battle_logic.gd:4731
 msgid "в конце этого раунда"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4718
+#: scripts/battle/battle_logic.gd:4731
 msgid "в конце раунда %d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4719
+#: scripts/battle/battle_logic.gd:4732
 msgid "%s %s\n(пока жив %s)"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4778
+#: scripts/battle/battle_logic.gd:4791
 msgid "%s тлеет: взорвётся в начале следующего хода врагов!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4789
+#: scripts/battle/battle_logic.gd:4802
 msgid "Лёд погасил фитиль: %s"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4798
+#: scripts/battle/battle_logic.gd:4811
 msgid "Фитиль %s догорел!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4863
+#: scripts/battle/battle_logic.gd:4876
 msgid "%s впадает в бешенство!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4870
+#: scripts/battle/battle_logic.gd:4883
 msgid "%s бьёт в ответ"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4886
+#: scripts/battle/battle_logic.gd:4899
 msgid "%s: вера крепнет (+3 блока, удары +%d)"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:4889
+#: scripts/battle/battle_logic.gd:4902
 msgid "%s лопается гнилью!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5039
+#: scripts/battle/battle_logic.gd:5052
 msgid "Призма разделяет заклинание на лучи"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5065
+#: scripts/battle/battle_logic.gd:5078
 msgid "%s перехватывает удар"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5082
+#: scripts/battle/battle_logic.gd:5095
 msgid "%s: в руке «Болотная тина»"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5098
+#: scripts/battle/battle_logic.gd:5111
 msgid "%s швыряет камень в жабу"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5148
+#: scripts/battle/battle_logic.gd:5161
 msgid "%s сбрасывает «%s»"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5224
+#: scripts/battle/battle_logic.gd:5237
 msgid "%s опутан: в этот ход без шагов"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5239
+#: scripts/battle/battle_logic.gd:5252
 msgid "— Ход %d —"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5249
+#: scripts/battle/battle_logic.gd:5262
 msgid "%s: перегрев %d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5274
+#: scripts/battle/battle_logic.gd:5287
 msgid "Перегрузка бьёт по %s!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5297
+#: scripts/battle/battle_logic.gd:5310
 msgid "%s горит"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5318
+#: scripts/battle/battle_logic.gd:5331
 msgid "%s сохнет на суше"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5327
+#: scripts/battle/battle_logic.gd:5340
 msgid "%s жарится в лаве"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5389
+#: scripts/battle/battle_logic.gd:5402
 msgid "Камни осыпаются"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5393
+#: scripts/battle/battle_logic.gd:5406
 msgid "Дерево прогорело"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5417
+#: scripts/battle/battle_logic.gd:5431
 msgid "%s: замыкание — пропускает ход"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5493
+#: scripts/battle/battle_logic.gd:5507
 msgid "%s: лужа под ним вскипает"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5496
+#: scripts/battle/battle_logic.gd:5510
 msgid "%s мокрый: броня погасла"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5508 scripts/data/enemy_attack_data.gd:8 scripts/data/enemy_data.gd:32 scripts/data/enemy_data.gd:33
+#: scripts/battle/battle_logic.gd:5522 scripts/data/enemy_attack_data.gd:8 scripts/data/enemy_data.gd:32 scripts/data/enemy_data.gd:33
 msgid "Удар"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5523
+#: scripts/battle/battle_logic.gd:5537
 msgid "Клеймо на %s вспыхивает: +%d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5542
+#: scripts/battle/battle_logic.gd:5556
 msgid "%s заклеймён: следующий удар по нему +%d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5579
+#: scripts/battle/battle_logic.gd:5593
 msgid "%s починен: +%d HP"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5586
+#: scripts/battle/battle_logic.gd:5600
 msgid "%s откликается на зов"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5594
+#: scripts/battle/battle_logic.gd:5608
 msgid "Угли разгораются сильнее"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5628
+#: scripts/battle/battle_logic.gd:5642
 msgid "%s зовёт подмогу: %s ×%d"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5661
+#: scripts/battle/battle_logic.gd:5675
 msgid "Корни держат: %s опутан"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5664
+#: scripts/battle/battle_logic.gd:5678
 msgid "Угли вспыхивают под %s"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5670
+#: scripts/battle/battle_logic.gd:5684
 msgid "Застава: %s получает удар"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5692
+#: scripts/battle/battle_logic.gd:5706
 msgid "Отряд пал…"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5696
+#: scripts/battle/battle_logic.gd:5710
 msgid "Дух покорён! Твари разбегаются"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5700
+#: scripts/battle/battle_logic.gd:5714
 msgid "Прорыв! Отряд вырвался из топей"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:5704
+#: scripts/battle/battle_logic.gd:5718
 msgid "Все враги повержены!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6220
+#: scripts/battle/battle_logic.gd:6245
 msgid "%s увяз в трясине"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6230
+#: scripts/battle/battle_logic.gd:6255
 msgid "%s запутался в лозе"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6271
+#: scripts/battle/battle_logic.gd:6296
 msgid "Пламя в клетке стихает и слушает. Добей Сосуд — Сердце Жерла уйдёт с тобой."
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6287
+#: scripts/battle/battle_logic.gd:6312
 msgid "%s в клещах!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6290
+#: scripts/battle/battle_logic.gd:6315
 msgid "%s: панцирь держит удар"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6294
+#: scripts/battle/battle_logic.gd:6319
 msgid "%s шипит от воды!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6319
+#: scripts/battle/battle_logic.gd:6344
 msgid "Руна на клинке погасла"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6327
+#: scripts/battle/battle_logic.gd:6352
 msgid "%s отравлен"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6342
+#: scripts/battle/battle_logic.gd:6367
 msgid "%s страдает от яда"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:6361
+#: scripts/battle/battle_logic.gd:6386
 msgid "Сторожевая руна срабатывает!"
 msgstr ""
 
-#: scripts/battle/battle_logic.gd:956
+#: scripts/battle/battle_logic.gd:957
 msgid "Торф снова вспыхивает"
 msgstr ""
 
@@ -8720,7 +8792,7 @@ msgstr ""
 msgid "Особое"
 msgstr ""
 
-#: scripts/data/card_data.gd:85 scripts/tutorial/hints.gd:14
+#: scripts/data/card_data.gd:85 scripts/data/keywords.gd:54 scripts/tutorial/hints.gd:14
 msgid "Цепь"
 msgstr ""
 
@@ -8944,6 +9016,454 @@ msgstr ""
 msgid "Особенности"
 msgstr ""
 
+#: scripts/data/keywords.gd:100
+msgid "Дикий улей"
+msgstr ""
+
+#: scripts/data/keywords.gd:101
+msgid "Преграда. Удар или огонь — рой жалит клетку и 6 соседей: 2 урона и яд."
+msgstr ""
+
+#: scripts/data/keywords.gd:102
+msgid "Паровой клапан"
+msgstr ""
+
+#: scripts/data/keywords.gd:103
+msgid "Преграда. Удар — выброс пара по 6 соседям, клапан ломается в лужу."
+msgstr ""
+
+#: scripts/data/keywords.gd:104
+msgid "Камни"
+msgstr ""
+
+#: scripts/data/keywords.gd:105
+msgid "Преграда, закрывает удары по линии. Через 3 раунда осыпается."
+msgstr ""
+
+#: scripts/data/keywords.gd:106
+msgid "Вагонетка"
+msgstr ""
+
+#: scripts/data/keywords.gd:107
+msgid "Преграда. Удар — катится по прямой и сбивает первого на пути."
+msgstr ""
+
+#: scripts/data/keywords.gd:108
+msgid "Купель"
+msgstr ""
+
+#: scripts/data/keywords.gd:109
+msgid "Преграда. Удар — вода плещет на соседей: огонь гаснет, все мокрые."
+msgstr ""
+
+#: scripts/data/keywords.gd:110 resources/enemies/sphere_colossus.tres:21
+msgid "Грозовая сфера"
+msgstr ""
+
+#: scripts/data/keywords.gd:111
+msgid "Преграда. Удар — разряд по соседям и по всей воде рядом."
+msgstr ""
+
+#: scripts/data/keywords.gd:119
+msgid "Дым"
+msgstr ""
+
+#: scripts/data/keywords.gd:120
+msgid "Закрывает удары по линии. Рассеивается через 2 раунда."
+msgstr ""
+
+#: scripts/data/keywords.gd:15
+msgid "А-Яа-яЁё"
+msgstr ""
+
+#: scripts/data/keywords.gd:18 scripts/tutorial/hints.gd:18 ui/battle_hud.gd:1078 ui/battle_hud.gd:1109
+msgid "Мокрый"
+msgstr ""
+
+#: scripts/data/keywords.gd:18
+msgid "мокр[а-яё]*|мокн[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:19
+msgid "Вошёл в лужу или под ним появилась вода. Держится в луже и ещё 2 раунда после. Молния по мокрому бьёт сильнее, огонь сушит."
+msgstr ""
+
+#: scripts/data/keywords.gd:20 ui/battle_hud.gd:1111
+msgid "Яд"
+msgstr ""
+
+#: scripts/data/keywords.gd:20
+msgid "яд|яда|ядом|яду|ядов[а-яё]*|отрав[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:21
+msgid "2 урона в конце раунда мимо блока, 3 раунда. Новый яд обновляет срок."
+msgstr ""
+
+#: scripts/data/keywords.gd:22 ui/battle_hud.gd:709
+msgid "Опутан"
+msgstr ""
+
+#: scripts/data/keywords.gd:22
+msgid "опута[а-яё]*|опутыва[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:23
+msgid "В свой ход не может идти, но карты играть и бить может."
+msgstr ""
+
+#: scripts/data/keywords.gd:24 scripts/tutorial/hints.gd:26 ui/battle_hud.gd:701
+msgid "Провокация"
+msgstr ""
+
+#: scripts/data/keywords.gd:24
+msgid "провокац[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:25
+msgid "Враги, которые могут достать героя с провокацией, бьют только его."
+msgstr ""
+
+#: scripts/data/keywords.gd:26 scripts/tutorial/hints.gd:16 resources/enemies/cult_forgemaster.tres:18
+msgid "Клещи"
+msgstr ""
+
+#: scripts/data/keywords.gd:26
+msgid "клещ[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:27
+msgid "Враг между двумя героями на одной прямой получает от карт +50%. Огонь, яд и взрывы не усиливаются."
+msgstr ""
+
+#: scripts/data/keywords.gd:28 resources/cards/base/mb_shove.tres:43 resources/cards/shove.tres:9
+msgid "Толчок"
+msgstr ""
+
+#: scripts/data/keywords.gd:28
+msgid "толк[а-яё]*|толч[а-яё]*|отбра[а-яё]*|отброс[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:29
+msgid "Сдвигает по прямой. Врезался в преграду, край поля или другого — 4 урона обоим (в частокол — 6)."
+msgstr ""
+
+#: scripts/data/keywords.gd:30 scripts/tutorial/tutorial_battle.gd:49
+msgid "Блок"
+msgstr ""
+
+#: scripts/data/keywords.gd:30
+msgid "блок[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:31
+msgid "Принимает урон на себя, пока не кончится. Блок врагов сгорает в начале их хода."
+msgstr ""
+
+#: scripts/data/keywords.gd:32 scripts/tutorial/hints.gd:20
+msgid "Огонь"
+msgstr ""
+
+#: scripts/data/keywords.gd:32
+msgid "огонь|огня|огнём|огнем|огню|огне|поджиг[а-яё]*|подожж[а-яё]*|поджеч[а-яё]*|горит|горящ[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:33
+msgid "3 урона в конце раунда тому, кто стоит в огне; горит 3 раунда. Испаряет лужу, топит лёд, поджигает деревья, бочки и камыш."
+msgstr ""
+
+#: scripts/data/keywords.gd:34
+msgid "Лужа"
+msgstr ""
+
+#: scripts/data/keywords.gd:34
+msgid "луж[а-яё]*|вод[аеуыо]|водой"
+msgstr ""
+
+#: scripts/data/keywords.gd:35
+msgid "Кто вошёл — мокрый. Молния бьёт по всей связной луже. Тушит огонь."
+msgstr ""
+
+#: scripts/data/keywords.gd:36
+msgid "Лёд"
+msgstr ""
+
+#: scripts/data/keywords.gd:36
+msgid "л[её]д|льд[а-яё]*|ледян[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:37
+msgid "При толчке по льду скользят дальше. Лёд на луже — заморозка."
+msgstr ""
+
+#: scripts/data/keywords.gd:38
+msgid "Заморозка"
+msgstr ""
+
+#: scripts/data/keywords.gd:38
+msgid "замороз[а-яё]*|заморож[а-яё]*|вмерза[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:39
+msgid "Лёд на луже: кто стоял в ней — опутан на 1 ход. Тяжёлые не вмерзают."
+msgstr ""
+
+#: scripts/data/keywords.gd:40 ui/card_view.gd:47
+msgid "Пар"
+msgstr ""
+
+#: scripts/data/keywords.gd:40
+msgid "пар|паром|паров[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:41
+msgid "Огонь на луже: паровой взрыв — 3 урона, отброс на 1, лужа исчезает."
+msgstr ""
+
+#: scripts/data/keywords.gd:42 resources/cards/lightning.tres:9
+msgid "Молния"
+msgstr ""
+
+#: scripts/data/keywords.gd:42
+msgid "молни[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:43
+msgid "Бьёт по всей связной луже и проводится через топь. По мокрому — сильнее."
+msgstr ""
+
+#: scripts/data/keywords.gd:44 resources/cards/spirits/bog/bog_m1.tres:42
+msgid "Топь"
+msgstr ""
+
+#: scripts/data/keywords.gd:44
+msgid "топь|топью"
+msgstr ""
+
+#: scripts/data/keywords.gd:45
+msgid "Вход в топь отнимает 1 шаг. Проводит молнию."
+msgstr ""
+
+#: scripts/data/keywords.gd:46
+msgid "Трясина"
+msgstr ""
+
+#: scripts/data/keywords.gd:46
+msgid "трясин[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:47
+msgid "Не пройти. Обычный враг, толкнутый в неё, тонет; герой получает 4 урона и остаётся на краю, тяжёлые — урон."
+msgstr ""
+
+#: scripts/data/keywords.gd:48
+msgid "Газ"
+msgstr ""
+
+#: scripts/data/keywords.gd:48
+msgid "газ|газа|газом|газе|газов[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:49
+msgid "3 урона и яд тому, кто вошёл, протащен или стоит в газе в конце раунда. Огонь его взрывает."
+msgstr ""
+
+#: scripts/data/keywords.gd:50 ui/card_view.gd:48
+msgid "Лава"
+msgstr ""
+
+#: scripts/data/keywords.gd:50
+msgid "лава|лавы|лаву|лаве|лавой"
+msgstr ""
+
+#: scripts/data/keywords.gd:51
+msgid "Огонь на трясине. Стена на 3 раунда. Толкнули в лаву — 6 урона; кто стоит в ней в конце раунда — 6."
+msgstr ""
+
+#: scripts/data/keywords.gd:52
+msgid "Корка"
+msgstr ""
+
+#: scripts/data/keywords.gd:52
+msgid "корк[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:53
+msgid "Вода или лёд на лаве. Проходима, но ход на ней заканчивается. Через 2 раунда — сухая земля."
+msgstr ""
+
+#: scripts/data/keywords.gd:54
+msgid "цепь|цепи|цепью"
+msgstr ""
+
+#: scripts/data/keywords.gd:55
+msgid "Сколько карт отряд сыграл за ход. Карты с «Цепь N» и «+X за звено» от неё сильнее."
+msgstr ""
+
+#: scripts/data/keywords.gd:56
+msgid "Удержание"
+msgstr ""
+
+#: scripts/data/keywords.gd:56
+msgid "удерж[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:57
+msgid "ПКМ по карте в руке — она останется на следующий ход."
+msgstr ""
+
+#: scripts/data/keywords.gd:58
+msgid "Руна на оружии"
+msgstr ""
+
+#: scripts/data/keywords.gd:58
+msgid "рун[аыуео]|руной"
+msgstr ""
+
+#: scripts/data/keywords.gd:59
+msgid "Одна на оружии, на 3 удара: каждая карта с уроном, задевшая врага, тратит один."
+msgstr ""
+
+#: scripts/data/keywords.gd:60
+msgid "Панцирь"
+msgstr ""
+
+#: scripts/data/keywords.gd:60
+msgid "панцир[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:61
+msgid "Урон от карт вдвое меньше, кроме удара в клещах."
+msgstr ""
+
+#: scripts/data/keywords.gd:62
+msgid "Поглощение магии"
+msgstr ""
+
+#: scripts/data/keywords.gd:62
+msgid "поглощ[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:63
+msgid "На каждое второе Заклинание героев за ход — врагам +3 здоровья, себе +3 блока."
+msgstr ""
+
+#: scripts/data/keywords.gd:64
+msgid "Призыв"
+msgstr ""
+
+#: scripts/data/keywords.gd:64
+msgid "призыв[а-яё]*|призва[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:65
+msgid "Новые враги появляются на свободных клетках рядом. На поле не больше 10 врагов."
+msgstr ""
+
+#: scripts/data/keywords.gd:66
+msgid "замыкан[а-яё]*"
+msgstr ""
+
+#: scripts/data/keywords.gd:67
+msgid "Механизм стоит и искрит — пропускает свой ход."
+msgstr ""
+
+#: scripts/data/keywords.gd:76
+msgid "Мёртвое дерево"
+msgstr ""
+
+#: scripts/data/keywords.gd:77
+msgid "Преграда. Удар, огонь или врезавшийся — падает на 3 клетки: 7 урона всем на линии, выживших сбивает с ног."
+msgstr ""
+
+#: scripts/data/keywords.gd:78
+msgid "Бочка с газом"
+msgstr ""
+
+#: scripts/data/keywords.gd:79
+msgid "Преграда. Удар или огонь — взрыв по клетке и 6 соседям: 6 урона и поджог."
+msgstr ""
+
+#: scripts/data/keywords.gd:80
+msgid "Гнилые мостки"
+msgstr ""
+
+#: scripts/data/keywords.gd:81
+msgid "Проходимы, но ломаются в трясину, когда с них уходят."
+msgstr ""
+
+#: scripts/data/keywords.gd:82
+msgid "Камыш"
+msgstr ""
+
+#: scripts/data/keywords.gd:83
+msgid "Проходим, закрывает удары по линии. Горит весь сразу."
+msgstr ""
+
+#: scripts/data/keywords.gd:84
+msgid "Ледяная глыба"
+msgstr ""
+
+#: scripts/data/keywords.gd:85
+msgid "Преграда. От огня — ледяные осколки: 4 урона соседям, на месте лужа. Сама тает через 3 раунда."
+msgstr ""
+
+#: scripts/data/keywords.gd:86
+msgid "Частокол"
+msgstr ""
+
+#: scripts/data/keywords.gd:87
+msgid "Преграда. Толкнутый в него получает 6 урона вместо 4. Горит."
+msgstr ""
+
+#: scripts/data/keywords.gd:88
+msgid "Крепкий настил"
+msgstr ""
+
+#: scripts/data/keywords.gd:89
+msgid "Проходим поверх трясины и не ломается."
+msgstr ""
+
+#: scripts/data/keywords.gd:90 resources/cards/k_rune_trap.tres:9
+msgid "Сторожевая руна"
+msgstr ""
+
+#: scripts/data/keywords.gd:91
+msgid "Проходима. Взрывается, когда на неё наступил враг или по ней ударили."
+msgstr ""
+
+#: scripts/data/keywords.gd:92
+msgid "Живое дерево"
+msgstr ""
+
+#: scripts/data/keywords.gd:93
+msgid "Преграда, закрывает удары по линии, не падает. Огонь — крона горит, потом дерево сухое."
+msgstr ""
+
+#: scripts/data/keywords.gd:94
+msgid "Горящее дерево"
+msgstr ""
+
+#: scripts/data/keywords.gd:95
+msgid "Преграда. В конце раунда обжигает соседей на 2, потом сгорает в мёртвое дерево."
+msgstr ""
+
+#: scripts/data/keywords.gd:96
+msgid "Лоза"
+msgstr ""
+
+#: scripts/data/keywords.gd:97
+msgid "Проходима, но кто вошёл — опутан и дальше не идёт. Горит цепью, удар картой срубает."
+msgstr ""
+
+#: scripts/data/keywords.gd:98
+msgid "Подлесок"
+msgstr ""
+
+#: scripts/data/keywords.gd:99
+msgid "Как камыш: закрывает удары по линии, прячет засаду, горит."
+msgstr ""
+
 #: scripts/hub/hub.gd:62 ui/hub/bell_panel.gd:11 resources/cards/base/kb_bell.tres:49 resources/cards/k_bell.tres:9
 msgid "Колокол Стражи"
 msgstr ""
@@ -8992,11 +9512,11 @@ msgstr ""
 msgid "Доска дозора"
 msgstr ""
 
-#: scripts/hub/hub.gd:71 scripts/hub/hub.gd:845 ui/hub/charm_panel.gd:9
+#: scripts/hub/hub.gd:71 scripts/hub/hub.gd:849 ui/hub/charm_panel.gd:9
 msgid "Полка трофеев"
 msgstr ""
 
-#: scripts/hub/hub.gd:72 scripts/hub/hub.gd:873 ui/hub/shrine_panel.gd:23
+#: scripts/hub/hub.gd:72 scripts/hub/hub.gd:912 ui/hub/shrine_panel.gd:23
 msgid "Святилище духов"
 msgstr ""
 
@@ -9048,19 +9568,19 @@ msgstr ""
 msgid "Немного. Но своё."
 msgstr ""
 
-#: scripts/run/map_node.gd:25 ui/settings_screen.gd:84
+#: scripts/run/map_node.gd:25 ui/settings_screen.gd:93
 msgid "Бой"
 msgstr ""
 
-#: scripts/run/map_node.gd:27 scripts/tutorial/hints.gd:47 ui/map_card.gd:70
+#: scripts/run/map_node.gd:27 scripts/tutorial/hints.gd:47 ui/map_card.gd:76
 msgid "Событие"
 msgstr ""
 
-#: scripts/run/map_node.gd:29 scripts/tutorial/hints.gd:43 ui/map_card.gd:72 ui/shop_screen.gd:23
+#: scripts/run/map_node.gd:29 scripts/tutorial/hints.gd:43 ui/map_card.gd:78 ui/shop_screen.gd:23
 msgid "Лавка"
 msgstr ""
 
-#: scripts/run/map_node.gd:31 scripts/tutorial/hints.gd:45 ui/map_card.gd:74 ui/rest_screen.gd:11
+#: scripts/run/map_node.gd:31 scripts/tutorial/hints.gd:45 ui/map_card.gd:80 ui/rest_screen.gd:11
 msgid "Привал"
 msgstr ""
 
@@ -9068,11 +9588,11 @@ msgstr ""
 msgid "БОСС"
 msgstr ""
 
-#: scripts/run/map_node.gd:35 scripts/tutorial/hints.gd:34 ui/battle_hud.gd:954 ui/hub/run_summary.gd:23
+#: scripts/run/map_node.gd:35 scripts/tutorial/hints.gd:34 ui/battle_hud.gd:1058 ui/hub/run_summary.gd:23
 msgid "Элита"
 msgstr ""
 
-#: scripts/run/map_node.gd:37 ui/map_card.gd:68
+#: scripts/run/map_node.gd:37 ui/map_card.gd:74
 msgid "Логово духа"
 msgstr ""
 
@@ -9080,24 +9600,12 @@ msgstr ""
 msgid "Каждая карта, сыгранная за ход любым героем, добавляет звено Цепи (счётчик справа внизу). «Цепь 2: +3 урона» — бонус, если до этой карты в Цепи уже 2 звена. Новый ход — Цепь с нуля."
 msgstr ""
 
-#: scripts/tutorial/hints.gd:16 resources/enemies/cult_forgemaster.tres:18
-msgid "Клещи"
-msgstr ""
-
 #: scripts/tutorial/hints.gd:17
 msgid "Враг между двумя героями на одной прямой зажат в клещи: карты бьют его на 50% сильнее. Огонь, яд и взрывы не усиливаются."
 msgstr ""
 
-#: scripts/tutorial/hints.gd:18 ui/battle_hud.gd:974
-msgid "Мокрый"
-msgstr ""
-
 #: scripts/tutorial/hints.gd:19
 msgid "Кто постоял в луже, остаётся мокрым 2 раунда: молния бьёт по нему на 3 сильнее. Огонь сушит."
-msgstr ""
-
-#: scripts/tutorial/hints.gd:20
-msgid "Огонь"
 msgstr ""
 
 #: scripts/tutorial/hints.gd:21
@@ -9118,10 +9626,6 @@ msgstr ""
 
 #: scripts/tutorial/hints.gd:25
 msgid "В конце хода неразыгранные карты уходят в сброс, и рука пополняется до 5. Нужную карту можно оставить: ПКМ по ней (или Shift + цифра), до 2 карт."
-msgstr ""
-
-#: scripts/tutorial/hints.gd:26 ui/battle_hud.gd:684
-msgid "Провокация"
 msgstr ""
 
 #: scripts/tutorial/hints.gd:27
@@ -9276,15 +9780,11 @@ msgstr ""
 msgid "Пращник целится в Рыцаря. Выбери Рыцаря: Tab или клик по нему."
 msgstr ""
 
-#: scripts/tutorial/tutorial_battle.gd:49
-msgid "Блок"
-msgstr ""
-
 #: scripts/tutorial/tutorial_battle.gd:50
 msgid "Сыграй «Поднять щит». Блок поглощает урон до начала твоего следующего хода."
 msgstr ""
 
-#: scripts/tutorial/tutorial_battle.gd:51 ui/battle_hud.gd:204
+#: scripts/tutorial/tutorial_battle.gd:51 ui/battle_hud.gd:223 ui/battle_hud.gd:942
 msgid "Конец хода"
 msgstr ""
 
@@ -9298,6 +9798,10 @@ msgstr ""
 
 #: scripts/tutorial/tutorial_battle.gd:54
 msgid "Добей остальных. Ошибся — Z отменяет действие, пока ход не закончен. F1 — справка по управлению."
+msgstr ""
+
+#: scripts/vfx_player.gd:882
+msgid "−%d блок"
 msgstr ""
 
 #: ui/act_screen.gd:12
@@ -9316,376 +9820,380 @@ msgstr ""
 msgid "В путь"
 msgstr ""
 
-#: ui/battle_hud.gd:1018
-msgid " (+%d от «зова»)"
-msgstr ""
-
-#: ui/battle_hud.gd:132
-msgid "Раунд 1"
-msgstr ""
-
-#: ui/battle_hud.gd:210
-msgid "Закончить ход героев. Враги сделают ровно то, что показано на поле:\nкрасные клетки — куда ударят; наведи на врага — следы покажут, куда он пойдёт."
-msgstr ""
-
-#: ui/battle_hud.gd:223
-msgid "Цепь: сколько карт отряд сыграл в этот ход.\nКарты с «Цепь N» и «+X за звено» становятся сильнее."
-msgstr ""
-
-#: ui/battle_hud.gd:258
-msgid "Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша %s.\nПока враги ходят: держи %s — ×3, клик — досмотреть действие мгновенно."
-msgstr ""
-
-#: ui/battle_hud.gd:27
-msgid "сюда можно идти"
-msgstr ""
-
-#: ui/battle_hud.gd:28
-msgid "сюда ударят враги"
-msgstr ""
-
-#: ui/battle_hud.gd:30
-msgid "путь врага (наведи на него)"
-msgstr ""
-
-#: ui/battle_hud.gd:297
-msgid "Отменить · %s  (%d)"
-msgstr ""
-
-#: ui/battle_hud.gd:299
-msgid "Вернуть последнее действие этого хода: шаг, карту, сброс.\nБесплатно, можно нажимать много раз — до начала хода."
-msgstr ""
-
-#: ui/battle_hud.gd:30
-msgid "шаман усилит своих"
-msgstr ""
-
-#: ui/battle_hud.gd:301 ui/battle_hud.gd:305
-msgid "Отменить · %s"
-msgstr ""
-
-#: ui/battle_hud.gd:303
-msgid "\nДействия после этого снова можно отменять."
-msgstr ""
-
-#: ui/battle_hud.gd:307
-msgid "Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей %s."
-msgstr ""
-
-#: ui/battle_hud.gd:319
-msgid "Сбросить · %s\n(осталось %d)"
-msgstr ""
-
-#: ui/battle_hud.gd:323
-msgid "В этот ход карту уже сбрасывали. В следующий ход снова можно."
-msgstr ""
-
-#: ui/battle_hud.gd:325
-msgid "Выбери эту кнопку (или %s), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся."
-msgstr ""
-
-#: ui/battle_hud.gd:353
-msgid "Управление · %s"
-msgstr ""
-
-#: ui/battle_hud.gd:362
-msgid "Меню · Esc"
-msgstr ""
-
-#: ui/battle_hud.gd:375
-msgid " (в полоску)"
-msgstr ""
-
-#: ui/battle_hud.gd:403
-msgid "Как играть"
-msgstr ""
-
-#: ui/battle_hud.gd:406
-msgid "ЛКМ по светлой клетке — идти выбранным героем"
-msgstr ""
-
-#: ui/battle_hud.gd:407
-msgid "ЛКМ по карте, потом по клетке — сыграть карту"
-msgstr ""
-
-#: ui/battle_hud.gd:408
-msgid "ПКМ или Esc — отменить выбранную карту"
-msgstr ""
-
-#: ui/battle_hud.gd:409
-msgid "Сыграть карту по её номеру"
-msgstr ""
-
-#: ui/battle_hud.gd:410
-msgid "ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до %d карт"
-msgstr ""
-
-#: ui/battle_hud.gd:411
-msgid "В конце хода остальная рука уходит в сброс, рука пополняется минимум до %d карт"
-msgstr ""
-
-#: ui/battle_hud.gd:412
-msgid "Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит"
-msgstr ""
-
-#: ui/battle_hud.gd:413
-msgid "Отменить последнее действие хода (шаг, карту, сброс) — бесплатно, до начала хода. Нельзя, если карта добрала карту из колоды"
-msgstr ""
-
-#: ui/battle_hud.gd:414
-msgid "Другой герой (или клик по герою, по его панели)"
-msgstr ""
-
-#: ui/battle_hud.gd:415
-msgid "Наведи на врага — его удар, зона и особенности"
-msgstr ""
-
-#: ui/battle_hud.gd:416
-msgid "%s / %s — повернуть камеру"
-msgstr ""
-
-#: ui/battle_hud.gd:417
-msgid "Колесо мыши — приблизить или отдалить"
-msgstr ""
-
-#: ui/battle_hud.gd:418
-msgid "«Конец хода» — враги делают то, что показано на поле"
-msgstr ""
-
-#: ui/battle_hud.gd:419
-msgid "Скорость хода врагов ×1 / ×2 / ×3 по кругу; во время их хода держи %s — ×3, клик — досмотреть действие"
-msgstr ""
-
-#: ui/battle_hud.gd:420
-msgid "Враги бьют туда, где выгоднее; причина — в их карточке, строка «Цель»"
-msgstr ""
-
-#: ui/battle_hud.gd:438
-msgid "Над врагом: значок и число — чем и на сколько он ударит в этом раунде."
-msgstr ""
-
-#: ui/settings_screen.gd:89
-msgid "Пути всех врагов (выкл. — только под курсором)"
-msgstr ""
-
-#: ui/battle_hud.gd:521
-msgid "Подмога: "
-msgstr ""
-
-#: ui/battle_hud.gd:534
-msgid "Раунд %d"
-msgstr ""
-
-#: ui/battle_hud.gd:536
-msgid "Цепь %d"
-msgstr ""
-
-#: ui/battle_hud.gd:638
-msgid "пал в бою"
-msgstr ""
-
-#: ui/battle_hud.gd:642
-msgid "Блок %d: поглощает урон. Сгорает в начале следующего хода героев."
-msgstr ""
-
-#: ui/battle_hud.gd:655
-msgid "Шаги: на сколько клеток герой ещё может пройти в этот ход."
-msgstr ""
-
-#: ui/battle_hud.gd:661
-msgid "Колода: карт осталось добрать — %d."
-msgstr ""
-
-#: ui/battle_hud.gd:663
-msgid "Сброс: %d. Когда колода кончится, сброс перемешается в новую колоду."
-msgstr ""
-
-#: ui/battle_hud.gd:672
-msgid "Ярость %d"
-msgstr ""
-
-#: ui/battle_hud.gd:673
-msgid "Ярость: +1 за каждый полученный удар (даже в блок).\n«Кровавый удар» и «Берсерк» тратят её всю ради урона."
-msgstr ""
-
-#: ui/battle_hud.gd:675
-msgid "Натиск %d"
-msgstr ""
-
-#: ui/battle_hud.gd:676
-msgid "Натиск: +1 за каждую пройденную клетку (до 5).\nСледующая карта с уроном прибавит весь натиск. Сгорает в начале хода."
-msgstr ""
-
-#: ui/battle_hud.gd:678
-msgid "Заряд %d"
-msgstr ""
-
-#: ui/battle_hud.gd:679
-msgid "Заряд: копится от заклинаний Бури и не пропадает между ходами.\n«Разрядки» тратят его весь ради урона."
-msgstr ""
-
-#: ui/battle_hud.gd:681 resources/cards/base/mb_overload.tres:43 resources/cards/m_overload.tres:9
-msgid "Перегрузка"
-msgstr ""
-
-#: ui/battle_hud.gd:682
-msgid "Перегрузка: не потратишь заряд до конца хода — маг получит урон, равный заряду."
-msgstr ""
-
-#: ui/battle_hud.gd:684
-msgid "Враги, которые могут достать героя, бьют только его."
-msgstr ""
-
-#: ui/battle_hud.gd:686 resources/cards/k_outpost.tres:9
-msgid "Застава"
-msgstr ""
-
-#: ui/battle_hud.gd:686
-msgid "Враг, подошедший вплотную, получает урон."
-msgstr ""
-
-#: ui/battle_hud.gd:688 resources/cards/base/kb_unstoppable.tres:42 resources/cards/k_unstoppable.tres:9
-msgid "Неудержимый"
-msgstr ""
-
-#: ui/battle_hud.gd:688
-msgid "До конца хода каждое убийство даёт 1 ману и 2 шага."
-msgstr ""
-
-#: ui/battle_hud.gd:690
-msgid "Следующая карта дешевле на %d."
-msgstr ""
-
-#: ui/battle_hud.gd:692
-msgid "Опутан"
-msgstr ""
-
-#: ui/battle_hud.gd:692
-msgid "Опутан корнями: в этот ход нет шагов. Карты играть можно."
-msgstr ""
-
-#: ui/battle_hud.gd:694
-msgid "огонь"
-msgstr ""
-
-#: ui/battle_hud.gd:694
-msgid "буря"
-msgstr ""
-
-#: ui/battle_hud.gd:694
-msgid "гниль"
-msgstr ""
-
-#: ui/battle_hud.gd:696
-msgid "поджигают клетку под каждым задетым врагом"
-msgstr ""
-
-#: ui/battle_hud.gd:697
-msgid "считаются молнией: по мокрым врагам +%d урона"
-msgstr ""
-
-#: ui/battle_hud.gd:698
-msgid "отравляют задетых врагов (%d урона в конце раунда мимо блока)"
-msgstr ""
-
-#: ui/battle_hud.gd:700
-msgid "Руна: %s · %d"
-msgstr ""
-
-#: ui/battle_hud.gd:701
-msgid "Руна на клинке: следующие удары (%d) %s.\nОдна карта с уроном тратит один удар руны."
-msgstr ""
-
-#: ui/battle_hud.gd:703
-msgid "Мокрый %d"
-msgstr ""
-
-#: ui/battle_hud.gd:703
-msgid "Мокрый: молния бьёт по нему на %d сильнее. Высыхает через пару раундов или от огня."
-msgstr ""
-
-#: ui/battle_hud.gd:705
-msgid "Яд %d"
-msgstr ""
-
-#: ui/battle_hud.gd:705
-msgid "Яд: %d урона в конце раунда мимо блока."
-msgstr ""
-
-#: ui/battle_hud.gd:716
-msgid "Мана: %d из %d. Можно уйти в минус до −%d (перегрев): если в минусе 2 или больше, в следующий ход маны на 1 меньше."
-msgstr ""
-
-#: ui/battle_hud.gd:718
-msgid "%d (перегрев)"
-msgstr ""
-
-#: ui/battle_hud.gd:857
-msgid "«%s»: выбери жёлтую клетку на поле.\nПКМ или Esc — отмена"
-msgstr ""
-
-#: ui/battle_hud.gd:859
-msgid "Шагов и маны не осталось — жми «Конец хода»"
-msgstr ""
-
-#: ui/battle_hud.gd:863
-msgid "%s: клик по светлой клетке — идти, клик по карте — сыграть её"
-msgstr ""
-
-#: ui/battle_hud.gd:865
-msgid "%s: карты не по карману, но можно идти — клик по светлой клетке"
-msgstr ""
-
-#: ui/battle_hud.gd:867
-msgid "%s: шагов нет — выбери карту"
-msgstr ""
-
-#: ui/battle_hud.gd:869
-msgid "%s опутан и не может идти — выбери карту"
-msgstr ""
-
-#: ui/battle_hud.gd:871
-msgid "%s больше ничего не может.\n%s — другой герой"
-msgstr ""
-
-#: ui/battle_hud.gd:875
-msgid "\nПКМ по карте — удержать (до %d)"
-msgstr ""
-
-#: ui/battle_hud.gd:888
-msgid "Если сыграть сюда"
-msgstr ""
-
-#: ui/battle_hud.gd:917
+#: ui/battle_hud.gd:1021
 msgid "Журнал боя"
 msgstr ""
 
-#: ui/battle_hud.gd:952 ui/hub/run_summary.gd:25 ui/map_card.gd:76
+#: ui/battle_hud.gd:1056 ui/hub/run_summary.gd:25 ui/map_card.gd:82
 msgid "Босс"
 msgstr ""
 
-#: ui/battle_hud.gd:974
+#: ui/battle_hud.gd:1078
 msgid "Мокрый (%d)"
 msgstr ""
 
-#: ui/battle_hud.gd:975
+#: ui/battle_hud.gd:1079
 msgid ": молния +%d"
 msgstr ""
 
-#: ui/battle_hud.gd:977
+#: ui/battle_hud.gd:1081
 msgid "Яд (%d): −%d в конце раунда"
 msgstr ""
 
-#: ui/battle_hud.gd:981
+#: ui/battle_hud.gd:1085
 msgid "Сейчас"
 msgstr ""
 
-#: ui/battle_hud.gd:984
+#: ui/battle_hud.gd:1088
 msgid "Цель: "
 msgstr ""
 
-#: ui/battle_hud.gd:989
+#: ui/battle_hud.gd:1093
 msgid "Потом"
+msgstr ""
+
+#: ui/battle_hud.gd:1133
+msgid " (+%d от «зова»)"
+msgstr ""
+
+#: ui/battle_hud.gd:151
+msgid "Раунд 1"
+msgstr ""
+
+#: ui/battle_hud.gd:229
+msgid "Закончить ход героев. Враги сделают ровно то, что показано на поле:\nкрасные клетки — куда ударят; наведи на врага — следы покажут, куда он пойдёт."
+msgstr ""
+
+#: ui/battle_hud.gd:242
+msgid "Цепь: сколько карт отряд сыграл в этот ход.\nКарты с «Цепь N» и «+X за звено» становятся сильнее."
+msgstr ""
+
+#: ui/battle_hud.gd:277
+msgid "Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша %s.\nПока враги ходят: держи %s — ×3, клик — досмотреть действие мгновенно."
+msgstr ""
+
+#: ui/battle_hud.gd:30
+msgid "сюда можно идти"
+msgstr ""
+
+#: ui/battle_hud.gd:31
+msgid "сюда ударят враги"
+msgstr ""
+
+#: ui/battle_hud.gd:316
+msgid "Отменить · %s  (%d)"
+msgstr ""
+
+#: ui/battle_hud.gd:318
+msgid "Вернуть последнее действие этого хода: шаг, карту, сброс.\nБесплатно, можно нажимать много раз — до начала хода."
+msgstr ""
+
+#: ui/battle_hud.gd:32
+msgid "путь врага (наведи на него)"
+msgstr ""
+
+#: ui/battle_hud.gd:320 ui/battle_hud.gd:324
+msgid "Отменить · %s"
+msgstr ""
+
+#: ui/battle_hud.gd:322
+msgid "\nДействия после этого снова можно отменять."
+msgstr ""
+
+#: ui/battle_hud.gd:326
+msgid "Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей %s."
+msgstr ""
+
+#: ui/battle_hud.gd:33
+msgid "шаман усилит своих"
+msgstr ""
+
+#: ui/battle_hud.gd:338
+msgid "Сбросить · %s\n(осталось %d)"
+msgstr ""
+
+#: ui/battle_hud.gd:342
+msgid "В этот ход карту уже сбрасывали. В следующий ход снова можно."
+msgstr ""
+
+#: ui/battle_hud.gd:344
+msgid "Выбери эту кнопку (или %s), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся."
+msgstr ""
+
+#: ui/battle_hud.gd:365
+msgid "Управление · %s"
+msgstr ""
+
+#: ui/battle_hud.gd:374
+msgid "Меню · Esc"
+msgstr ""
+
+#: ui/battle_hud.gd:387
+msgid " (в полоску)"
+msgstr ""
+
+#: ui/battle_hud.gd:415
+msgid "Как играть"
+msgstr ""
+
+#: ui/battle_hud.gd:418
+msgid "ЛКМ по светлой клетке — идти выбранным героем"
+msgstr ""
+
+#: ui/battle_hud.gd:419
+msgid "ЛКМ по карте, потом по клетке — сыграть карту"
+msgstr ""
+
+#: ui/battle_hud.gd:420
+msgid "ПКМ или Esc — отменить выбранную карту"
+msgstr ""
+
+#: ui/battle_hud.gd:421
+msgid "Сыграть карту по её номеру"
+msgstr ""
+
+#: ui/battle_hud.gd:422
+msgid "ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до %d карт"
+msgstr ""
+
+#: ui/battle_hud.gd:423
+msgid "В конце хода остальная рука уходит в сброс, рука пополняется минимум до %d карт"
+msgstr ""
+
+#: ui/battle_hud.gd:424
+msgid "Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит"
+msgstr ""
+
+#: ui/battle_hud.gd:425
+msgid "Отменить последнее действие хода (шаг, карту, сброс) — бесплатно, до начала хода. Нельзя, если карта добрала карту из колоды"
+msgstr ""
+
+#: ui/battle_hud.gd:426
+msgid "Другой герой (или клик по герою, по его панели)"
+msgstr ""
+
+#: ui/battle_hud.gd:427
+msgid "Наведи на врага — его удар, зона и особенности"
+msgstr ""
+
+#: ui/battle_hud.gd:428
+msgid "%s / %s — повернуть камеру"
+msgstr ""
+
+#: ui/battle_hud.gd:429
+msgid "Колесо мыши — приблизить или отдалить"
+msgstr ""
+
+#: ui/battle_hud.gd:430
+msgid "«Конец хода» — враги делают то, что показано на поле"
+msgstr ""
+
+#: ui/battle_hud.gd:431
+msgid "Скорость хода врагов ×1 / ×2 / ×3 по кругу; во время их хода держи %s — ×3, клик — досмотреть действие"
+msgstr ""
+
+#: ui/battle_hud.gd:432
+msgid "Враги бьют туда, где выгоднее; причина — в их карточке, строка «Цель»"
+msgstr ""
+
+#: ui/battle_hud.gd:433
+msgid "Подмога: к вожаку, Певчей и огру враги приходят волнами на клетки с песочными часами. Убей главного — волн больше не будет"
+msgstr ""
+
+#: ui/battle_hud.gd:451
+msgid "Над врагом: значок и число — чем и на сколько он ударит в этом раунде."
+msgstr ""
+
+#: ui/battle_hud.gd:503
+msgid "Ход врагов ×%d"
+msgstr ""
+
+#: ui/battle_hud.gd:533
+msgid "Подмога: "
+msgstr ""
+
+#: ui/battle_hud.gd:546
+msgid "Раунд %d"
+msgstr ""
+
+#: ui/battle_hud.gd:548
+msgid "Цепь %d"
+msgstr ""
+
+#: ui/battle_hud.gd:655
+msgid "пал в бою"
+msgstr ""
+
+#: ui/battle_hud.gd:659
+msgid "Блок %d: поглощает урон. Сгорает в начале следующего хода героев."
+msgstr ""
+
+#: ui/battle_hud.gd:672
+msgid "Шаги: на сколько клеток герой ещё может пройти в этот ход."
+msgstr ""
+
+#: ui/battle_hud.gd:678
+msgid "Колода: карт осталось добрать — %d."
+msgstr ""
+
+#: ui/battle_hud.gd:680
+msgid "Сброс: %d. Когда колода кончится, сброс перемешается в новую колоду."
+msgstr ""
+
+#: ui/battle_hud.gd:689
+msgid "Ярость %d"
+msgstr ""
+
+#: ui/battle_hud.gd:690
+msgid "Ярость: +1 за каждый полученный удар (даже в блок).\n«Кровавый удар» и «Берсерк» тратят её всю ради урона."
+msgstr ""
+
+#: ui/battle_hud.gd:692
+msgid "Натиск %d"
+msgstr ""
+
+#: ui/battle_hud.gd:693
+msgid "Натиск: +1 за каждую пройденную клетку (до 5).\nСледующая карта с уроном прибавит весь натиск. Сгорает в начале хода."
+msgstr ""
+
+#: ui/battle_hud.gd:695
+msgid "Заряд %d"
+msgstr ""
+
+#: ui/battle_hud.gd:696
+msgid "Заряд: копится от заклинаний Бури и не пропадает между ходами.\n«Разрядки» тратят его весь ради урона."
+msgstr ""
+
+#: ui/battle_hud.gd:698 resources/cards/base/mb_overload.tres:43 resources/cards/m_overload.tres:9
+msgid "Перегрузка"
+msgstr ""
+
+#: ui/battle_hud.gd:699
+msgid "Перегрузка: не потратишь заряд до конца хода — маг получит урон, равный заряду."
+msgstr ""
+
+#: ui/battle_hud.gd:701
+msgid "Враги, которые могут достать героя, бьют только его."
+msgstr ""
+
+#: ui/battle_hud.gd:703 resources/cards/k_outpost.tres:9
+msgid "Застава"
+msgstr ""
+
+#: ui/battle_hud.gd:703
+msgid "Враг, подошедший вплотную, получает урон."
+msgstr ""
+
+#: ui/battle_hud.gd:705 resources/cards/base/kb_unstoppable.tres:42 resources/cards/k_unstoppable.tres:9
+msgid "Неудержимый"
+msgstr ""
+
+#: ui/battle_hud.gd:705
+msgid "До конца хода каждое убийство даёт 1 ману и 2 шага."
+msgstr ""
+
+#: ui/battle_hud.gd:707
+msgid "Следующая карта дешевле на %d."
+msgstr ""
+
+#: ui/battle_hud.gd:709
+msgid "Опутан корнями: в этот ход нет шагов. Карты играть можно."
+msgstr ""
+
+#: ui/battle_hud.gd:711
+msgid "огонь"
+msgstr ""
+
+#: ui/battle_hud.gd:711
+msgid "буря"
+msgstr ""
+
+#: ui/battle_hud.gd:711
+msgid "гниль"
+msgstr ""
+
+#: ui/battle_hud.gd:713
+msgid "поджигают клетку под каждым задетым врагом"
+msgstr ""
+
+#: ui/battle_hud.gd:714
+msgid "считаются молнией: по мокрым врагам +%d урона"
+msgstr ""
+
+#: ui/battle_hud.gd:715
+msgid "отравляют задетых врагов (%d урона в конце раунда мимо блока)"
+msgstr ""
+
+#: ui/battle_hud.gd:717
+msgid "Руна: %s · %d"
+msgstr ""
+
+#: ui/battle_hud.gd:718
+msgid "Руна на клинке: следующие удары (%d) %s.\nОдна карта с уроном тратит один удар руны."
+msgstr ""
+
+#: ui/battle_hud.gd:720
+msgid "Мокрый %d"
+msgstr ""
+
+#: ui/battle_hud.gd:720
+msgid "Мокрый: молния бьёт по нему на %d сильнее. Высыхает через пару раундов или от огня."
+msgstr ""
+
+#: ui/battle_hud.gd:722
+msgid "Яд %d"
+msgstr ""
+
+#: ui/battle_hud.gd:722
+msgid "Яд: %d урона в конце раунда мимо блока."
+msgstr ""
+
+#: ui/battle_hud.gd:733
+msgid "Мана: %d из %d. Можно уйти в минус до −%d (перегрев): если в минусе 2 или больше, в следующий ход маны на 1 меньше."
+msgstr ""
+
+#: ui/battle_hud.gd:735
+msgid "%d (перегрев)"
+msgstr ""
+
+#: ui/battle_hud.gd:944
+msgid "Завершить ход?"
+msgstr ""
+
+#: ui/battle_hud.gd:959
+msgid "«%s»: выбери жёлтую клетку на поле.\nПКМ или Esc — отмена"
+msgstr ""
+
+#: ui/battle_hud.gd:961
+msgid "Шагов и маны не осталось — жми «Конец хода»"
+msgstr ""
+
+#: ui/battle_hud.gd:965
+msgid "%s: клик по светлой клетке — идти, клик по карте — сыграть её"
+msgstr ""
+
+#: ui/battle_hud.gd:967
+msgid "%s: карты не по карману, но можно идти — клик по светлой клетке"
+msgstr ""
+
+#: ui/battle_hud.gd:969
+msgid "%s: шагов нет — выбери карту"
+msgstr ""
+
+#: ui/battle_hud.gd:971
+msgid "%s опутан и не может идти — выбери карту"
+msgstr ""
+
+#: ui/battle_hud.gd:973
+msgid "%s больше ничего не может.\n%s — другой герой"
+msgstr ""
+
+#: ui/battle_hud.gd:977
+msgid "\nПКМ по карте — удержать (до %d)"
+msgstr ""
+
+#: ui/battle_hud.gd:992
+msgid "Если сыграть сюда"
 msgstr ""
 
 #: ui/card_view.gd:18
@@ -9824,14 +10332,6 @@ msgstr ""
 msgid "Пал"
 msgstr ""
 
-#: ui/card_view.gd:47
-msgid "Пар"
-msgstr ""
-
-#: ui/card_view.gd:48
-msgid "Лава"
-msgstr ""
-
 #: ui/card_view.gd:50 resources/cards/wound.tres:9
 msgid "Рана"
 msgstr ""
@@ -9904,7 +10404,7 @@ msgstr ""
 msgid " (меньше оставить нельзя)"
 msgstr ""
 
-#: ui/deck_overlay.gd:68 ui/settings_screen.gd:119
+#: ui/deck_overlay.gd:68 ui/run_history_screen.gd:57 ui/settings_screen.gd:139
 msgid "Закрыть"
 msgstr ""
 
@@ -11232,11 +11732,35 @@ msgstr ""
 msgid "реликвия на выбор"
 msgstr ""
 
+#: ui/first_run_screen.gd:101 ui/keys_screen.gd:69
+msgid "Готово"
+msgstr ""
+
+#: ui/first_run_screen.gd:33
+msgid "Перед началом"
+msgstr ""
+
+#: ui/first_run_screen.gd:40 ui/settings_screen.gd:224
+msgid "Язык"
+msgstr ""
+
+#: ui/first_run_screen.gd:58
+msgid "Громкость"
+msgstr ""
+
+#: ui/first_run_screen.gd:80
+msgid "Размер интерфейса"
+msgstr ""
+
+#: ui/first_run_screen.gd:95
+msgid "Всё это и многое другое (скорость врагов, клавиши, подсказки) меняется потом в «Настройках»."
+msgstr ""
+
 #: ui/game_over.gd:12
 msgid "Хозяин Шпиля повержен. Путь, который Стража не прошла, пройден до конца."
 msgstr ""
 
-#: ui/game_over.gd:17
+#: ui/game_over.gd:17 ui/run_history_screen.gd:82
 msgid "Поражение"
 msgstr ""
 
@@ -11252,20 +11776,24 @@ msgstr ""
 msgid "Открыт новый Звон: %d"
 msgstr ""
 
-#: ui/game_over.gd:25
+#: ui/game_over.gd:29
 msgid "Сид забега: %d"
 msgstr ""
 
-#: ui/game_over.gd:26
+#: ui/game_over.gd:30
 msgid "Введи это число в главном меню, чтобы пройти тот же забег ещё раз."
 msgstr ""
 
-#: ui/game_over.gd:29
+#: ui/game_over.gd:33
 msgid "К колоколу"
 msgstr ""
 
-#: ui/game_over.gd:30
+#: ui/game_over.gd:34
 msgid "В главное меню"
+msgstr ""
+
+#: ui/game_over.gd:35 ui/main_menu.gd:34 ui/run_history_screen.gd:37
+msgid "История забегов"
 msgstr ""
 
 #: ui/hub/barracks_panel.gd:100
@@ -11284,7 +11812,7 @@ msgstr ""
 msgid "Колода не может стать меньше базовой · замени карту или сначала добавь новую."
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:127
+#: ui/hub/barracks_panel.gd:127 ui/keys_screen.gd:65
 msgid "Как было"
 msgstr ""
 
@@ -11416,7 +11944,7 @@ msgstr ""
 msgid "Огонь не греет, а просто напоминает, что мы ещё здесь. Пожалуй, этого достаточно."
 msgstr ""
 
-#: ui/hub/chronicle_panel.gd:65 ui/reward_screen.gd:267
+#: ui/hub/chronicle_panel.gd:65 ui/reward_screen.gd:325
 msgid "Покорён: "
 msgstr ""
 
@@ -11664,6 +12192,22 @@ msgstr ""
 msgid "WASD — идти   ·   E — действие   ·   Tab — сменить героя   ·   Q / R — повернуть камеру   ·   колесо — зум"
 msgstr ""
 
+#: ui/keys_screen.gd:102
+msgid "Эта клавиша занята игрой — выбери другую."
+msgstr ""
+
+#: ui/keys_screen.gd:41
+msgid "Клавиши"
+msgstr ""
+
+#: ui/keys_screen.gd:57
+msgid "Цифры 1–9 — карта по номеру, Esc — меню; их не переназначить."
+msgstr ""
+
+#: ui/keys_screen.gd:82
+msgid "Нажми клавишу…"
+msgstr ""
+
 #: ui/main_menu.gd:21
 msgid "Пошаговый Рогалик"
 msgstr ""
@@ -11672,7 +12216,7 @@ msgstr ""
 msgid "Сумеречная Марка. Небо расколото, топь ожила —\nа до Шпиля идти двоим: магу и рыцарю."
 msgstr ""
 
-#: ui/main_menu.gd:26 ui/pause_menu.gd:69
+#: ui/main_menu.gd:26 ui/pause_menu.gd:70
 msgid "Продолжить"
 msgstr ""
 
@@ -11684,19 +12228,19 @@ msgstr ""
 msgid "Обучение"
 msgstr ""
 
-#: ui/main_menu.gd:31 ui/main_menu.gd:54
+#: ui/main_menu.gd:31 ui/main_menu.gd:57
 msgid "Новый прогресс"
 msgstr ""
 
-#: ui/main_menu.gd:33 ui/pause_menu.gd:70 ui/settings_screen.gd:66
+#: ui/main_menu.gd:35 ui/pause_menu.gd:71 ui/settings_screen.gd:70
 msgid "Настройки"
 msgstr ""
 
-#: ui/main_menu.gd:34
+#: ui/main_menu.gd:36
 msgid "Выход"
 msgstr ""
 
-#: ui/main_menu.gd:50
+#: ui/main_menu.gd:53
 msgid "Точно стереть? Нажми ещё раз"
 msgstr ""
 
@@ -11788,32 +12332,44 @@ msgstr ""
 msgid "Сид забега: введи его в главном меню, чтобы повторить этот же забег."
 msgstr ""
 
-#: ui/pause_menu.gd:65
+#: ui/pause_menu.gd:100 ui/pause_menu.gd:118
+msgid "Отмена"
+msgstr ""
+
+#: ui/pause_menu.gd:108
+msgid "Бой начнётся сначала: те же враги и расстановка, здоровье героев — как перед боем."
+msgstr ""
+
+#: ui/pause_menu.gd:115
+msgid "Начать заново"
+msgstr ""
+
+#: ui/pause_menu.gd:66
 msgid "Пауза"
 msgstr ""
 
-#: ui/pause_menu.gd:76
+#: ui/pause_menu.gd:73
+msgid "Начать бой заново"
+msgstr ""
+
+#: ui/pause_menu.gd:79
 msgid "Сдаться и выйти в меню"
 msgstr ""
 
-#: ui/pause_menu.gd:78
+#: ui/pause_menu.gd:81
 msgid "Выйти в главное меню"
 msgstr ""
 
-#: ui/pause_menu.gd:81
+#: ui/pause_menu.gd:84
 msgid "Выйти из игры"
 msgstr ""
 
-#: ui/pause_menu.gd:87
+#: ui/pause_menu.gd:90
 msgid "Забег посреди не сохраняется: он закончится здесь. Отзвуки за пройденный путь начислятся."
 msgstr ""
 
-#: ui/pause_menu.gd:94
-msgid "Сдаться"
-msgstr ""
-
 #: ui/pause_menu.gd:97
-msgid "Отмена"
+msgid "Сдаться"
 msgstr ""
 
 #: ui/rest_screen.gd:12
@@ -11848,224 +12404,304 @@ msgstr ""
 msgid "У %s заняты места для духов"
 msgstr ""
 
-#: ui/reward_screen.gd:181
+#: ui/reward_screen.gd:107
+msgid "Награда элиты: ещё одно улучшение бесплатно"
+msgstr ""
+
+#: ui/reward_screen.gd:179
+msgid "В колоде (%s): карт набора «%s» — %d"
+msgstr ""
+
+#: ui/reward_screen.gd:197
+msgid "Клик или Esc — вернуться к награде"
+msgstr ""
+
+#: ui/reward_screen.gd:239
 msgid "Ветка I «Сила»"
 msgstr ""
 
-#: ui/reward_screen.gd:181
+#: ui/reward_screen.gd:239
 msgid "Ветка II «Приём»"
 msgstr ""
 
-#: ui/reward_screen.gd:192
+#: ui/reward_screen.gd:250
 msgid "Записано в Караульню"
 msgstr ""
 
-#: ui/reward_screen.gd:204 ui/reward_screen.gd:216
+#: ui/reward_screen.gd:262 ui/reward_screen.gd:274
 msgid "Улучшено: %s"
 msgstr ""
 
-#: ui/reward_screen.gd:229
+#: ui/reward_screen.gd:287
 msgid "Отдохнули: каждому +%d HP"
 msgstr ""
 
-#: ui/reward_screen.gd:270
+#: ui/reward_screen.gd:328
 msgid "Пассив: "
 msgstr ""
 
-#: ui/reward_screen.gd:272
+#: ui/reward_screen.gd:330
 msgid "Зов (раз в бой): "
 msgstr ""
 
-#: ui/reward_screen.gd:273
+#: ui/reward_screen.gd:331
 msgid "К кому пойдёт дух? Его три карты сразу войдут в колоду героя."
 msgstr ""
 
-#: ui/reward_screen.gd:299
+#: ui/reward_screen.gd:357
 msgid "%s: заменить «%s»"
 msgstr ""
 
-#: ui/reward_screen.gd:300
+#: ui/reward_screen.gd:358
 msgid "«%s» уйдёт вместе со своими картами."
 msgstr ""
 
-#: ui/reward_screen.gd:306
+#: ui/reward_screen.gd:364
 msgid "%s отпускает «%s» и берёт «%s»"
 msgstr ""
 
-#: ui/reward_screen.gd:312
+#: ui/reward_screen.gd:370
 msgid "Отдать: "
 msgstr ""
 
-#: ui/reward_screen.gd:312
+#: ui/reward_screen.gd:370
 msgid ": места заняты"
 msgstr ""
 
-#: ui/reward_screen.gd:319
+#: ui/reward_screen.gd:377
 msgid "%s теперь с духом «%s»"
 msgstr ""
 
-#: ui/reward_screen.gd:326
+#: ui/reward_screen.gd:384
 msgid "Отпустить духа"
 msgstr ""
 
-#: ui/reward_screen.gd:330
+#: ui/reward_screen.gd:388
 msgid "Дух ушёл в туман"
-msgstr ""
-
-#: ui/reward_screen.gd:356
-msgid "Порченая реликвия: сила с ценой. Можно не брать."
-msgstr ""
-
-#: ui/reward_screen.gd:377
-msgid "Для: "
-msgstr ""
-
-#: ui/reward_screen.gd:377
-msgid "мага"
-msgstr ""
-
-#: ui/reward_screen.gd:377
-msgid "рыцаря"
-msgstr ""
-
-#: ui/reward_screen.gd:381 ui/trophy_screen.gd:21
-msgid "Взять"
-msgstr ""
-
-#: ui/reward_screen.gd:387
-msgid "Без реликвии"
 msgstr ""
 
 #: ui/reward_screen.gd:39
 msgid "Босс повержен!"
 msgstr ""
 
-#: ui/reward_screen.gd:403
+#: ui/reward_screen.gd:414
+msgid "Порченая реликвия: сила с ценой. Можно не брать."
+msgstr ""
+
+#: ui/reward_screen.gd:435
+msgid "Для: "
+msgstr ""
+
+#: ui/reward_screen.gd:435
+msgid "мага"
+msgstr ""
+
+#: ui/reward_screen.gd:435
+msgid "рыцаря"
+msgstr ""
+
+#: ui/reward_screen.gd:439 ui/trophy_screen.gd:21
+msgid "Взять"
+msgstr ""
+
+#: ui/reward_screen.gd:445
+msgid "Без реликвии"
+msgstr ""
+
+#: ui/reward_screen.gd:45
+msgid "Поле боя"
+msgstr ""
+
+#: ui/reward_screen.gd:461
 msgid "Взята"
 msgstr ""
 
-#: ui/reward_screen.gd:403
+#: ui/reward_screen.gd:461
 msgid "Отказались"
 msgstr ""
 
 #: ui/reward_screen.gd:47
+msgid "Каким было поле в конце боя. Клик или Esc — вернуться к награде."
+msgstr ""
+
+#: ui/reward_screen.gd:53
 msgid "%s пал в бою — в колоду легла Рана"
 msgstr ""
 
-#: ui/reward_screen.gd:55
+#: ui/reward_screen.gd:61
 msgid "Выбери одно на весь отряд: карту Магу, карту Рыцарю или улучшение карты."
 msgstr ""
 
-#: ui/reward_screen.gd:66
+#: ui/reward_screen.gd:72
 msgid "Карта: "
 msgstr ""
 
-#: ui/reward_screen.gd:75
+#: ui/reward_screen.gd:84
 msgid "Или улучши одну карту — выбери ветку:"
 msgstr ""
 
-#: ui/reward_screen.gd:77
+#: ui/reward_screen.gd:86
 msgid "Пропустить (каждому +%d HP)"
 msgstr ""
 
-#: ui/reward_screen.gd:81
+#: ui/reward_screen.gd:90
 msgid "Дальше: награда босса"
 msgstr ""
 
-#: ui/reward_screen.gd:81
+#: ui/reward_screen.gd:90
 msgid "Дальше: награда элиты"
 msgstr ""
 
-#: ui/reward_screen.gd:98
-msgid "Награда элиты: ещё одно улучшение бесплатно"
+#: ui/run_history_screen.gd:101
+msgid "Цепь до %d"
+msgstr ""
+
+#: ui/run_history_screen.gd:104
+msgid "пал: %s"
+msgstr ""
+
+#: ui/run_history_screen.gd:131
+msgid "Сид: %d"
+msgstr ""
+
+#: ui/run_history_screen.gd:150
+msgid "%s — %d карт"
+msgstr ""
+
+#: ui/run_history_screen.gd:152
+msgid "Колоды: "
+msgstr ""
+
+#: ui/run_history_screen.gd:50
+msgid "Пока ни одного законченного забега."
+msgstr ""
+
+#: ui/run_history_screen.gd:82
+msgid "Победа"
+msgstr ""
+
+#: ui/run_history_screen.gd:85
+msgid "Звон %d · акт %d · ряд %d"
+msgstr ""
+
+#: ui/run_history_screen.gd:94
+msgid "Боёв: %d"
+msgstr ""
+
+#: ui/run_history_screen.gd:97
+msgid "урон %s: %d"
+msgstr ""
+
+#: ui/run_history_screen.gd:99
+msgid "лучший удар: %d («%s»)"
 msgstr ""
 
 #: ui/settings_screen.gd:10
 msgid "Общая громкость"
 msgstr ""
 
-#: ui/settings_screen.gd:105
-msgid "Звук"
+#: ui/settings_screen.gd:100
+msgid "Подсказки"
+msgstr ""
+
+#: ui/settings_screen.gd:106
+msgid "Показать все заново"
 msgstr ""
 
 #: ui/settings_screen.gd:11
 msgid "Музыка"
 msgstr ""
 
-#: ui/settings_screen.gd:113
-msgid "%s — быстро выключить или вернуть звук"
+#: ui/settings_screen.gd:116
+msgid "Звук"
 msgstr ""
 
 #: ui/settings_screen.gd:12
 msgid "Атмосфера и дождь"
 msgstr ""
 
+#: ui/settings_screen.gd:124
+msgid "%s — быстро выключить или вернуть звук"
+msgstr ""
+
+#: ui/settings_screen.gd:126
+msgid "Интерфейс"
+msgstr ""
+
+#: ui/settings_screen.gd:128
+msgid "Больше 100% — крупнее текст и кнопки; на маленьком окне часть экранов может не поместиться."
+msgstr ""
+
 #: ui/settings_screen.gd:13
 msgid "Бой, шаги и магия"
+msgstr ""
+
+#: ui/settings_screen.gd:132
+msgid "Клавиши…"
 msgstr ""
 
 #: ui/settings_screen.gd:14
 msgid "Карты и меню"
 msgstr ""
 
-#: ui/settings_screen.gd:160
-msgid "Язык"
-msgstr ""
-
-#: ui/settings_screen.gd:183
-msgid "Тряска камеры"
-msgstr ""
-
-#: ui/settings_screen.gd:244
-msgid "Звук выключен (включить)"
-msgstr ""
-
-#: ui/settings_screen.gd:244
-msgid "Выключить весь звук"
+#: ui/settings_screen.gd:180
+msgid "Масштаб интерфейса"
 msgstr ""
 
 #: ui/settings_screen.gd:247
+msgid "Тряска камеры"
+msgstr ""
+
+#: ui/settings_screen.gd:308
+msgid "Звук выключен (включить)"
+msgstr ""
+
+#: ui/settings_screen.gd:308
+msgid "Выключить весь звук"
+msgstr ""
+
+#: ui/settings_screen.gd:311
 msgid "Вкл"
 msgstr ""
 
-#: ui/settings_screen.gd:247 ui/settings_screen.gd:250
+#: ui/settings_screen.gd:311 ui/settings_screen.gd:316
 msgid "Выкл"
 msgstr ""
 
-#: ui/settings_screen.gd:251
+#: ui/settings_screen.gd:317
 msgid "Подсказки: выкл"
 msgstr ""
 
-#: ui/settings_screen.gd:251
+#: ui/settings_screen.gd:317
 msgid "Подсказки: вкл"
 msgstr ""
 
-#: ui/settings_screen.gd:79
+#: ui/settings_screen.gd:88
 msgid "Экран"
 msgstr ""
 
-#: ui/settings_screen.gd:80
+#: ui/settings_screen.gd:89
 msgid "Полный экран (F11)"
 msgstr ""
 
-#: ui/settings_screen.gd:81
+#: ui/settings_screen.gd:90
 msgid "Режим для дальтоников (угроза — пурпурная, в полоску)"
 msgstr ""
 
-#: ui/settings_screen.gd:86
+#: ui/settings_screen.gd:95
 msgid "Полные эффекты (выкл. — меньше частиц)"
 msgstr ""
 
-#: ui/settings_screen.gd:87
+#: ui/settings_screen.gd:96
 msgid "Морось над полем"
 msgstr ""
 
-#: ui/settings_screen.gd:89
-msgid "Подсказки"
+#: ui/settings_screen.gd:98
+msgid "Пути всех врагов (выкл. — только под курсором)"
 msgstr ""
 
-#: ui/settings_screen.gd:95
-msgid "Показать все заново"
+#: ui/settings_screen.gd:99
+msgid "Переспрашивать «Конец хода», если остались карты"
 msgstr ""
 
 #: ui/shop_screen.gd:100
@@ -12156,6 +12792,22 @@ msgstr ""
 msgid "Выбрать"
 msgstr ""
 
+#: ui/turn_order_bar.gd:131
+msgid "появится"
+msgstr ""
+
+#: ui/turn_order_bar.gd:132
+msgid "Появится в этот ход врагов (призыв)"
+msgstr ""
+
+#: ui/turn_order_bar.gd:153
+msgid "Конец раунда: после хода всех врагов горит огонь, действует яд, приходит подмога"
+msgstr ""
+
+#: ui/turn_order_bar.gd:158
+msgid "Конец раунда"
+msgstr ""
+
 #: ui/ui_kit.gd:356
 msgid "Колода героя «%s»:\n%s"
 msgstr ""
@@ -12176,510 +12828,7 @@ msgstr ""
 msgid "Золото: %d"
 msgstr ""
 
-#: ui/unit_plate.gd:124
+#: ui/unit_plate.gd:134
 msgid "num:значок:число"
 msgstr ""
 
-#: ui/turn_order_bar.gd:132
-msgid "появится"
-msgstr ""
-
-#: ui/turn_order_bar.gd:133
-msgid "Появится в этот ход врагов (призыв)"
-msgstr ""
-
-#: ui/turn_order_bar.gd:152
-msgid "Конец раунда: после хода всех врагов горит огонь, действует яд, приходит подмога"
-msgstr ""
-
-#: ui/turn_order_bar.gd:157
-msgid "Конец раунда"
-msgstr ""
-
-#: ui/settings_screen.gd:90
-msgid "Переспрашивать «Конец хода», если остались карты"
-msgstr ""
-
-#: ui/battle_hud.gd:878
-msgid "Завершить ход?"
-msgstr ""
-
-#: scripts/battle.gd:1452
-msgid "%s (мана %d)"
-msgstr ""
-
-#: scripts/battle.gd:1453
-msgid "Ещё можно сыграть карты: %s.\nНажми ещё раз — завершить ход."
-msgstr ""
-
-#: ui/battle_hud.gd:501
-msgid "Ход врагов ×%d"
-msgstr ""
-
-#: ui/settings_screen.gd:145
-msgid "Скорость хода врагов"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Яд"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Лужа"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Лёд"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Заморозка"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Трясина"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Газ"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Корка"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Удержание"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Руна на оружии"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Панцирь"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Поглощение магии"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Призыв"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Вошёл в лужу или под ним появилась вода. Держится в луже и ещё 2 раунда после. Молния по мокрому бьёт сильнее, огонь сушит."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "2 урона в конце раунда мимо блока, 3 раунда. Новый яд обновляет срок."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "В свой ход не может идти, но карты играть и бить может."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Враги, которые могут достать героя с провокацией, бьют только его."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Враг между двумя героями на одной прямой получает от карт +50%. Огонь, яд и взрывы не усиливаются."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Сдвигает по прямой. Врезался в преграду, край поля или другого — 4 урона обоим (в частокол — 6)."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Принимает урон на себя, пока не кончится. Блок врагов сгорает в начале их хода."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "3 урона в конце раунда тому, кто стоит в огне; горит 3 раунда. Испаряет лужу, топит лёд, поджигает деревья, бочки и камыш."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Кто вошёл — мокрый. Молния бьёт по всей связной луже. Тушит огонь."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "При толчке по льду скользят дальше. Лёд на луже — заморозка."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Лёд на луже: кто стоял в ней — опутан на 1 ход. Тяжёлые не вмерзают."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Огонь на луже: паровой взрыв — 3 урона, отброс на 1, лужа исчезает."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Бьёт по всей связной луже и проводится через топь. По мокрому — сильнее."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Вход в топь отнимает 1 шаг. Проводит молнию."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Не пройти. Обычный враг, толкнутый в неё, тонет; герой получает 4 урона и остаётся на краю, тяжёлые — урон."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "3 урона и яд тому, кто вошёл, протащен или стоит в газе в конце раунда. Огонь его взрывает."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Огонь на трясине. Стена на 3 раунда. Толкнули в лаву — 6 урона; кто стоит в ней в конце раунда — 6."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Вода или лёд на лаве. Проходима, но ход на ней заканчивается. Через 2 раунда — сухая земля."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Сколько карт отряд сыграл за ход. Карты с «Цепь N» и «+X за звено» от неё сильнее."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "ПКМ по карте в руке — она останется на следующий ход."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Одна на оружии, на 3 удара: каждая карта с уроном, задевшая врага, тратит один."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Урон от карт вдвое меньше, кроме удара в клещах."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "На каждое второе Заклинание героев за ход — врагам +3 здоровья, себе +3 блока."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Новые враги появляются на свободных клетках рядом. На поле не больше 10 врагов."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Механизм стоит и искрит — пропускает свой ход."
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Повернуть камеру влево"
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Повернуть камеру вправо"
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Отменить действие"
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Сбросить карту"
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Другой герой"
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Ускорить ход врагов (держать)"
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Справка в бою"
-msgstr ""
-
-#: scripts/autoload/settings.gd
-msgid "Выключить звук"
-msgstr ""
-
-#: scripts/battle.gd
-msgid "свой ход"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Мёртвое дерево"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Удар, огонь или врезавшийся — падает на 3 клетки: 7 урона всем на линии, выживших сбивает с ног."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Бочка с газом"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Удар или огонь — взрыв по клетке и 6 соседям: 6 урона и поджог."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Гнилые мостки"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Проходимы, но ломаются в трясину, когда с них уходят."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Камыш"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Проходим, закрывает удары по линии. Горит весь сразу."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Ледяная глыба"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. От огня — ледяные осколки: 4 урона соседям, на месте лужа. Сама тает через 3 раунда."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Частокол"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Толкнутый в него получает 6 урона вместо 4. Горит."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Крепкий настил"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Проходим поверх трясины и не ломается."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Проходима. Взрывается, когда на неё наступил враг или по ней ударили."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Живое дерево"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда, закрывает удары по линии, не падает. Огонь — крона горит, потом дерево сухое."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Горящее дерево"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. В конце раунда обжигает соседей на 2, потом сгорает в мёртвое дерево."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Лоза"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Проходима, но кто вошёл — опутан и дальше не идёт. Горит цепью, удар картой срубает."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Подлесок"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Как камыш: закрывает удары по линии, прячет засаду, горит."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Дикий улей"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Удар или огонь — рой жалит клетку и 6 соседей: 2 урона и яд."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Паровой клапан"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Удар — выброс пара по 6 соседям, клапан ломается в лужу."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Камни"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда, закрывает удары по линии. Через 3 раунда осыпается."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Вагонетка"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Удар — катится по прямой и сбивает первого на пути."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Купель"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Удар — вода плещет на соседей: огонь гаснет, все мокрые."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Преграда. Удар — разряд по соседям и по всей воде рядом."
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Дым"
-msgstr ""
-
-#: scripts/data/keywords.gd
-msgid "Закрывает удары по линии. Рассеивается через 2 раунда."
-msgstr ""
-
-#: ui/first_run_screen.gd
-msgid "Перед началом"
-msgstr ""
-
-#: ui/first_run_screen.gd
-msgid "Громкость"
-msgstr ""
-
-#: ui/first_run_screen.gd
-msgid "Размер интерфейса"
-msgstr ""
-
-#: ui/first_run_screen.gd
-msgid "Всё это и многое другое (скорость врагов, клавиши, подсказки) меняется потом в «Настройках»."
-msgstr ""
-
-#: ui/first_run_screen.gd
-msgid "Готово"
-msgstr ""
-
-#: ui/game_over.gd
-msgid "История забегов"
-msgstr ""
-
-#: ui/keys_screen.gd
-msgid "Клавиши"
-msgstr ""
-
-#: ui/keys_screen.gd
-msgid "Цифры 1–9 — карта по номеру, Esc — меню; их не переназначить."
-msgstr ""
-
-#: ui/keys_screen.gd
-msgid "Нажми клавишу…"
-msgstr ""
-
-#: ui/keys_screen.gd
-msgid "Эта клавиша занята игрой — выбери другую."
-msgstr ""
-
-#: ui/pause_menu.gd
-msgid "Начать бой заново"
-msgstr ""
-
-#: ui/pause_menu.gd
-msgid "Бой начнётся сначала: те же враги и расстановка, здоровье героев — как перед боем."
-msgstr ""
-
-#: ui/pause_menu.gd
-msgid "Начать заново"
-msgstr ""
-
-#: ui/reward_screen.gd
-msgid "Поле боя"
-msgstr ""
-
-#: ui/reward_screen.gd
-msgid "Каким было поле в конце боя. Клик или Esc — вернуться к награде."
-msgstr ""
-
-#: ui/reward_screen.gd
-msgid "В колоде (%s): карт набора «%s» — %d"
-msgstr ""
-
-#: ui/reward_screen.gd
-msgid "Клик или Esc — вернуться к награде"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "Пока ни одного законченного забега."
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "Победа"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "Звон %d · акт %d · ряд %d"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "Боёв: %d"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "урон %s: %d"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "лучший удар: %d («%s»)"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "Цепь до %d"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "пал: %s"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "%s (%d): %s"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "Сид: %d"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "%s — %d карт"
-msgstr ""
-
-#: ui/run_history_screen.gd
-msgid "Колоды: "
-msgstr ""
-
-#: ui/settings_screen.gd
-msgid "Интерфейс"
-msgstr ""
-
-#: ui/settings_screen.gd
-msgid "Больше 100% — крупнее текст и кнопки; на маленьком окне часть экранов может не поместиться."
-msgstr ""
-
-#: ui/settings_screen.gd
-msgid "Клавиши…"
-msgstr ""
-
-#: ui/settings_screen.gd
-msgid "Масштаб интерфейса"
-msgstr ""
-
-#: scripts/vfx_player.gd
-msgid "−%d блок"
-msgstr ""

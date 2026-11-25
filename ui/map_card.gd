@@ -3,21 +3,27 @@ extends Control
 # Карточка точки карты пути (тз-карточки-арен.md): рамка по типу точки, рисунок места (арены,
 # логова, события, лавки, привала), значок типа, огоньки опасности (1–3) и название.
 # Состав врагов не показывается. Рамки и рисунки — assets/textures/map_cards/, где в рамке окошко
-# и плашка — frames.json (в точках исходной картинки рамки).
+# и плашка — константа FRAMES ниже.
 
 const DIR: String = "res://assets/textures/map_cards/"
 const WIDTH: float = 150.0          # ширина карточки на экране (высота — по пропорциям рамки)
 const TITLE_COLOR := Color(0.87, 0.71, 0.38)
 
-static var _frames: Dictionary = {}
+# Где в каждой рамке окошко для рисунка и плашка названия (в точках исходной картинки рамки):
+# size — размер картинки, window и bar — левый верх и правый низ [x1, y1, x2, y2].
+# Раньше лежало в frames.json; перенесено в код, чтобы попадать в сборку игры без фильтров экспорта.
+const FRAMES: Dictionary = {
+	"battle": {"size": [567, 865], "window": [73, 78, 494, 534], "bar": [73, 741, 494, 791]},
+	"elite": {"size": [499, 934], "window": [64, 241, 434, 644], "bar": [63, 825, 435, 870]},
+	"boss": {"size": [561, 936], "window": [74, 150, 484, 596], "bar": [74, 799, 486, 848]},
+	"spirit": {"size": [563, 868], "window": [78, 78, 485, 522], "bar": [76, 728, 486, 777]},
+	"event": {"size": [617, 948], "window": [83, 84, 534, 578], "bar": [83, 798, 534, 853]},
+	"calm": {"size": [324, 475], "window": [43, 41, 281, 288], "bar": [43, 397, 281, 424]},
+}
 
 
 static func _frame_info() -> Dictionary:
-	if _frames.is_empty():
-		var f := FileAccess.open(DIR + "frames.json", FileAccess.READ)
-		if f != null:
-			_frames = JSON.parse_string(f.get_as_text())
-	return _frames
+	return FRAMES
 
 
 # Какая рамка у точки

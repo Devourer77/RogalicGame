@@ -839,13 +839,18 @@ func _place_positions() -> void:
 		n.pos = Vector2(x, y)
 
 
-# Видно ли, что за точка (туман): на FOG_SIGHT рядов вперёд от текущей (+ fog_bonus), пройденные — всегда.
-# До первого шага видны ряды 0 … FOG_SIGHT - 1.
+# На сколько рядов вперёд сквозь туман виден тип точки: основа, события забега и «Зоркий дозор» из хаба
+func fog_sight() -> int:
+	return FOG_SIGHT + fog_bonus + Meta.effect_total("fog_sight")
+
+
+# Видно ли, что за точка (туман): на fog_sight() рядов вперёд от текущей, пройденные — всегда.
+# До первого шага видны ряды 0 … fog_sight() - 1.
 func node_revealed(n: MapNode) -> bool:
 	if n.visited:
 		return true
 	var here: int = current.row if current != null else -1
-	return n.row <= here + FOG_SIGHT + fog_bonus
+	return n.row <= here + fog_sight()
 
 
 # Колонка → ветка

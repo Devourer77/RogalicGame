@@ -1145,7 +1145,7 @@ func _apply_step(s: Dictionary) -> void:
 		_lines.append(Loc.t("+%d Отзвуков") % int(s["echoes"]))
 	elif s.has("fog"):
 		Run.fog_bonus += int(s["fog"])
-		_lines.append(Loc.t("Туман на карте отступает: видно на %d ряда вперёд") % (Run.FOG_SIGHT + Run.fog_bonus))
+		_lines.append(Loc.t("Туман на карте отступает: видно на %d ряда вперёд") % Run.fog_sight())
 	elif s.has("heal_pct"):
 		for rh in _targets(s.get("who", "all")):
 			var before: int = rh.hp

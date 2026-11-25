@@ -24,6 +24,7 @@ const UPGRADES: Array[MetaUpgradeData] = [
 	preload("res://resources/meta_upgrades/treasury.tres"),
 	preload("res://resources/meta_upgrades/medic.tres"),
 	preload("res://resources/meta_upgrades/known_path.tres"),
+	preload("res://resources/meta_upgrades/far_sight.tres"),
 	preload("res://resources/meta_upgrades/second_charm.tres"),
 	preload("res://resources/meta_upgrades/mage_hardening.tres"),
 	preload("res://resources/meta_upgrades/mage_formulas.tres"),

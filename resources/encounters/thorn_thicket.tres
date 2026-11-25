@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EncounterData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/encounter_data.gd" id="1_enc"]
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy"]
+[ext_resource type="Resource" path="res://resources/enemies/thornbush.tres" id="e0"]
+[ext_resource type="Resource" path="res://resources/enemies/grove_huntress.tres" id="e1"]
+[ext_resource type="Resource" path="res://resources/enemies/rift_boar.tres" id="e2"]
+[ext_resource type="Resource" path="res://resources/enemies/grove_warden.tres" id="e3"]
+
+[resource]
+script = ExtResource("1_enc")
+id = "thorn_thicket"
+title = "Колючая чаща"
+core = Array[ExtResource("1_enemy")]([ExtResource("e0"), ExtResource("e0"), ExtResource("e1"), ExtResource("e2")])
+filler = Array[ExtResource("1_enemy")]([ExtResource("e3"), ExtResource("e2")])
+min_row = 3
+formation = 4
+branch = 2

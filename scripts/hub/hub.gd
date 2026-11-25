@@ -168,7 +168,7 @@ func _build_atmosphere() -> void:
 	# Шпиль-задник (прикреплён к камере): у вершины кружат бирюзовые искры Раскола
 	var spire: Node3D = camera.get_node_or_null("SpireBackdrop") as Node3D
 	if spire != null:
-		var sparks: GPUParticles3D = _vfx.loop("wisp_loop", spire, Vector3(0.0, 10.0, 0.0), 8.0,
+		var sparks: GPUParticles3D = _vfx.loop("wisp_loop", spire, Vector3(0.0, HubCamera.SPIRE_HEIGHT * 0.3, 0.0), 8.0,
 			VfxPlayer.C_RIFT, Vector3(1.2, 5.0, 1.2))
 		sparks.local_coords = true   # Шпиль едет вместе с камерой — искры тоже
 	# Святилище: над шаром покорённого духа поднимаются огоньки его цвета
@@ -829,10 +829,14 @@ func _build_trophy_shelf() -> void:
 		# Полы ярусов в модели полки — на 0,53 и 1,23 м; оберег стоит ближе к краю полки
 		var pos: Vector3 = c + Vector3(-0.95 + 0.475 * float(col), 0.53 + 0.7 * float(tier), 0.05)
 		var slot: Node3D = _place_model(CHARMS_MODEL, "ShelfSlot%d" % i, pos)
-		var keep: Array[String] = [Meta.CHARMS[i].id, "Cloth", "Chalk"]
+		var keep: Array[String] = [Meta.CHARMS[i].id, "Cloth"]
 		for child in slot.get_children():
 			if not keep.has(String(child.name)):
+				slot.remove_child(child)   # сразу: иначе новый «Chalk» получил бы другое имя
 				child.queue_free()
+		var charm: Node3D = slot.get_node_or_null(NodePath(Meta.CHARMS[i].id)) as Node3D
+		if charm != null:
+			slot.add_child(_chalk_outline(charm))
 		_shelf_slots.append(slot)
 		var glow := OmniLight3D.new()
 		glow.name = "ShelfGlow%d" % i
@@ -843,6 +847,41 @@ func _build_trophy_shelf() -> void:
 		add_child(glow)
 		_shelf_lights.append(glow)
 	_add_label(Loc.t("Полка трофеев"), c + Vector3(0.0, 2.8, 0.0))
+
+
+# Меловой контур оберега, которого ещё нет: его же модель, сплющенная в плоский след на полке.
+# Внешний след — мел, внутренний (чуть меньше и выше) ничего не рисует, а только закрывает
+# середину — остаётся обводка по форме именно этого оберега.
+const CHALK_COLOR: Color = Color(0.86, 0.84, 0.76, 0.75)
+const CHALK_INNER: float = 0.8   # насколько внутренний след меньше внешнего
+
+
+func _chalk_outline(charm: Node3D) -> Node3D:
+	var chalk := Node3D.new()
+	chalk.name = "Chalk"
+	var line := StandardMaterial3D.new()
+	line.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	line.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	line.albedo_color = CHALK_COLOR
+	line.render_priority = 1
+	var mask := ShaderMaterial.new()   # пишет только глубину: середина следа остаётся пустой
+	mask.shader = Shader.new()
+	mask.shader.code = "shader_type spatial;\nrender_mode unshaded, depth_draw_always;\nvoid fragment() { ALBEDO = vec3(0.0); ALPHA = 0.0; }\n"
+	mask.render_priority = 0
+	for layer: Array in [[1.0, 0.003, line], [CHALK_INNER, 0.005, mask]]:
+		var copy: Node3D = charm.duplicate() as Node3D
+		copy.name = "Line" if layer[2] == line else "Mask"
+		copy.visible = true
+		copy.scale = Vector3(layer[0], 0.002, layer[0])
+		copy.position = Vector3(0.0, layer[1], 0.0)
+		var meshes: Array[Node] = copy.find_children("*", "MeshInstance3D", true, false)
+		if copy is MeshInstance3D:
+			meshes.append(copy)
+		for m: Node in meshes:
+			(m as MeshInstance3D).material_override = layer[2]
+			(m as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		chalk.add_child(copy)
+	return chalk
 
 
 # Святилище духов — северо-восток. Камни полукругом с севера, по камню на духа (Run.ALL_SPIRIT_IDS).
@@ -960,6 +999,8 @@ func _add_label(text: String, pos: Vector3) -> void:
 	label.font_size = 48
 	label.outline_size = 8
 	label.modulate = Color(0.9, 0.85, 0.7)
+	label.render_priority = 20          # поверх Шпиля-задника (у него 10–11)
+	label.outline_render_priority = 19
 	add_child(label)
 
 

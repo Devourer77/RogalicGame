@@ -2,8 +2,8 @@ extends Control
 # Карта забега (тз-карта-пути.md): старая карта на пергаменте, рисунок Gemini (assets/textures/map/).
 # Две ветки акта (в акте 1 слева Гнилые топи, справа Густые леса; названия — Run.branch_titles()), между ними овраг с мостом — тропа-переход на ряду Run.CROSS_ROW.
 # Тропы извилистые, нарисованы «чернилами» — пунктиром следов. Туман войны: что за точка, видно на
-# Run.FOG_SIGHT рядов вперёд; дальше — плывущий туман и размытые силуэты. Босс — корона в тумане,
-# его имя открывается, когда до него остаётся FOG_SIGHT рядов.
+# Run.fog_sight() рядов вперёд; дальше — плывущий туман и размытые силуэты. Босс — корона в тумане,
+# его имя открывается, когда до него остаётся Run.fog_sight() рядов.
 # Наведи мышь на открытую точку — над ней поднимется карточка (MapCard): место, тип, опасность.
 
 const AREA_RATIO: float = 1024.0 / 572.0     # пропорции рисунка карты
@@ -101,7 +101,7 @@ func _ready() -> void:
 		var probe := MapNode.new()
 		probe.type = type as MapNode.Type
 		legend.add_child(UiKit.chip(MapCard.icon_for(probe), HINTS[type].get_slice(":", 0), UiKit.BRASS.lightened(0.25), HINTS[type], 14, 20))
-	var fog_chip: Control = UiKit.chip("map_event", Loc.t("Туман: видно на %d ряда вперёд") % (Run.FOG_SIGHT + Run.fog_bonus), UiKit.TEXT_DIM,
+	var fog_chip: Control = UiKit.chip("map_event", Loc.t("Туман: видно на %d ряда вперёд") % Run.fog_sight(), UiKit.TEXT_DIM,
 			Loc.t("Что за точка, видно только вблизи. Дорожки видны всегда."), 14, 20)
 	legend.add_child(fog_chip)
 	column.add_child(legend)
@@ -239,7 +239,7 @@ func _center(n: MapNode) -> Vector2:
 # Граница тумана (доля высоты сверху): посередине между последним видимым рядом и следующим
 func _fog_edge() -> float:
 	var here: int = Run.current.row if Run.current != null else -1
-	var last_seen: int = here + Run.FOG_SIGHT + Run.fog_bonus
+	var last_seen: int = here + Run.fog_sight()
 	if last_seen >= Run.MAP_ROWS - 1:
 		return 0.0   # всё видно
 	var y_seen: float = _row_y(last_seen)
