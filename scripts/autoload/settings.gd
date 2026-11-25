@@ -17,8 +17,12 @@ var all_routes: bool = false        # пути всех врагов на пол
 var warn_end_turn: bool = true      # «Конец хода» при несыгранных картах — сначала переспросить
 var colorblind: bool = false        # режим для дальтоников (палитра угрозы и узоры)
 var language: String = "ru"         # язык интерфейса (TranslationServer)
-var ui_scale: float = 1.0           # масштаб интерфейса (content_scale_factor окна), шаги — UI_SCALES
+var ui_scale: float = 1.0           # масштаб интерфейса, выбранный игроком (умножается на BASE_UI_SCALE), шаги — UI_SCALES
 const UI_SCALES: Array[float] = [0.8, 0.9, 1.0, 1.1, 1.2]
+# Игра рассчитана на 1920×1080 (project.godot), а размеры в коде интерфейса — числа старой вёрстки
+# под 1280×720. Множитель 1.25 даёт на Full HD «рабочее поле» 1536×864: интерфейс на 20% компактнее,
+# чем раньше (×1.5), полю больше места, самый мелкий текст — около 14 px.
+const BASE_UI_SCALE: float = 1.25
 var first_run_done: bool = false    # экран первого запуска (язык, громкость, масштаб) уже пройден
 
 # Переназначаемые клавиши (окно «Клавиши» в настройках, ui/keys_screen.gd).
@@ -120,12 +124,12 @@ func set_value(key: String, value: Variant) -> void:
 
 # ---------- Масштаб интерфейса ----------
 
-# Весь 2D-интерфейс крупнее или мельче (3D-поле не меняется). Экраны свёрстаны под 100%:
-# при 110–120% на мелких окнах часть экранов может не поместиться.
+# Весь 2D-интерфейс крупнее или мельче (3D-поле не меняется). 100% — базовый вид на Full HD;
+# 120% — как было до перехода на 1920×1080 (экраны тогда впритык).
 func apply_ui_scale() -> void:
 	if not is_inside_tree():
 		return
-	get_tree().root.content_scale_factor = ui_scale
+	get_tree().root.content_scale_factor = BASE_UI_SCALE * ui_scale
 
 
 func next_ui_scale() -> float:

@@ -97,6 +97,12 @@ func _draw() -> void:
 		_text(font, str(block), shield.position + Vector2(0, 14.5), shield.size.x, 11, Color(0.05, 0.08, 0.12), 0)
 		if not _preview.is_empty() and int(_preview.get("block_after", block)) < block:
 			draw_texture_rect(UiKit.icon("shield"), shield, false, Color(1, 1, 1, 0.7 * pulse))   # блок съедят
+			# Сколько блока съест карта — стальным числом слева от щитка (здоровье — справа от полосы)
+			var block_loss: int = block - maxi(int(_preview.get("block_after", block)), 0)
+			var loss_text: String = "-%d" % block_loss
+			var loss_w: float = font.get_string_size(loss_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			_text(font, loss_text, Vector2(shield.position.x - 3 - loss_w, BAR_RECT.position.y + 11), -1, 13,
+					UiKit.BLOCK.lightened(0.25), 4, HORIZONTAL_ALIGNMENT_LEFT)
 
 	# --- Верхний ряд: намерение врага и значки состояний ---
 	var parts: Array[Array] = []   # [иконка, цвет, число-текст]

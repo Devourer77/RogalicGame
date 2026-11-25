@@ -33,6 +33,7 @@ const C_ASH := Color(0.82, 0.8, 0.74)            # пепел Культа
 const C_HEAL := Color(1.0, 0.9, 0.62)            # свечной белый
 const C_NUM_DAMAGE := Color(1.0, 0.97, 0.92)
 const C_NUM_BLOCK := Color(0.7, 0.8, 0.9)
+const C_NUM_TOTAL := Color(0.95, 0.8, 0.5)   # сумма за удар (блок + здоровье) — латунь
 
 # Из чего сделан враг — какие искры летят при ударе (по id врага)
 const MATERIALS: Dictionary[String, String] = {
@@ -878,7 +879,7 @@ func hit(view: Node3D, height: float, info: Dictionary) -> void:
 		ring(view.global_position + Vector3(0.0, 0.06, 0.0), C_STEEL, 1.3, 0.3, 1.6)
 		if info.get("broke", false) and dealt > 0:
 			burst("block_break", body)
-		number(num_at - right * 0.5, "−%d" % absorbed, C_NUM_BLOCK, false)
+		number(num_at - right * 0.5, Loc.t("−%d блок") % absorbed, C_NUM_BLOCK, false)   # сколько съел блок — стальным
 
 	if dealt > 0:
 		# Искры по материалу цели (у яда — только пузырьки, без искр)
@@ -899,7 +900,10 @@ func hit(view: Node3D, height: float, info: Dictionary) -> void:
 			if big:
 				burst("impact_star", front, 1.0, 1, flash_color)
 		var num_color: Color = C_POISON if source == "poison" else C_NUM_DAMAGE
-		number(num_at + right * 0.5, "−%d" % dealt, num_color, big)
+		number(num_at + right * 0.5, "−%d" % dealt, num_color, big)   # по здоровью — белым
+		if absorbed > 0:
+			# Удар пробил блок: сверху — сумма за удар латунью (блок + здоровье)
+			number(num_at + Vector3(0.0, 0.4, 0.0), "−%d" % (dealt + absorbed), C_NUM_TOTAL, false)
 		if big:
 			light_flash(body, flash_color, 1.6, 2.5, 0.15)
 	elif absorbed > 0:

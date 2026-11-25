@@ -12679,3 +12679,7 @@ msgstr ""
 #: ui/settings_screen.gd
 msgid "Масштаб интерфейса"
 msgstr ""
+
+#: scripts/vfx_player.gd
+msgid "−%d блок"
+msgstr ""
