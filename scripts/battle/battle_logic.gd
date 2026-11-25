@@ -1676,6 +1676,7 @@ func _rust(e: BattleUnit) -> void:
 	e.block = 0
 	e.rust = 1
 	message.emit(Loc.t("%s ржавеет: без блока, удар −%d") % [e.title, RUST_WEAKEN])
+	fx_hint.emit("rust", e, null)   # только для показа
 	status_changed.emit(e, snapshot(e))
 
 
@@ -4280,6 +4281,7 @@ func _short_circuit(u: BattleUnit) -> void:
 		return
 	u.stunned = 1
 	message.emit(Loc.t("%s: замыкание! Пропустит ход") % u.title)
+	fx_hint.emit("short", u, null)   # только для показа
 	effect_cells.emit([u.cell], "lightning")
 	status_changed.emit(u, snapshot(u))
 
@@ -4290,6 +4292,7 @@ func _wake(u: BattleUnit) -> void:
 		return
 	u.asleep = false
 	message.emit(Loc.t("%s просыпается!") % u.title)
+	fx_hint.emit("wake", u, null)   # только для показа
 	status_changed.emit(u, snapshot(u))
 
 
@@ -5537,6 +5540,7 @@ func _enemy_strike(e: BattleUnit, atk: EnemyAttackData, dir: Vector2i) -> void:
 		if atk.brand and u.is_hero:
 			u.brand = 1
 			message.emit(Loc.t("%s заклеймён: следующий удар по нему +%d") % [u.title, BRAND_BONUS])
+			fx_hint.emit("brand", u, null)   # только для показа
 			status_changed.emit(u, snapshot(u))
 	if atk.gas_cloud:
 		_gas_cloud(cells)

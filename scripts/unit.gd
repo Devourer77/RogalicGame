@@ -14,6 +14,7 @@ const PUSH_TIME_PER_CELL: float = 0.1
 var board: Board          # поле, на котором стоит фигурка (задаёт сцена боя)
 var is_moving: bool = false
 var _plate_hidden: bool = false   # плашку не показывать (Спящая сфера спит)
+var flier: bool = false      # летает (Пепельный падальщик): путь — одним перелётом по дуге
 var step_pitch: float = 1.0   # тембр шагов (ниже для тяжёлых боссов, выше для мелких тварей)
 var _plate: UnitPlate     # плашка над головой: полоса HP, блок, намерение врага
 var _plate_height: float = 2.0   # на какой высоте над клеткой она висит (в метрах)
@@ -73,6 +74,9 @@ func has_anim(anim_name: String) -> bool:
 
 # Идёт по пути клетка за клеткой (путь считает логика боя)
 func follow_path(path: Array[Vector2i]) -> void:
+	if flier and path.size() > 1:
+		await _fly_path(path)
+		return
 	is_moving = true
 	_play_loop("Walk", WALK_SPEED)
 	for i in range(1, path.size()):
@@ -82,6 +86,37 @@ func follow_path(path: Array[Vector2i]) -> void:
 		var tween: Tween = create_tween()
 		tween.tween_property(self, "position", board.grid_to_world(path[i]), MOVE_TIME_PER_CELL)
 		await tween.finished
+	cell = path[path.size() - 1]
+	is_moving = false
+	_play_loop("Idle")
+	move_finished.emit()
+
+
+# Перелёт: взлёт, скольжение над полем через все клетки пути, посадка с пылью.
+# Логика уже решила, где он сядет; это только показ.
+const FLY_HEIGHT: float = 1.3
+const FLY_TIME_PER_CELL: float = 0.14
+
+
+func _fly_path(path: Array[Vector2i]) -> void:
+	is_moving = true
+	_play_loop("Walk", WALK_SPEED * 1.6)
+	face_dir(path[path.size() - 1] - path[0])
+	Sfx.play("wind_gust", 0.1, -6.0, 1.3)
+	var start: Vector3 = position
+	var end: Vector3 = board.grid_to_world(path[path.size() - 1])
+	var time: float = maxf(0.35, FLY_TIME_PER_CELL * (path.size() - 1) + 0.2)
+	var tween: Tween = create_tween()
+	tween.tween_method(func(t: float) -> void:
+		var p: Vector3 = start.lerp(end, t)
+		p.y = start.y + sin(t * PI) * FLY_HEIGHT   # дуга: выше всего посередине
+		position = p, 0.0, 1.0, time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+	position = end
+	Sfx.play(board.step_sound(path[path.size() - 1]), 0.08, 0.0, step_pitch)
+	var fx: Node = get_tree().current_scene.get("vfx") if get_tree().current_scene != null else null
+	if fx != null:
+		fx.burst("dust", end + Vector3(0.0, 0.1, 0.0), 0.8)
 	cell = path[path.size() - 1]
 	is_moving = false
 	_play_loop("Idle")

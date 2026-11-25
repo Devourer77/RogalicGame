@@ -257,6 +257,26 @@ const PRESETS: Dictionary = {
 	"vines_loop": {"tex": "shard", "color": Color(0.3, 0.45, 0.22), "amount": 5, "life": 0.9,
 		"speed": [0.3, 0.6], "dir": Vector3.UP, "spread": 20.0, "gravity": -0.3, "damping": 0.5,
 		"size": [0.1, 0.18], "radius": 0.4, "spin": 90.0, "fade_in": true},
+	# ---- Механики акта 2 ----
+	# Замыкание механизма: короткие треснувшие разряды вокруг корпуса, пока не очнётся
+	"short_loop": {"tex": "spark", "color": C_SHOCK, "energy": 3.5, "amount": 9, "life": 0.18,
+		"speed": [1.5, 3.0], "spread": 180.0, "damping": 6.0, "size": [0.09, 0.16],
+		"radius": 0.35, "add": true, "stretch": true},
+	# Дым Пепельника на клетке: крупные медленные клубы, перекатываются, но не улетают
+	"smoke_cloud": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.46, 0.44, 0.42, 0.5), "amount": 9,
+		"life": 2.6, "speed": [0.05, 0.18], "dir": Vector3.UP, "spread": 70.0, "gravity": 0.03,
+		"damping": 0.2, "size": [0.6, 0.95], "radius": 0.32, "spin": 18.0, "fade_in": true, "grow": true},
+	# Ржавчина: бурые хлопья медленно осыпаются
+	"rust_loop": {"tex": "shard", "color": Color(0.62, 0.38, 0.2), "amount": 6, "life": 1.2,
+		"speed": [0.0, 0.2], "dir": Vector3.DOWN, "spread": 30.0, "gravity": -1.2, "damping": 0.5,
+		"size": [0.07, 0.12], "radius": 0.3, "spin": 120.0, "fade_in": true},
+	"rust_flakes": {"tex": "shard", "color": Color(0.58, 0.36, 0.19), "amount": 22, "life": 0.9,
+		"speed": [0.8, 2.0], "spread": 80.0, "gravity": -5.0, "damping": 1.0,
+		"size": [0.06, 0.12], "radius": 0.3, "spin": 300.0},
+	# Клеймо Культа: бледные пепельные огоньки над головой
+	"brand_loop": {"tex": "soft_dot", "color": C_ASH, "energy": 2.0, "amount": 4, "life": 1.0,
+		"speed": [0.1, 0.3], "dir": Vector3.UP, "spread": 30.0, "gravity": 0.2, "damping": 0.5,
+		"size": [0.08, 0.13], "radius": 0.12, "add": true, "fade_in": true},
 	# Руна на оружии: огоньки цвета руны вьются у руки
 	"rune_loop": {"tex": "soft_dot", "color": C_HIT, "energy": 2.8, "amount": 12, "life": 0.7,
 		"speed": [0.2, 0.5], "dir": Vector3.UP, "spread": 60.0, "gravity": 0.3, "damping": 0.6,
@@ -1181,6 +1201,9 @@ func set_auras(view: Node3D, height: float, state: Dictionary) -> void:
 	want["rune"] = state.get("rune", "") != "" and state.get("rune_hits", 0) > 0
 	want["taunt"] = state.get("taunt", false)
 	want["fuse"] = state.get("fuse", 0) > 0 or state.get("smoldering", false)
+	want["stunned"] = state.get("stunned", 0) > 0   # замыкание механизма
+	want["rust"] = state.get("rust", 0) > 0
+	want["brand"] = state.get("brand", 0) > 0
 	for key: String in want:
 		var node: Node3D = holder.get_node_or_null(key)
 		if key == "rune" and node != null and want[key] and node.get_meta("kind", "") != state.get("rune", ""):
@@ -1223,6 +1246,12 @@ func _set_status_layer(view: Node3D, height: float, want: Dictionary) -> void:
 
 func _build_aura(key: String, node: Node3D, height: float, state: Dictionary) -> void:
 	match key:
+		"stunned":
+			loop("short_loop", node, Vector3(0.0, height * 0.55, 0.0))
+		"rust":
+			loop("rust_loop", node, Vector3(0.0, height * 0.6, 0.0))
+		"brand":
+			loop("brand_loop", node, Vector3(0.0, height + 0.25, 0.0))
 		"wet":
 			loop("drip_loop", node, Vector3(0.0, height * 0.75, 0.0))
 		"poison":
@@ -1415,6 +1444,46 @@ func armor_burn(view: Node3D, height: float) -> void:
 	burst("fire_puff", body, 0.8)
 	flash(view, C_FIRE, 1.0)
 	light_flash(body, C_FIRE, 2.5, 3.5, 0.35)
+
+
+# ---------- Механики акта 2: момент, когда состояние легло ----------
+
+# Замыкание: разряды бегут по корпусу, модель мигает бледно-жёлтым
+func short_circuit(view: Node3D, height: float) -> void:
+	var body: Vector3 = view.global_position + Vector3(0.0, height * 0.55, 0.0)
+	burst("shock", body, 1.3)
+	for i in 3:
+		var a: float = randf() * TAU
+		var off := Vector3(cos(a), 0.0, sin(a)) * 0.45
+		lightning(body + off + Vector3(0.0, 0.35, 0.0), body - off - Vector3(0.0, 0.3, 0.0), C_SHOCK, 0.04, 5)
+	flash(view, C_SHOCK, 1.2)
+	light_flash(body, C_SHOCK, 2.5, 3.0, 0.15)
+
+
+# Ржавчина: хлопья осыпаются, модель на миг становится бурой
+func rust_burst(view: Node3D, height: float) -> void:
+	var body: Vector3 = view.global_position + Vector3(0.0, height * 0.6, 0.0)
+	burst("rust_flakes", body, 1.2)
+	burst("dust", body - Vector3(0.0, height * 0.4, 0.0), 0.6, 0, Color(0.5, 0.35, 0.22, 0.5))
+	flash(view, Color(0.6, 0.36, 0.18), 1.0)
+
+
+# Клеймо: бледное кольцо-знак вспыхивает над головой, пепел вниз
+func brand_mark(view: Node3D, height: float) -> void:
+	var head: Vector3 = view.global_position + Vector3(0.0, height + 0.25, 0.0)
+	ring(view.global_position + Vector3(0.0, 0.06, 0.0), C_ASH, 1.4, 0.4, 1.8)
+	burst("glints", head, 1.0, 0, C_ASH)
+	burst("embers", head, 0.7, 0, C_ASH)
+	flash(view, C_ASH, 0.9)
+
+
+# Спящая сфера проснулась: кольцо бирюзы по земле, блики, вспышка света
+func wake_up(view: Node3D, height: float) -> void:
+	var body: Vector3 = view.global_position + Vector3(0.0, height * 0.5, 0.0)
+	ring(view.global_position + Vector3(0.0, 0.06, 0.0), C_RIFT, 2.2, 0.5, 2.5)
+	burst("glints", body, 1.4, 0, C_RIFT)
+	flash(view, C_RIFT, 1.4)
+	light_flash(body, C_RIFT, 3.0, 4.0, 0.3)
 
 
 # Покорение духа: бирюзовые трещины вспыхивают и гаснут, дух загорается чистым цветом стихии

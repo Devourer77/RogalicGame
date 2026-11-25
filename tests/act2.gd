@@ -279,5 +279,22 @@ func _initialize() -> void:
 	check("Особые арены — только в рядах 2 и 4 (и у элиты)", rows_ok)
 	check("Особые арены не идут подряд (ряд 4 и элита ряда 5)", pairs_ok)
 	check("На карте есть и особые, и обычные арены (%d / %d)" % [seen_special, seen_plain], seen_special > 0 and seen_plain > seen_special * 2)
+	# --- Знаки боссов акта 2: на рядах 0–1 знак босса своей ветки ---
+	var signs_ok: bool = true
+	var seen_signs: Dictionary = {}
+	for seed_i in 12:
+		run.start_new_run(300 + seed_i)
+		run.next_act()   # акт 2
+		for n: MapNode in run.map:
+			if n.row > run.BOSS_SIGN_ROWS or n.type != MapNode.Type.BATTLE:
+				continue
+			var sign: Array = run.boss_sign_for(n)
+			var boss: EncounterData = run.boss_for_branch(n.branch)
+			var expected: Array = run.BOSS_SIGNS.get(boss.id, [])
+			if sign.is_empty() or not expected.has(sign) or not ResourceLoader.exists("res://assets/models/%s.glb" % sign[0]):
+				signs_ok = false
+			else:
+				seen_signs[sign[0]] = true
+	check("Акт 2: на рядах 0–1 знак босса своей ветки, модель есть (видели %d знаков)" % seen_signs.size(), signs_ok and seen_signs.size() >= 6)
 	print("FAILS: %d" % fails)
 	quit(1 if fails > 0 else 0)

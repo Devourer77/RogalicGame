@@ -576,6 +576,22 @@ const BOSS_SIGNS: Dictionary = {
 		["sign_mother_skin", "Сброшенная жабья кожа — в неё поместилась бы телега."],
 		["sign_mother_tracks", "Следы-перепонки размером с бочку уходят к дальней воде."],
 	],
+	# Акт 2 (build_signs_act2.py)
+	"boss_giant": [
+		["sign_giant_wheel", "Колесо обоза сплющено, как подкова под молотом. Тот, кто это сделал, носит такое колесо вместо руки."],
+		["sign_giant_rut", "Колея шириной в шаг. Такую не оставит ни одна телега — только то, что тащит на себе весь обоз."],
+		["sign_giant_barrel", "Бочку смяли одной ладонью. Внутри пусто, пахнет гарью и смолой."],
+	],
+	"boss_colossus": [
+		["sign_colossus_gear", "Шестерня ростом с человека. Механизм, которому она принадлежала, всё ещё где-то ходит."],
+		["sign_colossus_shards", "Осколки трёх стеклянных сфер: водяной, грозовой и огненной. В бронзовом обруче — следы когтей духа."],
+		["sign_colossus_bolt", "Болт толщиной в бревно вырван вместе с листом брони. Край разрыва ещё тёплый."],
+	],
+	"boss_vessel": [
+		["sign_vessel_chain", "Цепь толщиной в руку. Последние звенья раскалены — то, что она держала, горит изнутри."],
+		["sign_vessel_crown", "Обломок костяного венца. Гнёзда пусты, кость опалена жаром."],
+		["sign_vessel_bars", "Прутья клетки выгнуты наружу. Кто-то пытался вырваться — и почти смог."],
+	],
 }
 
 
@@ -585,7 +601,11 @@ func boss_sign_for(n: MapNode) -> Array:
 		return []
 	if n.type != MapNode.Type.BATTLE and n.type != MapNode.Type.LAIR:
 		return []
-	var signs: Array = BOSS_SIGNS.get(run_boss.id, [])
+	# В акте 2 у веток свои боссы: знак — от босса той ветки, где стоит точка
+	var boss: EncounterData = boss_for_branch(n.branch) if n.branch != MapNode.COMMON else run_boss
+	if boss == null:
+		return []
+	var signs: Array = BOSS_SIGNS.get(boss.id, [])
 	if signs.is_empty():
 		return []
 	# Один и тот же знак при повторном входе: выбор зависит от сида и точки, а не от общего генератора

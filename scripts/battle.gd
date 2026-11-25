@@ -132,7 +132,7 @@ func _ready() -> void:
 	var sign: Array = Run.boss_sign_for(Run.current) if not Run.sim_no_scenes else []
 	if not sign.is_empty():
 		board.boss_sign = sign[0]
-		_boss_sign_hint = sign[1]
+		_boss_sign_hint = Loc.t(sign[1])
 	board.build(layout_seed, logic.arena_id, logic.ground)
 	_show_flow_arrows()   # ветер Перевала и ленты Сборочного цеха
 	var biome: String = BattleLogic.arena_biome(logic.arena_id)
@@ -229,6 +229,7 @@ const GLOW_FIRE := Color(1.0, 0.42, 0.08)    # зоб раскалён — сл�
 
 func _make_enemy_view(e: BattleUnit) -> Unit:
 	var view: Unit = _spawn_view(e.data.id.capitalize(), e.cell)
+	view.flier = e.data.flier   # падальщик перелетает, а не идёт
 	if e.data.is_boss or e.data.size >= 1.25:
 		view.step_pitch = 0.84
 	elif e.data.size <= 0.8:
@@ -628,6 +629,23 @@ func _on_fx_hint(kind: String, unit: BattleUnit, other: BattleUnit) -> void:
 			_queue(func() -> void:
 				Sfx.play("absorb_magic", 0.06)
 				await vfx.bequest(other_at, view, height))
+		# Механики акта 2: свой эффект в момент, когда состояние легло
+		"short":   # замыкание механизма — треск разрядов и мигание
+			_queue(func() -> void:
+				Sfx.play("lightning", 0.08, -6.0)
+				vfx.short_circuit(view, height))
+		"rust":    # ржавчина — бурые хлопья осыпаются, броня тускнеет
+			_queue(func() -> void:
+				Sfx.play("ice_break", 0.1, -8.0, 0.7)
+				vfx.rust_burst(view, height))
+		"brand":   # клеймо Культа — бледный знак вспыхивает над головой
+			_queue(func() -> void:
+				Sfx.play("rune_cast", 0.08, -4.0)
+				vfx.brand_mark(view, height))
+		"wake":    # Спящая сфера просыпается — кольцо бирюзы и блики
+			_queue(func() -> void:
+				Sfx.play("magic", 0.08, -2.0, 0.8)
+				vfx.wake_up(view, height))
 
 
 func _on_status_changed(unit: BattleUnit, state: Dictionary) -> void:

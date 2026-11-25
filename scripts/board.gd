@@ -877,23 +877,33 @@ func set_tile_effect(cell: Vector2i, tile: int) -> void:
 			var smoke := _flat_disc(0.46 * CELL_STEP, Color(0.42, 0.4, 0.38, 0.7), 0.4)
 			smoke.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(smoke)
-			var puff := MeshInstance3D.new()
-			var ball := SphereMesh.new()
-			ball.radius = 0.42 * CELL_STEP
-			ball.height = 0.5 * CELL_STEP
-			ball.radial_segments = 8
-			ball.rings = 4
-			puff.mesh = ball
-			puff.position.y = 0.55
+			# Облако из трёх клубов разного размера: тёмно-серое (под тёплым светом пещер не уходит в беж)
 			var puff_mat := StandardMaterial3D.new()
-			puff_mat.albedo_color = Color(0.5, 0.48, 0.46, 0.55)
+			puff_mat.albedo_color = Color(0.27, 0.26, 0.26, 0.6)
 			puff_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			puff_mat.roughness = 1.0
-			puff.material_override = puff_mat
-			puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			root.add_child(puff)
+			puff_mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_VERTEX
+			var cloud_root := Node3D.new()
+			root.add_child(cloud_root)
+			for k: Array in [[Vector3(-0.12, 0.45, 0.05), 0.3], [Vector3(0.14, 0.55, -0.08), 0.26], [Vector3(0.0, 0.78, 0.1), 0.22]]:
+				var puff := MeshInstance3D.new()
+				var ball := SphereMesh.new()
+				ball.radius = float(k[1]) * CELL_STEP
+				ball.height = float(k[1]) * 1.6 * CELL_STEP
+				ball.radial_segments = 10
+				ball.rings = 5
+				puff.mesh = ball
+				puff.position = k[0]
+				puff.material_override = puff_mat
+				puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				cloud_root.add_child(puff)
+			# Облако «дышит»: медленно раздувается и опадает
+			var breathe: Tween = cloud_root.create_tween().set_loops()
+			breathe.tween_property(cloud_root, "scale", Vector3(1.08, 1.12, 1.08), 1.6).set_trans(Tween.TRANS_SINE)
+			breathe.tween_property(cloud_root, "scale", Vector3(0.95, 0.92, 0.95), 1.6).set_trans(Tween.TRANS_SINE)
 			if vfx != null:
-				vfx.loop("smoke_loop", root, Vector3(0.0, 0.7, 0.0))
+				vfx.loop("smoke_cloud", root, Vector3(0.0, 0.35, 0.0))
+				vfx.loop("smoke_loop", root, Vector3(0.0, 0.8, 0.0))
 		BattleLogic.Tile.FIRE:
 			# Тлеющая земля, языки пламени из частиц и оранжевый свет
 			var embers := _flat_disc(0.42 * CELL_STEP, Color(1.0, 0.4, 0.08, 0.75), 0.03)
@@ -1636,8 +1646,14 @@ func _glow_hex(part: float, thickness: float, color: Color, glow: Color, energy:
 func _make_lava_node() -> Node3D:
 	var root := Node3D.new()
 	root.add_child(_glow_hex(0.97, 0.1, Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05))
-	root.add_child(_glow_hex(0.80, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07))
-	root.add_child(_glow_hex(0.40, 0.17, Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6, 0.09))
+	if _biome() == "ash":
+		# На Тракте свет ярче и дымка светлая: обычная лава пересвечивалась до бело-жёлтого.
+		# Здесь она гуще и оранжевее, светлое только ядро.
+		root.add_child(_glow_hex(0.80, 0.14, Color(0.95, 0.45, 0.06), Color(1.0, 0.42, 0.05), 1.3, 0.07))
+		root.add_child(_glow_hex(0.40, 0.17, Color(1.0, 0.62, 0.14), Color(1.0, 0.55, 0.1), 1.6, 0.09))
+	else:
+		root.add_child(_glow_hex(0.80, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07))
+		root.add_child(_glow_hex(0.40, 0.17, Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6, 0.09))
 	var light: OmniLight3D = _add_light(root, Vector3(0.0, 0.5, 0.0), Color(1.0, 0.6, 0.15), 0.8, 2.4)
 	if vfx != null:
 		vfx.loop("lava_loop", root, Vector3(0.0, 0.17, 0.0))      # лопающиеся пузыри
