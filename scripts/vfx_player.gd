@@ -41,7 +41,24 @@ const MATERIALS: Dictionary[String, String] = {
 	"drowned_walker": "water", "bog_mother": "water", "bloated_toad": "water", "spirit_tide": "water",
 	"sporeling": "spore", "reed_lurker": "reed", "leech": "water", "drowned_captain": "block",
 	"spirit_storm": "storm", "spirit_wind": "wind", "spirit_bog": "bog", "spirit_fire": "embers",
+	# Акт 2. Механизмы — раскалённые искры и обломки
+	"sphere_walker_fire": "metal", "sphere_walker_water": "metal", "sphere_walker_storm": "metal",
+	"sphere_walker_wind": "metal", "sleeping_sphere": "metal", "repair_bot": "metal", "steam_hammer": "metal",
+	"spirit_catcher": "metal", "sphere_colossus": "metal",
+	# Твари вулкана — пепел и угли
+	"ash_hound": "cinder", "ash_scarab": "cinder", "ash_moth": "cinder", "ash_serpent": "cinder",
+	"ash_whirl": "cinder", "ash_vulture": "cinder", "spark_stalker": "cinder", "spark": "embers",
+	"ember_slug": "cinder", "lava_crawler": "cinder", "crater_walker": "cinder", "spirit_ash": "cinder",
+	"wild_fire": "embers", "burnt_sentry": "cinder",
+	# Камень и шлак
+	"slag_golem": "stone", "rift_grinder": "stone", "spirit_stone": "stone", "glass_spitter": "stone",
+	"convoy_giant": "wood",
+	# Вода и пар
+	"kettle_jelly": "water", "scalded_crab": "water", "wild_tide": "water", "spirit_steam": "vapor",
+	"wild_storm": "storm",
 }
+const C_METAL := Color(1.0, 0.78, 0.5)            # раскалённый металл механизмов (искры, край растворения)
+const C_DUST := Color(0.7, 0.63, 0.52)            # дорожная пыль мародёров
 
 const TEX_DIR: String = "res://assets/textures/vfx/"
 
@@ -128,6 +145,22 @@ const PRESETS: Dictionary = {
 	"ash": {"tex": "ash", "color": C_ASH, "amount": 22, "life": 1.6, "speed": [0.3, 1.0],
 		"dir": Vector3.UP, "spread": 70.0, "gravity": -0.6, "damping": 0.8, "size": [0.13, 0.26],
 		"radius": 0.4, "spin": 120.0},
+	# Механизм: раскалённые искры веером, падают дугой
+	"metal": {"tex": "spark", "color": C_METAL, "energy": 3.2, "amount": 22, "life": 0.45,
+		"speed": [3.0, 6.5], "spread": 75.0, "gravity": -12.0, "damping": 2.5, "size": [0.08, 0.15],
+		"add": true, "stretch": true},
+	# Обломки механизма: тёмные пластинки и болты кувыркаются
+	"scrap": {"tex": "shard", "color": Color(0.32, 0.3, 0.28), "amount": 10, "life": 0.8,
+		"speed": [2.0, 4.5], "dir": Vector3.UP, "spread": 70.0, "gravity": -12.0, "size": [0.1, 0.2],
+		"radius": 0.2, "spin": 700.0},
+	# Тварь вулкана: хлопья пепла разлетаются, гаснут на лету
+	"cinder": {"tex": "ash", "color": Color(0.38, 0.36, 0.34), "amount": 14, "life": 0.7,
+		"speed": [1.5, 3.5], "spread": 80.0, "gravity": -4.0, "damping": 2.0, "size": [0.1, 0.2],
+		"radius": 0.15, "spin": 300.0},
+	# Дух пара: белый клуб
+	"vapor": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.92, 0.95, 1.0, 0.55), "amount": 5,
+		"life": 0.6, "speed": [0.8, 1.8], "spread": 80.0, "gravity": 0.6, "damping": 2.0,
+		"size": [0.4, 0.7], "radius": 0.15, "spin": 40.0},
 	# Утонул: всплеск
 	"splash": {"tex": "drop", "color": Color(0.55, 0.75, 0.7, 0.9), "energy": 1.2, "amount": 26,
 		"life": 0.7, "speed": [2.5, 5.0], "dir": Vector3.UP, "spread": 30.0, "gravity": -12.0,
@@ -314,6 +347,54 @@ const PRESETS: Dictionary = {
 	"spore_loop": {"tex": "soft_dot", "color": Color(0.78, 0.82, 0.48, 0.75), "amount": 7, "life": 2.6,
 		"speed": [0.1, 0.3], "dir": Vector3.UP, "spread": 60.0, "gravity": 0.1, "size": [0.05, 0.09],
 		"radius": 0.5, "fade_in": true, "turbulence": 0.5},
+
+	# ---- Акт 2 ----
+	# Замыкание механизма: короткие разряды пробегают по корпусу
+	# Пепел медленно падает над Трактом (область — box)
+	"ash_fall_loop": {"tex": "ash", "color": Color(0.5, 0.48, 0.45, 0.75), "amount": 70, "life": 7.0,
+		"speed": [0.2, 0.45], "dir": Vector3.DOWN, "spread": 25.0, "gravity": -0.08, "size": [0.05, 0.1],
+		"spin": 90.0, "fade_in": true, "turbulence": 0.25},
+	# Пылинки в свете ламп под землёй
+	"dust_mote_loop": {"tex": "soft_dot", "color": Color(1.0, 0.82, 0.58), "energy": 1.3, "amount": 40,
+		"life": 8.0, "speed": [0.02, 0.08], "spread": 180.0, "gravity": 0.0, "size": [0.03, 0.06],
+		"fade_in": true, "add": true, "turbulence": 0.3},
+	# Бурая дымка за краями Тракта
+	"haze_loop": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.42, 0.36, 0.3, 0.16), "amount": 12,
+		"life": 14.0, "speed": [0.05, 0.15], "dir": Vector3.RIGHT, "spread": 40.0, "gravity": 0.0,
+		"size": [4.0, 7.0], "spin": 4.0, "fade_in": true, "grow": true},
+	# Пар из труб и котлов: белая струйка вверх, расплывается
+	"vent_loop": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.88, 0.9, 0.92, 0.32), "amount": 6,
+		"life": 2.2, "speed": [0.8, 1.4], "dir": Vector3.UP, "spread": 8.0, "gravity": 0.2, "damping": 0.6,
+		"size": [0.3, 0.6], "radius": 0.05, "spin": 30.0, "fade_in": true, "grow": true},
+	# Искры станка: редкие брызги раскалённого металла
+	"weld_loop": {"tex": "spark", "color": C_METAL, "energy": 3.0, "amount": 10, "life": 0.5,
+		"speed": [1.5, 3.0], "dir": Vector3.UP, "spread": 60.0, "gravity": -9.0, "damping": 1.0,
+		"size": [0.04, 0.08], "radius": 0.05, "add": true, "stretch": true},
+	# Дым над вулканом: огромные медленные клубы
+	"plume_loop": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.2, 0.18, 0.17, 0.5), "amount": 10,
+		"life": 12.0, "speed": [1.0, 1.6], "dir": Vector3.UP, "spread": 10.0, "gravity": 0.0, "damping": 0.1,
+		"size": [6.0, 10.0], "radius": 2.0, "spin": 6.0, "fade_in": true, "grow": true},
+	# Капли магмы: светящиеся, падают дугой (карты Сердца Жерла)
+	"magma_drops": {"tex": "drop", "color": Color(1.0, 0.55, 0.15), "energy": 2.8, "amount": 14, "life": 0.6,
+		"speed": [2.5, 4.5], "dir": Vector3.UP, "spread": 45.0, "gravity": -12.0, "size": [0.1, 0.2],
+		"radius": 0.2, "add": true, "stretch": true},
+	# Осколки стекла огненной сферы: янтарные, светятся
+	"glass": {"tex": "shard", "color": Color(1.0, 0.75, 0.4), "energy": 1.8, "amount": 18, "life": 0.8,
+		"speed": [2.5, 5.0], "dir": Vector3.UP, "spread": 75.0, "gravity": -11.0, "size": [0.1, 0.2],
+		"radius": 0.2, "spin": 600.0, "add": true},
+	# Чёрный масляный дым (бочка с маслом)
+	"oil_smoke": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.08, 0.08, 0.08, 0.7), "amount": 8,
+		"life": 1.6, "speed": [0.8, 1.8], "dir": Vector3.UP, "spread": 40.0, "gravity": 0.6, "damping": 1.0,
+		"size": [0.8, 1.4], "radius": 0.3, "spin": 30.0, "grow": true},
+	# Жаровня: маленькое пламя над чашей
+	"brazier_loop": {"tex": "flame_sheet", "frames": 4, "color": Color(1.0, 0.72, 0.3), "energy": 1.6,
+		"color_mid": Color(1.0, 0.45, 0.1), "amount": 6, "life": 0.7, "speed": [0.2, 0.5], "dir": Vector3.UP,
+		"spread": 8.0, "gravity": 0.6, "damping": 0.5, "size": [0.3, 0.5], "radius": 0.14, "add": true,
+		"fade_in": true},
+	# Гейзер дышит: пар стелется над жерлом
+	"geyser_loop": {"tex": "smoke_sheet", "frames": 4, "color": Color(0.9, 0.93, 0.96, 0.28), "amount": 4,
+		"life": 2.6, "speed": [0.3, 0.7], "dir": Vector3.UP, "spread": 20.0, "gravity": 0.15, "damping": 0.4,
+		"size": [0.4, 0.8], "radius": 0.15, "spin": 25.0, "fade_in": true, "grow": true},
 }
 
 var _process_cache: Dictionary = {}   # имя пресета → ParticleProcessMaterial
@@ -626,6 +707,8 @@ func _meshes(view: Node) -> Array[MeshInstance3D]:
 	for n in view.find_children("*", "MeshInstance3D", true, false):
 		if auras != null and auras.is_ancestor_of(n):
 			continue
+		if n.has_meta("vfx"):
+			continue   # свечение на кости модели (клинок с руной) — тоже эффект, а не модель
 		out.append(n as MeshInstance3D)
 	return out
 
@@ -804,6 +887,10 @@ func hit(view: Node3D, height: float, info: Dictionary) -> void:
 			if mat_name == "block":
 				mat_name = "sparks"   # Рыцарь без блока — обычные искры
 			burst(mat_name, body, power)
+			if mat_name == "metal":
+				burst("scrap", body, 0.6 * power)   # у механизма отлетают пластинки
+			elif mat_name == "cinder":
+				burst("embers", body, 0.6 * power)  # под пеплом тлеют угли
 			if mat_name == "sparks" and big:
 				burst("dust", view.global_position + Vector3(0, 0.2, 0), 1.0)
 		flash(view, flash_color, 1.0)
@@ -826,7 +913,8 @@ func heal(view: Node3D, height: float, amount: int) -> void:
 	number(view.global_position + Vector3(0.0, height * 0.75, 0.0) + _camera_right() * 0.5, "+%d" % amount, C_HEAL)
 
 
-# Смерть врага: растворение и огоньки. kind: "rift" (твари), "cult", "spirit" (дух покорён)
+# Смерть врага: растворение и огоньки. kind: "rift" (твари), "cinder" (твари вулкана),
+# "cult", "machine" (механизмы технарей), "scav" (мародёры), "spirit" (дух покорён)
 func death(view: Node3D, height: float, kind: String, spirit_color: Color = C_RIFT) -> void:
 	var at: Vector3 = view.global_position + Vector3(0.0, height * 0.45, 0.0)
 	if kind == "cult":
@@ -834,7 +922,21 @@ func death(view: Node3D, height: float, kind: String, spirit_color: Color = C_RI
 		burst("ash", at)
 	elif kind == "spirit":
 		tame(view, height, spirit_color)
+	elif kind == "machine":
+		# Механизм разваливается: искры, обломки, выдох пара, край раскалён
+		dissolve(view, C_METAL * 1.4, height)
+		burst("metal", at, 1.6)
+		burst("scrap", at, 1.4)
+		burst("steam_puff", at, 0.9)
+		light_flash(at, C_METAL, 2.0, 3.0, 0.3)
+	elif kind == "scav":
+		# Мародёр: падает в клубе дорожной пыли
+		dissolve(view, C_DUST, height)
+		burst("dust", view.global_position + Vector3(0.0, 0.3, 0.0), 1.6)
 	else:
+		if kind == "cinder":
+			burst("cinder", at, 1.4)
+			burst("embers", at, 1.2)
 		dissolve(view, C_RIFT, height)
 		burst("rift_motes", at)
 		light_flash(at, C_RIFT, 1.5, 3.0, 0.6)
@@ -1262,6 +1364,11 @@ func _build_aura(key: String, node: Node3D, height: float, state: Dictionary) ->
 		"rune":
 			node.set_meta("kind", state.get("rune", ""))
 			var rune_color: Color = RUNE_COLORS.get(state.get("rune", ""), C_HIT)
+			# Светится сам клинок (кость Weapon у Рыцаря); у моделей без неё — огоньки у руки, как раньше
+			var blade: Node3D = _blade_glow(node.get_parent().get_parent() as Node3D, rune_color)
+			if blade != null:
+				node.set_meta("linked", blade)   # погаснет вместе с аурой (_fade_aura)
+				return
 			var parts: GPUParticles3D = loop("rune_loop", node, Vector3(0.0, height * 0.55, 0.0))
 			parts.process_material = _process_for("rune_loop", rune_color)
 			# Мягкий отсвет руны на доспехе
@@ -1307,6 +1414,11 @@ func _build_aura(key: String, node: Node3D, height: float, state: Dictionary) ->
 # Аура больше не нужна: частицы перестают появляться и догорают, потом узел удаляется
 func _fade_aura(node: Node3D) -> void:
 	node.name = "fading_%d" % node.get_instance_id()   # чтобы на её место можно было сразу поставить новую
+	if node.has_meta("linked"):
+		var linked: Node3D = node.get_meta("linked")
+		node.remove_meta("linked")
+		if is_instance_valid(linked):
+			_fade_aura(linked)   # свечение клинка живёт на кости модели, гасим его отдельно
 	var longest: float = 0.3
 	for child in node.get_children():
 		if child is GPUParticles3D:
@@ -1559,3 +1671,141 @@ func enemy_ambient(view: Node3D, enemy_id: String, height: float) -> void:
 	node.name = "spores"
 	holder.add_child(node)
 	loop("spore_loop", node, Vector3(0.0, height * 0.6, 0.0))
+
+
+# ---------- Руна на клинке ----------
+
+# Где клинок Рыцаря в осях модели (knight.glb): от гарды до острия вдоль +Z, на уровне кулака
+const BLADE_BONE: String = "Weapon"
+const BLADE_FROM: Vector3 = Vector3(-0.285, 0.73, 0.16)
+const BLADE_TO: Vector3 = Vector3(-0.285, 0.73, 0.93)
+const BLADE_GLOW: float = 3.2      # яркость свечения клинка (больше 1 — светится через glow)
+
+
+# Узел на кости модели, оси которого совпадают с осями модели в позе покоя:
+# всё, что в него положить по координатам модели, будет двигаться вместе с костью.
+func _bone_anchor(view: Node3D, bone: String) -> Node3D:
+	var model: Node3D = null
+	for child in view.get_children():
+		if child is Node3D and child.name != "Auras" and not child.find_children("*", "Skeleton3D", true, false).is_empty():
+			model = child
+			break
+	if model == null:
+		return null
+	var skel: Skeleton3D = model.find_children("*", "Skeleton3D", true, false)[0]
+	var idx: int = skel.find_bone(bone)
+	if idx < 0:
+		return null
+	var to_skel := Transform3D.IDENTITY   # из осей скелета — в оси модели
+	var n: Node = skel
+	while n != null and n != model:
+		to_skel = (n as Node3D).transform * to_skel
+		n = n.get_parent()
+	var attach := BoneAttachment3D.new()
+	attach.bone_name = bone
+	skel.add_child(attach)
+	var anchor := Node3D.new()
+	anchor.transform = skel.get_bone_global_rest(idx).affine_inverse() * to_skel.affine_inverse()
+	attach.add_child(anchor)
+	return anchor
+
+
+# Клинок с руной: светящаяся полоса вдоль лезвия, огоньки цвета руны срываются с него и отсвет.
+# Возвращает корень эффекта (null — у модели нет кости оружия).
+func _blade_glow(view: Node3D, color: Color) -> Node3D:
+	if view == null:
+		return null
+	var anchor: Node3D = _bone_anchor(view, BLADE_BONE)
+	if anchor == null:
+		return null
+	var root := Node3D.new()
+	root.name = "RuneBlade"
+	anchor.add_child(root)
+	var mid: Vector3 = (BLADE_FROM + BLADE_TO) * 0.5
+	var length: float = BLADE_FROM.distance_to(BLADE_TO)
+	# Полоса света: тонкий брусок чуть шире лезвия, складывается со светом
+	var bar := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.07, 0.14, length)
+	bar.mesh = box
+	bar.position = mid
+	var mat: StandardMaterial3D = _glow_material("soft_dot").duplicate()
+	mat.albedo_texture = null
+	mat.vertex_color_use_as_albedo = false
+	mat.albedo_color = Color(color.r * BLADE_GLOW, color.g * BLADE_GLOW, color.b * BLADE_GLOW, 0.75)
+	bar.material_override = mat
+	bar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	bar.set_meta("vfx", true)
+	root.add_child(bar)
+	# Пульс: руна «дышит»
+	var pulse: Tween = bar.create_tween().set_loops()
+	pulse.tween_property(mat, "albedo_color:a", 0.45, 0.7).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(mat, "albedo_color:a", 0.8, 0.7).set_trans(Tween.TRANS_SINE)
+	# Огоньки вдоль лезвия: остаются в мире, поэтому при взмахе тянутся следом
+	var parts: GPUParticles3D = loop("rune_loop", root, mid, 0.8, color, Vector3(0.03, 0.03, length * 0.5))
+	parts.local_coords = false
+	# Отсвет на доспехе и плитах
+	var glow := OmniLight3D.new()
+	glow.light_color = color
+	glow.light_energy = 0.9
+	glow.omni_range = 1.6
+	glow.position = mid
+	root.add_child(glow)
+	flicker(glow, 0.9)
+	return root
+
+
+# ---------- Зов духа ----------
+
+# Огонёк духа срывается с плеча героя и летит в цель (или вверх над героем, если цели нет),
+# там вспыхивает; потом заново появляется у плеча. Ждать через await — до вспышки в цели.
+func spirit_dash(caster: Node3D, spirit_id: String, target: Vector3, color: Color, k: float = 1.0) -> void:
+	var holder: Node3D = caster.get_node_or_null("Auras")
+	var pivot: Node3D = holder.get_node_or_null("spirit_" + spirit_id) if holder != null else null
+	var core: Node3D = pivot.get_child(0) as Node3D if pivot != null and pivot.get_child_count() > 0 else null
+	var from: Vector3 = core.global_position if core != null else caster.global_position + Vector3(0.0, 1.5, 0.0)
+	if core != null:
+		core.visible = false
+	var to: Vector3 = target + Vector3(0.0, 0.85, 0.0)
+	var arc: float = clampf(from.distance_to(to) * 0.25, 0.4, 1.5)
+	burst("glints", from, 0.8, 0, color)
+	await projectile(from, to, color, 0.55 * k, 0.3, arc)
+	burst("glints", to, 1.4 * k, 0, color)
+	burst("impact", to, 1.6 * k, 1, color)
+	ring(target + Vector3(0.0, 0.06, 0.0), color, 2.0 * k, 0.4, 2.2)
+	light_flash(to, color, 3.0, 4.0, 0.3)
+	if core != null and is_instance_valid(core):
+		# Огонёк возвращается к плечу: проявляется из точки
+		var back: Tween = core.create_tween()
+		back.tween_interval(0.45)
+		back.tween_callback(func() -> void:
+			core.scale = Vector3(0.05, 0.05, 0.05)
+			core.visible = true)
+		back.tween_property(core, "scale", Vector3.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+# ---------- Лава: марево ----------
+
+var _heat_shader: Shader = preload("res://assets/shaders/vfx/heat_haze.gdshader")
+var _heat_mat: ShaderMaterial
+
+
+# Дрожащий воздух над лавой: прозрачная полоса, которая слегка искажает то, что за ней.
+# Одна на клетку; в упрощённых эффектах не ставится.
+func heat_haze(parent: Node3D, at: Vector3 = Vector3.ZERO, size: float = 1.0) -> void:
+	if not Settings.full_effects:
+		return
+	if _heat_mat == null:
+		_heat_mat = ShaderMaterial.new()
+		_heat_mat.shader = _heat_shader
+	var quad := QuadMesh.new()
+	quad.size = Vector2(1.3 * size, 1.4 * size)
+	var node := MeshInstance3D.new()
+	node.name = "HeatHaze"
+	node.mesh = quad
+	node.material_override = _heat_mat
+	node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	node.position = at + Vector3(0.0, 0.75 * size, 0.0)
+	# Сдвиг узора, чтобы соседние клетки не дрожали в такт
+	node.set_instance_shader_parameter("phase", randf_range(0.0, 10.0))
+	parent.add_child(node)

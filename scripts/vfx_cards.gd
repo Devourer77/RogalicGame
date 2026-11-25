@@ -16,7 +16,7 @@ extends RefCounted
 #   chain — цепная молния: прыгает от цели к цели
 #   wave  — по линии клеток по очереди
 #   area  — по области: снаряд в центр и всплеск на каждой клетке
-# Цвета: steel, rage, arcane, water, lightning, wind, bog, fire, steam.
+# Цвета: steel, rage, arcane, water, lightning, wind, bog, fire, steam; духи акта 2 — ash, stone, magma, rust.
 
 const TINTS: Dictionary[String, Color] = {
 	"steel": Color(0.78, 0.86, 0.96),
@@ -28,6 +28,11 @@ const TINTS: Dictionary[String, Color] = {
 	"bog": Color(0.4, 0.62, 0.32),
 	"fire": Color(1.0, 0.58, 0.18),
 	"steam": Color(0.92, 0.95, 1.0),
+	# Духи акта 2
+	"ash": Color(0.74, 0.71, 0.66),      # Пепельник — пепел с тлеющими углями
+	"stone": Color(0.7, 0.64, 0.54),     # Каменник — сухая земля и камень
+	"magma": Color(1.0, 0.5, 0.12),      # Сердце Жерла — густой оранжевый, темнее огня
+	"rust": Color(0.78, 0.5, 0.3),       # Ржавник — бурая ржавчина, не красная
 }
 
 # Цвет по набору карты
@@ -36,10 +41,12 @@ const SET_TINTS: Dictionary[String, String] = {
 	"m_kinetic": "arcane", "m_flow": "arcane", "m_charge": "arcane",
 	"k_rage": "rage", "k_warden": "steel", "k_onslaught": "steel",
 	"x_fire_tide": "steam",
+	"s_ash": "ash", "s_stone": "stone", "s_steam": "steam", "s_magma": "magma", "s_rust": "rust",
 }
 # Смешанные наборы x_<дух1>_<дух2>: цвет по первому духу
 const SPIRIT_TINTS: Dictionary[String, String] = {
-	"tide": "water", "storm": "lightning", "wind": "wind", "bog": "bog", "fire": "fire",
+	"tide": "water", "storm": "lightning", "wind": "wind", "bog": "bog", "fire": "fire", "forest": "bog",
+	"ash": "ash", "stone": "stone", "steam": "steam", "magma": "magma", "rust": "rust",
 }
 const CHEST: Vector3 = Vector3(0.0, 0.85, 0.0)   # высота груди над клеткой
 
@@ -131,11 +138,26 @@ static func play(vfx: VfxPlayer, card: CardData, caster: Node3D, cells: Array[Ve
 	var tree: SceneTree = vfx.get_tree()
 
 	if card.is_call:
-		# Зов духа: огонёк срывается с плеча — вспышка цвета духа вокруг героя
+		# Зов духа: вспышка цвета духа вокруг героя, огонёк срывается с плеча и летит в цель
 		vfx.burst("rise", from + Vector3(0, 0.2, 0), 1.2 * k, 0, color)
 		vfx.ring(from + Vector3(0, 0.05, 0), color, 2.4, 0.45, 2.5)
 		vfx.light_flash(from + Vector3(0, 1.2, 0), color, 3.0, 4.0, 0.4)
-		await tree.create_timer(0.15).timeout
+		var spirit_id: String = card.card_set.trim_prefix("s_")
+		var target: Vector3 = from + Vector3(0, 1.4, 0)   # Зов на себя — огонёк взмывает над героем
+		if not cells.is_empty():
+			var sum: Vector3 = Vector3.ZERO
+			for c in cells:
+				sum += c
+			var center: Vector3 = sum / cells.size()
+			if (center - from).length() > 0.5:
+				target = center
+		await vfx.spirit_dash(caster, spirit_id, target, color, k)
+		# Снаряд в цель уже был — это сам огонёк; дальше только попадание по клеткам
+		if (form == "bolt" or form == "area") and tint != "lightning" and not cells.is_empty():
+			for c in cells:
+				_impact(vfx, tint, color, c, dir, k, cells.size() > 1)
+			await tree.create_timer(0.08).timeout
+			return
 
 	match form:
 		"melee":
@@ -303,6 +325,22 @@ static func _impact(vfx: VfxPlayer, tint: String, color: Color, at: Vector3, dir
 				vfx.light_flash(chest, color, 2.5, 3.5, 0.25)
 		"steam":
 			vfx.burst("steam_puff", at + Vector3(0, 0.3, 0), k)
+		"ash":
+			vfx.burst("cinder", chest, k)
+			vfx.burst("embers", chest, 0.6 * k)
+			vfx.burst("smoke", at + Vector3(0, 0.5, 0), 0.7 * k)
+		"stone":
+			vfx.burst("stone", chest, 1.2 * k)
+			vfx.burst("dust", at + Vector3(0, 0.2, 0), k)
+			vfx.ring(at + Vector3(0, 0.05, 0), color, 1.4, 0.3, 1.2)
+		"magma":
+			vfx.burst("magma_drops", at + Vector3(0, 0.3, 0), k)
+			vfx.burst("fire_puff", at + Vector3(0, 0.3, 0), 0.8 * k)
+			if not area:
+				vfx.light_flash(chest, color, 2.5, 3.5, 0.25)
+		"rust":
+			vfx.burst("rust_flakes", chest, k)
+			vfx.burst("sparks", chest, 0.6 * k, 0, color * 1.3)
 		"arcane":
 			vfx.burst("impact", chest, k, 1, color)
 			vfx.burst("glints", chest, k, 0, color)

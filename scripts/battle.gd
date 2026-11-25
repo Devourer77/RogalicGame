@@ -61,6 +61,8 @@ const SPIRIT_COLORS: Dictionary[String, Color] = {
 	"spirit_wind": Color(0.72, 0.88, 0.76), "spirit_bog": Color(0.3, 0.5, 0.28),
 	"spirit_fire": Color(1.0, 0.6, 0.2),
 	"spirit_forest": Color(0.45, 0.75, 0.4),
+	"spirit_ash": Color(0.74, 0.71, 0.66), "spirit_stone": Color(0.7, 0.64, 0.54),
+	"spirit_steam": Color(0.88, 0.92, 0.95), "half_spirit": Color(0.45, 0.75, 1.0),
 }
 
 # Камера: смотрит на центр поля под наклоном, Q/E — поворот на 90°, колесо — зум
@@ -551,7 +553,7 @@ func _on_unit_died(unit: BattleUnit) -> void:
 	else:
 		# Враг: падает (если есть анимация) и растворяется — твари бирюзой, Культ пеплом.
 		# Очередь ждёт только начало растворения, остальное доигрывает фоном.
-		var kind: String = "cult" if unit.data != null and unit.data.cult else "rift"
+		var kind: String = _death_kind(unit)
 		_queue(func() -> void:
 			Sfx.play("death", 0.07)
 			if view.start_death():
@@ -559,6 +561,22 @@ func _on_unit_died(unit: BattleUnit) -> void:
 			vfx.death(view, height, kind)
 			await get_tree().create_timer(0.3).timeout
 		)
+
+
+# Как исчезает павший враг (VfxPlayer.death): твари — бирюзой Раскола (вулканические — ещё и пеплом),
+# Культ — пеплом, механизмы разваливаются с искрами и паром, мародёры — в клубе пыли
+func _death_kind(unit: BattleUnit) -> String:
+	if unit.data == null:
+		return "rift"
+	if unit.data.cult:
+		return "cult"
+	if unit.data.machine:
+		return "machine"
+	if unit.data.id.begins_with("scav_"):
+		return "scav"
+	if VfxPlayer.material_of(unit.data.id) == "cinder":
+		return "cinder"
+	return "rift"
 
 
 # Враг появился посреди боя (ритуал, подкрепление): фигурка возникает в очереди анимаций

@@ -670,6 +670,7 @@ func add_atmosphere(rain: bool) -> void:
 		# В пещере и на выжженном тракте вместо огоньков — искры углей, дождя и мошкары нет
 		vfx.loop("wisp_loop", air, center + Vector3(0.0, 1.0, 0.0), 1.0, COLOR_EMBER_LIGHT,
 			Vector3(half.x + 2.0, 0.8, half.z + 2.0))
+		_add_ash_atmosphere(air, center, half)
 		return
 	vfx.loop("wisp_loop", air, center + Vector3(0.0, 1.0, 0.0), 1.0, Color(0, 0, 0, 0),
 		Vector3(half.x + 4.0, 0.6, half.z + 4.0))
@@ -693,6 +694,51 @@ func add_atmosphere(rain: bool) -> void:
 	if rain:
 		vfx.loop("rain_loop", air, center + Vector3(0.0, 6.0, 0.0), 1.0, Color(0, 0, 0, 0),
 			Vector3(half.x + 3.0, 0.5, half.z + 3.0))
+
+
+# Атмосфера акта 2. Тракт: падает пепел, бурая дымка за краями, дым над вулканом.
+# Подземье: пылинки в тёплом свете; в лабораториях трубы и котлы пускают пар, станки искрят.
+const VENT_LIMIT: int = 6   # сколько труб и станков за краем поля «оживают» (больше — лишняя нагрузка)
+
+
+func _add_ash_atmosphere(air: Node3D, center: Vector3, half: Vector3) -> void:
+	var decor: Node = get_node_or_null("Decorations")
+	if _biome() == "ash":
+		vfx.loop("ash_fall_loop", air, center + Vector3(0.0, 5.0, 0.0), 1.0, Color(0, 0, 0, 0),
+			Vector3(half.x + 3.0, 1.0, half.z + 3.0))
+		var edge: float = 3.5
+		for side: Array in [[Vector3(0.0, 0.0, -half.z - edge), Vector3(half.x + 6.0, 0.3, 2.0)],
+				[Vector3(-half.x - edge, 0.0, 0.0), Vector3(2.0, 0.3, half.z + 2.0)],
+				[Vector3(half.x + edge, 0.0, 0.0), Vector3(2.0, 0.3, half.z + 2.0)]]:
+			vfx.loop("haze_loop", air, center + side[0] + Vector3(0.0, 0.5, 0.0), 1.0, Color(0, 0, 0, 0), side[1])
+		if decor != null:
+			for prop in decor.get_children():
+				if prop is Node3D and String(prop.scene_file_path).contains("decor_volcano"):
+					var v: Node3D = prop
+					vfx.loop("plume_loop", air, v.position + Vector3(0.0, 7.0 * v.scale.y, 0.0))
+		return
+	# Подземье
+	vfx.loop("dust_mote_loop", air, center + Vector3(0.0, 1.6, 0.0), 1.0, Color(0, 0, 0, 0),
+		Vector3(half.x + 2.0, 1.2, half.z + 2.0))
+	if decor == null:
+		return
+	var vents: int = 0
+	for prop in decor.get_children():
+		if vents >= VENT_LIMIT:
+			break
+		if not prop is Node3D:
+			continue
+		var path: String = String(prop.scene_file_path)
+		var p: Node3D = prop
+		if path.contains("rock_boiler"):
+			vfx.loop("vent_loop", air, p.position + Vector3(0.0, 1.5 * p.scale.y, 0.0))
+			vents += 1
+		elif path.contains("rock_pipe"):
+			vfx.loop("vent_loop", air, p.position + Vector3(0.0, 0.75 * p.scale.y, 0.0), 0.7)
+			vents += 1
+		elif path.contains("rock_machine"):
+			vfx.loop("weld_loop", air, p.position + Vector3(0.0, 0.75 * p.scale.y, 0.0))
+			vents += 1
 
 
 # Светящийся материал без теней (для частиц и огня)
@@ -1206,8 +1252,7 @@ func change_object(cell: Vector2i, old_kind: int, new_kind: int, dir: Vector2i) 
 				# Сам огненный взрыв рисует VfxPlayer.explosion (сигнал effect_cells "explosion"),
 				# здесь — то, что есть только у бочки: зелёный газ и щепки
 				if vfx != null:
-					vfx.burst("gas_blast", grid_to_world(cell) + Vector3(0.0, 0.5, 0.0))
-					vfx.burst("splinters", grid_to_world(cell) + Vector3(0.0, 0.4, 0.0))
+					_barrel_burst(grid_to_world(cell))
 				else:
 					burst(cell, COLOR_GAS_LIGHT, roundi(34 * IMPACT_FX_SCALE), 5.0 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)   # зелёная вспышка газа
 					burst(cell, Color(1.0, 0.6, 0.15), roundi(20 * IMPACT_FX_SCALE), 3.5 * IMPACT_FX_SCALE, 3.0, IMPACT_FX_SCALE)
@@ -1319,6 +1364,7 @@ func _refresh_lava_links(cell: Vector2i) -> void:
 	var root := Node3D.new()
 	root.position = grid_to_world(cell)
 	var apothem: float = CELL_STEP * 0.5
+	var tone: Array = _lava_tone()
 	var n: int = HexMath.DIRS.size()
 	for i in n:
 		var d: Vector2i = HexMath.DIRS[i]
@@ -1327,7 +1373,7 @@ func _refresh_lava_links(cell: Vector2i) -> void:
 		var v: Vector3 = HexMath.axial_to_world(d)
 		var angle: float = atan2(v.x, v.z)
 		for layer: Array in [[0.97, 0.1, Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05],
-				[0.8, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07]]:
+				[0.8, 0.14, tone[0], tone[1], tone[2], 0.07]]:
 			var strip: MeshInstance3D = _glow_slab(Vector3(HexMath.HEX_SIZE * layer[0], layer[1], apothem + 0.02),
 					layer[2], layer[3], layer[4], layer[5])
 			strip.position += v.normalized() * apothem * 0.5
@@ -1335,7 +1381,7 @@ func _refresh_lava_links(cell: Vector2i) -> void:
 			root.add_child(strip)
 		var d2: Vector2i = HexMath.DIRS[(i + 1) % n]
 		if _object_kinds.get(cell + d2, BattleLogic.Obj.NONE) == lava:
-			var corner: MeshInstance3D = _glow_hex(0.6, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07)
+			var corner: MeshInstance3D = _glow_hex(0.6, 0.14, tone[0], tone[1], tone[2], 0.07)
 			corner.position += (v + HexMath.axial_to_world(d2)) / 3.0
 			root.add_child(corner)
 	if root.get_child_count() == 0:
@@ -1413,6 +1459,28 @@ func _get_swamp_material() -> StandardMaterial3D:
 			_swamp_mat.roughness = 1.0
 			_swamp_mat.emission_enabled = false
 	return _swamp_mat
+
+
+# Что разлетается, когда лопается «бочка»: у каждой арены акта 2 своя (масло, жаровня, сфера, гриб).
+# Сам огненный взрыв рисует VfxPlayer.explosion — здесь только то, что есть у этой модели.
+func _barrel_burst(at: Vector3) -> void:
+	var skin: String = (ASH_SKINS.get(_arena, {}) as Dictionary).get(BattleLogic.Obj.BARREL, "")
+	match skin:
+		"obj_oil_barrel":   # масло: чёрный дым и тёмные клёпки
+			vfx.burst("oil_smoke", at + Vector3(0.0, 0.6, 0.0))
+			vfx.burst("scrap", at + Vector3(0.0, 0.4, 0.0))
+		"obj_brazier":   # жаровня: раскиданные угли и чаша
+			vfx.burst("embers", at + Vector3(0.0, 0.6, 0.0), 2.0)
+			vfx.burst("scrap", at + Vector3(0.0, 0.5, 0.0))
+		"obj_sphere_fire":   # огненная сфера: янтарное стекло и клуб огня
+			vfx.burst("glass", at + Vector3(0.0, 0.9, 0.0))
+			vfx.burst("fire_puff", at + Vector3(0.0, 0.9, 0.0), 1.3)
+		"obj_puffball":   # гриб-дождевик: облако спор и газ
+			vfx.burst("gas_blast", at + Vector3(0.0, 0.5, 0.0))
+			vfx.burst("spore", at + Vector3(0.0, 0.5, 0.0), 2.0)
+		_:   # бочка топей: зелёный газ и щепки
+			vfx.burst("gas_blast", at + Vector3(0.0, 0.5, 0.0))
+			vfx.burst("splinters", at + Vector3(0.0, 0.4, 0.0))
 
 
 # Вид места вокруг поля (BattleLogic.arena_biome): "bog", "forest", "ash" или "deep"
@@ -1508,6 +1576,15 @@ func _make_object(kind: int, cell: Vector2i) -> Node3D:
 			_add_light(root, Vector3(0.0, 0.8, 0.0), COLOR_EMBER_LIGHT, 0.8 if skin_name != "obj_oil_barrel" else 0.0, 2.6)
 		elif skin_name == "obj_sphere_water":
 			_add_light(root, Vector3(0.0, 0.9, 0.0), Color(0.5, 0.75, 1.0), 0.7, 2.4)
+		if vfx != null:
+			match skin_name:
+				"obj_brazier":   # жаровня горит
+					vfx.loop("brazier_loop", root, Vector3(0.0, 0.85, 0.0))
+					vfx.loop("ember_loop", root, Vector3(0.0, 0.95, 0.0), 0.6)
+				"obj_sphere_fire":   # в огненной сфере кружат угли
+					vfx.loop("ember_loop", root, Vector3(0.0, 0.8, 0.0), 0.5)
+				"obj_geyser":   # гейзер дышит паром
+					vfx.loop("geyser_loop", root, Vector3(0.0, 0.9, 0.0))
 		elif skin_name == "obj_puffball":
 			_add_light(root, Vector3(0.0, 0.5, 0.0), COLOR_GAS_LIGHT, 0.6, 2.2)
 		return root
@@ -1642,23 +1719,30 @@ func _glow_hex(part: float, thickness: float, color: Color, glow: Color, energy:
 	return m
 
 
-# Лава: тёмный остывший бортик и густая оранжево-жёлтая масса с тёплым светом (красного нет)
+# Цвет лавы: [масса, свечение массы, яркость, ядро, свечение ядра, яркость ядра].
+# На Тракте свет ярче и дымка светлая: обычная лава пересвечивалась до бело-жёлтого и спорила
+# с жёлтыми маршрутами врагов — там она гуще и оранжевее, светлое только ядро.
+# Перемычки между клетками (_refresh_lava_links) берут тот же цвет, иначе швы светлее клеток.
+func _lava_tone() -> Array:
+	if _biome() == "ash":
+		return [Color(0.95, 0.45, 0.06), Color(1.0, 0.42, 0.05), 1.3, Color(1.0, 0.62, 0.14), Color(1.0, 0.55, 0.1), 1.6]
+	return [Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6]
+
+
+# Лава: тёмный остывший бортик и густая оранжевая масса с тёплым светом (красного нет)
+
 func _make_lava_node() -> Node3D:
 	var root := Node3D.new()
 	root.add_child(_glow_hex(0.97, 0.1, Color(0.18, 0.12, 0.08), Color(0.9, 0.4, 0.05), 0.4, 0.05))
-	if _biome() == "ash":
-		# На Тракте свет ярче и дымка светлая: обычная лава пересвечивалась до бело-жёлтого.
-		# Здесь она гуще и оранжевее, светлое только ядро.
-		root.add_child(_glow_hex(0.80, 0.14, Color(0.95, 0.45, 0.06), Color(1.0, 0.42, 0.05), 1.3, 0.07))
-		root.add_child(_glow_hex(0.40, 0.17, Color(1.0, 0.62, 0.14), Color(1.0, 0.55, 0.1), 1.6, 0.09))
-	else:
-		root.add_child(_glow_hex(0.80, 0.14, Color(1.0, 0.7, 0.15), Color(1.0, 0.6, 0.1), 2.2, 0.07))
-		root.add_child(_glow_hex(0.40, 0.17, Color(1.0, 0.85, 0.3), Color(1.0, 0.8, 0.2), 2.6, 0.09))
+	var tone: Array = _lava_tone()
+	root.add_child(_glow_hex(0.80, 0.14, tone[0], tone[1], tone[2], 0.07))
+	root.add_child(_glow_hex(0.40, 0.17, tone[3], tone[4], tone[5], 0.09))
 	var light: OmniLight3D = _add_light(root, Vector3(0.0, 0.5, 0.0), Color(1.0, 0.6, 0.15), 0.8, 2.4)
 	if vfx != null:
 		vfx.loop("lava_loop", root, Vector3(0.0, 0.17, 0.0))      # лопающиеся пузыри
 		vfx.loop("ember_loop", root, Vector3(0.0, 0.3, 0.0), 0.8) # искры
 		vfx.flicker(light, 0.8)
+		vfx.heat_haze(root)                                       # воздух над лавой дрожит
 	return root
 
 
