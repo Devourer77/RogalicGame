@@ -12219,3 +12219,151 @@ msgstr ""
 #: ui/settings_screen.gd:145
 msgid "Скорость хода врагов"
 msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Яд"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Лужа"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Лёд"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Заморозка"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Трясина"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Газ"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Корка"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Удержание"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Руна на оружии"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Панцирь"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Поглощение магии"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Призыв"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Вошёл в лужу или под ним появилась вода. Держится в луже и ещё 2 раунда после. Молния по мокрому бьёт сильнее, огонь сушит."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "2 урона в конце раунда мимо блока, 3 раунда. Новый яд обновляет срок."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "В свой ход не может идти, но карты играть и бить может."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Враги, которые могут достать героя с провокацией, бьют только его."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Враг между двумя героями на одной прямой получает от карт +50%. Огонь, яд и взрывы не усиливаются."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Сдвигает по прямой. Врезался в преграду, край поля или другого — 4 урона обоим (в частокол — 6)."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Принимает урон на себя, пока не кончится. Блок врагов сгорает в начале их хода."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "3 урона в конце раунда тому, кто стоит в огне; горит 3 раунда. Испаряет лужу, топит лёд, поджигает деревья, бочки и камыш."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Кто вошёл — мокрый. Молния бьёт по всей связной луже. Тушит огонь."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "При толчке по льду скользят дальше. Лёд на луже — заморозка."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Лёд на луже: кто стоял в ней — опутан на 1 ход. Тяжёлые не вмерзают."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Огонь на луже: паровой взрыв — 3 урона, отброс на 1, лужа исчезает."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Бьёт по всей связной луже и проводится через топь. По мокрому — сильнее."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Вход в топь отнимает 1 шаг. Проводит молнию."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Не пройти. Обычный враг, толкнутый в неё, тонет; герой получает 4 урона и остаётся на краю, тяжёлые — урон."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "3 урона и яд тому, кто вошёл, протащен или стоит в газе в конце раунда. Огонь его взрывает."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Огонь на трясине. Стена на 3 раунда. Толкнули в лаву — 6 урона; кто стоит в ней в конце раунда — 6."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Вода или лёд на лаве. Проходима, но ход на ней заканчивается. Через 2 раунда — сухая земля."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Сколько карт отряд сыграл за ход. Карты с «Цепь N» и «+X за звено» от неё сильнее."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "ПКМ по карте в руке — она останется на следующий ход."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Одна на оружии, на 3 удара: каждая карта с уроном, задевшая врага, тратит один."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Урон от карт вдвое меньше, кроме удара в клещах."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "На каждое второе Заклинание героев за ход — врагам +3 здоровья, себе +3 блока."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Новые враги появляются на свободных клетках рядом. На поле не больше 10 врагов."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Механизм стоит и искрит — пропускает свой ход."
+msgstr ""

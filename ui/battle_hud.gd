@@ -22,6 +22,7 @@ const HAND_PEEK: float = 116.0     # сколько карты торчит на
 const HAND_MAX_WIDTH: float = 780.0 # шире этого рука не растягивается (не заходит под кнопки справа)
 const CORNER_WIDTH: float = 230.0   # ширина правого нижнего угла: подсказка, цепь, кнопки
 const SIDE_WIDTH: float = 300.0
+const ENEMY_KEYWORDS_MAX: int = 4   # сколько пояснений слов внизу карточки врага
 
 # Цвета клеток на поле — такие же, как в scripts/battle.gd (для памятки слева снизу)
 const LEGEND: Array[Array] = [
@@ -69,6 +70,7 @@ var tutor: TutorPanel             # окошко обучения слева п�
 var order_bar: TurnOrderBar       # полоса порядка ходов врагов сверху по центру
 var _end_warning: String = ""     # «Завершить ход?»: кто ещё может сыграть карту (пусто — не переспрашиваем)
 var _warn_heroes: Array[BattleUnit] = []   # их панели в латунной рамке
+var _kw_panel: PanelContainer = null   # пояснения слов рядом с картой под курсором (ui/keyword_tips.gd)
 var _tutor_glowed: bool = false   # одна подсвеченная карта на руку (если таких карт две — первая)
 
 
@@ -556,6 +558,7 @@ func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) 
 	for i in logic.heroes.size():
 		_hero_box.add_child(_make_hero_panel(logic.heroes[i], i, logic.heroes[i] == active, busy))
 
+	_hide_keywords()   # рука пересобирается — старая карта под курсором исчезнет
 	UiKit.clear(_hand_box)
 	_tutor_glowed = false
 	var any_playable: bool = false
@@ -777,6 +780,9 @@ func _make_hand_slot(active: BattleUnit, index: int, cost: int, playable: bool, 
 	else:
 		card.mouse_entered.connect(_slide_card.bind(card, raised_y, 1.06, 3))
 		card.mouse_exited.connect(_slide_card.bind(card, 0.0, 1.0, 0))
+	# Пояснения слов карты («мокрый», «опутан», «клещи»…) — столбиком рядом с картой
+	card.mouse_entered.connect(_show_keywords.bind(card, Loc.t(active.hand[index].description)))
+	card.mouse_exited.connect(_hide_keywords)
 	card.pressed.connect(card_pressed.emit.bind(index))
 	# ПКМ по карте — удержать её на следующий ход (режим KEEP_2). Замок показывает отметку.
 	if BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2:
@@ -829,6 +835,36 @@ func _selected_frame() -> StyleBoxFlat:
 	frame.shadow_color = Color(UiKit.BRASS, 0.55)
 	frame.shadow_size = 12
 	return frame
+
+
+# Столбик пояснений к словам из текста карты: справа от карты, а у правого края экрана — слева.
+# Растёт снизу вверх от низа экрана, мышь не ловит (соседние карты по-прежнему наводятся).
+func _show_keywords(card: Button, text: String) -> void:
+	_hide_keywords()
+	if not is_instance_valid(card) or not card.is_inside_tree():
+		return
+	var panel: PanelContainer = KeywordTips.make_panel(text)
+	if panel == null:
+		return
+	var screen_w: float = _root.get_viewport_rect().size.x
+	var x: float = card.global_position.x + CardView.CARD_SIZE.x * 1.06 + 8.0
+	if x + KeywordTips.WIDTH > screen_w - CORNER_WIDTH - 20.0:
+		x = card.global_position.x - KeywordTips.WIDTH - 8.0
+	panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	panel.offset_left = x
+	panel.offset_right = x + KeywordTips.WIDTH
+	panel.offset_top = -14.0
+	panel.offset_bottom = -14.0
+	panel.z_index = 5
+	_root.add_child(panel)
+	_kw_panel = panel
+
+
+func _hide_keywords() -> void:
+	if _kw_panel != null and is_instance_valid(_kw_panel):
+		_kw_panel.queue_free()
+	_kw_panel = null
 
 
 func _slide_card(card: Button, y: float, zoom: float, z: int) -> void:
@@ -1033,6 +1069,17 @@ func show_enemy(e: BattleUnit, logic: BattleLogic) -> void:
 		trait_label.custom_minimum_size.x = width - 16
 		row.add_child(trait_label)
 		_enemy_box.add_child(row)
+	# Пояснения слов из удара и особенностей («опутан», «толчок», «яд»…) — внизу карточки
+	var words_text: String = now.describe() + "\n" + "\n".join(d.traits())
+	if logic.is_wet(e):
+		words_text += "\n" + Loc.t("Мокрый")
+	if e.poison > 0:
+		words_text += "\n" + Loc.t("Яд")
+	var entries: Array[Dictionary] = Keywords.find(words_text, false)
+	if not entries.is_empty():
+		_enemy_box.add_child(UiKit.make_divider(width))
+		for entry: Dictionary in entries.slice(0, ENEMY_KEYWORDS_MAX):
+			_enemy_box.add_child(KeywordTips.make_entry(entry, width))
 
 
 # Строка «Сейчас: [значок] Удар: 4 урона вплотную». bonus — прибавка от «зова» шамана.
