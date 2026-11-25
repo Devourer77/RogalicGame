@@ -957,6 +957,8 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 		text = ""
 	elif selected >= 0 and selected < active.hand.size():
 		text = Loc.t("«%s»: выбери жёлтую клетку на поле.\nПКМ или Esc — отмена") % Loc.t(active.hand[selected].title)
+		if not logic.approach_targets(active, selected).is_empty():
+			text += "\n" + Loc.t("Враг с оранжевой меткой — подойдёт и ударит сам")
 	elif not team_can_act:
 		text = Loc.t("Шагов и маны не осталось — жми «Конец хода»")
 	else:

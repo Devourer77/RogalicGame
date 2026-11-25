@@ -25,6 +25,8 @@ const COLOR_MOVE := Color(0.72, 0.86, 0.88, 0.3)   # куда можно идт�
 const COLOR_TARGET := Color(1.0, 0.9, 0.3, 0.3)
 const COLOR_AREA := Color(1.0, 0.5, 0.1, 0.6)
 const COLOR_GHOST_MOVE := Color(0.4, 0.8, 1.0, 0.55)   # куда встанут юниты после карты
+const COLOR_APPROACH := Color(1.0, 0.72, 0.3, 0.55)    # враг, до которого карта достанет, если подойти
+const COLOR_APPROACH_PATH := Color(0.55, 0.9, 1.0, 0.7)   # путь героя при «подойти и ударить»
 const COLOR_GHOST_KILL := Color(0.96, 0.8, 0.36, 0.7)  # кто погибнет
 const COLOR_INTENT := Color(1.0, 0.1, 0.1, 0.45)
 const COLOR_HOVER_THREAT := Color(1.0, 0.0, 0.3, 0.6)
@@ -1172,21 +1174,48 @@ func _on_cell_clicked(cell: Vector2i) -> void:
 					_tutor_pending = ["card", h.hero_data.id, h.hand[index].id]
 				hud.burst_hand_card(index, h.hand[index])   # карта рассыпается искрами
 				_do(func() -> void: logic.play_card(h, index, cell))
+			elif _approach.has(cell):
+				# Подойти и ударить одним кликом (и одной отменой)
+				var h: BattleUnit = _active
+				var index: int = _selected_card
+				hud.burst_hand_card(index, h.hand[index])
+				_do(func() -> void: logic.approach_and_play(h, index, cell))
 			else:
 				_cancel_card()
 
 
 func _on_hover(cell: Vector2i) -> void:
 	_hover_cell = cell
-	_show_hovered_enemy_threat(cell)
+	# Пока целишься картой во врага, его зона удара не нужна: предпросмотр показывает итог
+	var aiming_at_enemy: bool = _mode == Mode.AIMING and (_approach.has(cell)
+			or logic.get_card_targets(_active, _selected_card).has(cell)) and logic.unit_at(cell) != null
+	_show_hovered_enemy_threat(cell, not aiming_at_enemy)
 	if cell != _info_cell:
 		_info_cell = cell
 		_show_cell_info(cell)
 	if _mode == Mode.AIMING and logic.get_card_targets(_active, _selected_card).has(cell):
+		board.clear_layer("approach_path")
+		board.clear_layer("approach_stand")
 		board.show_cells("area", logic.get_card_area(_active, _selected_card, cell), COLOR_AREA)
 		_show_card_preview(cell)
+	elif _mode == Mode.AIMING and _approach.has(cell):
+		# Путь героя до клетки подхода и удар оттуда
+		var move: Vector2i = _approach[cell]["move"]
+		var path: Array[Vector2i] = []
+		path.assign(logic.get_move_targets(_active).get(move, [move]))
+		var steps: Array[Vector2i] = path.slice(1, path.size() - 1)   # без клетки, где стоит сейчас
+		board.show_cells("approach_path", steps, COLOR_APPROACH_PATH)
+		var start: Vector2i = _active.cell
+		_active.cell = move   # примерка, чтобы показать зону удара с новой клетки
+		var area: Array[Vector2i] = logic.get_card_area(_active, _selected_card, _approach[cell]["aim"])
+		_active.cell = start
+		board.show_cells("area", area, COLOR_AREA)
+		_show_card_preview(cell, true)
+		board.show_cells("approach_stand", [move] as Array[Vector2i], COLOR_GHOST_MOVE)   # куда встанет герой
 	else:
 		board.clear_layer("area")
+		board.clear_layer("approach_path")
+		board.clear_layer("approach_stand")
 		_clear_preview()
 
 
@@ -1213,17 +1242,19 @@ const PREVIEW_LAYERS: Array[String] = ["ghost_move", "ghost_kill", "chain_cells"
 	"ghost_tile_1", "ghost_tile_2", "ghost_tile_3", "ghost_tile_5", "ghost_tile_6"]
 
 var _preview_key: String = ""          # для чего посчитан предпросмотр (герой, карта, клетка)
+var _approach: Dictionary = {}          # «подойти и ударить»: {клетка врага: {"move", "aim"}} для выбранной карты
 var _preview: Dictionary = {}
 var _previewed: Array[BattleUnit] = []  # у кого на плашке сейчас предпросмотр
 
 
-func _show_card_preview(cell: Vector2i) -> void:
-	var key: String = "%d:%d:%s" % [_active.id, _selected_card, cell]
+func _show_card_preview(cell: Vector2i, approach: bool = false) -> void:
+	var key: String = "%d:%d:%s:%s" % [_active.id, _selected_card, cell, approach]
 	if key == _preview_key:
 		return   # мышь двигается по той же клетке — всё уже показано
 	_clear_preview()
 	_preview_key = key
-	_preview = logic.preview_card(_active, _selected_card, cell)
+	_preview = logic.preview_approach(_active, _selected_card, cell) if approach \
+			else logic.preview_card(_active, _selected_card, cell)
 	if not _preview["ok"]:
 		return
 	var units: Dictionary = _preview["units"]
@@ -1375,10 +1406,13 @@ func _show_cell_info(cell: Vector2i) -> void:
 
 
 # Навёл на врага — его зона угрозы подсвечивается ярче
-func _show_hovered_enemy_threat(cell: Vector2i) -> void:
+func _show_hovered_enemy_threat(cell: Vector2i, show_zone: bool = true) -> void:
 	var u: BattleUnit = logic.unit_at(cell)
 	if u != null and not u.is_hero:
-		board.show_cells("hover_threat", logic.get_threat_cells(u), COLOR_HOVER_THREAT)
+		if show_zone:
+			board.show_cells("hover_threat", logic.get_threat_cells(u), COLOR_HOVER_THREAT)
+		else:
+			board.clear_layer("hover_threat")
 		hud.show_enemy(u, logic)   # карточка врага справа: кто это, чем бьёт, особенности
 	else:
 		board.clear_layer("hover_threat")
@@ -1482,6 +1516,14 @@ func _on_card_pressed(index: int) -> void:
 	_mode = Mode.AIMING
 	board.clear_layer("move")
 	board.show_cells("target", logic.get_card_targets(_active, index), COLOR_TARGET)
+	# «Подойти и ударить»: враги, до которых карта достанет, если сначала подойти
+	_approach = {} if _tutor != null and _tutor.guided() else logic.approach_targets(_active, index)
+	var reach: Array[Vector2i] = []
+	reach.assign(_approach.keys())
+	board.show_cells("approach", reach, COLOR_APPROACH)
+	if not reach.is_empty():
+		_offer_hint("approach")
+		_flush_hints()
 	hud.refresh(logic, _active, _selected_card, false)
 	_on_hover(_hover_cell)
 
@@ -1719,6 +1761,10 @@ func _enter_idle() -> void:
 	_clear_preview()
 	board.clear_layer("target")
 	board.clear_layer("area")
+	board.clear_layer("approach")
+	board.clear_layer("approach_path")
+	board.clear_layer("approach_stand")
+	_approach = {}
 	for k: String in REACTION_KINDS:
 		board.clear_layer("reaction_" + k)
 	var move_cells: Array[Vector2i] = []

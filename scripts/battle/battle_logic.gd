@@ -298,7 +298,7 @@ const STEAM_SPECIALS: Array[String] = ["steam_boil", "scald", "steam_strike"]   
 const MIN_ENEMY_CELLS: int = 12  # сколько свободных клеток оставить врагам в верхних рядах
 
 const ENEMY_ROWS: int = 4        # враги появляются в стольких рядах…
-const ENEMY_ROW_OFFSET: int = 1  # …начиная с этого ряда сверху (ряд 0 пустой: бой начинается ближе)
+const ENEMY_ROW_OFFSET: int = 3  # …начиная с этого ряда сверху (ряды 0–2 пустые: в первом раунде враги уже рядом; было 1 до 25 ноября)
 const HERO_ROWS: int = 3         # нижние ряды держим свободными для героев
 
 # «Нет клетки». Раньше для этого брали (-1, -1), но в сотах у настоящих клеток
@@ -1945,6 +1945,89 @@ func card_cost(h: BattleUnit, index: int) -> int:
 
 
 # Клетки, которые можно выбрать целью для карты из руки героя
+# «Подойти и ударить»: для каждого врага, которого карта НЕ достаёт с места, — куда герою дойти
+# (своими шагами этого хода), чтобы достала: {клетка врага: {"move": клетка, "aim": куда навести}}.
+# Берётся клетка с самым коротким путём, при равенстве — не в огне, газе и лаве.
+# Карты-рывки (таран) сами двигают героя — для них подхода нет.
+func approach_targets(h: BattleUnit, index: int) -> Dictionary:
+	var result: Dictionary = {}
+	if index < 0 or index >= h.hand.size() or not can_play(h, index) or h.moves_left <= 0:
+		return result
+	var card: CardData = h.hand[index]
+	if card.shape == CardData.Shape.CHARGE or card.shape == CardData.Shape.SELF:
+		return result
+	var here: Array[Vector2i] = get_card_targets(h, index)
+	var wanted: Array[BattleUnit] = []
+	for e: BattleUnit in enemies:
+		if e.is_alive() and not here.has(e.cell) and not _in_card_area_from(h, index, h.cell, e.cell, here):
+			wanted.append(e)
+	if wanted.is_empty():
+		return result
+	var moves: Dictionary[Vector2i, Array] = get_move_targets(h)
+	var cells: Array = moves.keys()
+	cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var la: int = moves[a].size() + (10 if _hazard_tile(a) else 0)
+		var lb: int = moves[b].size() + (10 if _hazard_tile(b) else 0)
+		return la < lb)
+	var start: Vector2i = h.cell
+	for m: Vector2i in cells:
+		if wanted.is_empty():
+			break
+		h.cell = m   # примерка: где стоял бы герой (только для расчёта целей, без сигналов)
+		var t: Array[Vector2i] = get_card_targets(h, index)
+		for e: BattleUnit in wanted.duplicate():
+			var aim: Vector2i = NO_CELL
+			if t.has(e.cell):
+				aim = e.cell
+			elif card.shape == CardData.Shape.AROUND and get_card_area(h, index, m).has(e.cell):
+				aim = m
+			if aim != NO_CELL:
+				result[e.cell] = {"move": m, "aim": aim}
+				wanted.erase(e)
+	h.cell = start
+	return result
+
+
+func _in_card_area_from(h: BattleUnit, index: int, from: Vector2i, target: Vector2i, targets: Array[Vector2i]) -> bool:
+	# Удар вокруг себя (AROUND) уже задевает врага, стоящего рядом
+	return h.hand[index].shape == CardData.Shape.AROUND and targets.has(from) and get_card_area(h, index, from).has(target)
+
+
+func _hazard_tile(c: Vector2i) -> bool:
+	var t: int = tiles.get(c, Tile.NONE)
+	return t == Tile.FIRE or t == Tile.GAS or object_at(c) == Obj.LAVA
+
+
+# Предпросмотр «подойти и ударить»: на копии боя герой идёт, потом карта — как preview_card
+func preview_approach(h: BattleUnit, index: int, target: Vector2i) -> Dictionary:
+	var plan: Dictionary = approach_targets(h, index)
+	if not plan.has(target):
+		return {"ok": false}
+	var c: BattleLogic = clone()
+	var h2: BattleUnit = c.heroes[heroes.find(h)]
+	if not c.move_hero(h2, plan[target]["move"]):
+		return {"ok": false}
+	return c.preview_card(h2, index, plan[target]["aim"])
+
+
+# Подойти и сыграть карту одним действием (для отмены — одно действие)
+func approach_and_play(h: BattleUnit, index: int, target: Vector2i) -> bool:
+	var plan: Dictionary = approach_targets(h, index)
+	if not plan.has(target):
+		return false
+	var card: CardData = h.hand[index]
+	if not move_hero(h, plan[target]["move"]):
+		return false
+	# Ход мог что-то поменять (лужа, ловушка) — играем, только если карта ещё достаёт
+	var i: int = h.hand.find(card)
+	if i < 0 or not can_play(h, i):
+		return false
+	var aim: Vector2i = plan[target]["aim"]
+	if not get_card_targets(h, i).has(aim):
+		return false
+	return play_card(h, i, aim)
+
+
 func get_card_targets(h: BattleUnit, index: int) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	if index < 0 or index >= h.hand.size():
@@ -6015,7 +6098,8 @@ func _formation_cells(list: Array[EnemyData], formation: Formation) -> Array[Vec
 					if not zone.any(_is_empty):
 						zone = far if left_side else near   # этот край занят деревьями — с другого
 				else:
-					zone = _zone(0, width - 1, top, last)
+					# Остальные — на ряд дальше засадника, чтобы засада оставалась впереди
+					zone = _zone(0, width - 1, top, last - 1)
 			Formation.SPREAD:
 				zone = _farthest(_zone(0, width - 1, top, last + 1), taken)
 			Formation.CLUSTER:
@@ -6024,7 +6108,7 @@ func _formation_cells(list: Array[EnemyData], formation: Formation) -> Array[Vec
 				else:
 					for t in taken:
 						for n in HexMath.neighbors(t):
-							if not zone.has(n):
+							if not zone.has(n) and n.y <= last + 1:   # куча не сползает в ряды героев
 								zone.append(n)
 		var c: Vector2i = pick.call(zone) if formation != Formation.FREE else NO_CELL
 		if c == NO_CELL and formation == Formation.SCREEN and not ranged:

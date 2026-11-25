@@ -84,6 +84,8 @@ func _initialize() -> void:
 			var fine := true
 			for e in l.enemies:
 				fine = fine and e.cell.y < l.height - 3 and not l.rocks.has(e.cell) and not l.objects.has(e.cell)
+			if not fine and OS.get_environment("DEBUG") != "":
+				print("  safe: ", id, " ", l.enemies.map(func(e): return [e.data.id, e.cell, l.rocks.has(e.cell), l.objects.get(e.cell, -1)]))
 			_count(ok_all, "safe", fine)
 	check("Фланги: по двое у левого и правого края (%d/%d)" % [ok_all.get("flank", 0), tries], ok_all.get("flank", 0) == tries)
 	check("Заслон: пращник за гоблинами (%d/%d)" % [ok_all.get("screen", 0), tries], ok_all.get("screen", 0) == tries)

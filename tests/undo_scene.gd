@@ -23,6 +23,7 @@ func check(name: String, ok: bool) -> void:
 
 func _initialize() -> void:
 	await process_frame
+	root.get_node("Settings").warn_end_turn = false   # без переспроса «Завершить ход?»
 	var run = root.get_node("Run")
 	run.fast_enemies = true
 	for i in ARENAS.size():
@@ -76,6 +77,8 @@ func _initialize() -> void:
 				break
 			b._on_end_turn_pressed()
 			await wait_idle(1500)
+			if b.logic.is_over:
+				break
 			check("%s: после конца хода стек пуст" % arena, b._undo.is_empty())
 		# Кнопка, справка и замок существуют
 		check("кнопка «Отменить» есть", b.hud._undo_button != null)
