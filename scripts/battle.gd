@@ -87,6 +87,8 @@ var _ring: MeshInstance3D                       # светящееся коль�
 var _mode: Mode = Mode.BUSY
 var _selected_card: int = -1
 var _hover_cell: Vector2i = BattleLogic.NO_CELL
+var _routes: Dictionary[BattleUnit, Array] = {}   # прогноз: путь каждого врага (клетки от него до места, куда встанет)
+var _route_enemy: BattleUnit = null                # враг под курсором — его путь виден, даже если пути всех скрыты
 var _anim_queue: Array[Callable] = []
 var _cam_yaw_deg: float = 0.0     # поворот камеры вокруг поля
 var _cam_dist: float = 15.0       # расстояние от центра поля
@@ -1324,6 +1326,27 @@ func _show_hovered_enemy_threat(cell: Vector2i) -> void:
 	else:
 		board.clear_layer("hover_threat")
 		hud.show_enemy(null, logic)
+	var enemy: BattleUnit = u if u != null and not u.is_hero else null
+	if enemy != _route_enemy:
+		_route_enemy = enemy
+		_refresh_routes()
+
+
+# Пути врагов на поле: все (настройка «Пути всех врагов») или только того, кто под курсором.
+# Во время анимаций путей нет — прогноз ещё не пересчитан.
+func _refresh_routes() -> void:
+	if _mode == Mode.BUSY or _routes.is_empty():
+		board.clear_layer("routes")
+		return
+	var shown: Array = []
+	if Settings.all_routes:
+		shown = _routes.values()
+	elif _route_enemy != null and _routes.has(_route_enemy):
+		shown = [_routes[_route_enemy]]
+	if shown.is_empty():
+		board.clear_layer("routes")
+	else:
+		board.show_routes(shown)
 
 
 # Режим сброса: следующая нажатая карта уходит в сброс (одна за ход)
@@ -1418,6 +1441,8 @@ func _do(action: Callable) -> void:
 	for k: String in REACTION_KINDS:
 		board.clear_layer("reaction_" + k)
 	_clear_preview()
+	_routes.clear()   # старый прогноз путей больше не верен
+	_route_enemy = null
 	_set_fire_forecast({})   # пока идут анимации, предупреждений об огне на плашках нет
 	hud.show_enemy(null, logic)
 	hud.refresh(logic, _active, -1, true)
@@ -1586,16 +1611,16 @@ func _enter_idle() -> void:
 	hud.update_undo_button(_undo.size(), _undo_lock, false)
 
 
-# Прогноз: линии — куда пойдёт каждый враг, красные клетки — куда он ударит,
+# Прогноз: пути — куда пойдёт каждый враг (все или только под курсором), красные клетки — куда он ударит,
 # если прямо сейчас нажать «Конец хода». Пересчитывается после каждого действия.
 func _show_forecast() -> void:
-	var paths: Array = []
+	_routes.clear()
 	var seen: Dictionary[Vector2i, bool] = {}
 	var hits: Array[Vector2i] = []
 	var buffs: Array[Vector2i] = []
 	for plan: Dictionary in logic.forecast_enemies():
 		(plan["enemy"] as BattleUnit).ai_reason = plan["reason"]   # карточка врага покажет, почему он так ходит
-		paths.append(plan["path"])
+		_routes[plan["enemy"] as BattleUnit] = plan["path"]
 		for c: Vector2i in plan["buff"]:
 			if not buffs.has(c):
 				buffs.append(c)
@@ -1628,7 +1653,7 @@ func _show_forecast() -> void:
 			marks.append({"cell": _blast_center(fx_cells), "icon": "rune_trap", "color": Color(0.9, 0.93, 1.0)})
 	board.show_markers("hazard_marks", marks)
 	_set_fire_forecast(hazards["fire"])
-	board.show_routes(paths)
+	_refresh_routes()   # по умолчанию — только путь врага под курсором
 	board.show_cells("intent", hits, COLOR_INTENT)
 	board.show_cells("buff", buffs, COLOR_BUFF)   # бирюзовое — кого шаман усилит «зовом»
 

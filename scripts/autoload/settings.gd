@@ -12,6 +12,7 @@ var shake: float = 1.0              # сила тряски камеры: 0 — 
 var full_effects: bool = true       # false — «упрощённые эффекты»: частиц вдвое меньше
 var rain: bool = true               # морось над частью боёв
 var fast_enemies: bool = false      # ход врагов ×2 (кнопка в бою меняет то же самое)
+var all_routes: bool = false        # пути всех врагов на поле; выкл. — только путь врага под курсором
 var colorblind: bool = false        # режим для дальтоников (палитра угрозы и узоры)
 var language: String = "ru"         # язык интерфейса (TranslationServer)
 
@@ -39,6 +40,7 @@ func load_settings() -> void:
 	full_effects = bool(cfg.get_value("battle", "full_effects", full_effects))
 	rain = bool(cfg.get_value("battle", "rain", rain))
 	fast_enemies = bool(cfg.get_value("battle", "fast_enemies", fast_enemies))
+	all_routes = bool(cfg.get_value("battle", "all_routes", all_routes))
 	colorblind = bool(cfg.get_value("screen", "colorblind", colorblind))
 	language = str(cfg.get_value("screen", "language", language))
 
@@ -52,6 +54,7 @@ func save() -> void:
 	cfg.set_value("battle", "full_effects", full_effects)
 	cfg.set_value("battle", "rain", rain)
 	cfg.set_value("battle", "fast_enemies", fast_enemies)
+	cfg.set_value("battle", "all_routes", all_routes)
 	cfg.save(settings_path)
 
 

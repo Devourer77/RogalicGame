@@ -207,7 +207,7 @@ func _build_end_button() -> void:
 	_end_button.add_theme_font_override("font", UiKit.font_bold())
 	_end_button.add_theme_font_size_override("font_size", 18)
 	_end_button.custom_minimum_size = Vector2(CORNER_WIDTH, 58)
-	_end_button.tooltip_text = Loc.t("Закончить ход героев. Враги сделают ровно то, что показано на поле:\nжёлтые линии — куда пойдут, красные клетки — куда ударят.")
+	_end_button.tooltip_text = Loc.t("Закончить ход героев. Враги сделают ровно то, что показано на поле:\nкрасные клетки — куда ударят; наведи на врага — следы покажут, куда он пойдёт.")
 	Sfx.bind_button(_end_button, "turn")
 	_end_button.pressed.connect(end_turn_pressed.emit)
 	# Цепь — над кнопкой «Конец хода», крупно, латунью
