@@ -13,6 +13,7 @@ var full_effects: bool = true       # false — «упрощённые эффе�
 var rain: bool = true               # морось над частью боёв
 var fast_enemies: bool = false      # ход врагов ×2 (кнопка в бою меняет то же самое)
 var all_routes: bool = false        # пути всех врагов на поле; выкл. — только путь врага под курсором
+var warn_end_turn: bool = true      # «Конец хода» при несыгранных картах — сначала переспросить
 var colorblind: bool = false        # режим для дальтоников (палитра угрозы и узоры)
 var language: String = "ru"         # язык интерфейса (TranslationServer)
 
@@ -41,6 +42,7 @@ func load_settings() -> void:
 	rain = bool(cfg.get_value("battle", "rain", rain))
 	fast_enemies = bool(cfg.get_value("battle", "fast_enemies", fast_enemies))
 	all_routes = bool(cfg.get_value("battle", "all_routes", all_routes))
+	warn_end_turn = bool(cfg.get_value("battle", "warn_end_turn", warn_end_turn))
 	colorblind = bool(cfg.get_value("screen", "colorblind", colorblind))
 	language = str(cfg.get_value("screen", "language", language))
 
@@ -55,6 +57,7 @@ func save() -> void:
 	cfg.set_value("battle", "rain", rain)
 	cfg.set_value("battle", "fast_enemies", fast_enemies)
 	cfg.set_value("battle", "all_routes", all_routes)
+	cfg.set_value("battle", "warn_end_turn", warn_end_turn)
 	cfg.save(settings_path)
 
 

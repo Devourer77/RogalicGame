@@ -1910,6 +1910,18 @@ func can_play(h: BattleUnit, index: int) -> bool:
 	return card_cost(h, index) <= h.mana + MAX_OVERHEAT
 
 
+# Живые герои, у которых в руке есть карта, которую можно сыграть прямо сейчас
+# (для предупреждения у «Конца хода»)
+func heroes_with_playable_cards() -> Array[BattleUnit]:
+	var result: Array[BattleUnit] = []
+	for h in living_heroes():
+		for i in h.hand.size():
+			if can_play(h, i) and not get_card_targets(h, i).is_empty():
+				result.append(h)
+				break
+	return result
+
+
 # Сколько маны реально стоит карта (с учётом скидки «Сосредоточения»)
 func card_cost(h: BattleUnit, index: int) -> int:
 	var card: CardData = h.hand[index]

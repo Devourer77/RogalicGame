@@ -90,6 +90,9 @@ var _selected_card: int = -1
 var _hover_cell: Vector2i = BattleLogic.NO_CELL
 var _routes: Dictionary[BattleUnit, Array] = {}   # прогноз: путь каждого врага (клетки от него до места, куда встанет)
 var _route_enemy: BattleUnit = null                # враг под курсором — его путь виден, даже если пути всех скрыты
+const END_CONFIRM_TIME: float = 3.0   # сколько секунд «Конец хода» ждёт второго нажатия
+var _end_confirm: bool = false        # «Конец хода» уже переспросил — следующее нажатие завершает ход
+var _end_confirm_token: int = 0       # номер вопроса: старый таймер не сбрасывает новый
 var _anim_queue: Array[Callable] = []
 var _cam_yaw_deg: float = 0.0     # поворот камеры вокруг поля
 var _cam_dist: float = 15.0       # расстояние от центра поля
@@ -1451,14 +1454,53 @@ func _on_end_turn_pressed() -> void:
 			return
 		_tutor_pending = ["end_turn", "", ""]
 	if _mode != Mode.BUSY:
+		if _ask_end_turn():
+			return
 		_last_chain_sounded = 0
 		Sfx.play("turn", 0.03)
 		_do(logic.end_turn)
 
 
+# Остались несыгранные карты — первое нажатие «Конца хода» только переспрашивает:
+# кнопка «Завершить ход?», панели этих героев в латунной рамке, пояснение над кнопкой.
+# Второе нажатие за END_CONFIRM_TIME секунд завершает ход. Выключается в настройках.
+func _ask_end_turn() -> bool:
+	if _end_confirm or not Settings.warn_end_turn or _tutor != null:
+		return false
+	var heroes: Array[BattleUnit] = logic.heroes_with_playable_cards()
+	if heroes.is_empty():
+		return false
+	var parts: PackedStringArray = []
+	for h: BattleUnit in heroes:
+		parts.append(Loc.t("%s (мана %d)") % [h.title, h.mana])
+	var text: String = Loc.t("Ещё можно сыграть карты: %s.\nНажми ещё раз — завершить ход.") % ", ".join(parts)
+	_end_confirm = true
+	_end_confirm_token += 1
+	var token: int = _end_confirm_token
+	hud.warn_end_turn(heroes, text)
+	hud.refresh(logic, _active, -1, false)
+	get_tree().create_timer(END_CONFIRM_TIME).timeout.connect(func() -> void:
+		if token == _end_confirm_token:
+			_cancel_end_confirm())
+	return true
+
+
+# Вопрос «Завершить ход?» снят: истекло время или игрок сделал что-то другое
+func _cancel_end_confirm() -> void:
+	if not _end_confirm:
+		return
+	_end_confirm = false
+	_end_confirm_token += 1
+	var none: Array[BattleUnit] = []
+	hud.warn_end_turn(none, "")
+	if _mode == Mode.IDLE:
+		hud.refresh(logic, _active, -1, false)
+
+
 # Выполняет действие в логике и проигрывает все анимации, которые оно вызвало
 func _do(action: Callable) -> void:
 	_mode = Mode.BUSY
+	_cancel_end_confirm()
 	_selected_card = -1
 	for layer: String in ["move", "target", "area", "hover_threat", "intent", "buff", "routes", "hazard_marks", "order_focus"]:
 		board.clear_layer(layer)

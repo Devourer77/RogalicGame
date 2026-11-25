@@ -67,6 +67,8 @@ var tutor_lock: bool = false      # ведём за руку: всё, кроме
 var tutor_end: bool = false       # подсветить «Конец хода»
 var tutor: TutorPanel             # окошко обучения слева под панелями героев
 var order_bar: TurnOrderBar       # полоса порядка ходов врагов сверху по центру
+var _end_warning: String = ""     # «Завершить ход?»: кто ещё может сыграть карту (пусто — не переспрашиваем)
+var _warn_heroes: Array[BattleUnit] = []   # их панели в латунной рамке
 var _tutor_glowed: bool = false   # одна подсвеченная карта на руку (если таких карт две — первая)
 
 
@@ -589,6 +591,7 @@ func refresh(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool) 
 
 	_end_button.disabled = busy
 	_set_end_button_ready(not busy and (not team_can_act or tutor_end))
+	_apply_end_warning()
 	_update_hint(logic, active, selected, busy, any_playable, team_can_act)
 
 
@@ -601,6 +604,9 @@ func _make_hero_panel(h: BattleUnit, index: int, is_active: bool, busy: bool) ->
 			Color(UiKit.PANEL, 0.95) if is_active else Color(UiKit.PANEL, 0.78),
 			UiKit.BRASS if is_active else hero_color.darkened(0.45), 2 if is_active else 1, 9, 10, 8)
 	var hover: StyleBoxFlat = UiKit.box(Color(UiKit.PANEL.lightened(0.04), 0.95), UiKit.BRASS.lightened(0.2), 2, 9, 10, 8)
+	if _warn_heroes.has(h):
+		# «Конец хода» переспрашивает: у этого героя ещё есть карта
+		normal = UiKit.box(Color(UiKit.PANEL, 0.95), UiKit.BRASS.lightened(0.3), 3, 9, 10, 8)
 	panel.add_theme_stylebox_override("panel", normal)
 	panel.custom_minimum_size.x = 308
 	if not alive:
@@ -860,6 +866,26 @@ func _set_end_button_ready(ready: bool) -> void:
 		_end_tween.tween_property(_end_button, "modulate", Color.WHITE, 0.6).set_trans(Tween.TRANS_SINE)
 
 
+# «Конец хода» переспрашивает: heroes — у кого остались карты, text — пояснение над кнопкой.
+# Пустой список — вернуть обычный вид. После вызова сцена боя делает refresh().
+func warn_end_turn(heroes: Array[BattleUnit], text: String) -> void:
+	_warn_heroes = heroes
+	_end_warning = text
+	_apply_end_warning()
+
+
+func _apply_end_warning() -> void:
+	if _end_warning == "":
+		_end_button.text = Loc.t("Конец хода")
+		return
+	_end_button.text = Loc.t("Завершить ход?")
+	_set_end_button_ready(false)
+	var warn: StyleBoxFlat = UiKit.box(Color(UiKit.PANEL, 0.95), UiKit.BRASS.lightened(0.3), 3, 9, 10, 8)
+	for state: String in ["normal", "hover", "pressed"]:
+		_end_button.add_theme_stylebox_override(state, warn)
+	_end_button.add_theme_color_override("font_color", UiKit.BRASS.lightened(0.35))
+
+
 # Строка над рукой: что можно сделать прямо сейчас
 func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: bool,
 		any_playable: bool, team_can_act: bool) -> void:
@@ -886,6 +912,8 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 	if text != "" and selected < 0 and BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2 \
 			and not active.hand.is_empty() and active.kept.is_empty():
 		text += Loc.t("\nПКМ по карте — удержать (до %d)") % BattleLogic.KEEP_LIMIT
+	if _end_warning != "" and not busy:
+		text = _end_warning
 	_hint.text = text
 	_hint_panel.visible = text != ""
 

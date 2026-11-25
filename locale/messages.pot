@@ -12203,3 +12203,19 @@ msgstr ""
 #: ui/turn_order_bar.gd:157
 msgid "Конец раунда"
 msgstr ""
+
+#: ui/settings_screen.gd:90
+msgid "Переспрашивать «Конец хода», если остались карты"
+msgstr ""
+
+#: ui/battle_hud.gd:878
+msgid "Завершить ход?"
+msgstr ""
+
+#: scripts/battle.gd:1452
+msgid "%s (мана %d)"
+msgstr ""
+
+#: scripts/battle.gd:1453
+msgid "Ещё можно сыграть карты: %s.\nНажми ещё раз — завершить ход."
+msgstr ""

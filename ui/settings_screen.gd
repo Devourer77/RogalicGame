@@ -87,6 +87,7 @@ func _ready() -> void:
 	left.add_child(_toggle_row("rain", Loc.t("Морось над полем")))
 	left.add_child(_toggle_row("fast_enemies", Loc.t("Ход врагов ×2")))
 	left.add_child(_toggle_row("all_routes", Loc.t("Пути всех врагов (выкл. — только под курсором)")))
+	left.add_child(_toggle_row("warn_end_turn", Loc.t("Переспрашивать «Конец хода», если остались карты")))
 	left.add_child(_section(Loc.t("Подсказки")))
 	var hints_row := HBoxContainer.new()
 	hints_row.add_theme_constant_override("separation", 10)
