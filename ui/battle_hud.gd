@@ -3,6 +3,7 @@ extends CanvasLayer
 # Интерфейс боя поверх 3D. Что где:
 #   слева сверху  — панели героев (портрет, здоровье, мана, шаги, ярость/натиск/заряд);
 #   справа сверху — номер раунда, арена, журнал событий и карточка врага под курсором;
+#   сверху по центру — полоса порядка ходов врагов (ui/turn_order_bar.gd);
 #   снизу         — рука карт, над ней строка-подсказка «что сейчас можно сделать»;
 #   справа снизу  — кнопка «Конец хода»; слева снизу — цвета клеток и кнопка справки (F1).
 # Узлы создаются в коде. HUD сам ничего не решает — только показывает
@@ -26,7 +27,7 @@ const SIDE_WIDTH: float = 300.0
 const LEGEND: Array[Array] = [
 	[Color(0.72, 0.86, 0.88), "сюда можно идти"],
 	[Color(1.0, 0.25, 0.25), "сюда ударят враги"],
-	[Color(1.0, 0.85, 0.4), "путь врага в его ход"],
+	[Color(0.9, 0.76, 0.48), "путь врага (наведи на него)"],
 	[Color(0.37, 0.92, 0.83), "шаман усилит своих"],
 ]
 
@@ -65,6 +66,7 @@ var tutor_card: String = ""
 var tutor_lock: bool = false      # ведём за руку: всё, кроме нужного, приглушено
 var tutor_end: bool = false       # подсветить «Конец хода»
 var tutor: TutorPanel             # окошко обучения слева под панелями героев
+var order_bar: TurnOrderBar       # полоса порядка ходов врагов сверху по центру
 var _tutor_glowed: bool = false   # одна подсвеченная карта на руку (если таких карт две — первая)
 
 
@@ -80,6 +82,7 @@ func _ready() -> void:
 
 	_build_hero_box()
 	_build_side_column()
+	_build_order_bar()
 	_build_corner()
 	_build_hand()
 	_build_end_button()
@@ -102,6 +105,16 @@ func _build_hero_box() -> void:
 	_hero_box.add_theme_constant_override("separation", 8)
 	_hero_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(_hero_box)
+
+
+# Полоса порядка ходов врагов: сверху по центру, между панелями героев и журналом
+func _build_order_bar() -> void:
+	order_bar = TurnOrderBar.new()
+	order_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	order_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	order_bar.offset_top = 14
+	order_bar.visible = false
+	_root.add_child(order_bar)
 
 
 # Правая колонка: раунд и арена, журнал, под ним карточка врага

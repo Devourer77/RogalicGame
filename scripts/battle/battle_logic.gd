@@ -30,6 +30,7 @@ signal objective_changed()              # цель боя обновилась (
 # героя other; "armor_burnt" — у корягача сгорела броня; "bequest" — unit принял венец от павшего other
 signal rock_added(cell: Vector2i)   # посреди боя появилась неразрушимая преграда (павший шлаковый голем)
 signal fx_hint(kind: String, unit: BattleUnit, other: BattleUnit)
+signal enemy_turn_started(unit: BattleUnit)   # враг начинает свой ход (полоса порядка ходов)
 
 # Что лежит на клетке поля (стихия на поверхности — по ней можно ходить)
 # SWAMP — проходимая трясина (вход отнимает шаг, проводит молнию); GAS — ядовитый газ (взрывается от огня)
@@ -5407,6 +5408,7 @@ func _enemies_act() -> bool:
 	for e in EnemyAI.turn_order(self):
 		if not e.is_alive():
 			continue
+		enemy_turn_started.emit(e)
 		if is_smoldering(e):
 			_toad_leap(e)   # тлеющая жаба не бьёт, а прыгает к героям и поджигает фитиль
 			if _check_end():
@@ -5756,14 +5758,25 @@ func clone() -> BattleLogic:
 # Что сделает каждый живой враг, если нажать «Конец хода» прямо сейчас.
 # Возвращает массив {"enemy": BattleUnit, "path": путь, "attack": клетки удара,
 # "buff": клетки «зова» (кого враг усилит), "reason": почему враг так ходит}.
-func forecast_enemies() -> Array[Dictionary]:
+# В каждом плане "order" — каким по счёту враг начнёт ход (с 1; 0 — не дойдёт до хода, погибнет раньше).
+# spawns (необязательно) — сюда допишутся враги, которые появятся в этот ход врагов (призыв):
+# {"title": имя, "after": сколько врагов успело начать ход до появления}.
+func forecast_enemies(spawns: Array[Dictionary] = []) -> Array[Dictionary]:
 	var sim: BattleLogic = clone()
 	var by_id: Dictionary[int, Dictionary] = {}
 	for e in living_enemies():
 		var start_path: Array[Vector2i] = [e.cell]
 		var empty: Array[Vector2i] = []
 		var no_buff: Array[Vector2i] = []
-		by_id[e.id] = {"enemy": e, "path": start_path, "attack": empty, "buff": no_buff, "reason": ""}
+		by_id[e.id] = {"enemy": e, "path": start_path, "attack": empty, "buff": no_buff, "reason": "", "order": 0}
+	var started: Array[int] = []
+	sim.enemy_turn_started.connect(func(u: BattleUnit) -> void:
+		if by_id.has(u.id) and not started.has(u.id):
+			started.append(u.id)
+			by_id[u.id]["order"] = started.size())
+	sim.unit_spawned.connect(func(u: BattleUnit) -> void:
+		if not u.is_hero:
+			spawns.append({"title": u.title, "after": started.size()}))
 	sim.unit_moved.connect(func(u: BattleUnit, path: Array[Vector2i]) -> void:
 		if by_id.has(u.id):
 			by_id[u.id]["path"] = path)

@@ -9344,8 +9344,8 @@ msgstr ""
 msgid "сюда ударят враги"
 msgstr ""
 
-#: ui/battle_hud.gd:29
-msgid "путь врага в его ход"
+#: ui/battle_hud.gd:30
+msgid "путь врага (наведи на него)"
 msgstr ""
 
 #: ui/battle_hud.gd:297
@@ -12188,3 +12188,18 @@ msgstr ""
 msgid "num:значок:число"
 msgstr ""
 
+#: ui/turn_order_bar.gd:132
+msgid "появится"
+msgstr ""
+
+#: ui/turn_order_bar.gd:133
+msgid "Появится в этот ход врагов (призыв)"
+msgstr ""
+
+#: ui/turn_order_bar.gd:152
+msgid "Конец раунда: после хода всех врагов горит огонь, действует яд, приходит подмога"
+msgstr ""
+
+#: ui/turn_order_bar.gd:157
+msgid "Конец раунда"
+msgstr ""

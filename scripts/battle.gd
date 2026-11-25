@@ -40,6 +40,7 @@ const COLOR_CRUST := Color(0.6, 0.6, 0.62, 0.75)     # корка
 const COLOR_SHOCK := Color(1.0, 0.95, 0.55, 0.8)     # молния по мокрому
 const COLOR_RUNE := Color(0.9, 0.93, 1.0, 0.8)       # взрыв сторожевой руны (серебристо-белый)
 const COLOR_OBJECTIVE := Color(0.84, 0.67, 0.34, 0.28)        # цель «Прорыв» — латунь
+const COLOR_ORDER_FOCUS := Color(0.84, 0.67, 0.34, 0.7)       # враг, на чью карточку в полосе ходов навели
 const COLOR_OBJECTIVE_WATER := Color(0.3, 0.55, 0.75, 0.35)   # ряд, который зальёт вода
 const COLOR_PINCER := Color(0.84, 0.67, 0.34, 0.8)   # «Клещи» — латунь (UiKit.BRASS)
 const REACTION_KINDS: Array[String] = ["steam", "freeze", "shatter", "lava", "crust", "shock", "pincer"]
@@ -166,6 +167,7 @@ func _ready() -> void:
 	hud.speed_toggled.connect(_apply_speed)
 	hud.discard_toggled.connect(_on_discard_toggled)
 	hud.undo_pressed.connect(_on_undo_pressed)
+	hud.order_bar.enemy_hovered.connect(_on_order_bar_hover)
 	# Поменяли настройки на паузе (дальтоники и т. п.) — перерисовать поле
 	Settings.changed.connect(func() -> void:
 		if _mode == Mode.IDLE and not logic.is_over:
@@ -448,6 +450,8 @@ func _connect_logic() -> void:
 	logic.unit_spawned.connect(_on_unit_spawned)
 	logic.objective_changed.connect(_on_objective_changed)
 	logic.fx_hint.connect(_on_fx_hint)
+	# Ход врагов: полоса порядка показывает, кто ходит сейчас (в очереди анимаций, а не сразу)
+	logic.enemy_turn_started.connect(func(e: BattleUnit) -> void: _queue(func() -> void: hud.order_bar.set_current(e)))
 
 
 func _queue(step: Callable) -> void:
@@ -1327,9 +1331,29 @@ func _show_hovered_enemy_threat(cell: Vector2i) -> void:
 		board.clear_layer("hover_threat")
 		hud.show_enemy(null, logic)
 	var enemy: BattleUnit = u if u != null and not u.is_hero else null
+	hud.order_bar.highlight(enemy)
 	if enemy != _route_enemy:
 		_route_enemy = enemy
 		_refresh_routes()
+
+
+# Навели на карточку врага в полосе порядка ходов: враг на поле в латунном контуре, его путь,
+# зона угрозы и карточка — как при наведении на саму фигурку. null — курсор ушёл с карточки.
+func _on_order_bar_hover(u: BattleUnit) -> void:
+	if u == null or not u.is_alive():
+		board.clear_layer("order_focus")
+		_route_enemy = null
+		_show_hovered_enemy_threat(_hover_cell)   # вернуть то, что под курсором на поле
+		_refresh_routes()
+		return
+	var cells: Array[Vector2i] = [u.cell]
+	board.show_cells("order_focus", cells, COLOR_ORDER_FOCUS)
+	if _mode != Mode.BUSY:
+		board.show_cells("hover_threat", logic.get_threat_cells(u), COLOR_HOVER_THREAT)
+	hud.show_enemy(u, logic)
+	hud.order_bar.highlight(u)
+	_route_enemy = u
+	_refresh_routes()
 
 
 # Пути врагов на поле: все (настройка «Пути всех врагов») или только того, кто под курсором.
@@ -1436,7 +1460,7 @@ func _on_end_turn_pressed() -> void:
 func _do(action: Callable) -> void:
 	_mode = Mode.BUSY
 	_selected_card = -1
-	for layer: String in ["move", "target", "area", "hover_threat", "intent", "buff", "routes", "hazard_marks"]:
+	for layer: String in ["move", "target", "area", "hover_threat", "intent", "buff", "routes", "hazard_marks", "order_focus"]:
 		board.clear_layer(layer)
 	for k: String in REACTION_KINDS:
 		board.clear_layer("reaction_" + k)
@@ -1615,10 +1639,12 @@ func _enter_idle() -> void:
 # если прямо сейчас нажать «Конец хода». Пересчитывается после каждого действия.
 func _show_forecast() -> void:
 	_routes.clear()
+	var spawns: Array[Dictionary] = []
+	var plans: Array[Dictionary] = logic.forecast_enemies(spawns)
 	var seen: Dictionary[Vector2i, bool] = {}
 	var hits: Array[Vector2i] = []
 	var buffs: Array[Vector2i] = []
-	for plan: Dictionary in logic.forecast_enemies():
+	for plan: Dictionary in plans:
 		(plan["enemy"] as BattleUnit).ai_reason = plan["reason"]   # карточка врага покажет, почему он так ходит
 		_routes[plan["enemy"] as BattleUnit] = plan["path"]
 		for c: Vector2i in plan["buff"]:
@@ -1652,10 +1678,71 @@ func _show_forecast() -> void:
 		elif fx["kind"] == "rune":
 			marks.append({"cell": _blast_center(fx_cells), "icon": "rune_trap", "color": Color(0.9, 0.93, 1.0)})
 	board.show_markers("hazard_marks", marks)
+	_show_turn_order(plans, spawns, hazards)
 	_set_fire_forecast(hazards["fire"])
 	_refresh_routes()   # по умолчанию — только путь врага под курсором
 	board.show_cells("intent", hits, COLOR_INTENT)
 	board.show_cells("buff", buffs, COLOR_BUFF)   # бирюзовое — кого шаман усилит «зовом»
+
+
+# Полоса порядка ходов вверху: враги по номеру хода, призванные — сразу после призвавшего,
+# жабы с догоревшим фитилём — первыми (взрываются до всех), бездействующие — в конце, бледные.
+func _show_turn_order(plans: Array[Dictionary], spawns: Array[Dictionary], hazards: Dictionary) -> void:
+	var acting: Array[Dictionary] = []
+	var first: Array[Dictionary] = []
+	var idle: Array[Dictionary] = []
+	for plan: Dictionary in plans:
+		var u: BattleUnit = plan["enemy"]
+		if not u.is_alive():
+			continue
+		var state: Dictionary = logic.snapshot(u)
+		var info: Dictionary = _plate_info(u, state)
+		var entry: Dictionary = {
+			"unit": u, "order": plan["order"], "title": u.title,
+			"intent_icon": info.get("intent_icon", ""), "intent_value": info.get("intent_value", 0),
+			"intent_color": info.get("intent_color", UiKit.threat()),
+			"hp": state["hp"], "max_hp": u.max_hp,
+		}
+		# Спит (Спящая сфера) или «замыкание» — ход пропустит; не дошёл до хода (погибнет раньше) — тоже
+		var skips: bool = state.get("asleep", false) or int(state.get("stunned", 0)) > 0
+		if int(plan["order"]) == 0 and int(state.get("fuse", 0)) > 0:
+			first.append(entry)   # фитиль догорел — жаба взорвётся раньше всех
+		elif int(plan["order"]) == 0 or skips:
+			entry["idle"] = true
+			idle.append(entry)
+		else:
+			acting.append(entry)
+	acting.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["order"]) < int(b["order"]))
+	var entries: Array[Dictionary] = []
+	entries.append_array(first)
+	for sp: Dictionary in spawns:
+		if int(sp["after"]) == 0:
+			entries.append({"title": sp["title"], "spawned": true})
+	# Номера подряд среди тех, кто ходит; призванные — сразу после того, кто их призвал
+	var number: int = 0
+	for entry: Dictionary in acting:
+		var orig: int = int(entry["order"])
+		number += 1
+		entry["order"] = number
+		entries.append(entry)
+		for sp: Dictionary in spawns:
+			if int(sp["after"]) == orig:
+				entries.append({"title": sp["title"], "spawned": true})
+	for entry: Dictionary in first + idle:
+		entry["order"] = 0
+	entries.append_array(idle)
+	# Конец раунда: огонь, яд, подмога, вспышки торфа
+	var round_end: Array[Dictionary] = []
+	if not (hazards["fire"] as Dictionary).is_empty():
+		round_end.append({"icon": "fire", "color": Color(1.0, 0.6, 0.25)})
+	if not (hazards.get("poison", {}) as Dictionary).is_empty():
+		round_end.append({"icon": "poison", "color": Color(0.6, 0.9, 0.4)})
+	for fx: Dictionary in hazards["effects"]:
+		if fx["kind"] == "wave":
+			round_end.append({"icon": "hourglass", "color": Color(1.0, 0.62, 0.55)})
+		elif fx["kind"] == "peat":
+			round_end.append({"icon": "fire", "color": Color(1.0, 0.7, 0.4)})
+	hud.order_bar.show_order(entries, round_end)
 
 
 # Центр взрыва: клетка, у которой в этом наборе все шесть соседей
@@ -1684,6 +1771,8 @@ func _finish_battle() -> void:
 	board.clear_layer("intent")
 	board.clear_layer("buff")
 	board.clear_layer("routes")
+	board.clear_layer("order_focus")
+	hud.order_bar.clear()
 	Sfx.play("victory" if logic.won else "defeat", 0.0)
 	if _tutor != null:
 		hud.tutor.close()
