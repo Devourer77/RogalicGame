@@ -32,6 +32,7 @@ func _init() -> void:
 #   hp, max_hp, block, is_hero, color (цвет героя),
 #   intent_icon (имя иконки или ""), intent_value (урон, 0 — не писать), intent_color,
 #   marks — список имён иконок-состояний (опутан, провокация…),
+#   intent_fx — что ещё сделает удар врага: [[иконка, цвет], …] (attack_fx),
 #   fire — сколько урона от огня юнит получит в конце хода врагов (прогноз; 0 — не писать)
 func set_info(info: Dictionary) -> void:
 	_info = info
@@ -103,6 +104,9 @@ func _draw() -> void:
 	if intent_icon != "":
 		var value: int = _info.get("intent_value", 0)
 		parts.append([intent_icon, _info.get("intent_color", UiKit.threat()), str(value) if value > 0 else ""])
+		# Что ещё сделает удар: толчок, опутать, лужа, яд… — сразу за уроном
+		for fx: Array in _info.get("intent_fx", []):
+			parts.append([fx[0], fx[1], ""])
 	# Прогноз: к концу хода врагов юнит будет стоять в огне — сколько он потеряет
 	var fire: int = _info.get("fire", 0)
 	if fire > 0:
@@ -150,6 +154,32 @@ func _draw() -> void:
 			_text(font, part[2], Vector2(x + 2.0, 17.5), -1, 15, Color.WHITE, 5, HORIZONTAL_ALIGNMENT_LEFT)
 			x += text_width + 2.0
 		x += 3.0
+
+
+# Что ещё делает удар врага, кроме урона: значки [иконка, цвет] — толчок, притягивание, опутать,
+# лужа, яд, газ, поджог, призыв. Не больше MAX_FX (плашка узкая). Используют плашка и полоса ходов.
+const MAX_FX: int = 3
+
+
+static func attack_fx(atk: EnemyAttackData) -> Array[Array]:
+	var fx: Array[Array] = []
+	if atk == null:
+		return fx
+	if atk.push > 0:
+		fx.append(["push", UiKit.TEXT])
+	if atk.pull > 0:
+		fx.append(["chain", UiKit.TEXT])
+	if atk.entangle > 0:
+		fx.append(["entangled", UiKit.TEXT])
+	if atk.poison > 0 or atk.gas_cloud:
+		fx.append(["poison", COLOR_POISON])
+	if atk.puddle:
+		fx.append(["drop", COLOR_WET])
+	if atk.ignite:
+		fx.append(["fire", COLOR_FIRE_WARN])
+	if atk.summon != null and atk.summon_count > 0:
+		fx.append(["horn", UiKit.TEXT])
+	return fx.slice(0, MAX_FX)
 
 
 # Надпись с тёмной обводкой, чтобы читалась на любом фоне

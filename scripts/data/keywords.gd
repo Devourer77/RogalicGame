@@ -67,7 +67,80 @@ const LIST: Array[Dictionary] = [
 		"text": "Механизм стоит и искрит — пропускает свой ход."},
 ]
 
+# Объекты поля и клетки — пояснение при наведении на клетку (подсказка клетки в бою).
+# Где правило уже есть в LIST (трясина, лава, корка, огонь…) — ссылка на его id.
+const OBJECTS: Dictionary = {
+	BattleLogic.Obj.BOG: "mire",
+	BattleLogic.Obj.LAVA: "lava",
+	BattleLogic.Obj.CRUST: "crust",
+	BattleLogic.Obj.TREE: {"word": "Мёртвое дерево", "icon": "tree",
+		"text": "Преграда. Удар, огонь или врезавшийся — падает на 3 клетки: 7 урона всем на линии, выживших сбивает с ног."},
+	BattleLogic.Obj.BARREL: {"word": "Бочка с газом", "icon": "barrel",
+		"text": "Преграда. Удар или огонь — взрыв по клетке и 6 соседям: 6 урона и поджог."},
+	BattleLogic.Obj.PLANKS: {"word": "Гнилые мостки", "icon": "planks",
+		"text": "Проходимы, но ломаются в трясину, когда с них уходят."},
+	BattleLogic.Obj.REEDS: {"word": "Камыш", "icon": "reeds",
+		"text": "Проходим, закрывает удары по линии. Горит весь сразу."},
+	BattleLogic.Obj.ICE_BLOCK: {"word": "Ледяная глыба", "icon": "ice_wall",
+		"text": "Преграда. От огня — ледяные осколки: 4 урона соседям, на месте лужа. Сама тает через 3 раунда."},
+	BattleLogic.Obj.STAKES: {"word": "Частокол", "icon": "stakes",
+		"text": "Преграда. Толкнутый в него получает 6 урона вместо 4. Горит."},
+	BattleLogic.Obj.BRIDGE: {"word": "Крепкий настил", "icon": "planks",
+		"text": "Проходим поверх трясины и не ломается."},
+	BattleLogic.Obj.RUNE: {"word": "Сторожевая руна", "icon": "rune_trap",
+		"text": "Проходима. Взрывается, когда на неё наступил враг или по ней ударили."},
+	BattleLogic.Obj.LIVE_TREE: {"word": "Живое дерево", "icon": "tree",
+		"text": "Преграда, закрывает удары по линии, не падает. Огонь — крона горит, потом дерево сухое."},
+	BattleLogic.Obj.BURNING_TREE: {"word": "Горящее дерево", "icon": "fire",
+		"text": "Преграда. В конце раунда обжигает соседей на 2, потом сгорает в мёртвое дерево."},
+	BattleLogic.Obj.VINE: {"word": "Лоза", "icon": "entangled",
+		"text": "Проходима, но кто вошёл — опутан и дальше не идёт. Горит цепью, удар картой срубает."},
+	BattleLogic.Obj.BUSH: {"word": "Подлесок", "icon": "reeds",
+		"text": "Как камыш: закрывает удары по линии, прячет засаду, горит."},
+	BattleLogic.Obj.HIVE: {"word": "Дикий улей", "icon": "poison",
+		"text": "Преграда. Удар или огонь — рой жалит клетку и 6 соседей: 2 урона и яд."},
+	BattleLogic.Obj.VALVE: {"word": "Паровой клапан", "icon": "wind",
+		"text": "Преграда. Удар — выброс пара по 6 соседям, клапан ломается в лужу."},
+	BattleLogic.Obj.STONE_WALL: {"word": "Камни", "icon": "cover",
+		"text": "Преграда, закрывает удары по линии. Через 3 раунда осыпается."},
+	BattleLogic.Obj.CART: {"word": "Вагонетка", "icon": "ram",
+		"text": "Преграда. Удар — катится по прямой и сбивает первого на пути."},
+	BattleLogic.Obj.BASIN: {"word": "Купель", "icon": "drop",
+		"text": "Преграда. Удар — вода плещет на соседей: огонь гаснет, все мокрые."},
+	BattleLogic.Obj.SPHERE_STORM: {"word": "Грозовая сфера", "icon": "orb",
+		"text": "Преграда. Удар — разряд по соседям и по всей воде рядом."},
+}
+const TILES: Dictionary = {
+	BattleLogic.Tile.FIRE: "fire",
+	BattleLogic.Tile.WATER: "puddle",
+	BattleLogic.Tile.ICE: "ice",
+	BattleLogic.Tile.SWAMP: "swamp_tile",
+	BattleLogic.Tile.GAS: "gas",
+	BattleLogic.Tile.SMOKE: {"word": "Дым", "icon": "wind",
+		"text": "Закрывает удары по линии. Рассеивается через 2 раунда."},
+}
+
 static var _regex: Dictionary[String, RegEx] = {}
+
+
+# Пояснения для клетки: объект на ней и то, что на клетке (огонь, лужа, лёд…). Пусто — обычная земля.
+static func for_cell(obj: int, tile: int) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for item: Variant in [OBJECTS.get(obj, null), TILES.get(tile, null)]:
+		if item is String:
+			var entry: Dictionary = by_id(item)
+			if not entry.is_empty():
+				result.append(entry)
+		elif item is Dictionary:
+			result.append(item)
+	return result
+
+
+static func by_id(id: String) -> Dictionary:
+	for entry: Dictionary in LIST:
+		if entry["id"] == id:
+			return entry
+	return {}
 
 
 # Записи словаря, чьи слова встречаются в тексте, — в порядке первого появления.

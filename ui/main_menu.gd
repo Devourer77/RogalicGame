@@ -30,8 +30,11 @@ func _ready() -> void:
 	if Meta.has_save():
 		_reset_button = UiKit.make_button(Loc.t("Новый прогресс"), _on_reset)
 		column.add_child(_reset_button)
+	if not RunHistory.load_all().is_empty():
+		column.add_child(UiKit.make_button(Loc.t("История забегов"), func() -> void: RunHistoryScreen.open(self), "deck"))
 	column.add_child(UiKit.make_button(Loc.t("Настройки"), func() -> void: SettingsScreen.open(self), "gear"))
 	column.add_child(UiKit.make_button(Loc.t("Выход"), get_tree().quit))
+	FirstRunScreen.open_if_needed(self)   # самый первый запуск — язык, громкость, размер интерфейса
 
 
 func _on_start() -> void:

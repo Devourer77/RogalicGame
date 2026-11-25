@@ -28,7 +28,7 @@ func _init() -> void:
 
 # entries — карточки врагов уже в порядке показа, каждая:
 #   unit (BattleUnit или null у призванных), order (номер хода, 0 — без номера), title,
-#   intent_icon, intent_value, intent_color, hp, max_hp,
+#   intent_icon, intent_value, intent_color, intent_fx ([[иконка, цвет]] — что ещё сделает удар), hp, max_hp,
 #   idle (в этот ход ничего не делает — бледная), spawned (появится в этот ход).
 # round_end — значки того, что случится в конце раунда: [{icon, color, hint}]
 func show_order(entries: Array[Dictionary], round_end: Array[Dictionary]) -> void:
@@ -135,6 +135,8 @@ func _make_card(entry: Dictionary, width: float) -> PanelContainer:
 	if icon_name != "":
 		var value: int = entry.get("intent_value", 0)
 		row.add_child(UiKit.chip(icon_name, str(value) if value > 0 else "", entry.get("intent_color", UiKit.threat()), "", 13, 15))
+		for fx: Array in entry.get("intent_fx", []):
+			row.add_child(UiKit.icon_rect(fx[0], 12, fx[1]))   # толчок, опутать, лужа, яд…
 	var bar: ProgressBar = UiKit.make_bar(entry.get("hp", 0), entry.get("max_hp", 1), UiKit.hp_enemy(), Vector2(10, 5), false)
 	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER

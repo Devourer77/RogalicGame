@@ -40,6 +40,12 @@ func _build_head() -> void:
 	var gold: HBoxContainer = UiKit.chip("coin", "+%d" % Run.last_gold_reward, UiKit.GOLD, "", 22, 24)
 	gold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(gold)
+	if Run.last_battle_shot != null:
+		# Посмотреть, как закончился бой, — выбор карты от этого часто зависит
+		var field: Button = UiKit.make_button(Loc.t("Поле боя"), _show_battle_shot, "zoom")
+		field.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		field.tooltip_text = Loc.t("Каким было поле в конце боя. Клик или Esc — вернуться к награде.")
+		head.add_child(field)
 	_column.add_child(head)
 	_column.add_child(UiKit.party_bar())
 	# Кто падал в бою — тому в колоду легла Рана (убрать: лавка или «Перевязка» на привале)
@@ -67,6 +73,9 @@ func _build_main() -> void:
 		var box: HBoxContainer = _card_row(panel)
 		for card in cards:
 			var b: Button = _card_button(card, rh.data.color, box)
+			var same_set: String = _same_set_note(card, rh)
+			if same_set != "":
+				b.tooltip_text += "\n\n" + same_set
 			b.pressed.connect(_take_card.bind(rh, card, b))
 		row.add_child(panel)
 	# Улучшение
@@ -157,6 +166,55 @@ func _card_button(card: CardData, color: Color, into: Container, list: Array[But
 	into.add_child(holder)
 	list.append(b)
 	return b
+
+
+# «В колоде Мага уже 3 карты набора «Заряд»» — для подсказки карты награды
+func _same_set_note(card: CardData, rh: RunHero) -> String:
+	if card.card_set == "" or not CardView.SETS.has(card.card_set):
+		return ""
+	var count: int = 0
+	for c: CardData in rh.deck:
+		if c.card_set == card.card_set:
+			count += 1
+	return Loc.t("В колоде (%s): карт набора «%s» — %d") % [Loc.t(rh.data.title), Loc.t(CardView.SETS[card.card_set][0]), count]
+
+
+# Полноэкранный снимок поля в конце боя; клик или Esc — закрыть
+func _show_battle_shot() -> void:
+	var shot := TextureRect.new()
+	shot.texture = Run.last_battle_shot
+	shot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	shot.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shot.mouse_filter = Control.MOUSE_FILTER_STOP
+	shot.z_index = 50
+	var back := ColorRect.new()
+	back.color = Color(0, 0, 0, 1)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	back.show_behind_parent = true
+	back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shot.add_child(back)
+	var hint: Label = UiKit.make_label(Loc.t("Клик или Esc — вернуться к награде"), 15, UiKit.BRASS.lightened(0.3))
+	hint.add_theme_color_override("font_outline_color", Color.BLACK)
+	hint.add_theme_constant_override("outline_size", 6)
+	hint.position = Vector2(16, 12)
+	shot.add_child(hint)
+	shot.gui_input.connect(func(event: InputEvent) -> void:
+		var click := event as InputEventMouseButton
+		if click != null and click.pressed:
+			shot.queue_free())
+	add_child(shot)
+	_shot = shot
+
+
+var _shot: Control = null   # открытый снимок поля (Esc закрывает его, а не открывает паузу)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _shot != null and is_instance_valid(_shot) and event.is_action_pressed("ui_cancel"):
+		_shot.queue_free()
+		_shot = null
+		get_viewport().set_input_as_handled()
 
 
 # Блок улучшений: для каждой карты — обе ветки рядом

@@ -23,6 +23,7 @@ const HAND_MAX_WIDTH: float = 780.0 # шире этого рука не раст
 const CORNER_WIDTH: float = 230.0   # ширина правого нижнего угла: подсказка, цепь, кнопки
 const SIDE_WIDTH: float = 300.0
 const ENEMY_KEYWORDS_MAX: int = 4   # сколько пояснений слов внизу карточки врага
+const CELL_TIP_WIDTH: float = 220.0   # ширина подсказки клетки под курсором
 
 # Цвета клеток на поле — такие же, как в scripts/battle.gd (для памятки слева снизу)
 const LEGEND: Array[Array] = [
@@ -71,6 +72,7 @@ var order_bar: TurnOrderBar       # полоса порядка ходов вр�
 var _end_warning: String = ""     # «Завершить ход?»: кто ещё может сыграть карту (пусто — не переспрашиваем)
 var _warn_heroes: Array[BattleUnit] = []   # их панели в латунной рамке
 var _kw_panel: PanelContainer = null   # пояснения слов рядом с картой под курсором (ui/keyword_tips.gd)
+var _cell_panel: PanelContainer = null   # подсказка клетки под курсором: объект и то, что на клетке
 var _tutor_glowed: bool = false   # одна подсвеченная карта на руку (если таких карт две — первая)
 
 
@@ -272,7 +274,7 @@ func _build_speed_button() -> void:
 	_speed_button.add_theme_font_size_override("font_size", 13)
 	_speed_button.custom_minimum_size = Vector2((CORNER_WIDTH - 6) / 2, 46)
 	_speed_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_speed_button.tooltip_text = Loc.t("Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша F.\nПока враги ходят: держи пробел — ×3, клик — досмотреть действие мгновенно.")
+	_speed_button.tooltip_text = Loc.t("Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша %s.\nПока враги ходят: держи %s — ×3, клик — досмотреть действие мгновенно.") % [Settings.key_label("enemy_speed"), Settings.key_label("speed_hold")]
 	Sfx.bind_button(_speed_button)
 	_speed_button.pressed.connect(toggle_speed)
 	_corner_row.add_child(_speed_button)
@@ -311,17 +313,17 @@ func _build_undo_button() -> void:
 # count — сколько действий можно отменить; lock — почему нельзя (после добора карты), "" — можно
 func update_undo_button(count: int, lock: String, busy: bool) -> void:
 	if count > 0:
-		_undo_button.text = Loc.t("Отменить · Z  (%d)") % count
+		_undo_button.text = Loc.t("Отменить · %s  (%d)") % [Settings.key_label("undo"), count]
 		_undo_button.icon = UiKit.icon("undo")
 		_undo_button.tooltip_text = Loc.t("Вернуть последнее действие этого хода: шаг, карту, сброс.\nБесплатно, можно нажимать много раз — до начала хода.")
 	elif lock != "":
-		_undo_button.text = Loc.t("Отменить · Z")
+		_undo_button.text = Loc.t("Отменить · %s") % Settings.key_label("undo")
 		_undo_button.icon = UiKit.icon("lock")
 		_undo_button.tooltip_text = lock + Loc.t("\nДействия после этого снова можно отменять.")
 	else:
-		_undo_button.text = Loc.t("Отменить · Z")
+		_undo_button.text = Loc.t("Отменить · %s") % Settings.key_label("undo")
 		_undo_button.icon = UiKit.icon("undo")
-		_undo_button.tooltip_text = Loc.t("Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей Z.")
+		_undo_button.tooltip_text = Loc.t("Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей %s.") % Settings.key_label("undo")
 	_undo_button.disabled = busy or count <= 0
 
 
@@ -333,13 +335,13 @@ func update_discard_button(logic: BattleLogic, active: BattleUnit, discarding: b
 	if not enabled or active == null:
 		return
 	var left: int = logic.discards_left(active)
-	_discard_button.text = Loc.t("Сбросить · X\n(осталось %d)") % left
+	_discard_button.text = Loc.t("Сбросить · %s\n(осталось %d)") % [Settings.key_label("discard"), left]
 	_discard_button.button_pressed = discarding
 	_discard_button.disabled = busy or left <= 0 or active.hand.is_empty()
 	if left <= 0:
 		_discard_button.tooltip_text = Loc.t("В этот ход карту уже сбрасывали. В следующий ход снова можно.")
 	else:
-		_discard_button.tooltip_text = Loc.t("Выбери эту кнопку (или X), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся.")
+		_discard_button.tooltip_text = Loc.t("Выбери эту кнопку (или %s), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся.") % Settings.key_label("discard")
 
 
 func _build_legend() -> void:
@@ -360,7 +362,7 @@ func _build_legend() -> void:
 	buttons.add_theme_constant_override("separation", 6)
 	column.add_child(buttons)
 	var help_button := Button.new()
-	help_button.text = Loc.t("Управление · F1")
+	help_button.text = Loc.t("Управление · %s") % Settings.key_label("help")
 	help_button.icon = UiKit.icon("help")
 	help_button.focus_mode = Control.FOCUS_NONE
 	help_button.add_theme_font_size_override("font_size", 13)
@@ -420,13 +422,13 @@ func _build_help() -> void:
 		["mouse_r", "", Loc.t("ПКМ по карте в руке (или Shift + цифра) — удержать её на следующий ход, до %d карт") % BattleLogic.KEEP_LIMIT],
 		["hourglass", "", Loc.t("В конце хода остальная рука уходит в сброс, рука пополняется минимум до %d карт") % BattleLogic.HAND_SIZE],
 		["drop", "", Loc.t("Мокрый враг (был в луже): молния бьёт по нему на 3 сильнее. Огонь сушит")],
-		["", "Z", Loc.t("Отменить последнее действие хода (шаг, карту, сброс) — бесплатно, до начала хода. Нельзя, если карта добрала карту из колоды")],
-		["", "Tab", Loc.t("Другой герой (или клик по герою, по его панели)")],
+		["", Settings.key_label("undo"), Loc.t("Отменить последнее действие хода (шаг, карту, сброс) — бесплатно, до начала хода. Нельзя, если карта добрала карту из колоды")],
+		["", Settings.key_label("next_hero"), Loc.t("Другой герой (или клик по герою, по его панели)")],
 		["target", "", Loc.t("Наведи на врага — его удар, зона и особенности")],
-		["rotate", "", Loc.t("Q / E — повернуть камеру")],
+		["rotate", "", Loc.t("%s / %s — повернуть камеру") % [Settings.key_label("cam_left"), Settings.key_label("cam_right")]],
 		["zoom", "", Loc.t("Колесо мыши — приблизить или отдалить")],
 		["hourglass", "", Loc.t("«Конец хода» — враги делают то, что показано на поле")],
-		["", "F", Loc.t("Ход врагов в два раза быстрее (кнопка «×1 / ×2» слева от «Конец хода»)")],
+		["", Settings.key_label("enemy_speed"), Loc.t("Скорость хода врагов ×1 / ×2 / ×3 по кругу; во время их хода держи %s — ×3, клик — досмотреть действие") % Settings.key_label("speed_hold")],
 		["target", "", Loc.t("Враги бьют туда, где выгоднее; причина — в их карточке, строка «Цель»")],
 	]
 	for item: Array in rows:
@@ -477,17 +479,16 @@ func _build_banner() -> void:
 
 # F1 — показать/скрыть справку
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.is_echo():
-		var key: int = (event as InputEventKey).keycode
-		if key == KEY_F1:
-			toggle_help()
-			get_viewport().set_input_as_handled()
-		elif key == KEY_X and BattleLogic.DRAW_MODE != BattleLogic.DrawMode.KEEP_2:
-			discard_toggled.emit()
-			get_viewport().set_input_as_handled()
-		elif key == KEY_F:
-			toggle_speed()
-			get_viewport().set_input_as_handled()
+	# Клавиши — действия из настроек (Settings.KEY_ACTIONS)
+	if event.is_action_pressed("help"):
+		toggle_help()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("discard") and BattleLogic.DRAW_MODE != BattleLogic.DrawMode.KEEP_2:
+		discard_toggled.emit()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("enemy_speed"):
+		toggle_speed()
+		get_viewport().set_input_as_handled()
 
 
 # Скорость хода врагов по кругу ×1 → ×2 → ×3. Хранится в настройках (Settings.enemy_speed).
@@ -861,6 +862,38 @@ func _show_keywords(card: Button, text: String) -> void:
 	_kw_panel = panel
 
 
+# Подсказка клетки под курсором (бочка, камыш, лужа, огонь…) — у курсора, справа снизу от него.
+# entries пустой — убрать.
+func show_cell_info(entries: Array[Dictionary]) -> void:
+	if _cell_panel != null and is_instance_valid(_cell_panel):
+		_cell_panel.queue_free()
+	_cell_panel = null
+	if entries.is_empty():
+		return
+	var panel: PanelContainer = UiKit.make_panel(Color(UiKit.PANEL, 0.94), Color(UiKit.LINE, 0.9))
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 6)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(column)
+	for entry: Dictionary in entries:
+		column.add_child(KeywordTips.make_entry(entry, CELL_TIP_WIDTH - 24.0))
+	panel.z_index = 4
+	_root.add_child(panel)
+	var screen: Vector2 = _root.get_viewport_rect().size
+	var mouse: Vector2 = _root.get_global_mouse_position()
+	var pos: Vector2 = mouse + Vector2(22, 18)
+	# У правого и нижнего края — с другой стороны курсора
+	if pos.x + CELL_TIP_WIDTH > screen.x - SIDE_WIDTH - 20.0:
+		pos.x = mouse.x - CELL_TIP_WIDTH - 14.0
+	var height: float = panel.get_combined_minimum_size().y
+	if pos.y + height > screen.y - 10.0:
+		pos.y = maxf(10.0, screen.y - height - 10.0)
+	panel.position = pos
+	panel.custom_minimum_size.x = CELL_TIP_WIDTH
+	_cell_panel = panel
+
+
 func _hide_keywords() -> void:
 	if _kw_panel != null and is_instance_valid(_kw_panel):
 		_kw_panel.queue_free()
@@ -936,7 +969,7 @@ func _update_hint(logic: BattleLogic, active: BattleUnit, selected: int, busy: b
 			if active.entangled > 0:
 				text = Loc.t("%s опутан и не может идти — выбери карту") % active.title
 		else:
-			text = Loc.t("%s больше ничего не может.\nTab — другой герой") % active.title
+			text = Loc.t("%s больше ничего не может.\n%s — другой герой") % [active.title, Settings.key_label("next_hero")]
 	# Подсказка про удержание: есть карты, но ни одна не отмечена
 	if text != "" and selected < 0 and BattleLogic.DRAW_MODE == BattleLogic.DrawMode.KEEP_2 \
 			and not active.hand.is_empty() and active.kept.is_empty():

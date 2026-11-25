@@ -89,6 +89,8 @@ const ELITES_PER_RUN: int = 1        # на ветку: одна обязате�
 var is_active: bool = false
 var seed_value: int = 0
 var rng := RandomNumberGenerator.new()   # ВСЯ случайность забега идёт через него
+var battle_start_rng: int = 0   # состояние генератора в начале текущего боя — для «Начать бой заново»
+var run_stats: Dictionary = {}   # итоги забега (экран конца забега, история забегов): копит scripts/battle.gd
 
 var party: Array[RunHero] = []   # герои отряда: их HP и колоды
 var gold: int = 0
@@ -144,6 +146,7 @@ var trophy_echoes: int = 0       # Отзвуки вместо трофея (к�
 var trophy_choices: Array[RelicData] = []   # из чего выбирать трофей за босса
 var cache_seen: bool = false     # «Тайник павшего дозорного» уже выпадал в этом забеге
 var last_wounded: Array[String] = []   # кто получил Рану в последнем бою (показать на экране награды)
+var last_battle_shot: Texture2D = null   # снимок поля в конце боя — «Поле боя» на экране награды
 var wounds_per_fall: int = WOUNDS_PER_FALL   # сколько Ран за падение (замер может выключить: 0)
 var sim_no_scenes: bool = false        # замер забега ботом: goto() ничего не открывает
 var events_seen: Array[String] = []   # названия событий, уже выпавших в этом забеге (не повторяются)
@@ -227,6 +230,7 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 	event_echoes = 0
 	run_complete = false
 	run_spirits.clear()
+	run_stats = new_run_stats()
 	known_spirits.clear()
 	for id: String in Meta.spirits_tamed:
 		if Meta.is_spirit_tamed(id):
@@ -333,6 +337,35 @@ func _tougher(enemy: EnemyData, factor: float) -> EnemyData:
 	var copy: EnemyData = enemy.duplicate() as EnemyData
 	copy.max_hp = ceili(enemy.max_hp * factor)
 	return copy
+
+
+# Запись для истории забегов: итоги, путь и колоды
+func history_entry(victory: bool) -> Dictionary:
+	var decks: Dictionary = {}
+	for rh: RunHero in party:
+		var titles: Array[String] = []
+		for c: CardData in rh.deck:
+			titles.append(c.title)
+		decks[rh.data.title] = titles
+	var entry: Dictionary = run_stats.duplicate(true)
+	entry.merge({
+		"date": Time.get_datetime_string_from_system(false, true),
+		"victory": victory, "seed": seed_value, "bell": bell, "act": act, "rows": rows_passed,
+		"decks": decks,
+	}, true)
+	return entry
+
+
+func new_run_stats() -> Dictionary:
+	return {"battles": 0, "rounds": 0, "cards": 0, "damage": {}, "best_hit": 0, "best_card": "",
+			"best_hero": "", "max_chain": 0, "hp_lost": 0, "falls": [], "path": []}
+
+
+# «Начать бой заново» (меню паузы): генератор возвращается к началу боя — та же расстановка,
+# те же карты в руке. Здоровье и колоды героев за бой не меняются (пишутся только в конце боя).
+func restart_battle() -> void:
+	rng.state = battle_start_rng
+	goto(BATTLE_SCENE)
 
 
 func goto(scene_path: String) -> void:
@@ -496,6 +529,8 @@ func available_nodes() -> Array[MapNode]:
 
 
 func enter_node(n: MapNode) -> void:
+	if run_stats.has("path"):
+		(run_stats["path"] as Array).append(int(n.type))   # путь по карте — для итогов забега
 	pending_event_elite = null   # бой из прошлого события позади
 	forced_encounter = null
 	current = n
@@ -1330,6 +1365,8 @@ func take_relic(r: RelicData) -> void:
 func game_over(victory: bool) -> void:
 	last_run_won = victory
 	is_active = false
+	if not tutorial and not sim_no_scenes:
+		RunHistory.add(history_entry(victory))   # история забегов (главное меню → «История забегов»)
 	# Отзвуки дают за любой забег, даже проигранный: чем дальше дошли, тем больше
 	Meta.add_run_result({
 		"rows": rows_passed, "elites": elite_kills, "bosses": boss_kills,

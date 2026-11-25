@@ -11,6 +11,7 @@ static var _current: PauseMenu = null
 const NO_PAUSE_SCENES: Array[String] = ["res://ui/main_menu.tscn", "res://ui/game_over.tscn"]
 
 var _confirm: Control   # «Точно сдаться?»
+var _confirm_restart: Control   # «Начать бой заново?»
 
 
 static func open(parent: Node) -> PauseMenu:
@@ -68,6 +69,8 @@ func _ready() -> void:
 	col.add_child(UiKit.make_divider(260))
 	col.add_child(_button(Loc.t("Продолжить"), _close, "", true))
 	col.add_child(_button(Loc.t("Настройки"), func() -> void: SettingsScreen.open(self), "gear"))
+	if _in_battle() and Run.is_active and not Run.tutorial:
+		col.add_child(_button(Loc.t("Начать бой заново"), _ask_restart, "undo"))
 	if Run.tutorial:
 		col.add_child(_button(Loc.t("Пропустить обучение"), func() -> void:
 			_unpause()
@@ -98,6 +101,24 @@ func _ready() -> void:
 	_confirm.add_child(row)
 	col.add_child(_confirm)
 
+	# Подтверждение «начать бой заново»: та же расстановка, всё сделанное в бою пропадёт
+	_confirm_restart = VBoxContainer.new()
+	_confirm_restart.add_theme_constant_override("separation", 8)
+	_confirm_restart.visible = false
+	var restart_warn: Label = UiKit.make_label(Loc.t("Бой начнётся сначала: те же враги и расстановка, здоровье героев — как перед боем."), 14, UiKit.TEXT_DIM)
+	restart_warn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	restart_warn.custom_minimum_size.x = 300
+	_confirm_restart.add_child(restart_warn)
+	var restart_row := HBoxContainer.new()
+	restart_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	restart_row.add_theme_constant_override("separation", 10)
+	restart_row.add_child(_button(Loc.t("Начать заново"), func() -> void:
+		_unpause()
+		Run.restart_battle()))
+	restart_row.add_child(_button(Loc.t("Отмена"), func() -> void: _confirm_restart.visible = false))
+	_confirm_restart.add_child(restart_row)
+	col.add_child(_confirm_restart)
+
 
 func _button(text: String, on_pressed: Callable, icon_name: String = "", primary: bool = false) -> Button:
 	var b: Button = UiKit.make_button(text, on_pressed, icon_name, primary)
@@ -106,14 +127,27 @@ func _button(text: String, on_pressed: Callable, icon_name: String = "", primary
 
 
 func _ask_give_up() -> void:
+	_confirm_restart.visible = false
 	_confirm.visible = true
+
+
+func _ask_restart() -> void:
+	_confirm.visible = false
+	_confirm_restart.visible = true
+
+
+# Пауза открыта в бою (не в хабе и не на экранах забега)
+func _in_battle() -> bool:
+	var scene: Node = get_tree().current_scene
+	return scene != null and scene.scene_file_path == Run.BATTLE_SCENE
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		if _confirm.visible:
+		if _confirm.visible or _confirm_restart.visible:
 			_confirm.visible = false
+			_confirm_restart.visible = false
 		else:
 			_close()
 

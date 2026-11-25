@@ -161,9 +161,9 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.is_echo():
+	if event is InputEventKey and event.is_action_pressed("mute"):
 		var key_ev := event as InputEventKey
-		if key_ev.keycode == KEY_M and not key_ev.ctrl_pressed and not key_ev.alt_pressed:
+		if not key_ev.ctrl_pressed and not key_ev.alt_pressed:
 			var focus: Control = get_viewport().gui_get_focus_owner()
 			if focus is LineEdit or focus is TextEdit:
 				return

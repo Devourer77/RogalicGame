@@ -22,6 +22,9 @@ var _shake_value: Label
 var _mute_button: Button
 var _hints_button: Button
 var _speed_button: Button   # скорость хода врагов ×1/×2/×3
+var _scale_button: Button   # масштаб интерфейса
+var _scroll: ScrollContainer
+var _columns: HBoxContainer
 
 
 static func open(parent: Node) -> SettingsScreen:
@@ -70,7 +73,12 @@ func _ready() -> void:
 
 	var columns := HBoxContainer.new()
 	columns.add_theme_constant_override("separation", 28)
-	col.add_child(columns)
+	# Колонки — в прокрутке: при крупном масштабе интерфейса окно настроек может не влезть по высоте
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.add_child(columns)
+	col.add_child(_scroll)
+	_columns = columns
 
 	# --- Левая колонка: экран, бой, подсказки ---
 	var left := VBoxContainer.new()
@@ -113,8 +121,17 @@ func _ready() -> void:
 		_sync(), "bell")
 	_mute_button.custom_minimum_size = Vector2(0, 36)
 	right.add_child(_mute_button)
-	var hint: Label = UiKit.make_label(Loc.t("M — быстро выключить или вернуть звук"), 13, UiKit.TEXT_DIM)
+	var hint: Label = UiKit.make_label(Loc.t("%s — быстро выключить или вернуть звук") % Settings.key_label("mute"), 13, UiKit.TEXT_DIM)
 	right.add_child(hint)
+	right.add_child(_section(Loc.t("Интерфейс")))
+	right.add_child(_scale_row())
+	var scale_note: Label = UiKit.make_label(Loc.t("Больше 100% — крупнее текст и кнопки; на маленьком окне часть экранов может не поместиться."), 12, UiKit.TEXT_DIM)
+	scale_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	scale_note.custom_minimum_size.x = 380
+	right.add_child(scale_note)
+	var keys_button: Button = UiKit.make_button(Loc.t("Клавиши…"), func() -> void: KeysScreen.open(self), "gear")
+	keys_button.custom_minimum_size = Vector2(0, 36)
+	right.add_child(keys_button)
 
 	col.add_child(UiKit.make_divider(420))
 	var close_row := HBoxContainer.new()
@@ -126,7 +143,22 @@ func _ready() -> void:
 
 	Sfx.settings_changed.connect(_sync)
 	Settings.changed.connect(_sync)
+	Settings.changed.connect(_on_settings_changed)   # масштаб поменялся — высота прокрутки тоже
 	_sync()
+	_fit_scroll.call_deferred()
+
+
+func _on_settings_changed() -> void:
+	_fit_scroll.call_deferred()
+
+
+# Высота прокрутки: все колонки, но не выше окна (минус заголовок и кнопка «Закрыть»)
+func _fit_scroll() -> void:
+	if not is_instance_valid(_scroll):
+		return
+	var need: Vector2 = _columns.get_combined_minimum_size()
+	var room: float = get_viewport_rect().size.y - 170.0
+	_scroll.custom_minimum_size = Vector2(need.x, minf(need.y, maxf(room, 200.0)))
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -141,6 +173,20 @@ func _section(title: String) -> Label:
 
 
 # Строка «название — [Вкл]»: key — имя поля в Settings
+# Масштаб интерфейса: 80% → 90% → … → 120% → 80%
+func _scale_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var label: Label = UiKit.make_label(Loc.t("Масштаб интерфейса"), 15)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(label)
+	_scale_button = UiKit.make_button("", func() -> void:
+		Settings.set_value("ui_scale", Settings.next_ui_scale()))
+	_scale_button.custom_minimum_size = Vector2(84, 32)
+	row.add_child(_scale_button)
+	return row
+
+
 # Скорость хода врагов: кнопка переключает ×1 → ×2 → ×3 по кругу
 func _speed_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
@@ -265,6 +311,7 @@ func _sync() -> void:
 		_toggles[key].text = Loc.t("Вкл") if on else Loc.t("Выкл")
 		_toggles[key].modulate = Color.WHITE if on else Color(0.62, 0.62, 0.66)
 	_speed_button.text = "×%d" % Settings.enemy_speed
+	_scale_button.text = "%d%%" % roundi(Settings.ui_scale * 100.0)
 	_shake_slider.set_value_no_signal(Settings.shake)
 	_shake_value.text = Loc.t("Выкл") if Settings.shake <= 0.0 else "%d%%" % roundi(Settings.shake * 100.0)
 	_hints_button.text = Loc.t("Подсказки: выкл") if Hints.is_off() else Loc.t("Подсказки: вкл")

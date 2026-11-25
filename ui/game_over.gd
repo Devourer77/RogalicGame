@@ -22,9 +22,14 @@ func _ready() -> void:
 	column.add_child(UiKit.make_text(Loc.t("Отзвуки: +%d  (всего %d)") % [res.get("echoes", 0), Meta.echoes], 20, UiKit.BRASS.lightened(0.2)))
 	if res.get("bell_opened", -1) >= 0:
 		column.add_child(UiKit.make_text(Loc.t("Открыт новый Звон: %d") % res["bell_opened"], 18, UiKit.BRASS.lightened(0.35)))
+	# Итоги забега: бои, урон, лучший удар, Цепь, кто пал, путь, колоды (наведи — состав)
+	var last: Dictionary = RunHistory.last()
+	if not last.is_empty() and int(last.get("seed", -1)) == Run.seed_value:
+		column.add_child(RunHistoryScreen.stats_block(last))
 	var seed_label: Label = UiKit.make_text(Loc.t("Сид забега: %d") % Run.seed_value, 16, UiKit.TEXT_DIM)
 	seed_label.tooltip_text = Loc.t("Введи это число в главном меню, чтобы пройти тот же забег ещё раз.")
 	seed_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	column.add_child(seed_label)
 	column.add_child(UiKit.make_button(Loc.t("К колоколу"), Run.goto.bind(Run.HUB_SCENE), "bell", true))
 	column.add_child(UiKit.make_button(Loc.t("В главное меню"), Run.goto.bind(Run.MAIN_MENU_SCENE)))
+	column.add_child(UiKit.make_button(Loc.t("История забегов"), func() -> void: RunHistoryScreen.open(self), "deck"))

@@ -9333,7 +9333,7 @@ msgid "Цепь: сколько карт отряд сыграл в этот х�
 msgstr ""
 
 #: ui/battle_hud.gd:258
-msgid "Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша F.\nПока враги ходят: держи пробел — ×3, клик — досмотреть действие мгновенно."
+msgid "Скорость хода врагов: ×1, ×2 или ×3 по кругу. Клавиша %s.\nПока враги ходят: держи %s — ×3, клик — досмотреть действие мгновенно."
 msgstr ""
 
 #: ui/battle_hud.gd:27
@@ -9349,7 +9349,7 @@ msgid "путь врага (наведи на него)"
 msgstr ""
 
 #: ui/battle_hud.gd:297
-msgid "Отменить · Z  (%d)"
+msgid "Отменить · %s  (%d)"
 msgstr ""
 
 #: ui/battle_hud.gd:299
@@ -9361,7 +9361,7 @@ msgid "шаман усилит своих"
 msgstr ""
 
 #: ui/battle_hud.gd:301 ui/battle_hud.gd:305
-msgid "Отменить · Z"
+msgid "Отменить · %s"
 msgstr ""
 
 #: ui/battle_hud.gd:303
@@ -9369,11 +9369,11 @@ msgid "\nДействия после этого снова можно отмен
 msgstr ""
 
 #: ui/battle_hud.gd:307
-msgid "Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей Z."
+msgid "Пока нечего отменять. Шаг, карту и сброс этого хода можно вернуть клавишей %s."
 msgstr ""
 
 #: ui/battle_hud.gd:319
-msgid "Сбросить · X\n(осталось %d)"
+msgid "Сбросить · %s\n(осталось %d)"
 msgstr ""
 
 #: ui/battle_hud.gd:323
@@ -9381,11 +9381,11 @@ msgid "В этот ход карту уже сбрасывали. В следу�
 msgstr ""
 
 #: ui/battle_hud.gd:325
-msgid "Выбери эту кнопку (или X), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся."
+msgid "Выбери эту кнопку (или %s), потом карту в руке — она уйдёт в сброс.\nОдна карта за ход, добор не даётся."
 msgstr ""
 
 #: ui/battle_hud.gd:353
-msgid "Управление · F1"
+msgid "Управление · %s"
 msgstr ""
 
 #: ui/battle_hud.gd:362
@@ -9441,7 +9441,7 @@ msgid "Наведи на врага — его удар, зона и особе�
 msgstr ""
 
 #: ui/battle_hud.gd:416
-msgid "Q / E — повернуть камеру"
+msgid "%s / %s — повернуть камеру"
 msgstr ""
 
 #: ui/battle_hud.gd:417
@@ -9453,7 +9453,7 @@ msgid "«Конец хода» — враги делают то, что пока
 msgstr ""
 
 #: ui/battle_hud.gd:419
-msgid "Ход врагов в два раза быстрее (кнопка «×1 / ×2» слева от «Конец хода»)"
+msgid "Скорость хода врагов ×1 / ×2 / ×3 по кругу; во время их хода держи %s — ×3, клик — досмотреть действие"
 msgstr ""
 
 #: ui/battle_hud.gd:420
@@ -9645,7 +9645,7 @@ msgid "%s опутан и не может идти — выбери карту"
 msgstr ""
 
 #: ui/battle_hud.gd:871
-msgid "%s больше ничего не может.\nTab — другой герой"
+msgid "%s больше ничего не может.\n%s — другой герой"
 msgstr ""
 
 #: ui/battle_hud.gd:875
@@ -11993,7 +11993,7 @@ msgid "Музыка"
 msgstr ""
 
 #: ui/settings_screen.gd:113
-msgid "M — быстро выключить или вернуть звук"
+msgid "%s — быстро выключить или вернуть звук"
 msgstr ""
 
 #: ui/settings_screen.gd:12
@@ -12366,4 +12366,316 @@ msgstr ""
 
 #: scripts/data/keywords.gd
 msgid "Механизм стоит и искрит — пропускает свой ход."
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Повернуть камеру влево"
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Повернуть камеру вправо"
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Отменить действие"
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Сбросить карту"
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Другой герой"
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Ускорить ход врагов (держать)"
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Справка в бою"
+msgstr ""
+
+#: scripts/autoload/settings.gd
+msgid "Выключить звук"
+msgstr ""
+
+#: scripts/battle.gd
+msgid "свой ход"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Мёртвое дерево"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Удар, огонь или врезавшийся — падает на 3 клетки: 7 урона всем на линии, выживших сбивает с ног."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Бочка с газом"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Удар или огонь — взрыв по клетке и 6 соседям: 6 урона и поджог."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Гнилые мостки"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Проходимы, но ломаются в трясину, когда с них уходят."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Камыш"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Проходим, закрывает удары по линии. Горит весь сразу."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Ледяная глыба"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. От огня — ледяные осколки: 4 урона соседям, на месте лужа. Сама тает через 3 раунда."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Частокол"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Толкнутый в него получает 6 урона вместо 4. Горит."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Крепкий настил"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Проходим поверх трясины и не ломается."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Проходима. Взрывается, когда на неё наступил враг или по ней ударили."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Живое дерево"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда, закрывает удары по линии, не падает. Огонь — крона горит, потом дерево сухое."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Горящее дерево"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. В конце раунда обжигает соседей на 2, потом сгорает в мёртвое дерево."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Лоза"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Проходима, но кто вошёл — опутан и дальше не идёт. Горит цепью, удар картой срубает."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Подлесок"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Как камыш: закрывает удары по линии, прячет засаду, горит."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Дикий улей"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Удар или огонь — рой жалит клетку и 6 соседей: 2 урона и яд."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Паровой клапан"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Удар — выброс пара по 6 соседям, клапан ломается в лужу."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Камни"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда, закрывает удары по линии. Через 3 раунда осыпается."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Вагонетка"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Удар — катится по прямой и сбивает первого на пути."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Купель"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Удар — вода плещет на соседей: огонь гаснет, все мокрые."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Преграда. Удар — разряд по соседям и по всей воде рядом."
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Дым"
+msgstr ""
+
+#: scripts/data/keywords.gd
+msgid "Закрывает удары по линии. Рассеивается через 2 раунда."
+msgstr ""
+
+#: ui/first_run_screen.gd
+msgid "Перед началом"
+msgstr ""
+
+#: ui/first_run_screen.gd
+msgid "Громкость"
+msgstr ""
+
+#: ui/first_run_screen.gd
+msgid "Размер интерфейса"
+msgstr ""
+
+#: ui/first_run_screen.gd
+msgid "Всё это и многое другое (скорость врагов, клавиши, подсказки) меняется потом в «Настройках»."
+msgstr ""
+
+#: ui/first_run_screen.gd
+msgid "Готово"
+msgstr ""
+
+#: ui/game_over.gd
+msgid "История забегов"
+msgstr ""
+
+#: ui/keys_screen.gd
+msgid "Клавиши"
+msgstr ""
+
+#: ui/keys_screen.gd
+msgid "Цифры 1–9 — карта по номеру, Esc — меню; их не переназначить."
+msgstr ""
+
+#: ui/keys_screen.gd
+msgid "Нажми клавишу…"
+msgstr ""
+
+#: ui/keys_screen.gd
+msgid "Эта клавиша занята игрой — выбери другую."
+msgstr ""
+
+#: ui/pause_menu.gd
+msgid "Начать бой заново"
+msgstr ""
+
+#: ui/pause_menu.gd
+msgid "Бой начнётся сначала: те же враги и расстановка, здоровье героев — как перед боем."
+msgstr ""
+
+#: ui/pause_menu.gd
+msgid "Начать заново"
+msgstr ""
+
+#: ui/reward_screen.gd
+msgid "Поле боя"
+msgstr ""
+
+#: ui/reward_screen.gd
+msgid "Каким было поле в конце боя. Клик или Esc — вернуться к награде."
+msgstr ""
+
+#: ui/reward_screen.gd
+msgid "В колоде (%s): карт набора «%s» — %d"
+msgstr ""
+
+#: ui/reward_screen.gd
+msgid "Клик или Esc — вернуться к награде"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "Пока ни одного законченного забега."
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "Победа"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "Звон %d · акт %d · ряд %d"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "Боёв: %d"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "урон %s: %d"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "лучший удар: %d («%s»)"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "Цепь до %d"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "пал: %s"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "%s (%d): %s"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "Сид: %d"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "%s — %d карт"
+msgstr ""
+
+#: ui/run_history_screen.gd
+msgid "Колоды: "
+msgstr ""
+
+#: ui/settings_screen.gd
+msgid "Интерфейс"
+msgstr ""
+
+#: ui/settings_screen.gd
+msgid "Больше 100% — крупнее текст и кнопки; на маленьком окне часть экранов может не поместиться."
+msgstr ""
+
+#: ui/settings_screen.gd
+msgid "Клавиши…"
+msgstr ""
+
+#: ui/settings_screen.gd
+msgid "Масштаб интерфейса"
 msgstr ""

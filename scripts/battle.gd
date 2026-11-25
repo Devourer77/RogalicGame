@@ -88,6 +88,7 @@ var _ring: MeshInstance3D                       # светящееся коль�
 var _mode: Mode = Mode.BUSY
 var _selected_card: int = -1
 var _hover_cell: Vector2i = BattleLogic.NO_CELL
+var _info_cell: Vector2i = BattleLogic.NO_CELL   # для какой клетки показана подсказка клетки
 var _routes: Dictionary[BattleUnit, Array] = {}   # прогноз: путь каждого врага (клетки от него до места, куда встанет)
 var _route_enemy: BattleUnit = null                # враг под курсором — его путь виден, даже если пути всех скрыты
 const END_CONFIRM_TIME: float = 3.0   # сколько секунд «Конец хода» ждёт второго нажатия
@@ -101,6 +102,12 @@ var _cam_tween: Tween
 var _battle_start_ms: int = 0     # когда начался бой
 var _enemy_phase_ms: int = 0      # сколько всего длились ходы врагов (от «Конец хода» до конца анимаций)
 var _start_hp: Array[int] = []    # здоровье героев в начале боя
+# Итоги боя для экрана конца забега (Run.run_stats): урон героев, лучший удар, Цепь, кто кого уложил.
+# Входят в снимок отмены — отменённая карта из итогов пропадает.
+var _stats: Dictionary = {"damage": {}, "best_hit": 0, "best_card": "", "best_hero": "", "max_chain": 0, "falls": []}
+var _last_caster: BattleUnit = null   # кто сыграл последнюю карту — ему засчитывается урон
+var _last_card: String = ""
+var _acting_enemy: String = ""        # кто из врагов сейчас ходит (кто уложил героя)
 var _start_enemies: int = 0       # сколько врагов было в начале (для журнала: сколько пришло потом)
 var _cards_played: int = 0        # сыграно карт за бой (журнал боёв)
 var _cards_scrapped: int = 0      # сброшено «в ноги» за шаги
@@ -129,6 +136,7 @@ var _hint_shown: String = ""        # какая подсказка сейчас
 
 func _ready() -> void:
 	Run.ensure_run()
+	Run.battle_start_rng = Run.rng.state   # для «Начать бой заново» в меню паузы
 	var layout_seed: int = Run.rng.randi()
 	if Run.tutorial:
 		_tutor = TutorialBattle.new()
@@ -194,7 +202,9 @@ func _ready() -> void:
 	_start_enemies = logic.enemies.size()
 	logic.card_played.connect(func(_c: BattleUnit, _card: CardData, is_scrap: bool) -> void:
 		if is_scrap: _cards_scrapped += 1
-		else: _cards_played += 1)
+		else: _cards_played += 1
+		_stats["max_chain"] = maxi(int(_stats["max_chain"]), logic.chain_value()))
+	logic.enemy_turn_started.connect(func(e: BattleUnit) -> void: _acting_enemy = e.title)
 	logic.party_has_rust = Run.party_has_spirit("rust")
 	logic.party_has_magma = Run.party_has_spirit("magma")
 	_mode = Mode.BUSY
@@ -390,11 +400,15 @@ func _plate_info(u: BattleUnit, state: Dictionary) -> Dictionary:
 		info["intent_icon"] = INTENT_ICONS[shape] if shape < INTENT_ICONS.size() else "sword"
 		info["intent_value"] = state["damage"]
 		info["intent_color"] = UiKit.RIFT if shape == EnemyData.Attack.AURA else UiKit.threat()
+		info["intent_fx"] = UnitPlate.attack_fx(logic.enemy_attack(u))   # толчок, опутать, лужа, яд…
 		# Тлеющая жаба: вместо обычного удара — фитиль (с уроном взрыва, если уже горит)
 		if state.get("fuse", 0) > 0 or state.get("smoldering", false):
+			info["intent_fx"] = []
 			info["intent_icon"] = "fuse"
 			info["intent_color"] = UiKit.threat()
 		# Спит (Спящая сфера) или «замыкание» механизма: в этот ход не ударит
+		if state.get("asleep", false) or state.get("stunned", 0) > 0:
+			info["intent_fx"] = []
 		if state.get("asleep", false):
 			info["intent_icon"] = "hourglass"
 			info["intent_color"] = UiKit.TEXT_DIM
@@ -489,6 +503,7 @@ func _on_unit_pushed(unit: BattleUnit, path: Array[Vector2i], bumped: bool) -> v
 
 
 func _on_unit_damaged(unit: BattleUnit, amount: int, state: Dictionary) -> void:
+	_count_damage(unit, amount)
 	var view: Unit = _views[unit]
 	var info: Dictionary = _plate_info(unit, state)
 	_last_hp[unit] = state.get("hp", unit.hp)
@@ -541,6 +556,9 @@ func _unit_height(unit: BattleUnit) -> float:
 
 
 func _on_unit_died(unit: BattleUnit) -> void:
+	if unit.is_hero:
+		var by: String = _acting_enemy if _enemy_phase_running and _acting_enemy != "" else Loc.t("свой ход")
+		(_stats["falls"] as Array).append("%s — %s" % [unit.title, by])
 	var view: Unit = _views[unit]
 	_fallen[unit] = true
 	var height: float = _unit_height(unit)
@@ -889,6 +907,9 @@ func _hit_stop() -> void:
 
 
 func _on_card_cast(caster: BattleUnit, card: CardData, cells: Array[Vector2i]) -> void:
+	if caster.is_hero:
+		_last_caster = caster
+		_last_card = Loc.t(card.title)
 	var view: Unit = _views[caster]
 	var from_cell: Vector2i = caster.cell
 	var dir: Vector2i = Vector2i.ZERO
@@ -1057,19 +1078,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		if wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_zoom_camera(1.0)
 			return
-	if event is InputEventKey and event.pressed and not event.is_echo():
-		var key := event as InputEventKey
-		if key.keycode == KEY_Q:
-			_turn_camera(-90.0)
-			return
-		if key.keycode == KEY_E:
-			_turn_camera(90.0)
-			return
+	# Клавиши — действия из настроек (Settings.KEY_ACTIONS): их можно переназначить
+	if event.is_action_pressed("cam_left"):
+		_turn_camera(-90.0)
+		return
+	if event.is_action_pressed("cam_right"):
+		_turn_camera(90.0)
+		return
 	if event is InputEventMouseMotion and _boss_sign_hint != "":
 		_check_boss_sign((event as InputEventMouseMotion).position)
-	# Пробел держат — ход врагов ×3 (отпустили — обратно)
-	if event is InputEventKey and (event as InputEventKey).keycode == KEY_SPACE and not event.is_echo():
-		_space_held = event.pressed
+	# Пробел (действие speed_hold) держат — ход врагов ×3 (отпустили — обратно)
+	if event is InputEventKey and event.is_action("speed_hold") and not event.is_echo():
+		_space_held = event.is_pressed()
 		_apply_speed()
 		get_viewport().set_input_as_handled()
 		return
@@ -1092,7 +1112,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_on_cell_clicked(_screen_to_cell(click.position))
 		elif click.button_index == MOUSE_BUTTON_RIGHT:
 			_cancel_card()
-	elif event is InputEventKey and event.pressed and not event.is_echo() and (event as InputEventKey).keycode == KEY_X:
+	elif event.is_action_pressed("discard"):
 		# X, затем карта — сбросить её «в ноги»: бесплатно, шаг или блок вместо эффекта
 		if _tutor != null and not _tutor.allows_extra():
 			_tutor_nudge()
@@ -1101,9 +1121,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_discarding = false
 		_selected_card = -1
 		_enter_idle()
-	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_Z:
+	elif event.is_action_pressed("undo", true):
 		_on_undo_pressed()   # Z или Ctrl+Z — отменить последнее действие (держать — отменять дальше)
-	elif event is InputEventKey and event.pressed and (event as InputEventKey).keycode == KEY_TAB:
+	elif event.is_action_pressed("next_hero", true):
 		_pick_hero(_next_hero())
 	elif event is InputEventKey and event.pressed and not event.is_echo() \
 			and (event as InputEventKey).keycode >= KEY_1 and (event as InputEventKey).keycode <= KEY_9:
@@ -1159,6 +1179,9 @@ func _on_cell_clicked(cell: Vector2i) -> void:
 func _on_hover(cell: Vector2i) -> void:
 	_hover_cell = cell
 	_show_hovered_enemy_threat(cell)
+	if cell != _info_cell:
+		_info_cell = cell
+		_show_cell_info(cell)
 	if _mode == Mode.AIMING and logic.get_card_targets(_active, _selected_card).has(cell):
 		board.show_cells("area", logic.get_card_area(_active, _selected_card, cell), COLOR_AREA)
 		_show_card_preview(cell)
@@ -1340,6 +1363,15 @@ func _clear_preview() -> void:
 			_views[u].set_preview({})
 	_previewed.clear()
 	hud.show_preview([])
+
+
+# Подсказка клетки под курсором: бочка, камыш, лужа, огонь… На клетке с юнитом — нет
+# (там своя карточка врага), на пустой земле — нет.
+func _show_cell_info(cell: Vector2i) -> void:
+	var entries: Array[Dictionary] = []
+	if logic.is_inside(cell) and logic.unit_at(cell) == null:
+		entries = Keywords.for_cell(logic.object_at(cell), logic.tile_at(cell))
+	hud.show_cell_info(entries)
 
 
 # Навёл на врага — его зона угрозы подсвечивается ярче
@@ -1529,6 +1561,9 @@ func _do(action: Callable) -> void:
 	_route_enemy = null
 	_set_fire_forecast({})   # пока идут анимации, предупреждений об огне на плашках нет
 	hud.show_enemy(null, logic)
+	var none: Array[Dictionary] = []
+	hud.show_cell_info(none)
+	_info_cell = BattleLogic.NO_CELL   # после анимаций подсказка клетки появится заново
 	hud.refresh(logic, _active, -1, true)
 	_discarding = false
 	hud.update_discard_button(logic, _active, false, true)
@@ -1577,6 +1612,7 @@ func _make_undo_snapshot() -> Dictionary:
 		"piles": piles,
 		"played": _cards_played,
 		"scrapped": _cards_scrapped,
+		"stats": _stats.duplicate(true),
 		"log": hud.get_log(),
 		"active": _active,
 	}
@@ -1622,6 +1658,7 @@ func _on_undo_pressed() -> void:
 	logic.load_state(snap["logic"])
 	_cards_played = snap["played"]
 	_cards_scrapped = snap["scrapped"]
+	_stats = snap["stats"]
 	hud.set_log(snap["log"])
 	_resync_views()
 	var was: BattleUnit = snap["active"]
@@ -1762,6 +1799,7 @@ func _show_turn_order(plans: Array[Dictionary], spawns: Array[Dictionary], hazar
 			"unit": u, "order": plan["order"], "title": u.title,
 			"intent_icon": info.get("intent_icon", ""), "intent_value": info.get("intent_value", 0),
 			"intent_color": info.get("intent_color", UiKit.threat()),
+			"intent_fx": info.get("intent_fx", []),
 			"hp": state["hp"], "max_hp": u.max_hp,
 		}
 		# Спит (Спящая сфера) или «замыкание» — ход пропустит; не дошёл до хода (погибнет раньше) — тоже
@@ -1827,13 +1865,66 @@ func _set_fire_forecast(forecast: Dictionary) -> void:
 			_views[u].set_status(_plate_info(u, logic.snapshot(u)))
 
 
+# Урон по врагам в ход героев засчитывается тому, кто сыграл последнюю карту
+func _count_damage(unit: BattleUnit, amount: int) -> void:
+	if amount <= 0 or unit.is_hero or _enemy_phase_running or _last_caster == null:
+		return
+	var damage: Dictionary = _stats["damage"]
+	damage[_last_caster.title] = int(damage.get(_last_caster.title, 0)) + amount
+	if amount > int(_stats["best_hit"]):
+		_stats["best_hit"] = amount
+		_stats["best_card"] = _last_card
+		_stats["best_hero"] = _last_caster.title
+
+
+# Итоги боя — в копилку забега (Run.run_stats), её покажет экран конца забега
+func _add_run_stats() -> void:
+	if _tutor != null or Run.sim_no_scenes:
+		return
+	var rs: Dictionary = Run.run_stats
+	if rs.is_empty():
+		return
+	rs["battles"] = int(rs.get("battles", 0)) + 1
+	rs["rounds"] = int(rs.get("rounds", 0)) + logic.turn
+	rs["cards"] = int(rs.get("cards", 0)) + _cards_played
+	var damage: Dictionary = rs.get("damage", {})
+	for hero: String in _stats["damage"]:
+		damage[hero] = int(damage.get(hero, 0)) + int(_stats["damage"][hero])
+	rs["damage"] = damage
+	if int(_stats["best_hit"]) > int(rs.get("best_hit", 0)):
+		rs["best_hit"] = _stats["best_hit"]
+		rs["best_card"] = _stats["best_card"]
+		rs["best_hero"] = _stats["best_hero"]
+	rs["max_chain"] = maxi(int(rs.get("max_chain", 0)), int(_stats["max_chain"]))
+	var lost: int = 0
+	for i in logic.heroes.size():
+		var start: int = _start_hp[i] if i < _start_hp.size() else logic.heroes[i].hp
+		lost += maxi(start - maxi(logic.heroes[i].hp, 0), 0)
+	rs["hp_lost"] = int(rs.get("hp_lost", 0)) + lost
+	var falls: Array = rs.get("falls", [])
+	falls.append_array(_stats["falls"])
+	rs["falls"] = falls
+
+
+# Снимок поля в конце боя (до надписи «Победа!») — его покажет кнопка «Поле боя» на экране награды
+func _take_battle_shot() -> void:
+	Run.last_battle_shot = null
+	if Run.sim_no_scenes or DisplayServer.get_name() == "headless":
+		return
+	var image: Image = get_viewport().get_texture().get_image()
+	if image != null and not image.is_empty():
+		Run.last_battle_shot = ImageTexture.create_from_image(image)
+
+
 func _finish_battle() -> void:
 	_print_battle_stats()
+	_add_run_stats()
 	board.clear_layer("intent")
 	board.clear_layer("buff")
 	board.clear_layer("routes")
 	board.clear_layer("order_focus")
 	hud.order_bar.clear()
+	_take_battle_shot()
 	Sfx.play("victory" if logic.won else "defeat", 0.0)
 	if _tutor != null:
 		hud.tutor.close()
