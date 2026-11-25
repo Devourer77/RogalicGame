@@ -15,7 +15,7 @@ var squad_losses: Dictionary = {}   # id отряда → [потеря HP, бо
 #
 # Как бот ведёт забег (просто и одинаково до и после правок):
 # - путь: случайная доступная точка;
-# - награда за бой: случайная карта из трёх случайному герою;
+# - награда за бой: каждому герою случайная карта из трёх;
 # - логово: дух первому герою со свободным местом;
 # - лавка и события: проходит мимо (ничего не берёт);
 # - привал: если у героя 2+ Раны и HP у обоих не ниже половины — «Перевязка», иначе отдых.
@@ -224,7 +224,7 @@ func _run_battle(run: Node) -> Dictionary:
 			"lost": hp_start - hp_end}
 
 
-# Награда: дух из логова — первому герою с местом; иначе случайная карта случайному герою
+# Награда: дух из логова — первому герою с местом; иначе каждому герою случайная карта из трёх
 func _take_reward(run: Node) -> void:
 	if run.tamed_spirit != null:
 		for rh in run.party:
@@ -233,10 +233,13 @@ func _take_reward(run: Node) -> void:
 				break
 		run.tamed_spirit = null
 		return
-	var rh = run.party[bot_rng.randi_range(0, run.party.size() - 1)]
-	var cards: Array[CardData] = run.roll_cards(rh, 3)
-	if not cards.is_empty():
-		run.add_card(rh, cards[bot_rng.randi_range(0, cards.size() - 1)])
+	var heroes: Array = run.party
+	if OS.get_environment("ONECARD") == "1":   # старая награда для сравнения: одна карта случайному герою
+		heroes = [run.party[bot_rng.randi_range(0, run.party.size() - 1)]]
+	for rh in heroes:
+		var cards: Array[CardData] = run.roll_cards(rh, 3)
+		if not cards.is_empty():
+			run.add_card(rh, cards[bot_rng.randi_range(0, cards.size() - 1)])
 
 
 func _rest(run: Node, res: Dictionary) -> void:

@@ -1,34 +1,36 @@
 extends Control
-# Награда после боя (тз-карты.md, раздел 10): золото и ОДНА награда на весь отряд.
-# Три варианта на выбор: карта Магу (1 из 3), карта Рыцарю (1 из 3) или улучшение одной карты.
-# Пропуск — каждому герою немного HP.
-# После элиты карты — только редкие (★). Награда элиты (ещё одно бесплатное улучшение и выбор
-# порченой реликвии) — вторым шагом на том же экране: всё сразу не помещается в окно 720 px по высоте.
+# Награда после боя: золото и по карте КАЖДОМУ герою — окна по очереди.
+# Шаг 1 — карта первому герою (1 из 3) или пропуск (этому герою +HP), шаг 2 — так же второму.
+# Улучшений в обычной награде нет: они на привале («Закалка» вместо отдыха), в лавке и после элиты.
+# После элиты и босса карты — только редкие (★), а после выбора карт — ещё один шаг:
+# бесплатное улучшение и выбор порченой реликвии.
 
-var _column: VBoxContainer                   # колонка экрана — во втором шаге её содержимое меняется
-var _elite: bool = false                     # бой был с элитой
+var _column: VBoxContainer                   # колонка экрана — на каждом шаге её содержимое меняется
+var _elite: bool = false                     # бой был с элитой или боссом акта
+var _hero_step: int = 0                      # чья сейчас очередь выбирать карту (номер в Run.party)
 var _next_button: Button
 var _note: Label                             # подпись под выбором («Записано в Караульню»)
-var _picked: bool = false                    # главная награда выбрана (или пропущена)
-var _all_buttons: Array[Button] = []         # кнопки главной награды — гаснут после выбора
+var _picked: bool = false                    # герой этого шага выбрал карту (или пропустил)
+var _all_buttons: Array[Button] = []         # кнопки этого шага — гаснут после выбора
 var _bonus_done: bool = true                 # бесплатное улучшение после элиты (true — его нет)
 var _bonus_buttons: Array[Button] = []
 var _relic_done: bool = true                 # реликвия выбрана или отказались (true — выбора нет)
 var _refuse_relic: Button                    # «Без реликвии» — стоит в нижней строке рядом с «Дальше»
 
-const CARD_SCALE: float = 0.7                # карты на экране уменьшены, чтобы всё влезло в 720 px
+const CARD_SCALE: float = 0.7                # карты улучшений после элиты уменьшены, чтобы всё влезло
+const HERO_CARD_SCALE: float = 0.9           # карты героя крупнее: на шаге только одна строка
 
 
 func _ready() -> void:
 	Hints.offer(self, "reward")   # при первом заходе — подсказка слева внизу (scripts/tutorial/hints.gd)
 	_column = UiKit.make_screen(self)
 	_column.add_theme_constant_override("separation", 10)
-	_elite = Run.is_big_reward()   # элита или босс акта — награда в два шага
-	_build_head()
+	_elite = Run.is_big_reward()   # элита или босс акта — после карт ещё шаг с улучшением и реликвией
 	if Run.tamed_spirit != null:
+		_build_head()
 		_build_spirit_choice(_column, Run.tamed_spirit)
 		return
-	_build_main()
+	_build_hero_step()
 
 
 # Шапка: «Победа!», золото и полоса отряда
@@ -55,56 +57,85 @@ func _build_head() -> void:
 		_column.add_child(line)
 
 
-# Шаг 1: главная награда — карта одному из героев, улучшение или пропуск
-func _build_main() -> void:
-	var column: VBoxContainer = _column
-	column.add_child(UiKit.make_text(Loc.t("Выбери одно на весь отряд: карту Магу, карту Рыцарю или улучшение карты."), 15, UiKit.TEXT_DIM))
-
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 18)
-	column.add_child(row)
-	# Карта каждому герою
-	for rh in Run.party:
-		var cards: Array[CardData] = Run.roll_rare_cards(rh, 3) if _elite else Run.roll_cards(rh, Run.reward_card_count())
-		if cards.is_empty():
-			cards = Run.roll_cards(rh, 3)
-		var panel: PanelContainer = _panel(Loc.t("Карта: ") + Loc.t(rh.data.title), rh.data.color)
-		var box: HBoxContainer = _card_row(panel)
-		for card in cards:
-			var b: Button = _card_button(card, rh.data.color, box)
-			var same_set: String = _same_set_note(card, rh)
-			if same_set != "":
-				b.tooltip_text += "\n\n" + same_set
-			b.pressed.connect(_take_card.bind(rh, card, b))
-		row.add_child(panel)
-	# Улучшение
-	var ups: Array[Dictionary] = Run.roll_upgrades(Run.UPGRADE_CHOICES)
-	if not ups.is_empty():
-		column.add_child(_upgrade_block(Loc.t("Или улучши одну карту — выбери ветку:"), ups, _all_buttons, _take_upgrade))
-
-	var skip: Button = UiKit.make_button(Loc.t("Пропустить (каждому +%d HP)") % Run.SKIP_HEAL, _skip)
-	_all_buttons.append(skip)
-	# После элиты «Дальше» ведёт ко второму шагу, иначе — на карту
-	var go: Callable = _build_elite_step if _elite else Run.after_reward
-	var big_title: String = Loc.t("Дальше: награда босса") if Run.act_cleared else Loc.t("Дальше: награда элиты")
-	_next_button = UiKit.make_button(big_title if _elite else Loc.t("Дальше"), go, "", true)
-	_next_button.disabled = true
-	column.add_child(_bottom_row(skip))
-
-
-# Шаг 2 (только после элиты): бесплатное улучшение и порченая реликвия.
-# Улучшения тянутся заново — карта, улучшенная на шаге 1, сюда уже не попадёт.
-func _build_elite_step() -> void:
+# Убрать всё с экрана перед следующим шагом
+func _clear() -> void:
 	for child in _column.get_children():
 		_column.remove_child(child)
 		child.queue_free()
-	# Без большой шапки «Победа!» (золото уже показано на шаге 1) — иначе снова не влезает
+	_all_buttons.clear()
+
+
+# Карты для героя: после элиты и босса — только ★ (если ★ кончились — обычные)
+func _offer_for(rh: RunHero) -> Array[CardData]:
+	var count: int = Run.reward_card_count()
+	var cards: Array[CardData] = Run.roll_rare_cards(rh, count) if _elite else Run.roll_cards(rh, count)
+	if cards.is_empty():
+		cards = Run.roll_cards(rh, count)
+	return cards
+
+
+# Шаг героя: его карты (1 из 3) или пропуск. Шапка «Победа!» с золотом — на каждом шаге,
+# полоса отряда показывает, как растут колоды.
+func _build_hero_step() -> void:
+	_clear()
+	_picked = false
+	var rh: RunHero = Run.party[_hero_step]
+	_build_head()
+	var cards: Array[CardData] = _offer_for(rh)
+	var steps: int = Run.party.size()
+	var what: String = Loc.t("редкая карта") if _elite else Loc.t("новая карта")
+	_column.add_child(UiKit.make_text(Loc.t("%d из %d: %s — %s. Выбери одну или пропусти.") % [_hero_step + 1, steps, Loc.t(rh.data.title), what], 16, UiKit.TEXT_DIM))
+
+	var panel: PanelContainer = _panel(Loc.t("Карта: ") + Loc.t(rh.data.title), rh.data.color)
+	panel.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var box: HBoxContainer = _card_row(panel)
+	box.add_theme_constant_override("separation", 16)
+	for card in cards:
+		var b: Button = _card_button(card, rh.data.color, box, _all_buttons, HERO_CARD_SCALE)
+		var same_set: String = _same_set_note(card, rh)
+		if same_set != "":
+			b.tooltip_text += "\n\n" + same_set
+		b.pressed.connect(_take_card.bind(rh, card, b))
+	_column.add_child(panel)
+
+	var skip: Button = UiKit.make_button(Loc.t("Пропустить (%s +%d HP)") % [Loc.t(rh.data.title), Run.SKIP_HEAL], _skip.bind(rh))
+	_all_buttons.append(skip)
+	var last_hero: bool = _hero_step >= steps - 1
+	var title: String
+	var go: Callable
+	if not last_hero:
+		title = Loc.t("Дальше: %s") % Loc.t(Run.party[_hero_step + 1].data.title)
+		go = _next_hero
+	elif _elite:
+		title = Loc.t("Дальше: награда босса") if Run.act_cleared else Loc.t("Дальше: награда элиты")
+		go = _build_elite_step
+	else:
+		title = Loc.t("Дальше")
+		go = Run.after_reward
+	_next_button = UiKit.make_button(title, go, "", true)
+	_next_button.disabled = true
+	_column.add_child(_bottom_row(skip))
+	# Предложить нечего (все карты героя уже в колоде) — шаг сразу открыт
+	if cards.is_empty():
+		_note.text = Loc.t("Новых карт для героя нет")
+		_picked = true
+		_update_next()
+
+
+func _next_hero() -> void:
+	_hero_step += 1
+	_build_hero_step()
+
+
+# Последний шаг (только после элиты и босса): бесплатное улучшение и порченая реликвия.
+func _build_elite_step() -> void:
+	_clear()
+	# Без большой шапки «Победа!» (золото уже показано) — иначе не влезает
 	_column.add_child(UiKit.party_bar())
 	var bonus: Array[Dictionary] = Run.roll_upgrades(Run.UPGRADE_CHOICES)
 	if not bonus.is_empty():
 		_bonus_done = false
-		_column.add_child(_upgrade_block(Loc.t("Награда элиты: ещё одно улучшение бесплатно"), bonus, _bonus_buttons, _take_bonus))
+		_column.add_child(_upgrade_block(Loc.t("Награда элиты: улучшение бесплатно"), bonus, _bonus_buttons, _take_bonus))
 	if Run.can_take_relic():
 		var offer: Array[RelicData] = Run.roll_relics(Run.RELIC_CHOICES)
 		if not offer.is_empty():
@@ -155,13 +186,13 @@ func _card_row(panel: PanelContainer) -> HBoxContainer:
 	return cards
 
 
-# Карта-кнопка уменьшенного размера (на экране сразу много карт)
-func _card_button(card: CardData, color: Color, into: Container, list: Array[Button] = _all_buttons) -> Button:
+# Карта-кнопка уменьшенного размера
+func _card_button(card: CardData, color: Color, into: Container, list: Array[Button] = _all_buttons, card_scale: float = CARD_SCALE) -> Button:
 	var b: Button = CardView.make_button(card, color)
 	var holder := Control.new()
-	holder.custom_minimum_size = CardView.CARD_SIZE * CARD_SCALE
+	holder.custom_minimum_size = CardView.CARD_SIZE * card_scale
 	b.pivot_offset = Vector2.ZERO
-	b.scale = Vector2(CARD_SCALE, CARD_SCALE)
+	b.scale = Vector2(card_scale, card_scale)
 	holder.add_child(b)
 	into.add_child(holder)
 	list.append(b)
@@ -254,18 +285,6 @@ func _take_card(rh: RunHero, card: CardData, chosen: Button) -> void:
 	_update_next()
 
 
-func _take_upgrade(rh: RunHero, index: int, branch: int, chosen: Button) -> void:
-	if _picked or not Run.can_upgrade(rh.deck[index]):
-		return
-	Sfx.play("magic", 0.05)
-	Run.upgrade_card(rh, index, branch)
-	_note.text = Loc.t("Улучшено: %s") % Loc.t(rh.deck[index].title)
-	_finish(chosen, _all_buttons)
-	UiFx.shine(chosen)
-	_picked = true
-	_update_next()
-
-
 func _take_bonus(rh: RunHero, index: int, branch: int, chosen: Button) -> void:
 	if _bonus_done or not Run.can_upgrade(rh.deck[index]):
 		return
@@ -278,13 +297,13 @@ func _take_bonus(rh: RunHero, index: int, branch: int, chosen: Button) -> void:
 	_update_next()
 
 
-func _skip() -> void:
+# Пропуск: этот герой не берёт карту, зато немного лечится
+func _skip(rh: RunHero) -> void:
 	if _picked:
 		return
 	Sfx.play("heal", 0.04)
-	for rh in Run.party:
-		Run.heal_hero(rh, Run.SKIP_HEAL)
-	_note.text = Loc.t("Отдохнули: каждому +%d HP") % Run.SKIP_HEAL
+	Run.heal_hero(rh, Run.SKIP_HEAL)
+	_note.text = Loc.t("%s отдыхает: +%d HP") % [Loc.t(rh.data.title), Run.SKIP_HEAL]
 	_finish(null, _all_buttons)
 	_picked = true
 	_update_next()

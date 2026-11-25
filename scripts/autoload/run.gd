@@ -73,8 +73,8 @@ const START_GOLD: int = 30
 const REST_HEAL_PERCENT: float = 0.3
 const REMOVE_CARD_PRICE: int = 40   # удаление в полтора раза дешевле прежнего (тз-карты.md)
 const UPGRADE_PRICE: int = 50       # улучшение карты в лавке
-const UPGRADE_CHOICES: int = 3      # сколько карт предлагают улучшить в награде
-const SKIP_HEAL: int = 3            # пропустил награду — каждому герою столько HP
+const UPGRADE_CHOICES: int = 3      # сколько карт предлагают улучшить в награде элиты и босса
+const SKIP_HEAL: int = 3            # герой пропустил карту в награде — ему столько HP
 
 # Герои отряда: маг и рыцарь. Их карты и стартовые колоды — внутри этих ресурсов.
 const HEROES: Array[HeroData] = [

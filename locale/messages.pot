@@ -7704,7 +7704,7 @@ msgstr ""
 msgid "Обучение окончено"
 msgstr ""
 
-#: scripts/battle.gd:1933 ui/game_over.gd:11 ui/reward_screen.gd:39
+#: scripts/battle.gd:1933 ui/game_over.gd:11 ui/reward_screen.gd:41
 msgid "Победа!"
 msgstr ""
 
@@ -7712,7 +7712,7 @@ msgstr ""
 msgid "Поражение…"
 msgstr ""
 
-#: scripts/battle.gd:1969 ui/event_screen.gd:1298 ui/reward_screen.gd:91 ui/reward_screen.gd:113 ui/reward_screen.gd:399
+#: scripts/battle.gd:1969 ui/event_screen.gd:1298 ui/reward_screen.gd:113 ui/reward_screen.gd:144 ui/reward_screen.gd:418
 msgid "Дальше"
 msgstr ""
 
@@ -9580,7 +9580,7 @@ msgstr ""
 msgid "Лавка"
 msgstr ""
 
-#: scripts/run/map_node.gd:31 scripts/tutorial/hints.gd:45 ui/map_card.gd:80 ui/rest_screen.gd:11
+#: scripts/run/map_node.gd:31 scripts/tutorial/hints.gd:45 ui/map_card.gd:80 ui/rest_screen.gd:14
 msgid "Привал"
 msgstr ""
 
@@ -9677,7 +9677,7 @@ msgid "Награда"
 msgstr ""
 
 #: scripts/tutorial/hints.gd:42
-msgid "Возьми новую карту одному из героев, или улучши карту, или пропусти — тогда каждому +3 HP. Лишние слабые карты разбавляют колоду: брать всё подряд не нужно."
+msgid "Каждый герой по очереди берёт себе одну карту из трёх или пропускает — тогда ему +3 HP. Лишние слабые карты разбавляют колоду: брать всё подряд не нужно."
 msgstr ""
 
 #: scripts/tutorial/hints.gd:44
@@ -9685,7 +9685,7 @@ msgid "Здесь можно купить карту, убрать из коло
 msgstr ""
 
 #: scripts/tutorial/hints.gd:46
-msgid "Отдых возвращает часть здоровья обоим. Если в колоде есть Раны — вместо отдыха их можно перевязать."
+msgid "Отдых возвращает часть здоровья обоим. Вместо отдыха можно закалить — улучшить одну карту — или перевязать Раны."
 msgstr ""
 
 #: scripts/tutorial/hints.gd:48
@@ -11208,7 +11208,7 @@ msgstr ""
 msgid "Горькая, но чистая вода. Хватит до следующего привала."
 msgstr ""
 
-#: ui/event_screen.gd:364 ui/rest_screen.gd:34
+#: ui/event_screen.gd:364 ui/rest_screen.gd:46
 msgid "Идти дальше"
 msgstr ""
 
@@ -11700,7 +11700,7 @@ msgstr ""
 msgid "−%d золота"
 msgstr ""
 
-#: ui/event_screen.gd:987
+#: ui/event_screen.gd:987 ui/reward_screen.gd:86
 msgid "редкая карта"
 msgstr ""
 
@@ -11944,7 +11944,7 @@ msgstr ""
 msgid "Огонь не греет, а просто напоминает, что мы ещё здесь. Пожалуй, этого достаточно."
 msgstr ""
 
-#: ui/hub/chronicle_panel.gd:65 ui/reward_screen.gd:325
+#: ui/hub/chronicle_panel.gd:65 ui/reward_screen.gd:344
 msgid "Покорён: "
 msgstr ""
 
@@ -12372,184 +12372,228 @@ msgstr ""
 msgid "Сдаться"
 msgstr ""
 
-#: ui/rest_screen.gd:12
+#: ui/rest_screen.gd:100 ui/shop_screen.gd:129
+msgid "I «Сила»  ·  II «Приём»"
+msgstr ""
+
+#: ui/rest_screen.gd:101 ui/shop_screen.gd:130
+msgid "Ветка улучшения: %s"
+msgstr ""
+
+#: ui/rest_screen.gd:101 ui/shop_screen.gd:130
+msgid "Выбор окончательный."
+msgstr ""
+
+#: ui/rest_screen.gd:114
+msgid "Закалено"
+msgstr ""
+
+#: ui/rest_screen.gd:15
 msgid "Сухая кочка, огонь и час тишины. Топь подождёт."
 msgstr ""
 
-#: ui/rest_screen.gd:20
+#: ui/rest_screen.gd:23
 msgid "Отдохнуть  ·  +%d%% здоровья"
 msgstr ""
 
-#: ui/rest_screen.gd:22
+#: ui/rest_screen.gd:25
 msgid "Вылечит: "
 msgstr ""
 
-#: ui/rest_screen.gd:28
+#: ui/rest_screen.gd:31
+msgid "Закалка  ·  улучшить карту (вместо отдыха)"
+msgstr ""
+
+#: ui/rest_screen.gd:34
+msgid "Выбери карту любого героя и ветку: I «Сила» или II «Приём». Лечения на этом привале не будет."
+msgstr ""
+
+#: ui/rest_screen.gd:34
+msgid "Все карты уже улучшены"
+msgstr ""
+
+#: ui/rest_screen.gd:40
 msgid "Перевязка: %s  ·  убрать Ран: %d (вместо отдыха)"
 msgstr ""
 
-#: ui/rest_screen.gd:31
+#: ui/rest_screen.gd:43
 msgid "Раны уйдут из колоды. Лечения на этом привале не будет."
 msgstr ""
 
-#: ui/rest_screen.gd:46
+#: ui/rest_screen.gd:58
 msgid "Передать «%s»: %s → %s"
 msgstr ""
 
-#: ui/rest_screen.gd:49
+#: ui/rest_screen.gd:61
 msgid "Карты духа сменятся на карты другого героя, улучшения сохранятся."
 msgstr ""
 
-#: ui/rest_screen.gd:49
+#: ui/rest_screen.gd:61
 msgid "У %s заняты места для духов"
 msgstr ""
 
+#: ui/rest_screen.gd:89
+msgid "Какую карту закалить?"
+msgstr ""
+
+#: ui/rest_screen.gd:90
+msgid "Нажми на карту, потом выбери ветку улучшения. Вместо отдыха."
+msgstr ""
+
+#: ui/reward_screen.gd:101
+msgid "Пропустить (%s +%d HP)"
+msgstr ""
+
 #: ui/reward_screen.gd:107
-msgid "Награда элиты: ещё одно улучшение бесплатно"
+msgid "Дальше: %s"
 msgstr ""
 
-#: ui/reward_screen.gd:179
-msgid "В колоде (%s): карт набора «%s» — %d"
-msgstr ""
-
-#: ui/reward_screen.gd:197
-msgid "Клик или Esc — вернуться к награде"
-msgstr ""
-
-#: ui/reward_screen.gd:239
-msgid "Ветка I «Сила»"
-msgstr ""
-
-#: ui/reward_screen.gd:239
-msgid "Ветка II «Приём»"
-msgstr ""
-
-#: ui/reward_screen.gd:250
-msgid "Записано в Караульню"
-msgstr ""
-
-#: ui/reward_screen.gd:262 ui/reward_screen.gd:274
-msgid "Улучшено: %s"
-msgstr ""
-
-#: ui/reward_screen.gd:287
-msgid "Отдохнули: каждому +%d HP"
-msgstr ""
-
-#: ui/reward_screen.gd:328
-msgid "Пассив: "
-msgstr ""
-
-#: ui/reward_screen.gd:330
-msgid "Зов (раз в бой): "
-msgstr ""
-
-#: ui/reward_screen.gd:331
-msgid "К кому пойдёт дух? Его три карты сразу войдут в колоду героя."
-msgstr ""
-
-#: ui/reward_screen.gd:357
-msgid "%s: заменить «%s»"
-msgstr ""
-
-#: ui/reward_screen.gd:358
-msgid "«%s» уйдёт вместе со своими картами."
-msgstr ""
-
-#: ui/reward_screen.gd:364
-msgid "%s отпускает «%s» и берёт «%s»"
-msgstr ""
-
-#: ui/reward_screen.gd:370
-msgid "Отдать: "
-msgstr ""
-
-#: ui/reward_screen.gd:370
-msgid ": места заняты"
-msgstr ""
-
-#: ui/reward_screen.gd:377
-msgid "%s теперь с духом «%s»"
-msgstr ""
-
-#: ui/reward_screen.gd:384
-msgid "Отпустить духа"
-msgstr ""
-
-#: ui/reward_screen.gd:388
-msgid "Дух ушёл в туман"
-msgstr ""
-
-#: ui/reward_screen.gd:39
-msgid "Босс повержен!"
-msgstr ""
-
-#: ui/reward_screen.gd:414
-msgid "Порченая реликвия: сила с ценой. Можно не брать."
-msgstr ""
-
-#: ui/reward_screen.gd:435
-msgid "Для: "
-msgstr ""
-
-#: ui/reward_screen.gd:435
-msgid "мага"
-msgstr ""
-
-#: ui/reward_screen.gd:435
-msgid "рыцаря"
-msgstr ""
-
-#: ui/reward_screen.gd:439 ui/trophy_screen.gd:21
-msgid "Взять"
-msgstr ""
-
-#: ui/reward_screen.gd:445
-msgid "Без реликвии"
-msgstr ""
-
-#: ui/reward_screen.gd:45
-msgid "Поле боя"
-msgstr ""
-
-#: ui/reward_screen.gd:461
-msgid "Взята"
-msgstr ""
-
-#: ui/reward_screen.gd:461
-msgid "Отказались"
-msgstr ""
-
-#: ui/reward_screen.gd:47
-msgid "Каким было поле в конце боя. Клик или Esc — вернуться к награде."
-msgstr ""
-
-#: ui/reward_screen.gd:53
-msgid "%s пал в бою — в колоду легла Рана"
-msgstr ""
-
-#: ui/reward_screen.gd:61
-msgid "Выбери одно на весь отряд: карту Магу, карту Рыцарю или улучшение карты."
-msgstr ""
-
-#: ui/reward_screen.gd:72
-msgid "Карта: "
-msgstr ""
-
-#: ui/reward_screen.gd:84
-msgid "Или улучши одну карту — выбери ветку:"
-msgstr ""
-
-#: ui/reward_screen.gd:86
-msgid "Пропустить (каждому +%d HP)"
-msgstr ""
-
-#: ui/reward_screen.gd:90
+#: ui/reward_screen.gd:110
 msgid "Дальше: награда босса"
 msgstr ""
 
-#: ui/reward_screen.gd:90
+#: ui/reward_screen.gd:110
 msgid "Дальше: награда элиты"
+msgstr ""
+
+#: ui/reward_screen.gd:120
+msgid "Новых карт для героя нет"
+msgstr ""
+
+#: ui/reward_screen.gd:138
+msgid "Награда элиты: улучшение бесплатно"
+msgstr ""
+
+#: ui/reward_screen.gd:210
+msgid "В колоде (%s): карт набора «%s» — %d"
+msgstr ""
+
+#: ui/reward_screen.gd:228
+msgid "Клик или Esc — вернуться к награде"
+msgstr ""
+
+#: ui/reward_screen.gd:270
+msgid "Ветка I «Сила»"
+msgstr ""
+
+#: ui/reward_screen.gd:270
+msgid "Ветка II «Приём»"
+msgstr ""
+
+#: ui/reward_screen.gd:281
+msgid "Записано в Караульню"
+msgstr ""
+
+#: ui/reward_screen.gd:293
+msgid "Улучшено: %s"
+msgstr ""
+
+#: ui/reward_screen.gd:306
+msgid "%s отдыхает: +%d HP"
+msgstr ""
+
+#: ui/reward_screen.gd:347
+msgid "Пассив: "
+msgstr ""
+
+#: ui/reward_screen.gd:349
+msgid "Зов (раз в бой): "
+msgstr ""
+
+#: ui/reward_screen.gd:350
+msgid "К кому пойдёт дух? Его три карты сразу войдут в колоду героя."
+msgstr ""
+
+#: ui/reward_screen.gd:376
+msgid "%s: заменить «%s»"
+msgstr ""
+
+#: ui/reward_screen.gd:377
+msgid "«%s» уйдёт вместе со своими картами."
+msgstr ""
+
+#: ui/reward_screen.gd:383
+msgid "%s отпускает «%s» и берёт «%s»"
+msgstr ""
+
+#: ui/reward_screen.gd:389
+msgid "Отдать: "
+msgstr ""
+
+#: ui/reward_screen.gd:389
+msgid ": места заняты"
+msgstr ""
+
+#: ui/reward_screen.gd:396
+msgid "%s теперь с духом «%s»"
+msgstr ""
+
+#: ui/reward_screen.gd:403
+msgid "Отпустить духа"
+msgstr ""
+
+#: ui/reward_screen.gd:407
+msgid "Дух ушёл в туман"
+msgstr ""
+
+#: ui/reward_screen.gd:41
+msgid "Босс повержен!"
+msgstr ""
+
+#: ui/reward_screen.gd:433
+msgid "Порченая реликвия: сила с ценой. Можно не брать."
+msgstr ""
+
+#: ui/reward_screen.gd:454
+msgid "Для: "
+msgstr ""
+
+#: ui/reward_screen.gd:454
+msgid "мага"
+msgstr ""
+
+#: ui/reward_screen.gd:454
+msgid "рыцаря"
+msgstr ""
+
+#: ui/reward_screen.gd:458 ui/trophy_screen.gd:21
+msgid "Взять"
+msgstr ""
+
+#: ui/reward_screen.gd:464
+msgid "Без реликвии"
+msgstr ""
+
+#: ui/reward_screen.gd:47
+msgid "Поле боя"
+msgstr ""
+
+#: ui/reward_screen.gd:480
+msgid "Взята"
+msgstr ""
+
+#: ui/reward_screen.gd:480
+msgid "Отказались"
+msgstr ""
+
+#: ui/reward_screen.gd:49
+msgid "Каким было поле в конце боя. Клик или Esc — вернуться к награде."
+msgstr ""
+
+#: ui/reward_screen.gd:55
+msgid "%s пал в бою — в колоду легла Рана"
+msgstr ""
+
+#: ui/reward_screen.gd:86
+msgid "новая карта"
+msgstr ""
+
+#: ui/reward_screen.gd:87
+msgid "%d из %d: %s — %s. Выбери одну или пропусти."
+msgstr ""
+
+#: ui/reward_screen.gd:89
+msgid "Карта: "
 msgstr ""
 
 #: ui/run_history_screen.gd:101
@@ -12718,18 +12762,6 @@ msgstr ""
 
 #: ui/shop_screen.gd:119
 msgid "Нажми на карту, потом выбери ветку улучшения. Цена: %d золота."
-msgstr ""
-
-#: ui/shop_screen.gd:129
-msgid "I «Сила»  ·  II «Приём»"
-msgstr ""
-
-#: ui/shop_screen.gd:130
-msgid "Ветка улучшения: %s"
-msgstr ""
-
-#: ui/shop_screen.gd:130
-msgid "Выбор окончательный."
 msgstr ""
 
 #: ui/shop_screen.gd:142

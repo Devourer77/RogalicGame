@@ -1,5 +1,8 @@
 extends Control
-# Привал: оба героя восстанавливают часть здоровья — или «Перевязка» убирает Раны одного героя.
+# Привал: оба героя восстанавливают часть здоровья — или вместо отдыха
+# «Закалка» (улучшить одну карту) или «Перевязка» (убрать Раны одного героя).
+
+const FORGE_TOAST_TIME: float = 1.2   # сколько показывать закалённую карту перед переходом на карту пути
 
 
 func _ready() -> void:
@@ -21,6 +24,15 @@ func _ready() -> void:
 	rest.custom_minimum_size.x = 340
 	rest.tooltip_text = Loc.t("Вылечит: ") + ", ".join(gains)
 	column.add_child(rest)
+	# «Закалка»: вместо отдыха улучшить одну карту любого героя (сначала карта, потом ветка)
+	var can_forge: bool = false
+	for rh in Run.party:
+		can_forge = can_forge or not Run.upgradable(rh).is_empty()
+	var forge: Button = UiKit.make_button(Loc.t("Закалка  ·  улучшить карту (вместо отдыха)"), _start_forge, "star")
+	forge.custom_minimum_size.x = 340
+	forge.disabled = not can_forge
+	forge.tooltip_text = Loc.t("Выбери карту любого героя и ветку: I «Сила» или II «Приём». Лечения на этом привале не будет.") if can_forge else Loc.t("Все карты уже улучшены")
+	column.add_child(forge)
 	# «Перевязка»: вместо отдыха убрать все Раны одного героя
 	for rh in Run.party:
 		var n: int = Run.wound_count(rh)
@@ -66,4 +78,39 @@ func _rest() -> void:
 func _bandage(rh: RunHero) -> void:
 	Sfx.play("heal", 0.04)
 	Run.bandage(rh)
+	Run.goto(Run.MAP_SCENE)
+
+
+# «Закалка»: окно колод обоих героев → карта → окно с двумя ветками → улучшение и на карту
+func _start_forge() -> void:
+	var sections: Array[Dictionary] = []
+	for rh in Run.party:
+		sections.append({"title": rh.data.title, "color": rh.data.color, "cards": rh.deck})
+	DeckOverlay.open(self, Loc.t("Какую карту закалить?"), sections,
+			Loc.t("Нажми на карту, потом выбери ветку улучшения. Вместо отдыха."),
+			_pick_forge_card, func(_section: int) -> bool: return true)
+
+
+func _pick_forge_card(section: int, index: int) -> void:
+	var rh: RunHero = Run.party[section]
+	var card: CardData = rh.deck[index]
+	if not Run.can_upgrade(card):
+		return
+	var choice: Array[CardData] = [card.upgrade_1, card.upgrade_2]
+	var sections: Array[Dictionary] = [{"title": Loc.t("I «Сила»  ·  II «Приём»"), "color": rh.data.color, "cards": choice}]
+	DeckOverlay.open(self, Loc.t("Ветка улучшения: %s") % Loc.t(card.title), sections, Loc.t("Выбор окончательный."),
+			func(_s: int, branch_index: int) -> void: _forge(rh, index, branch_index + 1))
+
+
+func _forge(rh: RunHero, index: int, branch: int) -> void:
+	if not Run.can_upgrade(rh.deck[index]):
+		return
+	Sfx.play("magic", 0.05)
+	Run.upgrade_card(rh, index, branch)
+	# Показать закалённую карту (около секунды), кнопки привала под ней уже не нажать
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	for b: Node in find_children("*", "Button", true, false):
+		(b as Button).disabled = true
+	UiFx.card_toast(self, rh.deck[index], rh.data.color, Loc.t("Закалено"))
+	await get_tree().create_timer(FORGE_TOAST_TIME).timeout
 	Run.goto(Run.MAP_SCENE)
