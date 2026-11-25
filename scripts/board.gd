@@ -219,7 +219,7 @@ const LAYER_HEIGHT: Dictionary = {
 }
 
 const IMPACT_FX_SCALE: float = 1.5   # во сколько раз крупнее частицы взрыва бочки и падения дерева (подкрути, если мало или много)
-const COLOR_ROUTE := Color(1.0, 0.92, 0.55, 0.95)   # тёплый жёлтый: виден и на камне, и на воде
+const COLOR_ROUTE := Color(0.9, 0.76, 0.48, 0.95)   # приглушённая латунь (чуть светлее «клещей»): путь врага
 const COLOR_SWAMP_WATER := Color(0.05, 0.075, 0.065) # стоячая вода вокруг арены
 const COLOR_BANK := Color(0.2, 0.18, 0.14)           # топкий берег, на котором лежат плиты
 const COLOR_GAS_LIGHT := Color(0.55, 0.95, 0.35)     # болотный газ
@@ -1697,8 +1697,6 @@ func _sink(node: Node3D) -> void:
 
 # ---------- Маршруты врагов ----------
 
-# Рисует пути врагов тонкими линиями со стрелкой на конце.
-# paths — массив путей (каждый — массив клеток от врага до точки, куда он встанет).
 # Плоские стрелки на полу: arrows — список пар [откуда, куда]. Ветер, ленты конвейера.
 func show_flow_arrows(layer: String, arrows: Array, color: Color, size: float = 0.36) -> void:
 	clear_layer(layer)
@@ -1721,44 +1719,110 @@ func show_flow_arrows(layer: String, arrows: Array, color: Color, size: float = 
 		holder.add_child(arrow)
 
 
+# Пути врагов: цепочка следов по плавной кривой и метка клетки, куда враг встанет.
+# paths — массив путей (каждый — массив клеток от врага до точки, куда он встанет).
 func show_routes(paths: Array) -> void:
 	clear_layer("routes")
 	var holder := Node3D.new()
 	add_child(holder)
 	_layers["routes"] = holder
 	var y: float = LAYER_HEIGHT["routes"]
-	var mat: StandardMaterial3D = _get_flat_material(COLOR_ROUTE)
 	for path: Array in paths:
 		if path.size() < 2:
 			continue
-		for i in range(1, path.size()):
-			var a: Vector3 = grid_to_world(path[i - 1])
-			var b: Vector3 = grid_to_world(path[i])
-			if i == path.size() - 1:
-				b = a.lerp(b, 0.55)   # последний отрезок короче — дальше рисуем стрелку
-			var seg := MeshInstance3D.new()
-			var box := BoxMesh.new()
-			box.size = Vector3(0.09, 0.02, a.distance_to(b) + 0.09)
-			seg.mesh = box
-			seg.material_override = mat
-			seg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			seg.position = (a + b) / 2.0 + Vector3(0, y, 0)
-			seg.rotation.y = atan2(b.x - a.x, b.z - a.z)
-			holder.add_child(seg)
-		# Стрелка: плоский треугольник, остриём в сторону последнего шага
-		var last: Vector2i = path[path.size() - 1]
-		var prev: Vector2i = path[path.size() - 2]
-		var arrow := MeshInstance3D.new()
-		var prism := PrismMesh.new()
-		prism.size = Vector3(0.34, 0.32, 0.02)
-		arrow.mesh = prism
-		arrow.material_override = mat
-		arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		arrow.position = grid_to_world(prev).lerp(grid_to_world(last), 0.62) + Vector3(0, y, 0)
-		# Сначала кладём треугольник на пол (остриё смотрит в -Z), потом поворачиваем к цели
-		var heading: Vector3 = grid_to_world(last) - grid_to_world(prev)
-		arrow.rotation = Vector3(-PI / 2.0, atan2(-heading.x, -heading.z), 0.0)
-		holder.add_child(arrow)
+		# Плавная кривая через центры клеток (вместо ломаной)
+		var pts: Array[Vector3] = []
+		for c: Vector2i in path:
+			pts.append(grid_to_world(c))
+		var curve: PackedVector3Array = _smooth_route(pts)
+		var total: float = 0.0
+		for i in range(1, curve.size()):
+			total += curve[i - 1].distance_to(curve[i])
+		# Следы: точки от врага к цели, к концу крупнее и ярче
+		var from_len: float = ROUTE_DOT_START
+		var to_len: float = total - HexMath.HEX_SIZE * 0.5   # не залезать на метку цели
+		var t: float = from_len
+		while t <= to_len:
+			var k: float = clampf((t - from_len) / maxf(to_len - from_len, 0.001), 0.0, 1.0)
+			var dot := MeshInstance3D.new()
+			dot.mesh = _route_dot_mesh(lerpf(ROUTE_DOT_MIN, ROUTE_DOT_MAX, k))
+			# Прозрачность ступеньками — чтобы материалов было мало (кеш по цвету)
+			var alpha: float = snappedf(lerpf(0.35, 1.0, k), 0.15) * COLOR_ROUTE.a
+			dot.material_override = _get_flat_material(Color(COLOR_ROUTE, alpha))
+			dot.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			dot.position = _point_on_route(curve, t) + Vector3(0, y, 0)
+			holder.add_child(dot)
+			t += ROUTE_DOT_STEP
+		# Метка цели: контур соты и колечко в центре — сюда встанет враг
+		var goal: Vector3 = pts[pts.size() - 1]
+		var outline := MeshInstance3D.new()
+		outline.mesh = _get_highlight_mesh()
+		outline.material_override = _get_highlight_material(COLOR_ROUTE, true)
+		outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		outline.scale = Vector3(SUBTLE_SCALE, 1.0, SUBTLE_SCALE)
+		outline.position = goal + Vector3(0, y, 0)
+		holder.add_child(outline)
+		var ring := MeshInstance3D.new()
+		var torus := TorusMesh.new()
+		torus.inner_radius = 0.11
+		torus.outer_radius = 0.15
+		torus.rings = 24
+		torus.ring_segments = 4
+		ring.mesh = torus
+		ring.scale = Vector3(1.0, 0.15, 1.0)   # сплющить в плоское кольцо на полу
+		ring.material_override = _get_flat_material(COLOR_ROUTE)
+		ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		ring.position = goal + Vector3(0, y, 0)
+		holder.add_child(ring)
+
+
+const ROUTE_DOT_STEP: float = 0.24   # шаг между следами, м
+const ROUTE_DOT_START: float = 0.32  # первый след — за краем фигурки врага
+const ROUTE_DOT_MIN: float = 0.03    # радиус первого следа
+const ROUTE_DOT_MAX: float = 0.065   # радиус последнего следа
+var _route_dot_meshes: Dictionary[int, CylinderMesh] = {}
+
+
+# Плоский кружок-след (кеш по размеру, с шагом 5 мм)
+func _route_dot_mesh(radius: float) -> CylinderMesh:
+	var key: int = roundi(radius * 200.0)
+	if not _route_dot_meshes.has(key):
+		var m := CylinderMesh.new()
+		m.top_radius = key / 200.0
+		m.bottom_radius = key / 200.0
+		m.height = 0.01
+		m.radial_segments = 12
+		m.rings = 1
+		_route_dot_meshes[key] = m
+	return _route_dot_meshes[key]
+
+
+# Сглаживает ломаную (кривая Катмулла-Рома): проходит через все центры клеток, но без изломов
+func _smooth_route(pts: Array[Vector3]) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var n: int = pts.size()
+	for i in range(n - 1):
+		var p0: Vector3 = pts[maxi(i - 1, 0)]
+		var p1: Vector3 = pts[i]
+		var p2: Vector3 = pts[i + 1]
+		var p3: Vector3 = pts[mini(i + 2, n - 1)]
+		for s in range(8):
+			var t: float = s / 8.0
+			var t2: float = t * t
+			var t3: float = t2 * t
+			out.append(0.5 * ((2.0 * p1) + (-p0 + p2) * t + (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 + (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3))
+	out.append(pts[n - 1])
+	return out
+
+
+# Точка на кривой на расстоянии dist от начала
+func _point_on_route(curve: PackedVector3Array, dist: float) -> Vector3:
+	for i in range(1, curve.size()):
+		var seg: float = curve[i - 1].distance_to(curve[i])
+		if dist <= seg:
+			return curve[i - 1].lerp(curve[i], dist / maxf(seg, 0.0001))
+		dist -= seg
+	return curve[curve.size() - 1]
 
 
 # Сторожевая руна рыцаря: плоский светящийся знак на плите (заглушка до модели obj_rune.glb).
