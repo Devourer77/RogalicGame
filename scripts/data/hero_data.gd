@@ -15,3 +15,4 @@ extends Resource
 @export var model: PackedScene           # 3D-модель; если пусто — капсула-заглушка его цвета
 @export var starter_deck: Array[CardData] = []
 @export var card_pool: Array[CardData] = []   # карты для наград и лавки
+@export var presets: Array[DeckPreset] = []   # готовые стартовые колоды (Караульня); первый — базовый

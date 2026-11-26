@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DeckPreset" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/deck_preset.gd" id="1_preset"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_shield.tres" id="c_kb_shield"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_sword.tres" id="c_kb_sword"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_blood.tres" id="c_kb_blood"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_warcry.tres" id="c_kb_warcry"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_taunt.tres" id="c_kb_taunt"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_ram.tres" id="c_kb_ram"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_whirl.tres" id="c_kb_whirl"]
+
+[resource]
+script = ExtResource("1_preset")
+id = "rage"
+title = "Берсерк"
+description = "★ Вихрь стали с первого боя. Вызов и Поднять щит — чтобы бить в Рыцаря, а не в Мага; каждый удар — ярость, Кровавый удар и Вихрь её тратят."
+cards = Array[ExtResource("2_card")]([ExtResource("c_kb_sword"), ExtResource("c_kb_sword"), ExtResource("c_kb_blood"), ExtResource("c_kb_warcry"), ExtResource("c_kb_taunt"), ExtResource("c_kb_shield"), ExtResource("c_kb_ram"), ExtResource("c_kb_whirl")])
+unlock = "act2_boss"

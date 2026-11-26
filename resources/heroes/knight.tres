@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="HeroData" load_steps=22 format=3]
+[gd_resource type="Resource" script_class="HeroData" load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="1_hero"]
 [ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
@@ -23,6 +23,10 @@
 [ext_resource type="Resource" path="res://resources/cards/base/kb_unstoppable.tres" id="c_kb_unstoppable"]
 [ext_resource type="Resource" path="res://resources/cards/base/kb_bell.tres" id="c_kb_bell"]
 
+[ext_resource type="Resource" path="res://resources/presets/knight_watch.tres" id="p_knight_watch"]
+[ext_resource type="Resource" path="res://resources/presets/knight_warden.tres" id="p_knight_warden"]
+[ext_resource type="Resource" path="res://resources/presets/knight_rage.tres" id="p_knight_rage"]
+[ext_resource type="Script" path="res://scripts/data/deck_preset.gd" id="3_preset"]
 [resource]
 script = ExtResource("1_hero")
 id = "knight"
@@ -36,3 +40,4 @@ color = Color(0.9, 0.62, 0.25, 1)
 model = ExtResource("3_model")
 starter_deck = Array[ExtResource("2_card")]([ExtResource("c_kb_sword"), ExtResource("c_kb_sword"), ExtResource("c_kb_lunge"), ExtResource("c_kb_shield"), ExtResource("c_kb_runup"), ExtResource("c_kb_ram"), ExtResource("c_kb_taunt"), ExtResource("c_kb_execute")])
 card_pool = Array[ExtResource("2_card")]([ExtResource("c_kb_sword"), ExtResource("c_kb_lunge"), ExtResource("c_kb_shield"), ExtResource("c_kb_runup"), ExtResource("c_kb_ram"), ExtResource("c_kb_sweep"), ExtResource("c_kb_taunt"), ExtResource("c_kb_warcry"), ExtResource("c_kb_blood"), ExtResource("c_kb_cover"), ExtResource("c_kb_stakes"), ExtResource("c_kb_boot"), ExtResource("c_kb_chop"), ExtResource("c_kb_leap"), ExtResource("c_kb_execute"), ExtResource("c_kb_whirl"), ExtResource("c_kb_unstoppable"), ExtResource("c_kb_bell")])
+presets = Array[ExtResource("3_preset")]([ExtResource("p_knight_watch"), ExtResource("p_knight_warden"), ExtResource("p_knight_rage")])

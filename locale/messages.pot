@@ -900,7 +900,7 @@ msgstr ""
 msgid "Дуга: 5 урона, +2 за каждую ярость. Тратит всю ярость."
 msgstr ""
 
-#: resources/cards/k_berserk.tres:9
+#: resources/cards/k_berserk.tres:9 resources/presets/knight_rage.tres:16
 msgid "Берсерк"
 msgstr ""
 
@@ -7164,6 +7164,38 @@ msgstr ""
 msgid "+20 золота на старте за ступень."
 msgstr ""
 
+#: resources/presets/knight_rage.tres:17
+msgid "★ Вихрь стали с первого боя. Вызов и Поднять щит — чтобы бить в Рыцаря, а не в Мага; каждый удар — ярость, Кровавый удар и Вихрь её тратят."
+msgstr ""
+
+#: resources/presets/knight_warden.tres:18
+msgid "Держит строй и бережёт Мага: Вызов, Прикрыть, Поднять щит. Размах и Рубящий удар — по тем, кто подошёл."
+msgstr ""
+
+#: resources/presets/knight_watch.tres:16 resources/presets/mage_watch.tres:16
+msgid "Дозорный"
+msgstr ""
+
+#: resources/presets/knight_watch.tres:17
+msgid "Как было: разгон и удары. Разбег и Таран копят натиск, Удар мечом и Добивание его тратят."
+msgstr ""
+
+#: resources/presets/mage_kinetic.tres:16
+msgid "Перестановщик"
+msgstr ""
+
+#: resources/presets/mage_kinetic.tres:17
+msgid "Двигает поле, а не бьёт. Притяжение и Обмен ставят врагов в клещи, под Рыцаря или в трясину; Надлом роняет деревья и взрывает бочки."
+msgstr ""
+
+#: resources/presets/mage_overload.tres:17
+msgid "★ Перегрузка с первого боя. Искры и Сосредоточение копят заряд, Перегрузка его удваивает, Разрядка бьёт на 20+. Скачок уводит Мага от ответного удара."
+msgstr ""
+
+#: resources/presets/mage_watch.tres:17
+msgid "Как было: понемногу всего. Искры копят заряд, Разрядка его тратит, Толчок и Рывок — для позиции."
+msgstr ""
+
 #: resources/relics/ash_lantern.tres:10
 msgid "В начале каждого боя на поле горят 2 клетки."
 msgstr ""
@@ -7424,75 +7456,75 @@ msgstr ""
 msgid "Элита и босс: +25% HP."
 msgstr ""
 
-#: scripts/autoload/run.gd:606
+#: scripts/autoload/run.gd:608
 msgid "Ржавый шлем Стражи с выцветшим плюмажем. Кто-то из офицеров ушёл в трясину — и, похоже, не до конца."
 msgstr ""
 
-#: scripts/autoload/run.gd:607
+#: scripts/autoload/run.gd:609
 msgid "Треснувший колокол Стражи в воде. Говорят, по ночам он звонит сам — сбор на поверку."
 msgstr ""
 
-#: scripts/autoload/run.gd:608
+#: scripts/autoload/run.gd:610
 msgid "Обломок алебарды с клочком табарда. Стража здесь отступала — но приказа отступать не было."
 msgstr ""
 
-#: scripts/autoload/run.gd:611
+#: scripts/autoload/run.gd:613
 msgid "Колонну сломали пополам — не тараном, а голыми руками."
 msgstr ""
 
-#: scripts/autoload/run.gd:612
+#: scripts/autoload/run.gd:614
 msgid "Кандалы на ногу толщиной с бревно. Цепь не перепилена — разорвана."
 msgstr ""
 
-#: scripts/autoload/run.gd:613
+#: scripts/autoload/run.gd:615
 msgid "След босой ноги длиной в два шага, вдавленный в камень."
 msgstr ""
 
-#: scripts/autoload/run.gd:616
+#: scripts/autoload/run.gd:618
 msgid "Кладка икры светится бирюзой. Кто-то очень большой готовит потомство."
 msgstr ""
 
-#: scripts/autoload/run.gd:617
+#: scripts/autoload/run.gd:619
 msgid "Сброшенная жабья кожа — в неё поместилась бы телега."
 msgstr ""
 
-#: scripts/autoload/run.gd:618
+#: scripts/autoload/run.gd:620
 msgid "Следы-перепонки размером с бочку уходят к дальней воде."
 msgstr ""
 
-#: scripts/autoload/run.gd:622
+#: scripts/autoload/run.gd:624
 msgid "Колесо обоза сплющено, как подкова под молотом. Тот, кто это сделал, носит такое колесо вместо руки."
 msgstr ""
 
-#: scripts/autoload/run.gd:623
+#: scripts/autoload/run.gd:625
 msgid "Колея шириной в шаг. Такую не оставит ни одна телега — только то, что тащит на себе весь обоз."
 msgstr ""
 
-#: scripts/autoload/run.gd:624
+#: scripts/autoload/run.gd:626
 msgid "Бочку смяли одной ладонью. Внутри пусто, пахнет гарью и смолой."
 msgstr ""
 
-#: scripts/autoload/run.gd:627
+#: scripts/autoload/run.gd:629
 msgid "Шестерня ростом с человека. Механизм, которому она принадлежала, всё ещё где-то ходит."
 msgstr ""
 
-#: scripts/autoload/run.gd:628
+#: scripts/autoload/run.gd:630
 msgid "Осколки трёх стеклянных сфер: водяной, грозовой и огненной. В бронзовом обруче — следы когтей духа."
 msgstr ""
 
-#: scripts/autoload/run.gd:629
+#: scripts/autoload/run.gd:631
 msgid "Болт толщиной в бревно вырван вместе с листом брони. Край разрыва ещё тёплый."
 msgstr ""
 
-#: scripts/autoload/run.gd:632
+#: scripts/autoload/run.gd:634
 msgid "Цепь толщиной в руку. Последние звенья раскалены — то, что она держала, горит изнутри."
 msgstr ""
 
-#: scripts/autoload/run.gd:633
+#: scripts/autoload/run.gd:635
 msgid "Обломок костяного венца. Гнёзда пусты, кость опалена жаром."
 msgstr ""
 
-#: scripts/autoload/run.gd:634
+#: scripts/autoload/run.gd:636
 msgid "Прутья клетки выгнуты наружу. Кто-то пытался вырваться — и почти смог."
 msgstr ""
 
@@ -8780,11 +8812,11 @@ msgstr ""
 msgid "Духи (этап 3)"
 msgstr ""
 
-#: scripts/data/card_data.gd:57 ui/event_screen.gd:492 resources/heroes/knight.tres:29
+#: scripts/data/card_data.gd:57 ui/event_screen.gd:492 resources/heroes/knight.tres:33
 msgid "Рыцарь"
 msgstr ""
 
-#: scripts/data/card_data.gd:64 ui/event_screen.gd:493 resources/heroes/mage.tres:28
+#: scripts/data/card_data.gd:64 ui/event_screen.gd:493 resources/heroes/mage.tres:32
 msgid "Маг"
 msgstr ""
 
@@ -10072,7 +10104,7 @@ msgstr ""
 msgid "Заряд: копится от заклинаний Бури и не пропадает между ходами.\n«Разрядки» тратят его весь ради урона."
 msgstr ""
 
-#: ui/battle_hud.gd:698 resources/cards/base/mb_overload.tres:43 resources/cards/m_overload.tres:9
+#: ui/battle_hud.gd:698 resources/cards/base/mb_overload.tres:43 resources/cards/m_overload.tres:9 resources/presets/mage_overload.tres:16
 msgid "Перегрузка"
 msgstr ""
 
@@ -10248,7 +10280,7 @@ msgstr ""
 msgid "Разгон"
 msgstr ""
 
-#: ui/card_view.gd:29
+#: ui/card_view.gd:29 resources/presets/knight_warden.tres:17
 msgid "Страж"
 msgstr ""
 
@@ -11808,56 +11840,64 @@ msgstr ""
 msgid "История забегов"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:100
+#: ui/hub/barracks_panel.gd:102
 msgid "Карт: %d · минимум %d        Изменений: %d / %d"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:118
+#: ui/hub/barracks_panel.gd:120
 msgid "Убрать выбранную"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:122
+#: ui/hub/barracks_panel.gd:124
 msgid "Сначала выбери карту в колоде."
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:125 ui/hub/barracks_panel.gd:293
+#: ui/hub/barracks_panel.gd:127 ui/hub/barracks_panel.gd:295
 msgid "Колода не может стать меньше базовой · замени карту или сначала добавь новую."
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:127 ui/keys_screen.gd:65
+#: ui/hub/barracks_panel.gd:129 ui/keys_screen.gd:65
 msgid "Как было"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:136
+#: ui/hub/barracks_panel.gd:138
 msgid "Стартовая колода"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:137
+#: ui/hub/barracks_panel.gd:139
 msgid "Латунная рамка — изменение сверх базовой колоды."
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:178
+#: ui/hub/barracks_panel.gd:180
 msgid "Запас"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:179
+#: ui/hub/barracks_panel.gd:181
 msgid "Базовые карты и обычные, которые герой уже брал в забегах."
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:184
+#: ui/hub/barracks_panel.gd:186
 msgid "Все"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:185
+#: ui/hub/barracks_panel.gd:187
 msgid "Базовые"
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:254
+#: ui/hub/barracks_panel.gd:256
 msgid "Уже %d копии в колоде."
 msgstr ""
 
-#: ui/hub/barracks_panel.gd:255
+#: ui/hub/barracks_panel.gd:257
 msgid "Все изменения заняты · убери добавленную карту или изучи «Свою выкладку»."
+msgstr ""
+
+#: ui/hub/barracks_panel.gd:329
+msgid "Закрыто"
+msgstr ""
+
+#: ui/hub/barracks_panel.gd:335
+msgid "Откроется после победы над боссом второго акта."
 msgstr ""
 
 #: ui/hub/bell_panel.gd:19
@@ -11980,7 +12020,11 @@ msgstr ""
 msgid "Пал на ряду %d"
 msgstr ""
 
-#: ui/hub/gate_panel.gd:105
+#: ui/hub/gate_panel.gd:101
+msgid "Колода: %s · %d карт, изменений: %d"
+msgstr ""
+
+#: ui/hub/gate_panel.gd:107
 msgid "Отличия от базовой колоды:\n"
 msgstr ""
 
@@ -12021,11 +12065,11 @@ msgid "Здоровье: %d"
 msgstr ""
 
 #: ui/hub/gate_panel.gd:97
-msgid "Колода: базовая · %d карт"
+msgid "базовая"
 msgstr ""
 
 #: ui/hub/gate_panel.gd:99
-msgid "Колода: своя · %d карт, изменений: %d"
+msgid "Колода: %s · %d карт"
 msgstr ""
 
 #: ui/hub/hub_panel.gd:47
@@ -12568,7 +12612,7 @@ msgstr ""
 msgid "рыцаря"
 msgstr ""
 
-#: ui/reward_screen.gd:458 ui/trophy_screen.gd:21
+#: ui/reward_screen.gd:458 ui/trophy_screen.gd:25
 msgid "Взять"
 msgstr ""
 
@@ -12832,7 +12876,11 @@ msgstr ""
 msgid "Среди добычи — вещи Стражи. Одну можно унести: она откроется на Полке трофеев навсегда."
 msgstr ""
 
-#: ui/trophy_screen.gd:38
+#: ui/trophy_screen.gd:18
+msgid "В Караульне открыты новые стартовые колоды: Маг — «Перегрузка», Рыцарь — «Берсерк»."
+msgstr ""
+
+#: ui/trophy_screen.gd:42
 msgid "Выбрать"
 msgstr ""
 

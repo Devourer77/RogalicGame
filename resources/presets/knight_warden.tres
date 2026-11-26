@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="DeckPreset" load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/deck_preset.gd" id="1_preset"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_sword.tres" id="c_kb_sword"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_sweep.tres" id="c_kb_sweep"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_chop.tres" id="c_kb_chop"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_shield.tres" id="c_kb_shield"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_taunt.tres" id="c_kb_taunt"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_cover.tres" id="c_kb_cover"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_boot.tres" id="c_kb_boot"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_ram.tres" id="c_kb_ram"]
+
+[resource]
+script = ExtResource("1_preset")
+id = "warden"
+title = "Страж"
+description = "Держит строй и бережёт Мага: Вызов, Прикрыть, Поднять щит. Размах и Рубящий удар — по тем, кто подошёл."
+cards = Array[ExtResource("2_card")]([ExtResource("c_kb_sword"), ExtResource("c_kb_sweep"), ExtResource("c_kb_chop"), ExtResource("c_kb_shield"), ExtResource("c_kb_taunt"), ExtResource("c_kb_cover"), ExtResource("c_kb_boot"), ExtResource("c_kb_ram")])
+unlock = ""

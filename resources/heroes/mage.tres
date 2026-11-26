@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="HeroData" load_steps=21 format=3]
+[gd_resource type="Resource" script_class="HeroData" load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="1_hero"]
 [ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
@@ -22,6 +22,10 @@
 [ext_resource type="Resource" path="res://resources/cards/base/mb_lesson.tres" id="c_mb_lesson"]
 [ext_resource type="Resource" path="res://resources/cards/base/mb_overload.tres" id="c_mb_overload"]
 
+[ext_resource type="Resource" path="res://resources/presets/mage_watch.tres" id="p_mage_watch"]
+[ext_resource type="Resource" path="res://resources/presets/mage_kinetic.tres" id="p_mage_kinetic"]
+[ext_resource type="Resource" path="res://resources/presets/mage_overload.tres" id="p_mage_overload"]
+[ext_resource type="Script" path="res://scripts/data/deck_preset.gd" id="3_preset"]
 [resource]
 script = ExtResource("1_hero")
 id = "mage"
@@ -35,3 +39,4 @@ color = Color(0.35, 0.5, 1, 1)
 model = ExtResource("3_model")
 starter_deck = Array[ExtResource("2_card")]([ExtResource("c_mb_staff"), ExtResource("c_mb_spark"), ExtResource("c_mb_spark"), ExtResource("c_mb_shove"), ExtResource("c_mb_dash"), ExtResource("c_mb_shield"), ExtResource("c_mb_focus"), ExtResource("c_mb_discharge")])
 card_pool = Array[ExtResource("2_card")]([ExtResource("c_mb_staff"), ExtResource("c_mb_spark"), ExtResource("c_mb_shove"), ExtResource("c_mb_dash"), ExtResource("c_mb_shield"), ExtResource("c_mb_focus"), ExtResource("c_mb_discharge"), ExtResource("c_mb_pull"), ExtResource("c_mb_swap"), ExtResource("c_mb_transfer"), ExtResource("c_mb_spread"), ExtResource("c_mb_crack"), ExtResource("c_mb_blink"), ExtResource("c_mb_repulse"), ExtResource("c_mb_echo"), ExtResource("c_mb_lesson"), ExtResource("c_mb_overload")])
+presets = Array[ExtResource("3_preset")]([ExtResource("p_mage_watch"), ExtResource("p_mage_kinetic"), ExtResource("p_mage_overload")])

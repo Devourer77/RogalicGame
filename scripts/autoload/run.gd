@@ -135,6 +135,7 @@ var bell: int = 0                 # Звон (сложность) текущег
 var act: int = 1                 # текущий акт (1…FINAL_ACT)
 var final_act: int = FINAL_ACT   # на каком акте кончается забег (замер ботом может взять 1 — только акт 1)
 var act_cleared: bool = false    # босс акта побеждён, впереди награда, трофей и переход в следующий акт
+var presets_opened_now: bool = false   # этот босс только что открыл третьи пресеты — сказать на экране трофея
 var rows_passed: int = 0         # сколько рядов карты пройдено (для Отзвуков)
 var elite_kills: int = 0
 var boss_kills: int = 0
@@ -194,7 +195,8 @@ func start_new_run(new_seed: int = 0, bell_level: int = -1) -> void:
 		var data: HeroData = hero_data.duplicate() as HeroData
 		data.max_hp += Meta.effect_total("hero_hp", hero_data.id)
 		var rh := RunHero.new(data)
-		rh.deck = Meta.start_deck(hero_data)   # своя выкладка из Караульни (или базовая)
+		rh.deck = Meta.start_deck(hero_data)   # пресет и своя выкладка из Караульни
+		rh.start_deck = rh.deck.duplicate()
 		party.append(rh)
 		if Meta.effect_total("start_pick", hero_data.id) > 0:
 			start_picks.append(rh)
@@ -1255,6 +1257,8 @@ func finish_battle(won: bool, hp_left: Array[int]) -> void:
 	if current != null and current.type == MapNode.Type.BOSS:
 		boss_kills += 1
 		last_battle_big = true
+		if act >= 2 and not sim_no_scenes:
+			presets_opened_now = Meta.note_act2_boss()   # босс акта 2 — открыть третьи пресеты в Караульне
 		run_complete = act >= final_act
 		if run_complete:
 			_offer_trophy()   # финальный босс: трофей и итог забега
@@ -1423,7 +1427,7 @@ func set_weights(rh: RunHero) -> Dictionary[String, float]:
 	var counts: Dictionary[String, int] = {}
 	for c in rh.deck:
 		counts[c.card_set] = counts.get(c.card_set, 0) + 1
-	for c in rh.data.starter_deck:
+	for c in rh.start_deck:   # считаем только взятое в забеге, не стартовую колоду
 		counts[c.card_set] = counts.get(c.card_set, 0) - 1
 	var weights: Dictionary[String, float] = {}
 	for key: String in counts:

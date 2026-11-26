@@ -12,6 +12,10 @@ func _ready() -> void:
 	column.add_theme_constant_override("separation", 14)
 	column.add_child(UiKit.make_title(Loc.t("Трофей"), 44, UiKit.BRASS.lightened(0.25)))
 	column.add_child(UiKit.make_text(Loc.t("Среди добычи — вещи Стражи. Одну можно унести: она откроется на Полке трофеев навсегда."), 17, UiKit.TEXT_DIM))
+	if Run.presets_opened_now:
+		# Босс акта 2 открыл третьи готовые колоды (Перегрузка, Берсерк)
+		Run.presets_opened_now = false
+		column.add_child(UiKit.make_text(Loc.t("В Караульне открыты новые стартовые колоды: Маг — «Перегрузка», Рыцарь — «Берсерк»."), 17, UiKit.BRASS.lightened(0.2)))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 18)

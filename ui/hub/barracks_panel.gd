@@ -40,7 +40,7 @@ func _select_hero(id: String) -> void:
 # ---------- Данные героя ----------
 
 func _base() -> Array[String]:
-	return Loadout.ids_of(_hero.starter_deck)
+	return Meta.base_ids(_hero)   # карты выбранного пресета
 
 
 func _rares() -> Array[String]:
@@ -71,9 +71,9 @@ func _stock_cards() -> Array[CardData]:
 func _save() -> void:
 	var base: Array[String] = _base()
 	if _deck == base:
-		Meta.decks.erase(_hero.id)
+		Meta.decks.erase(Meta.deck_key(_hero))
 	else:
-		Meta.decks[_hero.id] = _deck.duplicate()
+		Meta.decks[Meta.deck_key(_hero)] = _deck.duplicate()
 	Meta.save()
 
 
@@ -93,6 +93,8 @@ func _rebuild() -> void:
 		if h.id == _hero.id:
 			recolor_button(t, h.color.lightened(0.35), 3)
 		tabs.add_child(t)
+
+	body.add_child(_make_presets_row())
 
 	# Счётчики
 	var base: Array[String] = _base()
@@ -308,3 +310,44 @@ func _reset_deck() -> void:
 func _say(text: String) -> void:
 	if _message != null and text != "":
 		_message.text = text
+
+
+# ---------- Пресеты ----------
+
+# Ряд готовых колод героя: выбранная подсвечена, закрытая — с замком и условием.
+# У каждого пресета свои изменения: переключение их не стирает.
+func _make_presets_row() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	var current: DeckPreset = Meta.current_preset(_hero)
+	for p in _hero.presets:
+		var open: bool = Meta.preset_unlocked(p)
+		var b: Button = UiKit.make_button(Loc.t(p.title) if open else Loc.t("Закрыто"), _choose_preset.bind(p.id), "" if open else "lock")
+		b.custom_minimum_size = Vector2(200, 36)
+		if open:
+			b.tooltip_text = Loc.t(p.description)
+		else:
+			b.disabled = true
+			b.tooltip_text = Loc.t("Откроется после победы над боссом второго акта.")
+		if p == current:
+			recolor_button(b, _hero.color.lightened(0.35), 3)
+		row.add_child(b)
+	if current != null:
+		var about: Label = UiKit.make_label(Loc.t(current.description), 14, UiKit.TEXT_DIM)
+		about.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		about.custom_minimum_size.x = 760
+		about.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		box.add_child(about)
+	return box
+
+
+func _choose_preset(preset_id: String) -> void:
+	Meta.choose_preset(_hero, preset_id)
+	_deck = Meta.current_deck_ids(_hero)
+	_selected = -1
+	_rebuild()

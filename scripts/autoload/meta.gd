@@ -71,7 +71,9 @@ var charms: Array[String] = [] # id открытых оберегов (кром�
 var charms_chosen: Array[String] = []  # обереги, взятые на следующий забег
 var first_boss_killed: bool = false
 var card_stock: Dictionary = {}  # id героя -> Array[String] id карт («Запас» Караульни)
-var decks: Dictionary = {}       # id героя -> Array[String] id карт своей стартовой колоды
+var decks: Dictionary = {}       # ключ колоды (deck_key) -> Array[String] id карт своей стартовой колоды
+var deck_presets: Dictionary = {}   # id героя -> id выбранного пресета (нет — первый)
+var act2_boss_killed: bool = false  # победа над боссом акта 2 открывает третьи пресеты
 var history: Array[Dictionary] = []  # последние забеги (новые — в конце)
 var spirits_seen: Array[String] = []  # духи, которых отряд хоть раз встречал (логово, клетка, элита)
 var spirits_tamed: Dictionary = {}    # id духа -> сколько раз его покоряли (за все забеги)
@@ -419,6 +421,8 @@ func save() -> void:
 	cfg.set_value("meta", "first_boss_killed", first_boss_killed)
 	cfg.set_value("meta", "card_stock", card_stock)
 	cfg.set_value("meta", "decks", decks)
+	cfg.set_value("meta", "deck_presets", deck_presets)
+	cfg.set_value("meta", "act2_boss_killed", act2_boss_killed)
 	cfg.set_value("meta", "history", history)
 	cfg.set_value("meta", "spirits_seen", spirits_seen)
 	cfg.set_value("meta", "spirits_tamed", spirits_tamed)
@@ -449,6 +453,8 @@ func load_progress() -> void:
 	first_boss_killed = cfg.get_value("meta", "first_boss_killed", false)
 	card_stock = cfg.get_value("meta", "card_stock", {})
 	decks = cfg.get_value("meta", "decks", {})
+	deck_presets = cfg.get_value("meta", "deck_presets", {})
+	act2_boss_killed = cfg.get_value("meta", "act2_boss_killed", false)
 	history.assign(cfg.get_value("meta", "history", []))
 	spirits_seen.assign(cfg.get_value("meta", "spirits_seen", []))
 	spirits_tamed = cfg.get_value("meta", "spirits_tamed", {})
@@ -471,6 +477,8 @@ func reset() -> void:
 	first_boss_killed = false
 	card_stock = {}
 	decks = {}
+	deck_presets = {}
+	act2_boss_killed = false
 	history.clear()
 	spirits_seen.clear()
 	spirits_tamed = {}
@@ -486,11 +494,67 @@ func reset() -> void:
 
 # ---------- Стартовая колода героя (Караульня) ----------
 
-# Текущая стартовая колода героя (id): сохранённая правка или базовая
+# ---------- Пресеты: готовые стартовые колоды ----------
+
+# Открыт ли пресет (третьи открываются победой над боссом акта 2)
+func preset_unlocked(preset: DeckPreset) -> bool:
+	match preset.unlock:
+		"":
+			return true
+		"act2_boss":
+			return act2_boss_killed
+	return false
+
+
+# Выбранный пресет героя; закрытый или пропавший — первый. null, если пресетов нет.
+func current_preset(hero: HeroData) -> DeckPreset:
+	if hero.presets.is_empty():
+		return null
+	var chosen: String = str(deck_presets.get(hero.id, ""))
+	for p in hero.presets:
+		if p.id == chosen and preset_unlocked(p):
+			return p
+	return hero.presets[0]
+
+
+func choose_preset(hero: HeroData, preset_id: String) -> void:
+	for p in hero.presets:
+		if p.id == preset_id and preset_unlocked(p):
+			deck_presets[hero.id] = preset_id
+			save()
+			changed.emit()
+			return
+
+
+# Базовая колода героя — карты выбранного пресета (без пресетов — starter_deck)
+func base_ids(hero: HeroData) -> Array[String]:
+	var p: DeckPreset = current_preset(hero)
+	return Loadout.ids_of(p.cards if p != null else hero.starter_deck)
+
+
+# Под каким ключом хранятся изменения колоды: у каждого пресета свои.
+# Первый пресет — просто id героя (так хранились колоды до пресетов).
+func deck_key(hero: HeroData) -> String:
+	var p: DeckPreset = current_preset(hero)
+	if p == null or p == hero.presets[0]:
+		return hero.id
+	return "%s:%s" % [hero.id, p.id]
+
+
+# Победа над боссом акта 2 (или дальше) — открыть третьи пресеты. true — открыли только что.
+func note_act2_boss() -> bool:
+	if act2_boss_killed:
+		return false
+	act2_boss_killed = true
+	save()
+	return true
+
+
+# Текущая стартовая колода героя (id): сохранённая правка или базовая (пресет)
 func current_deck_ids(hero: HeroData) -> Array[String]:
-	var base: Array[String] = Loadout.ids_of(hero.starter_deck)
+	var base: Array[String] = base_ids(hero)
 	var saved: Array[String] = []
-	saved.assign(decks.get(hero.id, []))
+	saved.assign(decks.get(deck_key(hero), []))
 	if saved.is_empty():
 		return base
 	return Loadout.validate(base, saved, stock_ids(hero.id), Loadout.rare_ids(hero), deck_changes(hero.id))
@@ -501,5 +565,6 @@ func start_deck(hero: HeroData) -> Array[CardData]:
 	var ids: Array[String] = current_deck_ids(hero)
 	var cards: Array[CardData] = Loadout.resolve(hero, ids)
 	if cards.size() != ids.size():
-		return hero.starter_deck.duplicate()   # какой-то карты больше нет в игре — базовая
+		var p: DeckPreset = current_preset(hero)   # какой-то карты больше нет в игре — сам пресет
+		return p.cards.duplicate() if p != null else hero.starter_deck.duplicate()
 	return cards

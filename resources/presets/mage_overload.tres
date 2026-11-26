@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DeckPreset" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/deck_preset.gd" id="1_preset"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_staff.tres" id="c_mb_staff"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_spark.tres" id="c_mb_spark"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_focus.tres" id="c_mb_focus"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_overload.tres" id="c_mb_overload"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_discharge.tres" id="c_mb_discharge"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_shield.tres" id="c_mb_shield"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_blink.tres" id="c_mb_blink"]
+
+[resource]
+script = ExtResource("1_preset")
+id = "overload"
+title = "Перегрузка"
+description = "★ Перегрузка с первого боя. Искры и Сосредоточение копят заряд, Перегрузка его удваивает, Разрядка бьёт на 20+. Скачок уводит Мага от ответного удара."
+cards = Array[ExtResource("2_card")]([ExtResource("c_mb_spark"), ExtResource("c_mb_spark"), ExtResource("c_mb_staff"), ExtResource("c_mb_focus"), ExtResource("c_mb_overload"), ExtResource("c_mb_discharge"), ExtResource("c_mb_shield"), ExtResource("c_mb_blink")])
+unlock = "act2_boss"

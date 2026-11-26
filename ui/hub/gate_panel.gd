@@ -79,7 +79,7 @@ func _bell_rules(bell: int) -> PackedStringArray:
 
 
 func _deck_summary(h: HeroData) -> Control:
-	var base: Array[String] = Loadout.ids_of(h.starter_deck)
+	var base: Array[String] = Meta.base_ids(h)
 	var deck: Array[String] = Meta.current_deck_ids(h)
 	var extras: Array[String] = Loadout.extras(base, deck)
 	var panel: PanelContainer = UiKit.make_panel(Color(UiKit.PANEL_LIGHT, 0.6), h.color.darkened(0.35))
@@ -93,10 +93,12 @@ func _deck_summary(h: HeroData) -> Control:
 	box.add_child(head)
 	var hp: int = h.max_hp + Meta.effect_total("hero_hp", h.id)
 	box.add_child(UiKit.make_label(Loc.t("Здоровье: %d") % hp, 14, UiKit.TEXT_DIM))
+	var preset: DeckPreset = Meta.current_preset(h)
+	var preset_name: String = Loc.t(preset.title) if preset != null else Loc.t("базовая")
 	if extras.is_empty() and deck.size() == base.size() and deck == base:
-		box.add_child(UiKit.make_label(Loc.t("Колода: базовая · %d карт") % deck.size(), 14, UiKit.TEXT))
+		box.add_child(UiKit.make_label(Loc.t("Колода: %s · %d карт") % [preset_name, deck.size()], 14, UiKit.TEXT))
 	else:
-		var line: Label = UiKit.make_label(Loc.t("Колода: своя · %d карт, изменений: %d") % [deck.size(), extras.size()], 14, UiKit.TEXT)
+		var line: Label = UiKit.make_label(Loc.t("Колода: %s · %d карт, изменений: %d") % [preset_name, deck.size(), extras.size()], 14, UiKit.TEXT)
 		line.mouse_filter = Control.MOUSE_FILTER_PASS
 		var diff: PackedStringArray = []
 		for id in extras:

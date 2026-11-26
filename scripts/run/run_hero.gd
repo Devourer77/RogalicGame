@@ -6,12 +6,14 @@ var data: HeroData
 var hp: int = 0
 var deck: Array[CardData] = []
 var spirits: Array[SpiritData] = []   # прирученные духи (до Run.SPIRIT_SLOTS)
+var start_deck: Array[CardData] = []  # колода на старте забега (пресет из Караульни) — для весов наборов
 
 
 func _init(hero_data: HeroData) -> void:
 	data = hero_data
 	hp = hero_data.max_hp
 	deck = hero_data.starter_deck.duplicate()
+	start_deck = deck.duplicate()
 
 
 # Лечение в обход реликвий. Экраны забега лечат через Run.heal_hero() — там учитывается «Клеймо стража».

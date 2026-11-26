@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DeckPreset" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/deck_preset.gd" id="1_preset"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_staff.tres" id="c_mb_staff"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_spark.tres" id="c_mb_spark"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_shove.tres" id="c_mb_shove"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_dash.tres" id="c_mb_dash"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_shield.tres" id="c_mb_shield"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_focus.tres" id="c_mb_focus"]
+[ext_resource type="Resource" path="res://resources/cards/base/mb_discharge.tres" id="c_mb_discharge"]
+
+[resource]
+script = ExtResource("1_preset")
+id = "watch"
+title = "Дозорный"
+description = "Как было: понемногу всего. Искры копят заряд, Разрядка его тратит, Толчок и Рывок — для позиции."
+cards = Array[ExtResource("2_card")]([ExtResource("c_mb_staff"), ExtResource("c_mb_spark"), ExtResource("c_mb_spark"), ExtResource("c_mb_shove"), ExtResource("c_mb_dash"), ExtResource("c_mb_shield"), ExtResource("c_mb_focus"), ExtResource("c_mb_discharge")])
+unlock = ""

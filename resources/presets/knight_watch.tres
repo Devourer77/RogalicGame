@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="DeckPreset" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/deck_preset.gd" id="1_preset"]
+[ext_resource type="Script" path="res://scripts/data/card_data.gd" id="2_card"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_sword.tres" id="c_kb_sword"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_lunge.tres" id="c_kb_lunge"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_shield.tres" id="c_kb_shield"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_runup.tres" id="c_kb_runup"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_ram.tres" id="c_kb_ram"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_taunt.tres" id="c_kb_taunt"]
+[ext_resource type="Resource" path="res://resources/cards/base/kb_execute.tres" id="c_kb_execute"]
+
+[resource]
+script = ExtResource("1_preset")
+id = "watch"
+title = "Дозорный"
+description = "Как было: разгон и удары. Разбег и Таран копят натиск, Удар мечом и Добивание его тратят."
+cards = Array[ExtResource("2_card")]([ExtResource("c_kb_sword"), ExtResource("c_kb_sword"), ExtResource("c_kb_lunge"), ExtResource("c_kb_shield"), ExtResource("c_kb_runup"), ExtResource("c_kb_ram"), ExtResource("c_kb_taunt"), ExtResource("c_kb_execute")])
+unlock = ""

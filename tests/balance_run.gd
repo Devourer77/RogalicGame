@@ -35,6 +35,15 @@ func _initialize() -> void:
 		if a.begins_with("bell"):
 			bell = a.trim_prefix("bell").to_int()
 	run.sim_no_scenes = true
+	# PRESETS=kinetic,warden — с какими готовыми колодами начинать (Маг, Рыцарь); закрытые тоже можно
+	var presets_env: String = OS.get_environment("PRESETS")
+	if presets_env != "":
+		var meta = root.get_node("Meta")
+		meta.save_path = "user://balance_presets.cfg"
+		meta.act2_boss_killed = true
+		var ids: PackedStringArray = presets_env.split(",")
+		for i in mini(ids.size(), run.HEROES.size()):
+			meta.deck_presets[run.HEROES[i].id] = ids[i]
 	run.final_act = 1 if args.has("act1") else run.FINAL_ACT
 	var reached_act: Dictionary = {}   # акт → сколько забегов до него дошли
 	run.wounds_per_fall = 0 if args.has("nowound") else run.WOUNDS_PER_FALL
